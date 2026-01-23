@@ -90,38 +90,59 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         </div>
 
         {/* Series Tools */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-4 gap-4 mb-8">
           <Link
             href={`/series/${seriesId}/outline`}
             className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
           >
             <h3 className="font-medium mb-1">Series Outline</h3>
-            <p className="text-zinc-500 text-sm">Plan structure with AI-assisted summaries</p>
+            <p className="text-zinc-500 text-sm">Plan structure with AI summaries</p>
+          </Link>
+          <Link
+            href={`/series/${seriesId}/analytics`}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
+          >
+            <h3 className="font-medium mb-1">Analytics</h3>
+            <p className="text-zinc-500 text-sm">Stats, progress, and insights</p>
           </Link>
           <Link
             href={`/series/${seriesId}/sessions`}
             className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
           >
             <h3 className="font-medium mb-1">Session History</h3>
-            <p className="text-zinc-500 text-sm">Track writing progress and loose ends</p>
+            <p className="text-zinc-500 text-sm">Track progress and loose ends</p>
+          </Link>
+          <Link
+            href={`/series/${seriesId}/continuity`}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
+          >
+            <h3 className="font-medium mb-1">Continuity Check</h3>
+            <p className="text-zinc-500 text-sm">Detect errors and inconsistencies</p>
           </Link>
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <Link
             href={`/series/${seriesId}/characters`}
             className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
           >
             <h3 className="font-medium mb-1">Characters</h3>
-            <p className="text-zinc-500 text-sm">Manage your character database</p>
+            <p className="text-zinc-500 text-sm">Manage character database</p>
+          </Link>
+          <Link
+            href={`/series/${seriesId}/character-arcs`}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
+          >
+            <h3 className="font-medium mb-1">Character Arcs</h3>
+            <p className="text-zinc-500 text-sm">Track emotional journeys</p>
           </Link>
           <Link
             href={`/series/${seriesId}/locations`}
             className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
           >
             <h3 className="font-medium mb-1">Locations</h3>
-            <p className="text-zinc-500 text-sm">Manage your location database</p>
+            <p className="text-zinc-500 text-sm">Manage location database</p>
           </Link>
           <Link
             href={`/series/${seriesId}/plotlines`}
