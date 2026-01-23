@@ -180,6 +180,18 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         </div>
         <div className="flex items-center gap-4">
           <Link
+            href={`/series/${seriesId}/issues/${issue.id}/import`}
+            className="text-sm text-zinc-400 hover:text-white"
+          >
+            Import
+          </Link>
+          <Link
+            href={`/series/${seriesId}/issues/${issue.id}/weave`}
+            className="text-sm text-zinc-400 hover:text-white"
+          >
+            Weave
+          </Link>
+          <Link
             href={`/series/${seriesId}/issues/${issue.id}/history`}
             className="text-sm text-zinc-400 hover:text-white"
           >

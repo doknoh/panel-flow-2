@@ -89,6 +89,24 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           <IssueGrid issues={series.issues || []} seriesId={seriesId} />
         </div>
 
+        {/* Series Tools */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <Link
+            href={`/series/${seriesId}/outline`}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
+          >
+            <h3 className="font-medium mb-1">Series Outline</h3>
+            <p className="text-zinc-500 text-sm">Plan structure with AI-assisted summaries</p>
+          </Link>
+          <Link
+            href={`/series/${seriesId}/sessions`}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
+          >
+            <h3 className="font-medium mb-1">Session History</h3>
+            <p className="text-zinc-500 text-sm">Track writing progress and loose ends</p>
+          </Link>
+        </div>
+
         {/* Quick Links */}
         <div className="grid grid-cols-3 gap-4">
           <Link
