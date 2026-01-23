@@ -20,8 +20,16 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+interface Plotline {
+  id: string
+  name: string
+  color: string
+  description: string | null
+}
+
 interface NavigationTreeProps {
   issue: any
+  plotlines: Plotline[]
   selectedPageId: string | null
   onSelectPage: (pageId: string) => void
   onRefresh: () => void
@@ -50,10 +58,11 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
   )
 }
 
-export default function NavigationTree({ issue, selectedPageId, onSelectPage, onRefresh }: NavigationTreeProps) {
+export default function NavigationTree({ issue, plotlines, selectedPageId, onSelectPage, onRefresh }: NavigationTreeProps) {
   const [expandedActs, setExpandedActs] = useState<Set<string>>(new Set(issue.acts?.map((a: any) => a.id) || []))
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
   const [isMounted, setIsMounted] = useState(false)
+  const [editingScenePlotline, setEditingScenePlotline] = useState<string | null>(null)
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
   useEffect(() => {
@@ -205,6 +214,19 @@ export default function NavigationTree({ issue, selectedPageId, onSelectPage, on
     onRefresh()
   }
 
+  const updateScenePlotline = async (sceneId: string, plotlineId: string | null) => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('scenes')
+      .update({ plotline_id: plotlineId })
+      .eq('id', sceneId)
+
+    if (!error) {
+      onRefresh()
+    }
+    setEditingScenePlotline(null)
+  }
+
   const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
 
   return (
@@ -277,7 +299,17 @@ export default function NavigationTree({ issue, selectedPageId, onSelectPage, on
                                     <span className="text-zinc-500 text-xs">
                                       {expandedScenes.has(scene.id) ? '▼' : '▶'}
                                     </span>
-                                    <span className="text-sm text-zinc-300 flex-1">
+                                    {/* Plotline color indicator */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setEditingScenePlotline(editingScenePlotline === scene.id ? null : scene.id)
+                                      }}
+                                      className="w-3 h-3 rounded-full flex-shrink-0 border border-zinc-600 hover:border-zinc-400"
+                                      style={{ backgroundColor: scene.plotline?.color || 'transparent' }}
+                                      title={scene.plotline?.name || 'No plotline assigned'}
+                                    />
+                                    <span className="text-sm text-zinc-300 flex-1 truncate">
                                       {scene.title || 'Untitled Scene'}
                                     </span>
                                     <button
@@ -287,6 +319,44 @@ export default function NavigationTree({ issue, selectedPageId, onSelectPage, on
                                       +
                                     </button>
                                   </div>
+                                  {/* Plotline selector dropdown */}
+                                  {editingScenePlotline === scene.id && (
+                                    <div className="ml-6 mt-1 mb-2 bg-zinc-800 border border-zinc-700 rounded p-2">
+                                      <div className="text-xs text-zinc-400 mb-2">Assign plotline:</div>
+                                      <div className="space-y-1">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            updateScenePlotline(scene.id, null)
+                                          }}
+                                          className={`w-full text-left text-xs px-2 py-1 rounded flex items-center gap-2 ${
+                                            !scene.plotline_id ? 'bg-zinc-700' : 'hover:bg-zinc-700'
+                                          }`}
+                                        >
+                                          <span className="w-2 h-2 rounded-full border border-zinc-500" />
+                                          <span className="text-zinc-400">None</span>
+                                        </button>
+                                        {plotlines.map((plotline) => (
+                                          <button
+                                            key={plotline.id}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              updateScenePlotline(scene.id, plotline.id)
+                                            }}
+                                            className={`w-full text-left text-xs px-2 py-1 rounded flex items-center gap-2 ${
+                                              scene.plotline?.id === plotline.id ? 'bg-zinc-700' : 'hover:bg-zinc-700'
+                                            }`}
+                                          >
+                                            <span
+                                              className="w-2 h-2 rounded-full flex-shrink-0"
+                                              style={{ backgroundColor: plotline.color }}
+                                            />
+                                            <span className="truncate">{plotline.name}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
 
                                   {/* Pages */}
                                   {expandedScenes.has(scene.id) && (

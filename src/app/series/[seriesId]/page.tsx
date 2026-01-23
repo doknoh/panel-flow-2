@@ -25,10 +25,11 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     notFound()
   }
 
-  // Fetch characters and locations counts
-  const [{ count: characterCount }, { count: locationCount }] = await Promise.all([
+  // Fetch characters, locations, and plotlines counts
+  const [{ count: characterCount }, { count: locationCount }, { count: plotlineCount }] = await Promise.all([
     supabase.from('characters').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
     supabase.from('locations').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
+    supabase.from('plotlines').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
   ])
 
   return (
@@ -60,7 +61,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-4 gap-4 mb-8">
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
             <div className="text-2xl font-bold">{series.issues?.length || 0}</div>
             <div className="text-zinc-500 text-sm">Issues</div>
@@ -72,6 +73,10 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
             <div className="text-2xl font-bold">{locationCount || 0}</div>
             <div className="text-zinc-500 text-sm">Locations</div>
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <div className="text-2xl font-bold">{plotlineCount || 0}</div>
+            <div className="text-zinc-500 text-sm">Plotlines</div>
           </div>
         </div>
 
@@ -85,7 +90,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <Link
             href={`/series/${seriesId}/characters`}
             className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
@@ -99,6 +104,13 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           >
             <h3 className="font-medium mb-1">Locations</h3>
             <p className="text-zinc-500 text-sm">Manage your location database</p>
+          </Link>
+          <Link
+            href={`/series/${seriesId}/plotlines`}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
+          >
+            <h3 className="font-medium mb-1">Plotlines</h3>
+            <p className="text-zinc-500 text-sm">Define narrative threads</p>
           </Link>
         </div>
       </main>

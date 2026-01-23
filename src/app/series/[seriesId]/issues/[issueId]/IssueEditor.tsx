@@ -7,7 +7,15 @@ import NavigationTree from './NavigationTree'
 import PageEditor from './PageEditor'
 import Toolkit from './Toolkit'
 import { exportIssueToPdf } from '@/lib/exportPdf'
+import { exportIssueToDocx } from '@/lib/exportDocx'
 import { useToast } from '@/contexts/ToastContext'
+
+interface Plotline {
+  id: string
+  name: string
+  color: string
+  description: string | null
+}
 
 interface Issue {
   id: string
@@ -21,6 +29,7 @@ interface Issue {
     title: string
     characters: any[]
     locations: any[]
+    plotlines: Plotline[]
   }
   acts: any[]
 }
@@ -59,12 +68,14 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
           id,
           title,
           characters (*),
-          locations (*)
+          locations (*),
+          plotlines (*)
         ),
         acts (
           *,
           scenes (
             *,
+            plotline:plotline_id (*),
             pages (
               *,
               panels (
@@ -174,12 +185,20 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
           >
             History
           </Link>
-          <button
-            onClick={() => exportIssueToPdf(issue)}
-            className="text-sm bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded"
-          >
-            Export PDF
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => exportIssueToPdf(issue)}
+              className="text-sm bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded"
+            >
+              Export PDF
+            </button>
+            <button
+              onClick={() => exportIssueToDocx(issue)}
+              className="text-sm bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded"
+            >
+              Export Doc
+            </button>
+          </div>
           <span className={`text-sm ${
             saveStatus === 'saved' ? 'text-green-500' :
             saveStatus === 'saving' ? 'text-yellow-500' :
@@ -198,6 +217,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         <div className="w-64 border-r border-zinc-800 overflow-y-auto shrink-0">
           <NavigationTree
             issue={issue}
+            plotlines={issue.series.plotlines || []}
             selectedPageId={selectedPageId}
             onSelectPage={setSelectedPageId}
             onRefresh={refreshIssue}

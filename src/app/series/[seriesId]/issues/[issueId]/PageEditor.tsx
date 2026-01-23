@@ -258,6 +258,29 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     scheduleAutoSave()
   }
 
+  // Auto-capitalize character names in visual descriptions
+  const autoCapitalizeCharacterNames = useCallback((text: string): string => {
+    if (!text || characters.length === 0) return text
+
+    let result = text
+    for (const character of characters) {
+      // Create a regex that matches the character name as a whole word (case-insensitive)
+      // but not if it's already all caps
+      const name = character.name
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+      // Match the name as a word boundary, case-insensitive
+      const regex = new RegExp(`\\b(${escapedName})\\b`, 'gi')
+
+      result = result.replace(regex, (match) => {
+        // Only capitalize if not already all caps
+        if (match === match.toUpperCase()) return match
+        return match.toUpperCase()
+      })
+    }
+    return result
+  }, [characters])
+
   const handlePanelBlur = (panel: Panel) => {
     // Immediate save on blur (in addition to auto-save)
     if (saveTimerRef.current) {
@@ -269,6 +292,20 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
       next.delete(panel.id)
       return next
     })
+  }
+
+  // Handle visual description blur - auto-capitalize character names
+  const handleVisualDescriptionBlur = (panel: Panel) => {
+    const capitalizedText = autoCapitalizeCharacterNames(panel.visual_description || '')
+
+    // Only update if text changed
+    if (capitalizedText !== panel.visual_description) {
+      const updatedPanel = { ...panel, visual_description: capitalizedText }
+      setPanels(prev => prev.map(p => p.id === panel.id ? updatedPanel : p))
+      handlePanelBlur(updatedPanel)
+    } else {
+      handlePanelBlur(panel)
+    }
   }
 
   const addDialogue = async (panelId: string) => {
@@ -489,11 +526,14 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
               <div className="p-4 space-y-4">
                 {/* Visual Description */}
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Visual Description</label>
+                  <label className="block text-sm text-zinc-400 mb-1">
+                    Visual Description
+                    <span className="text-zinc-500 font-normal ml-2">(character names auto-capitalize)</span>
+                  </label>
                   <textarea
                     value={panel.visual_description || ''}
                     onChange={(e) => updatePanelField(panel.id, 'visual_description', e.target.value)}
-                    onBlur={() => handlePanelBlur(panel)}
+                    onBlur={() => handleVisualDescriptionBlur(panel)}
                     placeholder="Describe what the reader sees in this panel..."
                     className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
                     rows={3}

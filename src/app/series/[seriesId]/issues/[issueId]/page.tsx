@@ -22,12 +22,14 @@ export default async function IssuePage({
         id,
         title,
         characters (*),
-        locations (*)
+        locations (*),
+        plotlines (*)
       ),
       acts (
         *,
         scenes (
           *,
+          plotline:plotline_id (*),
           pages (
             *,
             panels (
