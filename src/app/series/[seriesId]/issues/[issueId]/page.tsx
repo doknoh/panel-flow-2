@@ -43,7 +43,13 @@ export default async function IssuePage({
     .eq('id', issueId)
     .single()
 
-  if (error || !issue) {
+  if (error) {
+    console.error('Issue fetch error:', error)
+    notFound()
+  }
+
+  if (!issue) {
+    console.error('Issue not found for id:', issueId)
     notFound()
   }
 
