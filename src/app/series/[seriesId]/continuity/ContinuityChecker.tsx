@@ -270,7 +270,7 @@ ${ic.text.slice(0, 3000)}
     const data = await response.json()
 
     // Parse response
-    let jsonStr = data.message
+    let jsonStr = data.response
     jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '')
 
     const startIdx = jsonStr.indexOf('{')

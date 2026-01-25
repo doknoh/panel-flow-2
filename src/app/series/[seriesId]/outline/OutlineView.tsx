@@ -215,7 +215,7 @@ export default function OutlineView({ series }: OutlineViewProps) {
       if (!response.ok) throw new Error('Failed to generate summary')
 
       const data = await response.json()
-      setGeneratedSummaries(prev => new Map(prev).set(issue.id, data.message))
+      setGeneratedSummaries(prev => new Map(prev).set(issue.id, data.response))
       showToast('Summary generated', 'success')
     } catch (error) {
       console.error('Error generating summary:', error)

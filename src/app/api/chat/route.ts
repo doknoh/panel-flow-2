@@ -15,11 +15,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { message, context } = await request.json()
+    const { message, context, maxTokens } = await request.json()
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
+
+    // Allow custom max_tokens up to 8192, default to 1024
+    const tokens = Math.min(maxTokens || 1024, 8192)
 
     const systemPrompt = `You are a helpful writing assistant for comic book and graphic novel scriptwriters. You help with:
 - Crafting compelling dialogue
@@ -35,7 +38,7 @@ Keep responses concise and actionable. When suggesting dialogue, format it clear
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      max_tokens: tokens,
       system: systemPrompt,
       messages: [
         { role: 'user', content: message }
