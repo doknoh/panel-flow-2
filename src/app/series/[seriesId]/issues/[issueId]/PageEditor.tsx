@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useOffline } from '@/contexts/OfflineContext'
+import { useUndo } from '@/contexts/UndoContext'
 
 interface Character {
   id: string
@@ -69,6 +70,7 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const { showToast } = useToast()
   const { isOnline, queueChange, pendingChanges: offlinePending } = useOffline()
+  const { recordAction, startTextEdit, endTextEdit } = useUndo()
 
   useEffect(() => {
     const sortedPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
@@ -294,9 +296,12 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     })
   }
 
-  // Handle visual description blur - auto-capitalize character names
+  // Handle visual description blur - auto-capitalize character names and record undo
   const handleVisualDescriptionBlur = (panel: Panel) => {
     const capitalizedText = autoCapitalizeCharacterNames(panel.visual_description || '')
+
+    // Record the text edit for undo
+    endTextEdit(panel.id, 'visual_description', capitalizedText)
 
     // Only update if text changed
     if (capitalizedText !== panel.visual_description) {
@@ -308,12 +313,21 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     }
   }
 
+  // Handle starting a text field edit (for undo tracking)
+  const handleTextFieldFocus = (panelId: string, field: string, currentValue: string | null) => {
+    startTextEdit(panelId, field, currentValue)
+  }
+
+  // Handle other panel field blur (notes, etc.) with undo recording
+  const handleOtherFieldBlur = (panel: Panel, field: 'notes' | 'shot_type') => {
+    endTextEdit(panel.id, field, panel[field] || null)
+    handlePanelBlur(panel)
+  }
+
   const addDialogue = async (panelId: string) => {
     const supabase = createClient()
     const panel = panels.find(p => p.id === panelId)
     const sortOrder = (panel?.dialogue_blocks?.length || 0) + 1
-
-    console.log('Adding dialogue to panel:', panelId)
 
     const { data, error } = await supabase
       .from('dialogue_blocks')
@@ -324,19 +338,43 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
         sort_order: sortOrder,
       })
       .select()
+      .single()
 
     if (error) {
       console.error('Error adding dialogue:', error)
       showToast('Failed to add dialogue: ' + error.message, 'error')
-    } else {
-      console.log('Dialogue added:', data)
+    } else if (data) {
+      // Record undo action
+      recordAction({
+        type: 'dialogue_add',
+        dialogueId: data.id,
+        panelId,
+        data: {
+          dialogue_type: 'dialogue',
+          text: '',
+          sort_order: sortOrder,
+        },
+        description: 'Add dialogue',
+      })
       onUpdate()
     }
   }
 
-  const updateDialogue = async (dialogueId: string, field: string, value: string) => {
+  const updateDialogue = async (dialogueId: string, field: string, value: string, oldValue?: string) => {
     setSaveStatus('saving')
     const supabase = createClient()
+
+    // Record undo action if we have the old value
+    if (oldValue !== undefined && oldValue !== value) {
+      recordAction({
+        type: 'dialogue_update',
+        dialogueId,
+        field,
+        oldValue,
+        newValue: value,
+        description: `Update dialogue ${field}`,
+      })
+    }
 
     const { error } = await supabase
       .from('dialogue_blocks')
@@ -351,9 +389,38 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     }
   }
 
-  const deleteDialogue = async (dialogueId: string) => {
+  const deleteDialogue = async (dialogueId: string, panelId: string, dialogueData?: any) => {
     const supabase = createClient()
-    await supabase.from('dialogue_blocks').delete().eq('id', dialogueId)
+
+    // Get the dialogue data for undo if not provided
+    let dataForUndo = dialogueData
+    if (!dataForUndo) {
+      const { data } = await supabase
+        .from('dialogue_blocks')
+        .select('*')
+        .eq('id', dialogueId)
+        .single()
+      dataForUndo = data
+    }
+
+    const { error } = await supabase.from('dialogue_blocks').delete().eq('id', dialogueId)
+
+    if (!error && dataForUndo) {
+      recordAction({
+        type: 'dialogue_delete',
+        dialogueId,
+        panelId,
+        data: {
+          dialogue_type: dataForUndo.dialogue_type,
+          text: dataForUndo.text,
+          sort_order: dataForUndo.sort_order,
+          character_id: dataForUndo.character_id,
+          modifier: dataForUndo.modifier,
+        },
+        description: 'Delete dialogue',
+      })
+    }
+
     onUpdate()
   }
 
@@ -361,8 +428,6 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     const supabase = createClient()
     const panel = panels.find(p => p.id === panelId)
     const sortOrder = (panel?.captions?.length || 0) + 1
-
-    console.log('Adding caption to panel:', panelId)
 
     const { data, error } = await supabase
       .from('captions')
@@ -373,19 +438,41 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
         sort_order: sortOrder,
       })
       .select()
+      .single()
 
     if (error) {
       console.error('Error adding caption:', error)
       showToast('Failed to add caption: ' + error.message, 'error')
-    } else {
-      console.log('Caption added:', data)
+    } else if (data) {
+      recordAction({
+        type: 'caption_add',
+        captionId: data.id,
+        panelId,
+        data: {
+          caption_type: 'narrative',
+          text: '',
+          sort_order: sortOrder,
+        },
+        description: 'Add caption',
+      })
       onUpdate()
     }
   }
 
-  const updateCaption = async (captionId: string, field: string, value: string) => {
+  const updateCaption = async (captionId: string, field: string, value: string, oldValue?: string) => {
     setSaveStatus('saving')
     const supabase = createClient()
+
+    if (oldValue !== undefined && oldValue !== value) {
+      recordAction({
+        type: 'caption_update',
+        captionId,
+        field,
+        oldValue,
+        newValue: value,
+        description: `Update caption ${field}`,
+      })
+    }
 
     const { error } = await supabase
       .from('captions')
@@ -400,9 +487,32 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     }
   }
 
-  const deleteCaption = async (captionId: string) => {
+  const deleteCaption = async (captionId: string, panelId: string) => {
     const supabase = createClient()
-    await supabase.from('captions').delete().eq('id', captionId)
+
+    // Get the caption data for undo
+    const { data: captionData } = await supabase
+      .from('captions')
+      .select('*')
+      .eq('id', captionId)
+      .single()
+
+    const { error } = await supabase.from('captions').delete().eq('id', captionId)
+
+    if (!error && captionData) {
+      recordAction({
+        type: 'caption_delete',
+        captionId,
+        panelId,
+        data: {
+          caption_type: captionData.caption_type,
+          text: captionData.text,
+          sort_order: captionData.sort_order,
+        },
+        description: 'Delete caption',
+      })
+    }
+
     onUpdate()
   }
 
@@ -410,8 +520,6 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     const supabase = createClient()
     const panel = panels.find(p => p.id === panelId)
     const sortOrder = (panel?.sound_effects?.length || 0) + 1
-
-    console.log('Adding sound effect to panel:', panelId)
 
     const { data, error } = await supabase
       .from('sound_effects')
@@ -421,19 +529,39 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
         sort_order: sortOrder,
       })
       .select()
+      .single()
 
     if (error) {
       console.error('Error adding sound effect:', error)
       showToast('Failed to add sound effect: ' + error.message, 'error')
-    } else {
-      console.log('Sound effect added:', data)
+    } else if (data) {
+      recordAction({
+        type: 'sfx_add',
+        sfxId: data.id,
+        panelId,
+        data: {
+          text: '',
+          sort_order: sortOrder,
+        },
+        description: 'Add sound effect',
+      })
       onUpdate()
     }
   }
 
-  const updateSoundEffect = async (sfxId: string, text: string) => {
+  const updateSoundEffect = async (sfxId: string, text: string, oldText?: string) => {
     setSaveStatus('saving')
     const supabase = createClient()
+
+    if (oldText !== undefined && oldText !== text) {
+      recordAction({
+        type: 'sfx_update',
+        sfxId,
+        oldValue: oldText,
+        newValue: text,
+        description: 'Update sound effect',
+      })
+    }
 
     const { error } = await supabase
       .from('sound_effects')
@@ -448,15 +576,60 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     }
   }
 
-  const deleteSoundEffect = async (sfxId: string) => {
+  const deleteSoundEffect = async (sfxId: string, panelId: string) => {
     const supabase = createClient()
-    await supabase.from('sound_effects').delete().eq('id', sfxId)
+
+    // Get the sfx data for undo
+    const { data: sfxData } = await supabase
+      .from('sound_effects')
+      .select('*')
+      .eq('id', sfxId)
+      .single()
+
+    const { error } = await supabase.from('sound_effects').delete().eq('id', sfxId)
+
+    if (!error && sfxData) {
+      recordAction({
+        type: 'sfx_delete',
+        sfxId,
+        panelId,
+        data: {
+          text: sfxData.text,
+          sort_order: sfxData.sort_order,
+        },
+        description: 'Delete sound effect',
+      })
+    }
+
     onUpdate()
   }
 
   const deletePanel = async (panelId: string) => {
     const supabase = createClient()
-    await supabase.from('panels').delete().eq('id', panelId)
+
+    // Get full panel data for undo (including dialogue, captions, sfx)
+    const panel = panels.find(p => p.id === panelId)
+
+    const { error } = await supabase.from('panels').delete().eq('id', panelId)
+
+    if (!error && panel) {
+      recordAction({
+        type: 'panel_delete',
+        panelId,
+        pageId: page.id,
+        data: {
+          panel_number: panel.panel_number,
+          visual_description: panel.visual_description,
+          shot_type: panel.shot_type,
+          notes: panel.notes,
+          sort_order: panel.panel_number,
+          // Note: Dialogue/captions/sfx would need to be restored separately
+          // This is a simplified version that restores the panel structure
+        },
+        description: 'Delete panel',
+      })
+    }
+
     onUpdate()
   }
 
@@ -532,6 +705,7 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
                   </label>
                   <textarea
                     value={panel.visual_description || ''}
+                    onFocus={() => handleTextFieldFocus(panel.id, 'visual_description', panel.visual_description)}
                     onChange={(e) => updatePanelField(panel.id, 'visual_description', e.target.value)}
                     onBlur={() => handleVisualDescriptionBlur(panel)}
                     placeholder="Describe what the reader sees in this panel..."
@@ -580,7 +754,7 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
                               <option value="electronic">Electronic</option>
                             </select>
                             <button
-                              onClick={() => deleteDialogue(dialogue.id)}
+                              onClick={() => deleteDialogue(dialogue.id, panel.id)}
                               className="text-zinc-500 hover:text-red-400 px-2"
                             >
                               ×
@@ -626,7 +800,7 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
                               <option value="editorial">Editorial</option>
                             </select>
                             <button
-                              onClick={() => deleteCaption(caption.id)}
+                              onClick={() => deleteCaption(caption.id, panel.id)}
                               className="text-zinc-500 hover:text-red-400 px-2 ml-auto"
                             >
                               ×
@@ -668,7 +842,7 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
                             className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm font-bold uppercase focus:border-blue-500 focus:outline-none"
                           />
                           <button
-                            onClick={() => deleteSoundEffect(sfx.id)}
+                            onClick={() => deleteSoundEffect(sfx.id, panel.id)}
                             className="text-zinc-500 hover:text-red-400 px-2"
                           >
                             ×
@@ -683,8 +857,9 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
                   <label className="block text-sm text-zinc-400 mb-1">Artist Notes (Optional)</label>
                   <textarea
                     value={panel.notes || ''}
+                    onFocus={() => handleTextFieldFocus(panel.id, 'notes', panel.notes)}
                     onChange={(e) => updatePanelField(panel.id, 'notes', e.target.value)}
-                    onBlur={() => handlePanelBlur(panel)}
+                    onBlur={() => handleOtherFieldBlur(panel, 'notes')}
                     placeholder="Additional notes for the artist..."
                     className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
                     rows={2}

@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import IssueGrid from './IssueGrid'
 import CreateIssueButton from './CreateIssueButton'
+import SeriesMetadata from './SeriesMetadata'
 
 export default async function SeriesPage({ params }: { params: Promise<{ seriesId: string }> }) {
   const { seriesId } = await params
@@ -49,16 +50,13 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Series Info */}
-        <div className="mb-8">
-          {series.logline && (
-            <p className="text-zinc-400 text-lg mb-4">{series.logline}</p>
-          )}
-          {series.central_theme && (
-            <p className="text-zinc-500">
-              <span className="font-medium">Theme:</span> {series.central_theme}
-            </p>
-          )}
-        </div>
+        <SeriesMetadata
+          seriesId={seriesId}
+          initialLogline={series.logline}
+          initialTheme={series.central_theme}
+          initialVisualGrammar={series.visual_grammar}
+          initialRules={series.rules}
+        />
 
         {/* Quick Stats */}
         <div className="grid grid-cols-4 gap-4 mb-8">
@@ -118,6 +116,13 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           >
             <h3 className="font-medium mb-1">Continuity Check</h3>
             <p className="text-zinc-500 text-sm">Detect errors and inconsistencies</p>
+          </Link>
+          <Link
+            href={`/series/${seriesId}/notes`}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
+          >
+            <h3 className="font-medium mb-1">Project Notes</h3>
+            <p className="text-zinc-500 text-sm">Questions, decisions, insights</p>
           </Link>
         </div>
 

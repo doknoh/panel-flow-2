@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import Link from 'next/link'
@@ -9,6 +9,22 @@ interface Plotline {
   id: string
   name: string
   color: string
+}
+
+interface ProposedOutline {
+  issueId: string
+  issueNumber: number
+  currentSummary: string | null
+  proposedSummary: string
+  currentThemes: string | null
+  proposedThemes: string
+  acts: {
+    actNumber: number
+    currentTitle: string | null
+    proposedTitle: string
+    currentBeatSummary: string | null
+    proposedBeatSummary: string
+  }[]
 }
 
 interface DialogueBlock {
@@ -46,6 +62,7 @@ interface Act {
   number: number
   scenes: Scene[]
   sort_order: number
+  beat_summary: string | null
 }
 
 interface Issue {
@@ -75,6 +92,10 @@ export default function OutlineView({ series }: OutlineViewProps) {
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set())
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedSummaries, setGeneratedSummaries] = useState<Map<string, string>>(new Map())
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [proposedOutlines, setProposedOutlines] = useState<ProposedOutline[]>([])
+  const [showDiffView, setShowDiffView] = useState(false)
+  const [acceptedChanges, setAcceptedChanges] = useState<Set<string>>(new Set())
   const { showToast } = useToast()
 
   const toggleIssue = (issueId: string) => {
@@ -249,6 +270,170 @@ export default function OutlineView({ series }: OutlineViewProps) {
     }
   }
 
+  // Sync outline from scripts - generates proposed updates for all issues
+  const syncOutlineFromScripts = async () => {
+    setIsSyncing(true)
+    setProposedOutlines([])
+    setAcceptedChanges(new Set())
+
+    try {
+      const proposed: ProposedOutline[] = []
+
+      for (const issue of series.issues) {
+        // Collect all script content for the issue
+        const scriptContent: string[] = []
+        const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
+
+        for (const act of sortedActs) {
+          scriptContent.push(`\n--- ${act.title || `ACT ${act.number}`} ---\n`)
+          const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+
+          for (const scene of sortedScenes) {
+            if (scene.title) scriptContent.push(`SCENE: ${scene.title}`)
+            for (const page of (scene.pages || [])) {
+              for (const panel of (page.panels || [])) {
+                if (panel.visual_description) scriptContent.push(panel.visual_description)
+                for (const dialogue of (panel.dialogue_blocks || [])) {
+                  if (dialogue.text) scriptContent.push(`"${dialogue.text}"`)
+                }
+              }
+            }
+          }
+        }
+
+        if (scriptContent.length < 10) continue // Skip issues with no content
+
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Analyze this comic script and generate outline metadata. Return ONLY valid JSON (no markdown).
+
+Script for Issue #${issue.number}:
+${scriptContent.join('\n').slice(0, 8000)}
+
+Return this exact JSON structure:
+{
+  "summary": "2-3 sentence summary of what happens",
+  "themes": "Key themes explored in this issue",
+  "acts": [
+    {"number": 1, "title": "Suggested act title", "beatSummary": "Key beats in this act"}
+  ]
+}`,
+            context: { seriesTitle: series.title },
+          }),
+        })
+
+        if (!response.ok) continue
+
+        const data = await response.json()
+        let jsonStr = data.response.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+        const startIdx = jsonStr.indexOf('{')
+        const endIdx = jsonStr.lastIndexOf('}')
+
+        try {
+          const parsed = JSON.parse(jsonStr.slice(startIdx, endIdx + 1))
+
+          proposed.push({
+            issueId: issue.id,
+            issueNumber: issue.number,
+            currentSummary: issue.summary,
+            proposedSummary: parsed.summary || '',
+            currentThemes: issue.themes,
+            proposedThemes: parsed.themes || '',
+            acts: sortedActs.map((act, idx) => ({
+              actNumber: act.number,
+              currentTitle: act.title,
+              proposedTitle: parsed.acts?.[idx]?.title || act.title || `Act ${act.number}`,
+              currentBeatSummary: act.beat_summary,
+              proposedBeatSummary: parsed.acts?.[idx]?.beatSummary || '',
+            })),
+          })
+        } catch {
+          console.error('Failed to parse AI response for issue', issue.number)
+        }
+      }
+
+      setProposedOutlines(proposed)
+      setShowDiffView(true)
+      showToast(`Generated proposals for ${proposed.length} issues`, 'success')
+    } catch (error) {
+      console.error('Error syncing outline:', error)
+      showToast('Failed to sync outline', 'error')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  // Accept a specific change
+  const toggleAcceptChange = (changeId: string) => {
+    setAcceptedChanges(prev => {
+      const next = new Set(prev)
+      if (next.has(changeId)) {
+        next.delete(changeId)
+      } else {
+        next.add(changeId)
+      }
+      return next
+    })
+  }
+
+  // Accept all changes
+  const acceptAllChanges = () => {
+    const allIds: string[] = []
+    for (const po of proposedOutlines) {
+      if (po.proposedSummary !== po.currentSummary) allIds.push(`${po.issueId}-summary`)
+      if (po.proposedThemes !== po.currentThemes) allIds.push(`${po.issueId}-themes`)
+      for (const act of po.acts) {
+        if (act.proposedBeatSummary !== act.currentBeatSummary) {
+          allIds.push(`${po.issueId}-act-${act.actNumber}-beat`)
+        }
+      }
+    }
+    setAcceptedChanges(new Set(allIds))
+  }
+
+  // Apply accepted changes to database
+  const applyAcceptedChanges = async () => {
+    const supabase = createClient()
+    let updated = 0
+
+    for (const po of proposedOutlines) {
+      const issueUpdates: Record<string, string> = {}
+
+      if (acceptedChanges.has(`${po.issueId}-summary`)) {
+        issueUpdates.summary = po.proposedSummary
+      }
+      if (acceptedChanges.has(`${po.issueId}-themes`)) {
+        issueUpdates.themes = po.proposedThemes
+      }
+
+      if (Object.keys(issueUpdates).length > 0) {
+        await supabase.from('issues').update(issueUpdates).eq('id', po.issueId)
+        updated++
+      }
+
+      // Update acts
+      for (const act of po.acts) {
+        if (acceptedChanges.has(`${po.issueId}-act-${act.actNumber}-beat`)) {
+          const issue = series.issues.find(i => i.id === po.issueId)
+          const actRecord = issue?.acts?.find((a: any) => a.number === act.actNumber)
+          if (actRecord) {
+            await supabase.from('acts').update({ beat_summary: act.proposedBeatSummary }).eq('id', actRecord.id)
+            updated++
+          }
+        }
+      }
+    }
+
+    showToast(`Applied ${updated} changes`, 'success')
+    setShowDiffView(false)
+    setProposedOutlines([])
+    setAcceptedChanges(new Set())
+    // Trigger a page refresh to show updated data
+    window.location.reload()
+  }
+
   const statusColors: Record<string, string> = {
     outline: 'bg-zinc-700 text-zinc-300',
     drafting: 'bg-blue-900 text-blue-300',
@@ -294,10 +479,157 @@ export default function OutlineView({ series }: OutlineViewProps) {
         )}
       </div>
 
+      {/* Diff View Modal */}
+      {showDiffView && proposedOutlines.length > 0 && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
+              <h2 className="text-xl font-bold">Review Proposed Outline Changes</h2>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={acceptAllChanges}
+                  className="text-sm text-blue-400 hover:text-blue-300"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={() => setAcceptedChanges(new Set())}
+                  className="text-sm text-zinc-400 hover:text-white"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setShowDiffView(false)}
+                  className="text-zinc-400 hover:text-white text-xl"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {proposedOutlines.map((po) => (
+                <div key={po.issueId} className="border border-zinc-700 rounded-lg overflow-hidden">
+                  <div className="bg-zinc-800 px-4 py-2 font-medium">
+                    Issue #{po.issueNumber}
+                  </div>
+                  <div className="p-4 space-y-4">
+                    {/* Summary diff */}
+                    {po.proposedSummary !== po.currentSummary && (
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={acceptedChanges.has(`${po.issueId}-summary`)}
+                            onChange={() => toggleAcceptChange(`${po.issueId}-summary`)}
+                            className="rounded"
+                          />
+                          <span className="text-sm font-medium text-zinc-400">Summary</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
+                            <div className="text-red-400 text-xs mb-1">Current</div>
+                            <p className="text-zinc-300">{po.currentSummary || <em className="text-zinc-500">Empty</em>}</p>
+                          </div>
+                          <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
+                            <div className="text-green-400 text-xs mb-1">Proposed</div>
+                            <p className="text-zinc-300">{po.proposedSummary}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Themes diff */}
+                    {po.proposedThemes !== po.currentThemes && (
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={acceptedChanges.has(`${po.issueId}-themes`)}
+                            onChange={() => toggleAcceptChange(`${po.issueId}-themes`)}
+                            className="rounded"
+                          />
+                          <span className="text-sm font-medium text-zinc-400">Themes</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
+                            <div className="text-red-400 text-xs mb-1">Current</div>
+                            <p className="text-zinc-300">{po.currentThemes || <em className="text-zinc-500">Empty</em>}</p>
+                          </div>
+                          <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
+                            <div className="text-green-400 text-xs mb-1">Proposed</div>
+                            <p className="text-zinc-300">{po.proposedThemes}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Act beat summaries */}
+                    {po.acts.filter(a => a.proposedBeatSummary !== a.currentBeatSummary).map((act) => (
+                      <div key={act.actNumber} className="space-y-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={acceptedChanges.has(`${po.issueId}-act-${act.actNumber}-beat`)}
+                            onChange={() => toggleAcceptChange(`${po.issueId}-act-${act.actNumber}-beat`)}
+                            className="rounded"
+                          />
+                          <span className="text-sm font-medium text-zinc-400">
+                            Act {act.actNumber} Beat Summary
+                          </span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
+                            <div className="text-red-400 text-xs mb-1">Current</div>
+                            <p className="text-zinc-300">{act.currentBeatSummary || <em className="text-zinc-500">Empty</em>}</p>
+                          </div>
+                          <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
+                            <div className="text-green-400 text-xs mb-1">Proposed</div>
+                            <p className="text-zinc-300">{act.proposedBeatSummary}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-700 bg-zinc-800">
+              <span className="text-sm text-zinc-400">
+                {acceptedChanges.size} changes selected
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowDiffView(false)}
+                  className="px-4 py-2 text-zinc-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={applyAcceptedChanges}
+                  disabled={acceptedChanges.size === 0}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded font-medium"
+                >
+                  Apply Selected Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Controls */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Issues ({series.issues.length})</h3>
         <div className="flex items-center gap-2">
+          <button
+            onClick={syncOutlineFromScripts}
+            disabled={isSyncing}
+            className="text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 px-3 py-1 rounded"
+          >
+            {isSyncing ? 'Syncing...' : 'Sync from Scripts'}
+          </button>
           <button
             onClick={expandAll}
             className="text-sm text-zinc-400 hover:text-white px-2 py-1"

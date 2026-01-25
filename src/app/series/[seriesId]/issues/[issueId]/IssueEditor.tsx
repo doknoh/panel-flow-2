@@ -6,10 +6,13 @@ import Link from 'next/link'
 import NavigationTree from './NavigationTree'
 import PageEditor from './PageEditor'
 import Toolkit from './Toolkit'
+import FindReplaceModal from './FindReplaceModal'
+import StatusBar from './StatusBar'
 import { exportIssueToPdf } from '@/lib/exportPdf'
 import { exportIssueToDocx } from '@/lib/exportDocx'
 import { exportIssueToTxt } from '@/lib/exportTxt'
 import { useToast } from '@/contexts/ToastContext'
+import { UndoProvider, useUndo } from '@/contexts/UndoContext'
 
 interface Plotline {
   id: string
@@ -24,6 +27,12 @@ interface Issue {
   title: string | null
   summary: string | null
   themes: string | null
+  tagline: string | null
+  visual_style: string | null
+  motifs: string | null
+  stakes: string | null
+  rules: string | null
+  series_act: 'BEGINNING' | 'MIDDLE' | 'END' | null
   status: string
   series: {
     id: string
@@ -39,6 +48,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const [issue, setIssue] = useState(initialIssue)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
+  const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false)
   const { showToast } = useToast()
   const lastSnapshotRef = useRef<string>('')
   const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -186,6 +196,106 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [saveStatus])
 
+  // Handle navigation from Find & Replace
+  const handleNavigateToPanel = useCallback((pageId: string, panelId: string) => {
+    setSelectedPageId(pageId)
+    // TODO: Could also scroll to and highlight the specific panel
+  }, [])
+
+  return (
+    <UndoProvider onRefresh={refreshIssue}>
+      <IssueEditorContent
+        issue={issue}
+        seriesId={seriesId}
+        selectedPageId={selectedPageId}
+        setSelectedPageId={setSelectedPageId}
+        selectedPage={selectedPage}
+        saveStatus={saveStatus}
+        setSaveStatus={setSaveStatus}
+        isFindReplaceOpen={isFindReplaceOpen}
+        setIsFindReplaceOpen={setIsFindReplaceOpen}
+        refreshIssue={refreshIssue}
+        handleNavigateToPanel={handleNavigateToPanel}
+        showToast={showToast}
+      />
+    </UndoProvider>
+  )
+}
+
+// Inner component that can use the useUndo hook
+function IssueEditorContent({
+  issue,
+  seriesId,
+  selectedPageId,
+  setSelectedPageId,
+  selectedPage,
+  saveStatus,
+  setSaveStatus,
+  isFindReplaceOpen,
+  setIsFindReplaceOpen,
+  refreshIssue,
+  handleNavigateToPanel,
+  showToast,
+}: {
+  issue: Issue
+  seriesId: string
+  selectedPageId: string | null
+  setSelectedPageId: (id: string | null) => void
+  selectedPage: any
+  saveStatus: 'saved' | 'saving' | 'unsaved'
+  setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
+  isFindReplaceOpen: boolean
+  setIsFindReplaceOpen: (open: boolean) => void
+  refreshIssue: () => void
+  handleNavigateToPanel: (pageId: string, panelId: string) => void
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+}) {
+  const { undo, redo, canUndo, canRedo } = useUndo()
+
+  // Keyboard shortcuts including undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey
+
+      // Cmd/Ctrl + Z for Undo
+      if (isMod && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        if (canUndo) {
+          undo()
+        }
+        return
+      }
+
+      // Cmd/Ctrl + Shift + Z for Redo
+      if (isMod && e.key === 'z' && e.shiftKey) {
+        e.preventDefault()
+        if (canRedo) {
+          redo()
+        }
+        return
+      }
+
+      // Cmd/Ctrl + F for Find & Replace
+      if (isMod && e.key === 'f') {
+        e.preventDefault()
+        setIsFindReplaceOpen(true)
+        return
+      }
+
+      // Cmd/Ctrl + S for force save (visual confirmation)
+      if (isMod && e.key === 's') {
+        e.preventDefault()
+        if (saveStatus === 'saved') {
+          showToast('All changes saved', 'success')
+        }
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen])
+
   return (
     <div className="h-screen flex flex-col bg-zinc-950 text-white">
       {/* Header */}
@@ -199,6 +309,13 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
           {issue.title && <span className="text-zinc-400">— {issue.title}</span>}
         </div>
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsFindReplaceOpen(true)}
+            className="text-sm text-zinc-400 hover:text-white"
+            title="Find & Replace (⌘F)"
+          >
+            Find
+          </button>
           <Link
             href={`/series/${seriesId}/issues/${issue.id}/import`}
             className="text-sm text-zinc-400 hover:text-white"
@@ -237,15 +354,6 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
               Export TXT
             </button>
           </div>
-          <span className={`text-sm ${
-            saveStatus === 'saved' ? 'text-green-500' :
-            saveStatus === 'saving' ? 'text-yellow-500' :
-            'text-red-500'
-          }`}>
-            {saveStatus === 'saved' ? '✓ Saved' :
-             saveStatus === 'saving' ? 'Saving...' :
-             'Unsaved'}
-          </span>
         </div>
       </header>
 
@@ -287,6 +395,22 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
           <Toolkit issue={issue} />
         </div>
       </div>
+
+      {/* Status Bar */}
+      <StatusBar
+        issue={issue}
+        selectedPageId={selectedPageId}
+        saveStatus={saveStatus}
+      />
+
+      {/* Find & Replace Modal */}
+      <FindReplaceModal
+        issue={issue}
+        isOpen={isFindReplaceOpen}
+        onClose={() => setIsFindReplaceOpen(false)}
+        onNavigateToPanel={handleNavigateToPanel}
+        onRefresh={refreshIssue}
+      />
     </div>
   )
 }

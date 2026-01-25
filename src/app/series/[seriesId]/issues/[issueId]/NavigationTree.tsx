@@ -69,8 +69,11 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   const [editingTitle, setEditingTitle] = useState('')
   const [editingSceneSummaryId, setEditingSceneSummaryId] = useState<string | null>(null)
   const [editingSummary, setEditingSummary] = useState('')
+  const [editingActBeatSummaryId, setEditingActBeatSummaryId] = useState<string | null>(null)
+  const [editingBeatSummary, setEditingBeatSummary] = useState('')
   const editInputRef = useRef<HTMLInputElement>(null)
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
+  const beatSummaryInputRef = useRef<HTMLTextAreaElement>(null)
   const { showToast } = useToast()
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
@@ -192,6 +195,29 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     setEditingSceneSummaryId(null)
   }
 
+  // Start editing act beat summary
+  const startEditingActBeatSummary = (actId: string, currentBeatSummary: string) => {
+    setEditingActBeatSummaryId(actId)
+    setEditingBeatSummary(currentBeatSummary || '')
+    setTimeout(() => beatSummaryInputRef.current?.focus(), 0)
+  }
+
+  // Save act beat summary
+  const saveActBeatSummary = async (actId: string) => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('acts')
+      .update({ beat_summary: editingBeatSummary.trim() || null })
+      .eq('id', actId)
+
+    if (error) {
+      showToast(`Failed to save beat summary: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+    setEditingActBeatSummaryId(null)
+  }
+
   // Cancel editing
   const cancelEditing = () => {
     setEditingActId(null)
@@ -199,6 +225,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     setEditingTitle('')
     setEditingSceneSummaryId(null)
     setEditingSummary('')
+    setEditingActBeatSummaryId(null)
+    setEditingBeatSummary('')
   }
 
   // Handle key press in edit input
@@ -492,6 +520,58 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                         ×
                       </button>
                     </div>
+
+                    {/* Act Beat Summary */}
+                    {expandedActs.has(act.id) && (
+                      editingActBeatSummaryId === act.id ? (
+                        <div className="ml-4 mt-1 mb-2">
+                          <textarea
+                            ref={beatSummaryInputRef}
+                            value={editingBeatSummary}
+                            onChange={(e) => setEditingBeatSummary(e.target.value)}
+                            onBlur={() => saveActBeatSummary(act.id)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation()
+                              if (e.key === 'Escape') {
+                                e.preventDefault()
+                                setEditingActBeatSummaryId(null)
+                              } else if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                saveActBeatSummary(act.id)
+                              }
+                            }}
+                            placeholder="Key beats in this act (not panel-level detail)..."
+                            className="w-full text-xs bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-zinc-300 resize-none focus:border-blue-500 focus:outline-none"
+                            rows={2}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      ) : act.beat_summary ? (
+                        <div
+                          className="ml-4 mt-0.5 mb-1 cursor-pointer group/beatsummary"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startEditingActBeatSummary(act.id, act.beat_summary)
+                          }}
+                        >
+                          <p className="text-xs text-zinc-500 italic line-clamp-2 group-hover/beatsummary:text-zinc-400">
+                            {act.beat_summary}
+                          </p>
+                        </div>
+                      ) : (
+                        <div
+                          className="ml-4 mt-0.5 mb-1 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startEditingActBeatSummary(act.id, '')
+                          }}
+                        >
+                          <p className="text-xs text-zinc-600 italic hover:text-zinc-500">
+                            + Add beat summary
+                          </p>
+                        </div>
+                      )
+                    )}
 
                     {/* Scenes */}
                     {expandedActs.has(act.id) && (
