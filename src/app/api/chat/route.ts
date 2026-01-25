@@ -2,12 +2,14 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { rateLimiters } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
 export async function POST(request: Request) {
+  const start = performance.now()
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -67,9 +69,22 @@ Keep responses concise and actionable. When suggesting dialogue, format it clear
     const textContent = response.content.find(block => block.type === 'text')
     const text = textContent?.type === 'text' ? textContent.text : ''
 
+    const duration = Math.round(performance.now() - start)
+    logger.info('Chat API request completed', {
+      userId: user.id,
+      action: 'chat',
+      duration,
+      tokensUsed: response.usage?.output_tokens,
+    })
+
     return NextResponse.json({ response: text })
   } catch (error) {
-    console.error('Chat API error:', error)
+    const duration = Math.round(performance.now() - start)
+    logger.error('Chat API error', {
+      action: 'chat',
+      duration,
+      error: error instanceof Error ? error.message : String(error),
+    })
     return NextResponse.json(
       { error: 'Failed to generate response' },
       { status: 500 }
