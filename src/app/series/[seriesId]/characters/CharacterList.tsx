@@ -70,17 +70,23 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
   }
 
   const saveCharacter = async () => {
+    const trimmedName = form.name?.trim()
+    if (!trimmedName) {
+      showToast('Character name cannot be empty', 'error')
+      return
+    }
+
     const supabase = createClient()
 
     if (isCreating) {
       const { error } = await supabase.from('characters').insert({
         series_id: seriesId,
-        name: form.name,
-        role: form.role || null,
-        description: form.description || null,
-        visual_description: form.visual_description || null,
-        personality_traits: form.personality_traits || null,
-        background: form.background || null,
+        name: trimmedName,
+        role: form.role?.trim() || null,
+        description: form.description?.trim() || null,
+        visual_description: form.visual_description?.trim() || null,
+        personality_traits: form.personality_traits?.trim() || null,
+        background: form.background?.trim() || null,
       })
 
       if (error) {
@@ -90,12 +96,12 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
       showToast('Character created', 'success')
     } else if (editingId) {
       const { error } = await supabase.from('characters').update({
-        name: form.name,
-        role: form.role || null,
-        description: form.description || null,
-        visual_description: form.visual_description || null,
-        personality_traits: form.personality_traits || null,
-        background: form.background || null,
+        name: trimmedName,
+        role: form.role?.trim() || null,
+        description: form.description?.trim() || null,
+        visual_description: form.visual_description?.trim() || null,
+        personality_traits: form.personality_traits?.trim() || null,
+        background: form.background?.trim() || null,
       }).eq('id', editingId)
 
       if (error) {
@@ -203,7 +209,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
         <div className="flex gap-2">
           <button
             onClick={saveCharacter}
-            disabled={!form.name}
+            disabled={!form.name?.trim()}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
           >
             {isCreating ? 'Create Character' : 'Save Changes'}

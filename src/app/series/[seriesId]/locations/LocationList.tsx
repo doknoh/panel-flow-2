@@ -64,15 +64,21 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
   }
 
   const saveLocation = async () => {
+    const trimmedName = form.name?.trim()
+    if (!trimmedName) {
+      showToast('Location name cannot be empty', 'error')
+      return
+    }
+
     const supabase = createClient()
 
     if (isCreating) {
       const { error } = await supabase.from('locations').insert({
         series_id: seriesId,
-        name: form.name,
-        description: form.description || null,
-        visual_description: form.visual_description || null,
-        significance: form.significance || null,
+        name: trimmedName,
+        description: form.description?.trim() || null,
+        visual_description: form.visual_description?.trim() || null,
+        significance: form.significance?.trim() || null,
       })
 
       if (error) {
@@ -82,10 +88,10 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
       showToast('Location created', 'success')
     } else if (editingId) {
       const { error } = await supabase.from('locations').update({
-        name: form.name,
-        description: form.description || null,
-        visual_description: form.visual_description || null,
-        significance: form.significance || null,
+        name: trimmedName,
+        description: form.description?.trim() || null,
+        visual_description: form.visual_description?.trim() || null,
+        significance: form.significance?.trim() || null,
       }).eq('id', editingId)
 
       if (error) {
@@ -165,7 +171,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
         <div className="flex gap-2">
           <button
             onClick={saveLocation}
-            disabled={!form.name}
+            disabled={!form.name?.trim()}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
           >
             {isCreating ? 'Create Location' : 'Save Changes'}

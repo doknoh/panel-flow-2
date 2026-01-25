@@ -4,10 +4,12 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useToast } from '@/contexts/ToastContext'
 
 export default function NewSeriesPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const { showToast } = useToast()
   const [formData, setFormData] = useState({
     title: '',
     logline: '',
@@ -39,7 +41,7 @@ export default function NewSeriesPage() {
 
     if (error) {
       console.error('Error creating series:', error)
-      alert('Failed to create series: ' + error.message)
+      showToast('Failed to create series: ' + error.message, 'error')
       setLoading(false)
       return
     }

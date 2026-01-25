@@ -1,4 +1,5 @@
 -- Add plotlines table
+
 CREATE TABLE IF NOT EXISTS plotlines (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   series_id UUID NOT NULL REFERENCES series(id) ON DELETE CASCADE,
@@ -62,3 +63,4 @@ CREATE TRIGGER plotlines_updated_at
   BEFORE UPDATE ON plotlines
   FOR EACH ROW
   EXECUTE FUNCTION update_plotlines_updated_at();
+

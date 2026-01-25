@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/contexts/ToastContext'
 import {
   DndContext,
   closestCenter,
@@ -63,6 +64,11 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
   const [isMounted, setIsMounted] = useState(false)
   const [editingScenePlotline, setEditingScenePlotline] = useState<string | null>(null)
+  const [editingActId, setEditingActId] = useState<string | null>(null)
+  const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
+  const editInputRef = useRef<HTMLInputElement>(null)
+  const { showToast } = useToast()
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
   useEffect(() => {
@@ -100,6 +106,84 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     setExpandedScenes(newExpanded)
   }
 
+  // Start editing an act title
+  const startEditingAct = (actId: string, currentTitle: string) => {
+    setEditingActId(actId)
+    setEditingSceneId(null)
+    setEditingTitle(currentTitle)
+    setTimeout(() => editInputRef.current?.select(), 0)
+  }
+
+  // Start editing a scene title
+  const startEditingScene = (sceneId: string, currentTitle: string) => {
+    setEditingSceneId(sceneId)
+    setEditingActId(null)
+    setEditingTitle(currentTitle)
+    setTimeout(() => editInputRef.current?.select(), 0)
+  }
+
+  // Save act title
+  const saveActTitle = async (actId: string) => {
+    const trimmedTitle = editingTitle.trim()
+    if (!trimmedTitle) {
+      showToast('Act title cannot be empty', 'error')
+      return
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('acts')
+      .update({ title: trimmedTitle })
+      .eq('id', actId)
+
+    if (error) {
+      showToast(`Failed to rename act: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+    setEditingActId(null)
+  }
+
+  // Save scene title
+  const saveSceneTitle = async (sceneId: string) => {
+    const trimmedTitle = editingTitle.trim()
+    if (!trimmedTitle) {
+      showToast('Scene title cannot be empty', 'error')
+      return
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('scenes')
+      .update({ title: trimmedTitle })
+      .eq('id', sceneId)
+
+    if (error) {
+      showToast(`Failed to rename scene: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+    setEditingSceneId(null)
+  }
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingActId(null)
+    setEditingSceneId(null)
+    setEditingTitle('')
+  }
+
+  // Handle key press in edit input
+  const handleEditKeyDown = (e: React.KeyboardEvent, saveFunc: () => void) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      saveFunc()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      cancelEditing()
+    }
+  }
+
   const addAct = async () => {
     const supabase = createClient()
     const actNumber = (issue.acts?.length || 0) + 1
@@ -111,7 +195,60 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       sort_order: actNumber,
     })
 
-    if (!error) onRefresh()
+    if (error) {
+      showToast(`Failed to create act: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+  }
+
+  const deleteAct = async (actId: string, actTitle: string) => {
+    const act = issue.acts?.find((a: any) => a.id === actId)
+    const pageCount = act?.scenes?.reduce((sum: number, s: any) => sum + (s.pages?.length || 0), 0) || 0
+
+    const confirmed = window.confirm(
+      `Delete "${actTitle}"?\n\nThis will permanently delete ${act?.scenes?.length || 0} scene(s) and ${pageCount} page(s).`
+    )
+    if (!confirmed) return
+
+    const supabase = createClient()
+    const { error } = await supabase.from('acts').delete().eq('id', actId)
+    if (error) {
+      showToast(`Failed to delete act: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+  }
+
+  const deleteScene = async (sceneId: string, sceneTitle: string, pageCount: number) => {
+    const confirmed = window.confirm(
+      `Delete "${sceneTitle}"?\n\nThis will permanently delete ${pageCount} page(s).`
+    )
+    if (!confirmed) return
+
+    const supabase = createClient()
+    const { error } = await supabase.from('scenes').delete().eq('id', sceneId)
+    if (error) {
+      showToast(`Failed to delete scene: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+  }
+
+  const deletePage = async (pageId: string, pageNumber: number) => {
+    const confirmed = window.confirm(`Delete Page ${pageNumber}?\n\nThis will permanently delete all panels on this page.`)
+    if (!confirmed) return
+
+    const supabase = createClient()
+    const { error } = await supabase.from('pages').delete().eq('id', pageId)
+    if (error) {
+      showToast(`Failed to delete page: ${error.message}`, 'error')
+    } else {
+      if (selectedPageId === pageId) {
+        onSelectPage('')
+      }
+      onRefresh()
+    }
   }
 
   const addScene = async (actId: string) => {
@@ -125,7 +262,9 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       sort_order: sceneCount + 1,
     })
 
-    if (!error) {
+    if (error) {
+      showToast(`Failed to create scene: ${error.message}`, 'error')
+    } else {
       setExpandedActs(new Set([...expandedActs, actId]))
       onRefresh()
     }
@@ -148,7 +287,9 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       sort_order: pagesInScene + 1,
     }).select().single()
 
-    if (!error && data) {
+    if (error) {
+      showToast(`Failed to create page: ${error.message}`, 'error')
+    } else if (data) {
       setExpandedScenes(new Set([...expandedScenes, sceneId]))
       onRefresh()
       onSelectPage(data.id)
@@ -267,19 +408,57 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                     {/* Act Header */}
                     <div
                       className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-zinc-800 cursor-grab active:cursor-grabbing group"
-                      onClick={() => toggleAct(act.id)}
+                      onClick={() => !editingActId && toggleAct(act.id)}
                     >
                       <span className="text-zinc-500 text-xs">
                         {expandedActs.has(act.id) ? '▼' : '▶'}
                       </span>
-                      <span className="font-medium text-sm flex-1">
-                        {act.title || `Act ${act.number}`}
-                      </span>
+                      {editingActId === act.id ? (
+                        <input
+                          ref={editInputRef}
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onBlur={() => saveActTitle(act.id)}
+                          onKeyDown={(e) => handleEditKeyDown(e, () => saveActTitle(act.id))}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-1 py-0.5 text-sm font-medium focus:border-blue-500 focus:outline-none"
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className="font-medium text-sm flex-1 cursor-text"
+                          onDoubleClick={(e) => {
+                            e.stopPropagation()
+                            startEditingAct(act.id, act.title || `Act ${act.number}`)
+                          }}
+                        >
+                          {act.title || `Act ${act.number}`}
+                        </span>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          startEditingAct(act.id, act.title || `Act ${act.number}`)
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white px-1"
+                        title="Rename act"
+                      >
+                        ✎
+                      </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); addScene(act.id) }}
-                        className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white"
+                        className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white px-1"
+                        title="Add scene"
                       >
                         +
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteAct(act.id, act.title || `Act ${act.number}`) }}
+                        className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-400 px-1"
+                        title="Delete act"
+                      >
+                        ×
                       </button>
                     </div>
 
@@ -294,7 +473,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                   {/* Scene Header */}
                                   <div
                                     className="flex items-center gap-2 px-2 py-1 rounded hover:bg-zinc-800 cursor-grab active:cursor-grabbing group"
-                                    onClick={() => toggleScene(scene.id)}
+                                    onClick={() => !editingSceneId && toggleScene(scene.id)}
                                   >
                                     <span className="text-zinc-500 text-xs">
                                       {expandedScenes.has(scene.id) ? '▼' : '▶'}
@@ -309,14 +488,52 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                       style={{ backgroundColor: scene.plotline?.color || 'transparent' }}
                                       title={scene.plotline?.name || 'No plotline assigned'}
                                     />
-                                    <span className="text-sm text-zinc-300 flex-1 truncate">
-                                      {scene.title || 'Untitled Scene'}
-                                    </span>
+                                    {editingSceneId === scene.id ? (
+                                      <input
+                                        ref={editInputRef}
+                                        type="text"
+                                        value={editingTitle}
+                                        onChange={(e) => setEditingTitle(e.target.value)}
+                                        onBlur={() => saveSceneTitle(scene.id)}
+                                        onKeyDown={(e) => handleEditKeyDown(e, () => saveSceneTitle(scene.id))}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-1 py-0.5 text-sm focus:border-blue-500 focus:outline-none"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <span
+                                        className="text-sm text-zinc-300 flex-1 truncate cursor-text"
+                                        onDoubleClick={(e) => {
+                                          e.stopPropagation()
+                                          startEditingScene(scene.id, scene.title || 'Untitled Scene')
+                                        }}
+                                      >
+                                        {scene.title || 'Untitled Scene'}
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        startEditingScene(scene.id, scene.title || 'Untitled Scene')
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white px-1"
+                                      title="Rename scene"
+                                    >
+                                      ✎
+                                    </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); addPage(scene.id) }}
-                                      className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white"
+                                      className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white px-1"
+                                      title="Add page"
                                     >
                                       +
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); deleteScene(scene.id, scene.title || 'Untitled Scene', scene.pages?.length || 0) }}
+                                      className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-400 px-1"
+                                      title="Delete scene"
+                                    >
+                                      ×
                                     </button>
                                   </div>
                                   {/* Plotline selector dropdown */}
@@ -367,13 +584,24 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                             <SortableItem key={page.id} id={page.id}>
                                               <div
                                                 onClick={() => onSelectPage(page.id)}
-                                                className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm ${
+                                                className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm flex items-center group/page ${
                                                   selectedPageId === page.id
                                                     ? 'bg-blue-600 text-white'
                                                     : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
                                                 }`}
                                               >
-                                                Page {page.page_number}
+                                                <span className="flex-1">Page {page.page_number}</span>
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); deletePage(page.id, page.page_number) }}
+                                                  className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
+                                                    selectedPageId === page.id
+                                                      ? 'text-blue-200 hover:text-red-300'
+                                                      : 'text-zinc-500 hover:text-red-400'
+                                                  }`}
+                                                  title="Delete page"
+                                                >
+                                                  ×
+                                                </button>
                                               </div>
                                             </SortableItem>
                                           ))}

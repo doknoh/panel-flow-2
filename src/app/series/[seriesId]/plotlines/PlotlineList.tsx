@@ -91,14 +91,20 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
   }
 
   const savePlotline = async () => {
+    const trimmedName = form.name?.trim()
+    if (!trimmedName) {
+      showToast('Plotline name cannot be empty', 'error')
+      return
+    }
+
     const supabase = createClient()
 
     if (isCreating) {
       const { error } = await supabase.from('plotlines').insert({
         series_id: seriesId,
-        name: form.name,
+        name: trimmedName,
         color: form.color,
-        description: form.description || null,
+        description: form.description?.trim() || null,
         sort_order: plotlines.length,
       })
 
@@ -109,9 +115,9 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
       showToast('Plotline created', 'success')
     } else if (editingId) {
       const { error } = await supabase.from('plotlines').update({
-        name: form.name,
+        name: trimmedName,
         color: form.color,
-        description: form.description || null,
+        description: form.description?.trim() || null,
       }).eq('id', editingId)
 
       if (error) {
@@ -189,7 +195,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
         <div className="flex gap-2">
           <button
             onClick={savePlotline}
-            disabled={!form.name}
+            disabled={!form.name?.trim()}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
           >
             {isCreating ? 'Create Plotline' : 'Save Changes'}

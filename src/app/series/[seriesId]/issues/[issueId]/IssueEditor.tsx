@@ -58,6 +58,11 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     }
   }, [issue, selectedPageId])
 
+  // Refresh data on mount to ensure latest characters/locations are loaded
+  useEffect(() => {
+    refreshIssue()
+  }, [])
+
   const refreshIssue = async () => {
     const supabase = createClient()
     const { data } = await supabase
@@ -165,6 +170,20 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
 
     return () => clearTimeout(timer)
   }, [])
+
+  // Warn user before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (saveStatus === 'unsaved') {
+        e.preventDefault()
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [saveStatus])
 
   return (
     <div className="h-screen flex flex-col bg-zinc-950 text-white">

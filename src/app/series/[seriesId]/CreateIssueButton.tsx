@@ -3,10 +3,12 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useToast } from '@/contexts/ToastContext'
 
 export default function CreateIssueButton({ seriesId, issueCount }: { seriesId: string; issueCount: number }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const { showToast } = useToast()
 
   const handleCreate = async () => {
     setLoading(true)
@@ -24,7 +26,7 @@ export default function CreateIssueButton({ seriesId, issueCount }: { seriesId: 
 
     if (error) {
       console.error('Error creating issue:', error)
-      alert('Failed to create issue: ' + error.message)
+      showToast('Failed to create issue: ' + error.message, 'error')
       setLoading(false)
       return
     }
