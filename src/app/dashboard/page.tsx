@@ -20,15 +20,15 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4">
+      <header className="border-b border-zinc-800 px-4 sm:px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold">Panel Flow</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-zinc-400 text-sm">{user.email}</span>
+          <h1 className="text-lg sm:text-xl font-bold">Panel Flow</h1>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <span className="text-zinc-400 text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{user.email}</span>
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
-                className="text-zinc-400 hover:text-white text-sm"
+                className="text-zinc-400 hover:text-white text-sm whitespace-nowrap"
               >
                 Sign out
               </button>
@@ -38,12 +38,12 @@ export default async function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-semibold">Your Projects</h2>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold">Your Projects</h2>
           <Link
             href="/series/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-center sm:text-left"
           >
             + New Series
           </Link>

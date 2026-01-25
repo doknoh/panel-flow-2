@@ -223,6 +223,8 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
 }
 
 // Inner component that can use the useUndo hook
+type MobileView = 'nav' | 'editor' | 'toolkit'
+
 function IssueEditorContent({
   issue,
   seriesId,
@@ -251,6 +253,7 @@ function IssueEditorContent({
   showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
 }) {
   const { undo, redo, canUndo, canRedo } = useUndo()
+  const [mobileView, setMobileView] = useState<MobileView>('editor')
 
   // Keyboard shortcuts including undo/redo
   useEffect(() => {
@@ -299,79 +302,105 @@ function IssueEditorContent({
   return (
     <div className="h-screen flex flex-col bg-zinc-950 text-white">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Link href={`/series/${seriesId}`} className="text-zinc-400 hover:text-white">
-            ← {issue.series.title}
-          </Link>
-          <span className="text-zinc-600">/</span>
-          <span className="font-semibold">Issue #{issue.number}</span>
-          {issue.title && <span className="text-zinc-400">— {issue.title}</span>}
-        </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsFindReplaceOpen(true)}
-            className="text-sm text-zinc-400 hover:text-white"
-            title="Find & Replace (⌘F)"
-          >
-            Find
-          </button>
-          <Link
-            href={`/series/${seriesId}/issues/${issue.id}/import`}
-            className="text-sm text-zinc-400 hover:text-white"
-          >
-            Import
-          </Link>
-          <Link
-            href={`/series/${seriesId}/issues/${issue.id}/weave`}
-            className="text-sm text-zinc-400 hover:text-white"
-          >
-            Weave
-          </Link>
-          <Link
-            href={`/series/${seriesId}/issues/${issue.id}/history`}
-            className="text-sm text-zinc-400 hover:text-white"
-          >
-            History
-          </Link>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => exportIssueToPdf(issue)}
-              className="text-sm bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded"
-            >
-              Export PDF
-            </button>
-            <button
-              onClick={() => exportIssueToDocx(issue)}
-              className="text-sm bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded"
-            >
-              Export Doc
-            </button>
-            <button
-              onClick={() => exportIssueToTxt(issue)}
-              className="text-sm bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded"
-            >
-              Export TXT
-            </button>
+      <header className="border-b border-zinc-800 px-4 py-3 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            <Link href={`/series/${seriesId}`} className="text-zinc-400 hover:text-white shrink-0">
+              ←
+            </Link>
+            <span className="font-semibold truncate">Issue #{issue.number}</span>
+            {issue.title && <span className="text-zinc-400 hidden sm:inline truncate">— {issue.title}</span>}
           </div>
+          <div className="flex items-center gap-2 md:gap-4">
+            <button
+              onClick={() => setIsFindReplaceOpen(true)}
+              className="text-sm text-zinc-400 hover:text-white hidden md:block"
+              title="Find & Replace (⌘F)"
+            >
+              Find
+            </button>
+            <Link
+              href={`/series/${seriesId}/issues/${issue.id}/import`}
+              className="text-sm text-zinc-400 hover:text-white hidden lg:block"
+            >
+              Import
+            </Link>
+            <Link
+              href={`/series/${seriesId}/issues/${issue.id}/weave`}
+              className="text-sm text-zinc-400 hover:text-white hidden lg:block"
+            >
+              Weave
+            </Link>
+            <Link
+              href={`/series/${seriesId}/issues/${issue.id}/history`}
+              className="text-sm text-zinc-400 hover:text-white hidden lg:block"
+            >
+              History
+            </Link>
+            <div className="flex items-center gap-1 md:gap-2">
+              <button
+                onClick={() => exportIssueToPdf(issue)}
+                className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded"
+              >
+                PDF
+              </button>
+              <button
+                onClick={() => exportIssueToDocx(issue)}
+                className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded hidden sm:block"
+              >
+                Doc
+              </button>
+              <button
+                onClick={() => exportIssueToTxt(issue)}
+                className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded hidden sm:block"
+              >
+                TXT
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile view switcher */}
+        <div className="flex md:hidden mt-3 gap-1 border-t border-zinc-800 pt-3 -mx-4 px-4">
+          <button
+            onClick={() => setMobileView('nav')}
+            className={`flex-1 py-2 text-sm rounded ${mobileView === 'nav' ? 'bg-zinc-700 text-white' : 'text-zinc-400'}`}
+          >
+            Navigation
+          </button>
+          <button
+            onClick={() => setMobileView('editor')}
+            className={`flex-1 py-2 text-sm rounded ${mobileView === 'editor' ? 'bg-zinc-700 text-white' : 'text-zinc-400'}`}
+          >
+            Editor
+          </button>
+          <button
+            onClick={() => setMobileView('toolkit')}
+            className={`flex-1 py-2 text-sm rounded ${mobileView === 'toolkit' ? 'bg-zinc-700 text-white' : 'text-zinc-400'}`}
+          >
+            Toolkit
+          </button>
         </div>
       </header>
 
       {/* Main Three-Column Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Navigation Tree */}
-        <div className="w-64 border-r border-zinc-800 overflow-y-auto shrink-0">
+        <div className={`w-full md:w-64 border-r border-zinc-800 overflow-y-auto shrink-0 ${mobileView === 'nav' ? 'block' : 'hidden md:block'}`}>
           <NavigationTree
             issue={issue}
             plotlines={issue.series.plotlines || []}
             selectedPageId={selectedPageId}
-            onSelectPage={setSelectedPageId}
+            onSelectPage={(pageId) => {
+              setSelectedPageId(pageId)
+              setMobileView('editor') // Switch to editor on mobile after selecting
+            }}
             onRefresh={refreshIssue}
           />
         </div>
 
         {/* Center: Page/Panel Editor */}
-        <div className="flex-1 overflow-y-auto">
+        <div className={`flex-1 overflow-y-auto ${mobileView === 'editor' ? 'block' : 'hidden md:block'}`}>
           {selectedPage ? (
             <PageEditor
               page={selectedPage}
@@ -382,16 +411,22 @@ function IssueEditorContent({
             />
           ) : (
             <div className="flex items-center justify-center h-full text-zinc-500">
-              <div className="text-center">
+              <div className="text-center p-4">
                 <p className="mb-4">No pages yet</p>
                 <p className="text-sm">Create an act and scene in the navigation tree to get started</p>
+                <button
+                  onClick={() => setMobileView('nav')}
+                  className="md:hidden mt-4 text-blue-400 hover:text-blue-300"
+                >
+                  Go to Navigation →
+                </button>
               </div>
             </div>
           )}
         </div>
 
         {/* Right: Toolkit */}
-        <div className="w-80 border-l border-zinc-800 overflow-y-auto shrink-0">
+        <div className={`w-full md:w-80 border-l border-zinc-800 overflow-y-auto shrink-0 ${mobileView === 'toolkit' ? 'block' : 'hidden md:block'}`}>
           <Toolkit issue={issue} />
         </div>
       </div>
