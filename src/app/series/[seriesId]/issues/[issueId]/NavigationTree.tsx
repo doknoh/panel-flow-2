@@ -203,6 +203,9 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
 
   // Handle key press in edit input
   const handleEditKeyDown = (e: React.KeyboardEvent, saveFunc: () => void) => {
+    // Stop propagation to prevent dnd-kit from capturing keys (especially space)
+    e.stopPropagation()
+
     if (e.key === 'Enter') {
       e.preventDefault()
       saveFunc()
