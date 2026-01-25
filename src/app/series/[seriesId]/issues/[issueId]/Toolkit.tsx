@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { postJsonWithRetry, FetchError } from '@/lib/fetch-with-retry'
 
 interface ContinuityAlert {
   id: string
@@ -257,21 +258,31 @@ Characters: ${issue.series.characters.map((c: any) => c.name).join(', ') || 'Non
 Locations: ${issue.series.locations.map((l: any) => l.name).join(', ') || 'None defined'}
 `.trim()
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, context }),
-      })
-
-      const data = await response.json()
+      const data = await postJsonWithRetry<{ response?: string; error?: string }>(
+        '/api/chat',
+        { message: userMessage, context },
+        { retries: 2, retryDelay: 1000 }
+      )
 
       if (data.error) {
         setChatMessages(prev => [...prev, { role: 'assistant', content: `Error: ${data.error}` }])
       } else {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }])
+        setChatMessages(prev => [...prev, { role: 'assistant', content: data.response || '' }])
       }
-    } catch {
-      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Failed to connect to AI assistant.' }])
+    } catch (error) {
+      let errorMessage = 'Failed to connect to AI assistant. Please try again.'
+
+      if (error instanceof FetchError) {
+        if (error.status === 429) {
+          errorMessage = `Rate limit reached. Please wait ${error.retryAfter || 60} seconds before trying again.`
+        } else if (error.status === 401) {
+          errorMessage = 'Session expired. Please refresh the page to continue.'
+        } else if (error.status >= 500) {
+          errorMessage = 'The AI service is temporarily unavailable. Please try again in a moment.'
+        }
+      }
+
+      setChatMessages(prev => [...prev, { role: 'assistant', content: errorMessage }])
     }
 
     setIsLoading(false)
