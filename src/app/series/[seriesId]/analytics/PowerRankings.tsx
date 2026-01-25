@@ -1,30 +1,59 @@
 'use client'
 
-import { useState } from 'react'
-import { useToast } from '@/contexts/ToastContext'
+import { useMemo } from 'react'
+
+interface Character {
+  id: string
+  name: string
+  role: string | null
+}
+
+interface DialogueBlock {
+  character_id: string | null
+  text: string
+}
+
+interface Panel {
+  visual_description: string | null
+  dialogue_blocks: DialogueBlock[]
+}
+
+interface Page {
+  page_number: number
+  panels: Panel[]
+}
+
+interface Scene {
+  pages: Page[]
+}
+
+interface Act {
+  scenes: Scene[]
+}
 
 interface Issue {
   id: string
   number: number
   title: string | null
-  status: string
-  summary: string | null
-  themes: string | null
-  acts: any[]
+  acts: Act[]
 }
 
 interface Series {
   id: string
   title: string
   issues: Issue[]
+  characters: Character[]
 }
 
-interface RankedIssue {
-  issueNumber: number
-  score: number
-  strengths: string[]
-  weaknesses: string[]
-  recommendation: string
+interface CharacterStats {
+  character: Character
+  dialogueAppearances: number
+  visualAppearances: number
+  totalAppearances: number
+  issueAppearances: Set<number>
+  panelAppearances: number
+  pageAppearances: number
+  wordCount: number
 }
 
 interface PowerRankingsProps {
@@ -32,212 +61,269 @@ interface PowerRankingsProps {
 }
 
 export default function PowerRankings({ series }: PowerRankingsProps) {
-  const [rankings, setRankings] = useState<RankedIssue[]>([])
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [overallAnalysis, setOverallAnalysis] = useState<string | null>(null)
-  const { showToast } = useToast()
+  // Calculate character frequency stats
+  const characterStats = useMemo(() => {
+    const stats = new Map<string, CharacterStats>()
 
-  const generateRankings = async () => {
-    setIsGenerating(true)
+    // Initialize stats for all characters
+    for (const character of series.characters || []) {
+      stats.set(character.id, {
+        character,
+        dialogueAppearances: 0,
+        visualAppearances: 0,
+        totalAppearances: 0,
+        issueAppearances: new Set(),
+        panelAppearances: 0,
+        pageAppearances: 0,
+        wordCount: 0,
+      })
+    }
 
-    try {
-      // Build content summaries for each issue
-      const issueSummaries = series.issues.map(issue => {
-        const acts = issue.acts || []
-        let pageCount = 0
-        let panelCount = 0
-        let wordCount = 0
-        const sceneList: string[] = []
+    // Track appearances per page to avoid double-counting
+    const pageCharacterAppearances = new Map<string, Set<string>>() // pageKey -> characterIds
 
-        for (const act of acts) {
-          for (const scene of act.scenes || []) {
-            if (scene.title) sceneList.push(scene.title)
-            for (const page of scene.pages || []) {
-              pageCount++
-              for (const panel of page.panels || []) {
-                panelCount++
-                if (panel.visual_description) {
-                  wordCount += panel.visual_description.split(/\s+/).length
-                }
-                for (const d of panel.dialogue_blocks || []) {
-                  if (d.text) wordCount += d.text.split(/\s+/).length
+    // Iterate through all content
+    for (const issue of series.issues || []) {
+      for (const act of issue.acts || []) {
+        for (const scene of act.scenes || []) {
+          for (const page of scene.pages || []) {
+            const pageKey = `${issue.id}-${page.page_number || Math.random()}`
+            const pageCharacters = new Set<string>()
+
+            for (const panel of page.panels || []) {
+              const panelCharacters = new Set<string>()
+
+              // Count dialogue appearances
+              for (const dialogue of panel.dialogue_blocks || []) {
+                if (dialogue.character_id && stats.has(dialogue.character_id)) {
+                  const charStats = stats.get(dialogue.character_id)!
+                  charStats.dialogueAppearances++
+                  charStats.issueAppearances.add(issue.number)
+                  charStats.wordCount += dialogue.text?.split(/\s+/).length || 0
+                  panelCharacters.add(dialogue.character_id)
+                  pageCharacters.add(dialogue.character_id)
                 }
               }
+
+              // Count visual description mentions (look for character names)
+              if (panel.visual_description) {
+                const desc = panel.visual_description.toLowerCase()
+                for (const character of series.characters || []) {
+                  const nameLower = character.name.toLowerCase()
+                  // Check for whole word match
+                  const regex = new RegExp(`\\b${nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+                  if (regex.test(desc)) {
+                    const charStats = stats.get(character.id)!
+                    charStats.visualAppearances++
+                    charStats.issueAppearances.add(issue.number)
+                    panelCharacters.add(character.id)
+                    pageCharacters.add(character.id)
+                  }
+                }
+              }
+
+              // Count unique panel appearances
+              for (const charId of panelCharacters) {
+                stats.get(charId)!.panelAppearances++
+              }
             }
+
+            // Count unique page appearances
+            for (const charId of pageCharacters) {
+              stats.get(charId)!.pageAppearances++
+            }
+            pageCharacterAppearances.set(pageKey, pageCharacters)
           }
         }
-
-        return {
-          number: issue.number,
-          title: issue.title,
-          status: issue.status,
-          summary: issue.summary,
-          themes: issue.themes,
-          pageCount,
-          panelCount,
-          wordCount,
-          actCount: acts.length,
-          scenes: sceneList.slice(0, 10).join(', '),
-        }
-      })
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `Analyze and rank these comic book issues by quality. Consider:
-- Structural coherence (clear acts, pacing)
-- Content density (pages, panels, word count)
-- Thematic clarity
-- Scene variety and progression
-
-For each issue, provide:
-1. A score from 1-10
-2. 2-3 specific strengths
-3. 1-2 areas for improvement
-4. One actionable recommendation
-
-Return ONLY valid JSON in this exact format (no markdown):
-{
-  "rankings": [
-    {
-      "issueNumber": 1,
-      "score": 8,
-      "strengths": ["Strong opening hook", "Good pacing"],
-      "weaknesses": ["Act 2 drags slightly"],
-      "recommendation": "Tighten the middle section by cutting 2-3 pages"
-    }
-  ],
-  "overallAnalysis": "Brief 2-3 sentence analysis of the series as a whole"
-}
-
-Here are the issues to analyze:
-
-${JSON.stringify(issueSummaries, null, 2)}`,
-          context: {
-            seriesTitle: series.title,
-          },
-        }),
-      })
-
-      if (!response.ok) throw new Error('Failed to generate rankings')
-
-      const data = await response.json()
-
-      // Parse the JSON response
-      let jsonStr = data.message
-      jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '')
-
-      const startIdx = jsonStr.indexOf('{')
-      const endIdx = jsonStr.lastIndexOf('}')
-
-      if (startIdx === -1 || endIdx === -1) {
-        throw new Error('Invalid response format')
       }
+    }
 
-      const parsed = JSON.parse(jsonStr.slice(startIdx, endIdx + 1))
-      setRankings(parsed.rankings.sort((a: RankedIssue, b: RankedIssue) => b.score - a.score))
-      setOverallAnalysis(parsed.overallAnalysis)
-      showToast('Rankings generated', 'success')
-    } catch (error) {
-      console.error('Error generating rankings:', error)
-      showToast('Failed to generate rankings', 'error')
-    } finally {
-      setIsGenerating(false)
+    // Calculate total appearances and convert to array
+    const result: CharacterStats[] = []
+    for (const stat of stats.values()) {
+      stat.totalAppearances = stat.dialogueAppearances + stat.visualAppearances
+      result.push(stat)
+    }
+
+    // Sort by total appearances (descending)
+    return result.sort((a, b) => b.totalAppearances - a.totalAppearances)
+  }, [series])
+
+  // Get total counts for percentage calculations
+  const totalPanels = useMemo(() => {
+    let count = 0
+    for (const issue of series.issues || []) {
+      for (const act of issue.acts || []) {
+        for (const scene of act.scenes || []) {
+          for (const page of scene.pages || []) {
+            count += page.panels?.length || 0
+          }
+        }
+      }
+    }
+    return count
+  }, [series])
+
+  const totalPages = useMemo(() => {
+    let count = 0
+    for (const issue of series.issues || []) {
+      for (const act of issue.acts || []) {
+        for (const scene of act.scenes || []) {
+          count += scene.pages?.length || 0
+        }
+      }
+    }
+    return count
+  }, [series])
+
+  const maxAppearances = characterStats[0]?.totalAppearances || 1
+
+  const getRoleColor = (role: string | null) => {
+    switch (role) {
+      case 'protagonist': return 'bg-blue-900 text-blue-300'
+      case 'antagonist': return 'bg-red-900 text-red-300'
+      case 'supporting': return 'bg-purple-900 text-purple-300'
+      case 'recurring': return 'bg-amber-900 text-amber-300'
+      default: return 'bg-zinc-800 text-zinc-400'
     }
   }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return 'text-green-400'
-    if (score >= 6) return 'text-amber-400'
-    return 'text-red-400'
-  }
-
-  const getScoreBg = (score: number) => {
-    if (score >= 8) return 'bg-green-900/30 border-green-800'
-    if (score >= 6) return 'bg-amber-900/30 border-amber-800'
-    return 'bg-red-900/30 border-red-800'
+  const getRankBadge = (rank: number) => {
+    if (rank === 1) return '🥇'
+    if (rank === 2) return '🥈'
+    if (rank === 3) return '🥉'
+    return `#${rank}`
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Power Rankings</h2>
-          <p className="text-sm text-zinc-400">AI-powered quality assessment of your issues</p>
-        </div>
-        <button
-          onClick={generateRankings}
-          disabled={isGenerating || series.issues.length === 0}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
-        >
-          {isGenerating ? 'Analyzing...' : rankings.length > 0 ? 'Regenerate' : 'Generate Rankings'}
-        </button>
+      <div>
+        <h2 className="text-lg font-semibold">Character Power Rankings</h2>
+        <p className="text-sm text-zinc-400">Character appearances across your series</p>
       </div>
 
-      {series.issues.length === 0 && (
+      {characterStats.length === 0 ? (
         <div className="text-center py-8 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400">No issues to analyze yet</p>
+          <p className="text-zinc-400">No characters to rank yet</p>
+          <p className="text-sm text-zinc-500 mt-1">Add characters and write some dialogue</p>
         </div>
-      )}
+      ) : (
+        <div className="space-y-3">
+          {characterStats.map((stat, index) => {
+            const barWidth = (stat.totalAppearances / maxAppearances) * 100
+            const pagePercentage = totalPages > 0 ? ((stat.pageAppearances / totalPages) * 100).toFixed(0) : 0
+            const panelPercentage = totalPanels > 0 ? ((stat.panelAppearances / totalPanels) * 100).toFixed(0) : 0
 
-      {overallAnalysis && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <h3 className="font-medium mb-2">Overall Analysis</h3>
-          <p className="text-zinc-300">{overallAnalysis}</p>
-        </div>
-      )}
-
-      {rankings.length > 0 && (
-        <div className="space-y-4">
-          {rankings.map((ranking, index) => {
-            const issue = series.issues.find(i => i.number === ranking.issueNumber)
             return (
               <div
-                key={ranking.issueNumber}
-                className={`border rounded-lg p-4 ${getScoreBg(ranking.score)}`}
+                key={stat.character.id}
+                className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-zinc-500">#{index + 1}</span>
+                    <span className="text-xl font-bold text-zinc-500 w-8">
+                      {getRankBadge(index + 1)}
+                    </span>
                     <div>
-                      <span className="font-semibold">Issue #{ranking.issueNumber}</span>
-                      {issue?.title && (
-                        <span className="text-zinc-400 ml-2">{issue.title}</span>
+                      <span className="font-semibold text-lg">{stat.character.name}</span>
+                      {stat.character.role && (
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded ${getRoleColor(stat.character.role)}`}>
+                          {stat.character.role}
+                        </span>
                       )}
                     </div>
                   </div>
-                  <div className={`text-3xl font-bold ${getScoreColor(ranking.score)}`}>
-                    {ranking.score}/10
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-blue-400">{stat.totalAppearances}</div>
+                    <div className="text-xs text-zinc-500">appearances</div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Visual bar */}
+                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden mb-3">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-300"
+                    style={{ width: `${barWidth}%` }}
+                  />
+                </div>
+
+                {/* Detailed stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <h4 className="text-sm font-medium text-green-400 mb-2">Strengths</h4>
-                    <ul className="text-sm space-y-1">
-                      {ranking.strengths.map((strength, i) => (
-                        <li key={i} className="text-zinc-300">• {strength}</li>
-                      ))}
-                    </ul>
+                    <div className="text-zinc-500">Dialogue</div>
+                    <div className="font-medium">{stat.dialogueAppearances}</div>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-amber-400 mb-2">Areas to Improve</h4>
-                    <ul className="text-sm space-y-1">
-                      {ranking.weaknesses.map((weakness, i) => (
-                        <li key={i} className="text-zinc-300">• {weakness}</li>
-                      ))}
-                    </ul>
+                    <div className="text-zinc-500">Visual mentions</div>
+                    <div className="font-medium">{stat.visualAppearances}</div>
+                  </div>
+                  <div>
+                    <div className="text-zinc-500">Pages</div>
+                    <div className="font-medium">
+                      {stat.pageAppearances} <span className="text-zinc-500">({pagePercentage}%)</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-zinc-500">Panels</div>
+                    <div className="font-medium">
+                      {stat.panelAppearances} <span className="text-zinc-500">({panelPercentage}%)</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-zinc-700">
-                  <h4 className="text-sm font-medium text-blue-400 mb-1">Recommendation</h4>
-                  <p className="text-sm text-zinc-300">{ranking.recommendation}</p>
+                {/* Issue coverage */}
+                <div className="mt-3 pt-3 border-t border-zinc-800">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-zinc-500">Issues:</span>
+                    <div className="flex gap-1">
+                      {series.issues.map(issue => (
+                        <span
+                          key={issue.id}
+                          className={`px-2 py-0.5 rounded text-xs ${
+                            stat.issueAppearances.has(issue.number)
+                              ? 'bg-blue-900 text-blue-300'
+                              : 'bg-zinc-800 text-zinc-600'
+                          }`}
+                        >
+                          #{issue.number}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-zinc-500 ml-auto">
+                      {stat.wordCount.toLocaleString()} words spoken
+                    </span>
+                  </div>
                 </div>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Summary stats */}
+      {characterStats.length > 0 && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <h3 className="font-medium mb-3">Series Summary</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <div className="text-zinc-500">Total Characters</div>
+              <div className="text-xl font-bold">{characterStats.length}</div>
+            </div>
+            <div>
+              <div className="text-zinc-500">Total Pages</div>
+              <div className="text-xl font-bold">{totalPages}</div>
+            </div>
+            <div>
+              <div className="text-zinc-500">Total Panels</div>
+              <div className="text-xl font-bold">{totalPanels}</div>
+            </div>
+            <div>
+              <div className="text-zinc-500">Most Active</div>
+              <div className="text-xl font-bold text-blue-400">
+                {characterStats[0]?.character.name || '—'}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

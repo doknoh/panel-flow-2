@@ -67,7 +67,10 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   const [editingActId, setEditingActId] = useState<string | null>(null)
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [editingSceneSummaryId, setEditingSceneSummaryId] = useState<string | null>(null)
+  const [editingSummary, setEditingSummary] = useState('')
   const editInputRef = useRef<HTMLInputElement>(null)
+  const summaryInputRef = useRef<HTMLTextAreaElement>(null)
   const { showToast } = useToast()
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
@@ -166,11 +169,36 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     setEditingSceneId(null)
   }
 
+  // Start editing scene summary
+  const startEditingSceneSummary = (sceneId: string, currentSummary: string) => {
+    setEditingSceneSummaryId(sceneId)
+    setEditingSummary(currentSummary || '')
+    setTimeout(() => summaryInputRef.current?.focus(), 0)
+  }
+
+  // Save scene summary
+  const saveSceneSummary = async (sceneId: string) => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('scenes')
+      .update({ scene_summary: editingSummary.trim() || null })
+      .eq('id', sceneId)
+
+    if (error) {
+      showToast(`Failed to save summary: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+    setEditingSceneSummaryId(null)
+  }
+
   // Cancel editing
   const cancelEditing = () => {
     setEditingActId(null)
     setEditingSceneId(null)
     setEditingTitle('')
+    setEditingSceneSummaryId(null)
+    setEditingSummary('')
   }
 
   // Handle key press in edit input
@@ -536,6 +564,55 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                       ×
                                     </button>
                                   </div>
+                                  {/* Scene Summary */}
+                                  {editingSceneSummaryId === scene.id ? (
+                                    <div className="ml-6 mt-1 mb-2">
+                                      <textarea
+                                        ref={summaryInputRef}
+                                        value={editingSummary}
+                                        onChange={(e) => setEditingSummary(e.target.value)}
+                                        onBlur={() => saveSceneSummary(scene.id)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Escape') {
+                                            e.preventDefault()
+                                            setEditingSceneSummaryId(null)
+                                          } else if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault()
+                                            saveSceneSummary(scene.id)
+                                          }
+                                        }}
+                                        placeholder="One-sentence scene summary..."
+                                        className="w-full text-xs bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-zinc-300 resize-none focus:border-blue-500 focus:outline-none"
+                                        rows={2}
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+                                  ) : scene.scene_summary ? (
+                                    <div
+                                      className="ml-6 mt-0.5 mb-1 cursor-pointer group/summary"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        startEditingSceneSummary(scene.id, scene.scene_summary)
+                                      }}
+                                    >
+                                      <p className="text-xs text-zinc-500 italic line-clamp-2 group-hover/summary:text-zinc-400">
+                                        {scene.scene_summary}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="ml-6 mt-0.5 mb-1 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        startEditingSceneSummary(scene.id, '')
+                                      }}
+                                    >
+                                      <p className="text-xs text-zinc-600 italic hover:text-zinc-500">
+                                        + Add summary
+                                      </p>
+                                    </div>
+                                  )}
+
                                   {/* Plotline selector dropdown */}
                                   {editingScenePlotline === scene.id && (
                                     <div className="ml-6 mt-1 mb-2 bg-zinc-800 border border-zinc-700 rounded p-2">

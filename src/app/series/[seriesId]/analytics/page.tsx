@@ -15,6 +15,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ seri
     .from('series')
     .select(`
       *,
+      characters (*),
       issues (
         *,
         acts (

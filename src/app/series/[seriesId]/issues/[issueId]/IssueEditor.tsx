@@ -8,6 +8,7 @@ import PageEditor from './PageEditor'
 import Toolkit from './Toolkit'
 import { exportIssueToPdf } from '@/lib/exportPdf'
 import { exportIssueToDocx } from '@/lib/exportDocx'
+import { exportIssueToTxt } from '@/lib/exportTxt'
 import { useToast } from '@/contexts/ToastContext'
 
 interface Plotline {
@@ -228,6 +229,12 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
               className="text-sm bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded"
             >
               Export Doc
+            </button>
+            <button
+              onClick={() => exportIssueToTxt(issue)}
+              className="text-sm bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded"
+            >
+              Export TXT
             </button>
           </div>
           <span className={`text-sm ${
