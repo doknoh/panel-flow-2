@@ -327,7 +327,7 @@ Return this exact JSON structure:
         if (!response.ok) continue
 
         const data = await response.json()
-        let jsonStr = data.response.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+        const jsonStr = data.response.replace(/```json\n?/g, '').replace(/```\n?/g, '')
         const startIdx = jsonStr.indexOf('{')
         const endIdx = jsonStr.lastIndexOf('}')
 
