@@ -78,6 +78,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   const [editingSummary, setEditingSummary] = useState('')
   const [editingActBeatSummaryId, setEditingActBeatSummaryId] = useState<string | null>(null)
   const [editingBeatSummary, setEditingBeatSummary] = useState('')
+  const [movingPageId, setMovingPageId] = useState<string | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
   const beatSummaryInputRef = useRef<HTMLTextAreaElement>(null)
@@ -421,6 +422,46 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     onRefresh()
   }
 
+  const movePageToScene = async (pageId: string, targetSceneId: string) => {
+    const supabase = createClient()
+
+    // Get target scene to calculate new sort_order
+    const targetScene = issue.acts?.flatMap((a: any) => a.scenes || [])
+      .find((s: any) => s.id === targetSceneId)
+
+    if (!targetScene) {
+      showToast('Target scene not found', 'error')
+      return
+    }
+
+    // New sort_order is at the end of the target scene
+    const newSortOrder = (targetScene.pages?.length || 0) + 1
+
+    const { error } = await supabase
+      .from('pages')
+      .update({
+        scene_id: targetSceneId,
+        sort_order: newSortOrder,
+      })
+      .eq('id', pageId)
+
+    if (error) {
+      showToast(`Failed to move page: ${error.message}`, 'error')
+    } else {
+      showToast('Page moved successfully', 'success')
+      setMovingPageId(null)
+      onRefresh()
+    }
+  }
+
+  // Get all scenes for the move dropdown
+  const allScenes = issue.acts?.flatMap((act: any) =>
+    (act.scenes || []).map((scene: any) => ({
+      ...scene,
+      actTitle: act.title || `Act ${act.number}`,
+    }))
+  ) || []
+
   const updateScenePlotline = async (sceneId: string, plotlineId: string | null) => {
     const supabase = createClient()
     const { error } = await supabase
@@ -763,29 +804,66 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                         <SortableContext items={(scene.pages || []).map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
                                           {(scene.pages || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((page: any) => (
                                             <SortableItem key={page.id} id={page.id}>
-                                              <div
-                                                onClick={() => onSelectPage(page.id)}
-                                                className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm flex items-center gap-1 group/page ${
-                                                  selectedPageId === page.id
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-                                                }`}
-                                              >
-                                                <span className={`text-xs opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-blue-200' : 'text-zinc-600'}`} title="Drag to reorder">
-                                                  ⋮⋮
-                                                </span>
-                                                <span className="flex-1">Page {page.page_number}</span>
-                                                <button
-                                                  onClick={(e) => { e.stopPropagation(); deletePage(page.id, page.page_number) }}
-                                                  className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
+                                              <div>
+                                                <div
+                                                  onClick={() => onSelectPage(page.id)}
+                                                  className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm flex items-center gap-1 group/page ${
                                                     selectedPageId === page.id
-                                                      ? 'text-blue-200 hover:text-red-300'
-                                                      : 'text-zinc-500 hover:text-red-400'
+                                                      ? 'bg-blue-600 text-white'
+                                                      : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
                                                   }`}
-                                                  title="Delete page"
                                                 >
-                                                  ×
-                                                </button>
+                                                  <span className={`text-xs opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-blue-200' : 'text-zinc-600'}`} title="Drag to reorder">
+                                                    ⋮⋮
+                                                  </span>
+                                                  <span className="flex-1">Page {page.page_number}</span>
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      setMovingPageId(movingPageId === page.id ? null : page.id)
+                                                    }}
+                                                    className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
+                                                      selectedPageId === page.id
+                                                        ? 'text-blue-200 hover:text-white'
+                                                        : 'text-zinc-500 hover:text-white'
+                                                    }`}
+                                                    title="Move to scene"
+                                                  >
+                                                    ↗
+                                                  </button>
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); deletePage(page.id, page.page_number) }}
+                                                    className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
+                                                      selectedPageId === page.id
+                                                        ? 'text-blue-200 hover:text-red-300'
+                                                        : 'text-zinc-500 hover:text-red-400'
+                                                    }`}
+                                                    title="Delete page"
+                                                  >
+                                                    ×
+                                                  </button>
+                                                </div>
+                                                {/* Move to scene dropdown */}
+                                                {movingPageId === page.id && (
+                                                  <div className="ml-4 mt-1 mb-2 bg-zinc-800 border border-zinc-700 rounded p-2 max-h-48 overflow-y-auto">
+                                                    <div className="text-xs text-zinc-400 mb-2">Move to scene:</div>
+                                                    <div className="space-y-1">
+                                                      {allScenes.filter((s: any) => s.id !== scene.id).map((targetScene: any) => (
+                                                        <button
+                                                          key={targetScene.id}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            movePageToScene(page.id, targetScene.id)
+                                                          }}
+                                                          className="w-full text-left text-xs px-2 py-1 rounded hover:bg-zinc-700 flex items-center gap-2"
+                                                        >
+                                                          <span className="text-zinc-500">{targetScene.actTitle} →</span>
+                                                          <span className="truncate">{targetScene.title || 'Untitled Scene'}</span>
+                                                        </button>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                )}
                                               </div>
                                             </SortableItem>
                                           ))}
