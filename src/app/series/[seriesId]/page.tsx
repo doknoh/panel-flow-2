@@ -11,7 +11,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
   // Try to get user - if using manual auth, this might fail but queries will still work
   const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
-  // We'll rely on RLS to protect data instead of explicit user check
+  console.log('Series page - user:', user?.id, 'seriesId:', seriesId)
 
   // Fetch series with issues and their content counts
   const { data: series, error } = await supabase
@@ -38,7 +38,9 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     .eq('id', seriesId)
     .single()
 
+  console.log('Series query result - error:', error, 'series:', series?.id)
   if (error || !series) {
+    console.log('Series not found, returning 404')
     notFound()
   }
 
