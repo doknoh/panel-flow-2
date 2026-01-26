@@ -35,9 +35,12 @@ interface Issue {
   rules: string | null
   series_act: 'BEGINNING' | 'MIDDLE' | 'END' | null
   status: string
+  outline_notes: string | null
   series: {
     id: string
     title: string
+    central_theme?: string | null
+    logline?: string | null
     characters: any[]
     locations: any[]
     plotlines: Plotline[]
@@ -513,7 +516,11 @@ function IssueEditorContent({
 
         {/* Right: Toolkit */}
         <div className={`w-full md:w-80 border-l border-zinc-800 overflow-y-auto shrink-0 ${mobileView === 'toolkit' ? 'block' : 'hidden md:block'}`}>
-          <Toolkit issue={issue} />
+          <Toolkit
+            issue={issue}
+            selectedPageContext={selectedPageContext}
+            onRefresh={refreshIssue}
+          />
         </div>
       </div>
 

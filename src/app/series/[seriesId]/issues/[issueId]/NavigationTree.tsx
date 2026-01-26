@@ -78,10 +78,16 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   const [editingSummary, setEditingSummary] = useState('')
   const [editingActBeatSummaryId, setEditingActBeatSummaryId] = useState<string | null>(null)
   const [editingBeatSummary, setEditingBeatSummary] = useState('')
+  const [editingActIntentionId, setEditingActIntentionId] = useState<string | null>(null)
+  const [editingActIntention, setEditingActIntention] = useState('')
+  const [editingSceneIntentionId, setEditingSceneIntentionId] = useState<string | null>(null)
+  const [editingSceneIntention, setEditingSceneIntention] = useState('')
   const [movingPageId, setMovingPageId] = useState<string | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
   const beatSummaryInputRef = useRef<HTMLTextAreaElement>(null)
+  const actIntentionRef = useRef<HTMLTextAreaElement>(null)
+  const sceneIntentionRef = useRef<HTMLTextAreaElement>(null)
   const { showToast } = useToast()
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
@@ -226,6 +232,52 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     setEditingActBeatSummaryId(null)
   }
 
+  // Start editing act intention
+  const startEditingActIntention = (actId: string, currentIntention: string) => {
+    setEditingActIntentionId(actId)
+    setEditingActIntention(currentIntention || '')
+    setTimeout(() => actIntentionRef.current?.focus(), 0)
+  }
+
+  // Save act intention
+  const saveActIntention = async (actId: string) => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('acts')
+      .update({ intention: editingActIntention.trim() || null })
+      .eq('id', actId)
+
+    if (error) {
+      showToast(`Failed to save intention: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+    setEditingActIntentionId(null)
+  }
+
+  // Start editing scene intention
+  const startEditingSceneIntention = (sceneId: string, currentIntention: string) => {
+    setEditingSceneIntentionId(sceneId)
+    setEditingSceneIntention(currentIntention || '')
+    setTimeout(() => sceneIntentionRef.current?.focus(), 0)
+  }
+
+  // Save scene intention
+  const saveSceneIntention = async (sceneId: string) => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('scenes')
+      .update({ intention: editingSceneIntention.trim() || null })
+      .eq('id', sceneId)
+
+    if (error) {
+      showToast(`Failed to save intention: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+    setEditingSceneIntentionId(null)
+  }
+
   // Cancel editing
   const cancelEditing = () => {
     setEditingActId(null)
@@ -235,6 +287,10 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     setEditingSummary('')
     setEditingActBeatSummaryId(null)
     setEditingBeatSummary('')
+    setEditingActIntentionId(null)
+    setEditingActIntention('')
+    setEditingSceneIntentionId(null)
+    setEditingSceneIntention('')
   }
 
   // Handle key press in edit input
@@ -632,6 +688,58 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                       )
                     )}
 
+                    {/* Act Intention */}
+                    {expandedActs.has(act.id) && (
+                      editingActIntentionId === act.id ? (
+                        <div className="ml-4 mt-1 mb-2">
+                          <textarea
+                            ref={actIntentionRef}
+                            value={editingActIntention}
+                            onChange={(e) => setEditingActIntention(e.target.value)}
+                            onBlur={() => saveActIntention(act.id)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation()
+                              if (e.key === 'Escape') {
+                                e.preventDefault()
+                                setEditingActIntentionId(null)
+                              } else if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                saveActIntention(act.id)
+                              }
+                            }}
+                            placeholder="What this act needs to accomplish..."
+                            className="w-full text-xs bg-purple-900/30 border border-purple-700/50 rounded px-2 py-1 text-zinc-300 resize-none focus:border-purple-500 focus:outline-none"
+                            rows={2}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      ) : act.intention ? (
+                        <div
+                          className="ml-4 mt-0.5 mb-1 cursor-pointer group/actintention"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startEditingActIntention(act.id, act.intention)
+                          }}
+                        >
+                          <p className="text-xs text-purple-400/70 line-clamp-2 group-hover/actintention:text-purple-300">
+                            → {act.intention}
+                          </p>
+                        </div>
+                      ) : (
+                        <div
+                          className="ml-4 mt-0.5 mb-1 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startEditingActIntention(act.id, '')
+                          }}
+                        >
+                          <p className="text-xs text-purple-600/50 hover:text-purple-500">
+                            + Add intention
+                          </p>
+                        </div>
+                      )
+                    )}
+
                     {/* Scenes */}
                     {expandedActs.has(act.id) && (
                       <div className="ml-4">
@@ -754,6 +862,56 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                     >
                                       <p className="text-xs text-zinc-600 italic hover:text-zinc-500">
                                         + Add summary
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Scene Intention */}
+                                  {editingSceneIntentionId === scene.id ? (
+                                    <div className="ml-6 mt-1 mb-2">
+                                      <textarea
+                                        ref={sceneIntentionRef}
+                                        value={editingSceneIntention}
+                                        onChange={(e) => setEditingSceneIntention(e.target.value)}
+                                        onBlur={() => saveSceneIntention(scene.id)}
+                                        onKeyDown={(e) => {
+                                          e.stopPropagation()
+                                          if (e.key === 'Escape') {
+                                            e.preventDefault()
+                                            setEditingSceneIntentionId(null)
+                                          } else if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault()
+                                            saveSceneIntention(scene.id)
+                                          }
+                                        }}
+                                        placeholder="What this scene needs to accomplish..."
+                                        className="w-full text-xs bg-purple-900/30 border border-purple-700/50 rounded px-2 py-1 text-zinc-300 resize-none focus:border-purple-500 focus:outline-none"
+                                        rows={2}
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+                                  ) : scene.intention ? (
+                                    <div
+                                      className="ml-6 mt-0.5 mb-1 cursor-pointer group/sceneintention"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        startEditingSceneIntention(scene.id, scene.intention)
+                                      }}
+                                    >
+                                      <p className="text-xs text-purple-400/70 line-clamp-2 group-hover/sceneintention:text-purple-300">
+                                        → {scene.intention}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="ml-6 mt-0.5 mb-1 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        startEditingSceneIntention(scene.id, '')
+                                      }}
+                                    >
+                                      <p className="text-xs text-purple-600/50 hover:text-purple-500">
+                                        + Add intention
                                       </p>
                                     </div>
                                   )}

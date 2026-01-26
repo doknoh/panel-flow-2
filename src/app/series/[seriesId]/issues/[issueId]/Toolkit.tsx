@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { postJsonWithRetry, FetchError } from '@/lib/fetch-with-retry'
+import { useToast } from '@/contexts/ToastContext'
 
 interface ContinuityAlert {
   id: string
@@ -10,6 +11,12 @@ interface ContinuityAlert {
   severity: 'warning' | 'info'
   message: string
   details: string
+}
+
+interface PageContext {
+  page: any
+  act: { id: string; name: string; sort_order: number; title?: string; intention?: string; beat_summary?: string }
+  scene: { id: string; name: string; sort_order: number; title?: string; intention?: string; scene_summary?: string }
 }
 
 interface Issue {
@@ -25,9 +32,12 @@ interface Issue {
   rules: string | null
   series_act: 'BEGINNING' | 'MIDDLE' | 'END' | null
   status: string
+  outline_notes: string | null
   series: {
     id: string
     title: string
+    central_theme?: string | null
+    logline?: string | null
     characters: any[]
     locations: any[]
   }
@@ -36,15 +46,87 @@ interface Issue {
 
 interface ToolkitProps {
   issue: Issue
+  selectedPageContext?: PageContext | null
+  onRefresh?: () => void
 }
 
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  suggestions?: AISuggestion[]
 }
 
-export default function Toolkit({ issue }: ToolkitProps) {
-  const [activeTab, setActiveTab] = useState<'context' | 'characters' | 'locations' | 'alerts' | 'ai'>('context')
+interface AISuggestion {
+  type: 'act_intention' | 'scene_intention' | 'page_intention' | 'scene_summary' | 'act_beat' | 'panel_description' | 'dialogue'
+  targetId: string
+  targetLabel: string
+  content: string
+}
+
+// Parse AI response for actionable suggestions
+function parseAISuggestions(response: string, context: PageContext | null): AISuggestion[] {
+  const suggestions: AISuggestion[] = []
+
+  if (!context) return suggestions
+
+  // Look for markers in the response that indicate saveable content
+  // Format: [SAVE_AS:type] content [/SAVE_AS]
+  const savePattern = /\[SAVE_AS:([\w_]+)\]([\s\S]*?)\[\/SAVE_AS\]/g
+  let match
+
+  while ((match = savePattern.exec(response)) !== null) {
+    const [, type, content] = match
+    const trimmedContent = content.trim()
+
+    switch (type) {
+      case 'act_intention':
+        suggestions.push({
+          type: 'act_intention',
+          targetId: context.act.id,
+          targetLabel: context.act.title || `Act ${context.act.sort_order + 1}`,
+          content: trimmedContent,
+        })
+        break
+      case 'scene_intention':
+        suggestions.push({
+          type: 'scene_intention',
+          targetId: context.scene.id,
+          targetLabel: context.scene.title || context.scene.name || 'Current Scene',
+          content: trimmedContent,
+        })
+        break
+      case 'page_intention':
+        suggestions.push({
+          type: 'page_intention',
+          targetId: context.page.id,
+          targetLabel: `Page ${context.page.page_number}`,
+          content: trimmedContent,
+        })
+        break
+      case 'scene_summary':
+        suggestions.push({
+          type: 'scene_summary',
+          targetId: context.scene.id,
+          targetLabel: context.scene.title || context.scene.name || 'Current Scene',
+          content: trimmedContent,
+        })
+        break
+      case 'act_beat':
+        suggestions.push({
+          type: 'act_beat',
+          targetId: context.act.id,
+          targetLabel: context.act.title || `Act ${context.act.sort_order + 1}`,
+          content: trimmedContent,
+        })
+        break
+    }
+  }
+
+  return suggestions
+}
+
+export default function Toolkit({ issue, selectedPageContext, onRefresh }: ToolkitProps) {
+  const [activeTab, setActiveTab] = useState<'context' | 'characters' | 'locations' | 'alerts' | 'ai'>('ai')
   const [isEditingContext, setIsEditingContext] = useState(false)
   const [contextForm, setContextForm] = useState({
     title: issue.title || '',
@@ -56,8 +138,10 @@ export default function Toolkit({ issue }: ToolkitProps) {
     stakes: issue.stakes || '',
     rules: issue.rules || '',
     series_act: issue.series_act || '',
+    outline_notes: issue.outline_notes || '',
   })
   const [saving, setSaving] = useState(false)
+  const { showToast } = useToast()
 
   // Continuity alerts state
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => {
@@ -72,6 +156,7 @@ export default function Toolkit({ issue }: ToolkitProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [aiMode, setAiMode] = useState<'outline' | 'draft'>('outline')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -229,13 +314,129 @@ export default function Toolkit({ issue }: ToolkitProps) {
         stakes: contextForm.stakes || null,
         rules: contextForm.rules || null,
         series_act: contextForm.series_act || null,
+        outline_notes: contextForm.outline_notes || null,
       })
       .eq('id', issue.id)
 
     if (!error) {
       setIsEditingContext(false)
+      showToast('Context saved', 'success')
+      onRefresh?.()
+    } else {
+      showToast('Failed to save context', 'error')
     }
     setSaving(false)
+  }
+
+  // Build hierarchical context for AI
+  const buildHierarchicalContext = () => {
+    const parts: string[] = []
+
+    // Series level
+    parts.push(`SERIES: "${issue.series.title}"`)
+    if (issue.series.central_theme) {
+      parts.push(`Central Theme: ${issue.series.central_theme}`)
+    }
+    if (issue.series.logline) {
+      parts.push(`Logline: ${issue.series.logline}`)
+    }
+
+    // Issue level
+    parts.push(`\nISSUE #${issue.number}${issue.title ? `: ${issue.title}` : ''}`)
+    if (issue.summary) parts.push(`Summary: ${issue.summary}`)
+    if (issue.themes) parts.push(`Themes: ${issue.themes}`)
+    if (issue.stakes) parts.push(`Stakes: ${issue.stakes}`)
+    if (issue.outline_notes) parts.push(`Issue Outline Notes: ${issue.outline_notes}`)
+
+    // Current location context
+    if (selectedPageContext) {
+      const { act, scene, page } = selectedPageContext
+
+      // Act context
+      parts.push(`\nCURRENT ACT: ${act.title || `Act ${act.sort_order + 1}`}`)
+      if (act.intention) parts.push(`Act Intention: ${act.intention}`)
+      if (act.beat_summary) parts.push(`Act Beat Summary: ${act.beat_summary}`)
+
+      // Scene context
+      parts.push(`\nCURRENT SCENE: ${scene.title || scene.name || 'Untitled'}`)
+      if (scene.intention) parts.push(`Scene Intention: ${scene.intention}`)
+      if (scene.scene_summary) parts.push(`Scene Summary: ${scene.scene_summary}`)
+
+      // Page context
+      parts.push(`\nCURRENT PAGE: Page ${page.page_number}`)
+      if (page.intention) parts.push(`Page Intention: ${page.intention}`)
+      if (page.page_summary) parts.push(`Page Summary: ${page.page_summary}`)
+
+      // Panel summaries
+      const panels = page.panels || []
+      if (panels.length > 0) {
+        parts.push(`\nPage has ${panels.length} panel${panels.length > 1 ? 's' : ''}:`)
+        panels.slice(0, 5).forEach((panel: any, i: number) => {
+          const desc = panel.visual_description?.substring(0, 100) || 'No description'
+          parts.push(`  Panel ${i + 1}: ${desc}${desc.length >= 100 ? '...' : ''}`)
+        })
+        if (panels.length > 5) {
+          parts.push(`  ... and ${panels.length - 5} more panels`)
+        }
+      }
+    }
+
+    // Characters
+    if (issue.series.characters.length > 0) {
+      parts.push(`\nCHARACTERS: ${issue.series.characters.map((c: any) => c.name).join(', ')}`)
+    }
+
+    // Locations
+    if (issue.series.locations.length > 0) {
+      parts.push(`LOCATIONS: ${issue.series.locations.map((l: any) => l.name).join(', ')}`)
+    }
+
+    return parts.join('\n')
+  }
+
+  // Apply an AI suggestion to the database
+  const applySuggestion = async (suggestion: AISuggestion) => {
+    const supabase = createClient()
+    let table: string
+    let field: string
+
+    switch (suggestion.type) {
+      case 'act_intention':
+        table = 'acts'
+        field = 'intention'
+        break
+      case 'act_beat':
+        table = 'acts'
+        field = 'beat_summary'
+        break
+      case 'scene_intention':
+        table = 'scenes'
+        field = 'intention'
+        break
+      case 'scene_summary':
+        table = 'scenes'
+        field = 'scene_summary'
+        break
+      case 'page_intention':
+        table = 'pages'
+        field = 'intention'
+        break
+      default:
+        showToast('Unknown suggestion type', 'error')
+        return
+    }
+
+    const { error } = await supabase
+      .from(table)
+      .update({ [field]: suggestion.content })
+      .eq('id', suggestion.targetId)
+
+    if (error) {
+      showToast(`Failed to save ${suggestion.type.replace('_', ' ')}`, 'error')
+    } else {
+      showToast(`Saved to ${suggestion.targetLabel}`, 'success')
+      onRefresh?.()
+    }
   }
 
   const sendMessage = async () => {
@@ -247,27 +448,48 @@ export default function Toolkit({ issue }: ToolkitProps) {
     setIsLoading(true)
 
     try {
-      // Build context string
-      const context = `
-Series: ${issue.series.title}
-Issue #${issue.number}${issue.title ? `: ${issue.title}` : ''}
-${issue.summary ? `Summary: ${issue.summary}` : ''}
-${issue.themes ? `Themes: ${issue.themes}` : ''}
+      // Build rich context
+      const context = buildHierarchicalContext()
 
-Characters: ${issue.series.characters.map((c: any) => c.name).join(', ') || 'None defined'}
-Locations: ${issue.series.locations.map((l: any) => l.name).join(', ') || 'None defined'}
-`.trim()
+      // Add mode-specific instructions
+      const modeInstructions = aiMode === 'outline'
+        ? `\n\nMODE: OUTLINE
+You are helping the author develop their story from the top down - working out the macro structure before diving into details.
+Focus on: story beats, character intentions, scene purposes, thematic elements.
+
+When you help develop an idea that could be saved to the outline, wrap it in tags:
+- [SAVE_AS:act_intention]content[/SAVE_AS] for what an act should accomplish
+- [SAVE_AS:scene_intention]content[/SAVE_AS] for what a scene should accomplish
+- [SAVE_AS:page_intention]content[/SAVE_AS] for what a page should accomplish
+- [SAVE_AS:scene_summary]content[/SAVE_AS] for a one-line scene summary
+- [SAVE_AS:act_beat]content[/SAVE_AS] for act beat summaries
+
+Push the author to clarify their ideas. Ask probing questions. Help them discover what the story needs.`
+        : `\n\nMODE: DRAFT
+You are helping the author write actual script content - panel descriptions, dialogue, captions.
+Be specific and visual. Help craft compelling dialogue and vivid descriptions.`
+
+      const fullContext = context + modeInstructions
 
       const data = await postJsonWithRetry<{ response?: string; error?: string }>(
         '/api/chat',
-        { message: userMessage, context },
+        { message: userMessage, context: fullContext, maxTokens: 2048 },
         { retries: 2, retryDelay: 1000 }
       )
 
       if (data.error) {
         setChatMessages(prev => [...prev, { role: 'assistant', content: `Error: ${data.error}` }])
       } else {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: data.response || '' }])
+        const response = data.response || ''
+        // Parse for suggestions
+        const suggestions = parseAISuggestions(response, selectedPageContext || null)
+        // Clean response by removing the SAVE_AS tags for display
+        const cleanResponse = response.replace(/\[SAVE_AS:[\w_]+\]([\s\S]*?)\[\/SAVE_AS\]/g, '$1')
+        setChatMessages(prev => [...prev, {
+          role: 'assistant',
+          content: cleanResponse,
+          suggestions: suggestions.length > 0 ? suggestions : undefined
+        }])
       }
     } catch (error) {
       let errorMessage = 'Failed to connect to AI assistant. Please try again.'
@@ -445,6 +667,16 @@ Locations: ${issue.series.locations.map((l: any) => l.name).join(', ') || 'None 
                     />
                   </div>
                   <div>
+                    <label className="block text-xs text-zinc-400 mb-1">Outline Notes</label>
+                    <textarea
+                      value={contextForm.outline_notes}
+                      onChange={(e) => setContextForm(prev => ({ ...prev, outline_notes: e.target.value }))}
+                      placeholder="Working notes for this issue's outline..."
+                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs text-zinc-400 mb-1">Motifs</label>
                     <textarea
                       value={contextForm.motifs}
@@ -529,6 +761,12 @@ Locations: ${issue.series.locations.map((l: any) => l.name).join(', ') || 'None 
                       <p className="text-zinc-300">{issue.stakes}</p>
                     </div>
                   )}
+                  {issue.outline_notes && (
+                    <div>
+                      <span className="text-zinc-500 block text-xs mb-1">Outline Notes</span>
+                      <p className="text-zinc-300">{issue.outline_notes}</p>
+                    </div>
+                  )}
                   {issue.motifs && (
                     <div>
                       <span className="text-zinc-500 block text-xs mb-1">Motifs</span>
@@ -567,6 +805,7 @@ Locations: ${issue.series.locations.map((l: any) => l.name).join(', ') || 'None 
                     .from('issues')
                     .update({ status: e.target.value })
                     .eq('id', issue.id)
+                  onRefresh?.()
                 }}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm"
               >
@@ -719,74 +958,124 @@ Locations: ${issue.series.locations.map((l: any) => l.name).join(', ') || 'None 
         {/* AI Chat Tab */}
         {activeTab === 'ai' && (
           <div className="flex flex-col h-full">
-            {/* Collapsible Context Summary */}
-            <details className="mb-3 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shrink-0">
-              <summary className="px-3 py-2 cursor-pointer text-xs text-zinc-400 hover:text-zinc-300 flex items-center gap-2">
-                <svg className="w-3 h-3 transition-transform details-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-                Issue Context
-                {issue.title && <span className="text-zinc-500 truncate">— {issue.title}</span>}
-              </summary>
-              <div className="px-3 pb-3 pt-1 text-xs space-y-2 border-t border-zinc-800">
-                {issue.summary && (
-                  <div>
-                    <span className="text-zinc-500">Summary:</span>
-                    <p className="text-zinc-300 line-clamp-2">{issue.summary}</p>
-                  </div>
-                )}
-                {issue.themes && (
-                  <div>
-                    <span className="text-zinc-500">Themes:</span>
-                    <p className="text-zinc-300 line-clamp-1">{issue.themes}</p>
-                  </div>
-                )}
-                {issue.stakes && (
-                  <div>
-                    <span className="text-zinc-500">Stakes:</span>
-                    <p className="text-zinc-300 line-clamp-1">{issue.stakes}</p>
-                  </div>
-                )}
-                {!issue.summary && !issue.themes && !issue.stakes && (
-                  <p className="text-zinc-500 italic">No context set. Add context in the Context tab.</p>
-                )}
+            {/* Mode Toggle & Current Scope */}
+            <div className="mb-3 space-y-2 shrink-0">
+              {/* Mode Toggle */}
+              <div className="flex gap-1 bg-zinc-900 rounded-lg p-1">
+                <button
+                  onClick={() => setAiMode('outline')}
+                  className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                    aiMode === 'outline'
+                      ? 'bg-purple-600 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Outline Mode
+                </button>
+                <button
+                  onClick={() => setAiMode('draft')}
+                  className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                    aiMode === 'draft'
+                      ? 'bg-green-600 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Draft Mode
+                </button>
               </div>
-            </details>
+
+              {/* Current Scope Indicator */}
+              {selectedPageContext && (
+                <div className="text-xs text-zinc-500 bg-zinc-900 rounded px-3 py-2">
+                  <span className="text-zinc-400">Working on:</span>{' '}
+                  <span className="text-zinc-300">
+                    {selectedPageContext.act.title || `Act ${selectedPageContext.act.sort_order + 1}`}
+                  </span>
+                  {' › '}
+                  <span className="text-zinc-300">
+                    {selectedPageContext.scene.title || selectedPageContext.scene.name || 'Scene'}
+                  </span>
+                  {' › '}
+                  <span className="text-zinc-300">
+                    Page {selectedPageContext.page.page_number}
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto space-y-3 mb-3">
               {chatMessages.length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <div className="text-3xl mb-3 opacity-30">🤖</div>
-                  <p className="text-zinc-400 text-sm mb-3">AI Writing Assistant</p>
-                  <p className="text-zinc-500 text-xs mb-4">Get help with your comic script:</p>
+                <div className="text-center py-6 px-4">
+                  <div className="text-3xl mb-3 opacity-30">
+                    {aiMode === 'outline' ? '🧠' : '✍️'}
+                  </div>
+                  <p className="text-zinc-400 text-sm mb-2">
+                    {aiMode === 'outline' ? 'AI Outline Partner' : 'AI Writing Partner'}
+                  </p>
+                  <p className="text-zinc-500 text-xs mb-4">
+                    {aiMode === 'outline'
+                      ? 'Work out your story from the top down. The AI will push you to clarify your ideas and can save them to your outline.'
+                      : 'Get help writing panel descriptions, dialogue, and captions for your script.'
+                    }
+                  </p>
                   <div className="text-xs text-zinc-600 space-y-1.5 text-left bg-zinc-800/50 rounded-lg p-3">
-                    <p>• "Write dialogue for a tense confrontation"</p>
-                    <p>• "Describe a dramatic establishing shot"</p>
-                    <p>• "Suggest pacing for this action sequence"</p>
-                    <p>• "Help me with a character's inner monologue"</p>
+                    {aiMode === 'outline' ? (
+                      <>
+                        <p>• "What should this scene accomplish?"</p>
+                        <p>• "Help me work out the act breaks"</p>
+                        <p>• "What's the emotional beat of this page?"</p>
+                        <p>• "Push me on the theme of this issue"</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>• "Write dialogue for a tense confrontation"</p>
+                        <p>• "Describe a dramatic establishing shot"</p>
+                        <p>• "Suggest pacing for this action sequence"</p>
+                        <p>• "Help with character's inner monologue"</p>
+                      </>
+                    )}
                   </div>
                 </div>
               ) : (
                 chatMessages.map((msg, i) => (
                   <div
                     key={i}
-                    className={`p-3 rounded-lg text-sm ${
+                    className={`rounded-lg text-sm ${
                       msg.role === 'user'
-                        ? 'bg-blue-900/30 ml-4'
-                        : 'bg-zinc-800 mr-4'
+                        ? 'bg-blue-900/30 ml-4 p-3'
+                        : 'bg-zinc-800 mr-2 p-3'
                     }`}
                   >
                     <p className="text-xs text-zinc-500 mb-1">
-                      {msg.role === 'user' ? 'You' : 'AI Assistant'}
+                      {msg.role === 'user' ? 'You' : 'AI Writing Partner'}
                     </p>
                     <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                    {/* AI Suggestions */}
+                    {msg.suggestions && msg.suggestions.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-zinc-700 space-y-2">
+                        <p className="text-xs text-zinc-400">Save to outline:</p>
+                        {msg.suggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => applySuggestion(suggestion)}
+                            className="w-full text-left p-2 bg-purple-900/30 hover:bg-purple-900/50 border border-purple-700/50 rounded text-xs transition-colors"
+                          >
+                            <span className="text-purple-300 font-medium">
+                              {suggestion.type.replace(/_/g, ' ')} → {suggestion.targetLabel}
+                            </span>
+                            <p className="text-zinc-300 mt-1 line-clamp-2">{suggestion.content}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))
               )}
               {isLoading && (
                 <div className="bg-zinc-800 p-3 rounded-lg mr-4">
-                  <p className="text-xs text-zinc-500 mb-1">AI Assistant</p>
+                  <p className="text-xs text-zinc-500 mb-1">AI Writing Partner</p>
                   <p className="text-zinc-400">Thinking...</p>
                 </div>
               )}
@@ -801,7 +1090,7 @@ Locations: ${issue.series.locations.map((l: any) => l.name).join(', ') || 'None 
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                  placeholder="Ask the AI assistant..."
+                  placeholder={aiMode === 'outline' ? "Work out your story..." : "Ask for writing help..."}
                   className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   disabled={isLoading}
                 />

@@ -63,6 +63,7 @@ interface Act {
   scenes: Scene[]
   sort_order: number
   beat_summary: string | null
+  intention: string | null
 }
 
 interface Issue {
@@ -80,6 +81,7 @@ interface Series {
   title: string
   logline: string | null
   central_theme: string | null
+  outline_notes: string | null
   plotlines: Plotline[]
   issues: Issue[]
 }
@@ -96,7 +98,25 @@ export default function OutlineView({ series }: OutlineViewProps) {
   const [proposedOutlines, setProposedOutlines] = useState<ProposedOutline[]>([])
   const [showDiffView, setShowDiffView] = useState(false)
   const [acceptedChanges, setAcceptedChanges] = useState<Set<string>>(new Set())
+  const [editingSeriesNotes, setEditingSeriesNotes] = useState(false)
+  const [seriesNotes, setSeriesNotes] = useState(series.outline_notes || '')
   const { showToast } = useToast()
+
+  // Save series outline notes
+  const saveSeriesNotes = async () => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('series')
+      .update({ outline_notes: seriesNotes.trim() || null })
+      .eq('id', series.id)
+
+    if (error) {
+      showToast('Failed to save notes', 'error')
+    } else {
+      showToast('Notes saved', 'success')
+      setEditingSeriesNotes(false)
+    }
+  }
 
   const toggleIssue = (issueId: string) => {
     const newExpanded = new Set(expandedIssues)
@@ -456,6 +476,40 @@ Return this exact JSON structure:
           </p>
         )}
 
+        {/* Series Outline Notes */}
+        <div className="mt-4 pt-4 border-t border-zinc-800">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-zinc-400">Series Outline Notes</span>
+            <button
+              onClick={() => setEditingSeriesNotes(!editingSeriesNotes)}
+              className="text-xs text-blue-400 hover:text-blue-300"
+            >
+              {editingSeriesNotes ? 'Cancel' : 'Edit'}
+            </button>
+          </div>
+          {editingSeriesNotes ? (
+            <div className="space-y-2">
+              <textarea
+                value={seriesNotes}
+                onChange={(e) => setSeriesNotes(e.target.value)}
+                placeholder="High-level outline notes for the entire series..."
+                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-vertical min-h-[100px] focus:border-purple-500 focus:outline-none"
+                rows={4}
+              />
+              <button
+                onClick={saveSeriesNotes}
+                className="text-sm bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded"
+              >
+                Save Notes
+              </button>
+            </div>
+          ) : series.outline_notes ? (
+            <p className="text-sm text-zinc-300 whitespace-pre-wrap">{series.outline_notes}</p>
+          ) : (
+            <p className="text-sm text-zinc-500 italic">No outline notes yet. Click Edit to add.</p>
+          )}
+        </div>
+
         {/* Plotlines */}
         {series.plotlines.length > 0 && (
           <div className="mt-4 pt-4 border-t border-zinc-800">
@@ -764,6 +818,16 @@ Return this exact JSON structure:
                                   ({actPages} pages, {sortedScenes.length} scenes)
                                 </span>
                               </div>
+                              {act.intention && (
+                                <p className="text-xs text-purple-400/70 mt-0.5">
+                                  → {act.intention}
+                                </p>
+                              )}
+                              {act.beat_summary && (
+                                <p className="text-xs text-zinc-500 italic mt-0.5">
+                                  {act.beat_summary}
+                                </p>
+                              )}
                               <div className="mt-1 space-y-0.5">
                                 {sortedScenes.map((scene) => (
                                   <div

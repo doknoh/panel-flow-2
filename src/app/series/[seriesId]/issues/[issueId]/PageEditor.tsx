@@ -743,8 +743,8 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                     onChange={(e) => updatePanelField(panel.id, 'visual_description', e.target.value)}
                     onBlur={() => handleVisualDescriptionBlur(panel)}
                     placeholder="Describe what the reader sees in this panel..."
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
-                    rows={3}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-vertical focus:border-blue-500 focus:outline-none min-h-[100px]"
+                    rows={5}
                   />
                 </div>
 
