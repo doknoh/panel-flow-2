@@ -10,6 +10,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
+  // Create the response we'll modify with cookies
+  const response = NextResponse.redirect(`${origin}${next}`)
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -22,59 +25,21 @@ export async function GET(request: Request) {
             return { name, value: rest.join('=') }
           })
         },
-        setAll() {
-          // We'll handle cookies manually below
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
         },
       },
     }
   )
 
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-  if (error || !data.session) {
+  if (error) {
     console.error('Exchange error:', error)
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error?.message || 'no_session')}`)
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
   }
 
-  // Manually create cookies from the session
-  const { access_token, refresh_token } = data.session
-  const maxAge = 60 * 60 * 24 * 365 // 1 year
-
-  // Create HTML response that sets cookies and redirects
-  const response = new NextResponse(
-    `<!DOCTYPE html>
-    <html>
-      <head>
-        <meta http-equiv="refresh" content="0;url=${next}">
-        <script>window.location.href = "${next}";</script>
-      </head>
-      <body>Redirecting...</body>
-    </html>`,
-    {
-      status: 200,
-      headers: { 'Content-Type': 'text/html' },
-    }
-  )
-
-  // Get the project ref from the URL
-  const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL!.match(/https:\/\/(.+)\.supabase\.co/)?.[1]
-
-  // Set the auth cookies in the format Supabase expects
-  response.cookies.set(`sb-${projectRef}-auth-token`, JSON.stringify({
-    access_token,
-    refresh_token,
-    expires_at: data.session.expires_at,
-    expires_in: data.session.expires_in,
-    token_type: 'bearer',
-    user: data.session.user,
-  }), {
-    path: '/',
-    maxAge,
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-  })
-
-  console.log('Session created, cookie set for project:', projectRef)
   return response
 }
