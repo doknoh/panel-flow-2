@@ -14,16 +14,16 @@ export default async function WeavePage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch issue with all nested data including plotlines
+  // Fetch issue with all nested data including plotlines and full page details
   const { data: issue, error } = await supabase
     .from('issues')
     .select(`
       *,
       series:series_id (
         id,
-        title,
-        plotlines (*)
+        title
       ),
+      plotlines (*),
       acts (
         *,
         scenes (
@@ -32,7 +32,13 @@ export default async function WeavePage({
           pages (
             id,
             page_number,
-            sort_order
+            sort_order,
+            story_beat,
+            intention,
+            visual_motif,
+            time_period,
+            plotline_id,
+            plotline:plotline_id (*)
           )
         )
       )
@@ -61,10 +67,10 @@ export default async function WeavePage({
               ← Issue #{issue.number}
             </Link>
             <span className="text-zinc-600">/</span>
-            <h1 className="text-xl font-bold">Weave View</h1>
+            <h1 className="text-xl font-bold">The Weave</h1>
           </div>
           <div className="text-sm text-zinc-400">
-            Visualize how your plotlines flow through the issue
+            Arrange story beats across pages and spreads
           </div>
         </div>
       </header>
