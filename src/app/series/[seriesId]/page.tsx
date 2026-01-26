@@ -11,34 +11,31 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  console.log('Series page - user:', user?.id, user?.email)
+
   if (!user) {
     redirect('/login')
   }
 
-  // Fetch series with issues
+  // Fetch series first (simple query)
   const { data: series, error: seriesError } = await supabase
     .from('series')
-    .select(`
-      *,
-      issues (
-        id,
-        number,
-        title,
-        tagline,
-        status,
-        updated_at,
-        acts (
-          scenes (
-            pages (
-              id,
-              panels (id, word_count)
-            )
-          )
-        )
-      )
-    `)
+    .select('*')
     .eq('id', seriesId)
     .single()
+
+  // If series found, fetch issues separately
+  let issues: any[] = []
+  if (series) {
+    const { data: issuesData } = await supabase
+      .from('issues')
+      .select('id, number, title, tagline, status, updated_at')
+      .eq('series_id', seriesId)
+      .order('number')
+    issues = issuesData || []
+  }
+
+  console.log('Series page - series query result:', { series: series?.id, error: seriesError?.message, code: seriesError?.code })
 
   if (seriesError || !series) {
     return (
@@ -46,6 +43,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Series Not Found</h1>
           <p className="text-zinc-400 mb-4">This series doesn&apos;t exist or you don&apos;t have access.</p>
+          <p className="text-zinc-500 text-xs mb-4">Debug: User={user?.id?.substring(0, 8)}... Error={seriesError?.message || 'none'}</p>
           <Link href="/dashboard" className="text-blue-500 hover:underline">
             Back to Dashboard
           </Link>
@@ -95,7 +93,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-            <div className="text-2xl font-bold">{series.issues?.length || 0}</div>
+            <div className="text-2xl font-bold">{issues?.length || 0}</div>
             <div className="text-zinc-500 text-sm">Issues</div>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
@@ -116,9 +114,9 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Issues</h2>
-            <CreateIssueButton seriesId={seriesId} issueCount={series.issues?.length || 0} />
+            <CreateIssueButton seriesId={seriesId} issueCount={issues?.length || 0} />
           </div>
-          <IssueGrid issues={series.issues || []} seriesId={seriesId} />
+          <IssueGrid issues={issues || []} seriesId={seriesId} />
         </div>
 
         {/* Series Tools */}
