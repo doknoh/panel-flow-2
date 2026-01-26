@@ -339,23 +339,23 @@ ${ic.text.slice(0, 3000)}
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <p className="text-zinc-400">
+          <p className="text-zinc-400 text-sm sm:text-base">
             Analyze your series for continuity errors, character inconsistencies, and timeline issues.
           </p>
         </div>
         <button
           onClick={analyze}
           disabled={isAnalyzing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap"
         >
           {isAnalyzing ? 'Analyzing...' : hasAnalyzed ? 'Re-analyze' : 'Run Analysis'}
         </button>
       </div>
 
       {/* Series Overview */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
           <div className="text-2xl font-bold">{sortedIssues.length}</div>
           <div className="text-zinc-500 text-sm">Issues</div>
@@ -380,10 +380,10 @@ ${ic.text.slice(0, 3000)}
           {/* Summary */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
             <h3 className="font-medium mb-4">Analysis Summary</h3>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-2 sm:gap-4">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-3 py-1 rounded text-sm ${
+                className={`px-3 py-1.5 rounded text-sm ${
                   filter === 'all' ? 'bg-zinc-700' : 'bg-zinc-800 hover:bg-zinc-700'
                 }`}
               >
@@ -391,7 +391,7 @@ ${ic.text.slice(0, 3000)}
               </button>
               <button
                 onClick={() => setFilter('error')}
-                className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
                   filter === 'error' ? 'bg-red-600/30 text-red-400' : 'bg-zinc-800 hover:bg-zinc-700 text-red-400'
                 }`}
               >
@@ -399,7 +399,7 @@ ${ic.text.slice(0, 3000)}
               </button>
               <button
                 onClick={() => setFilter('warning')}
-                className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
                   filter === 'warning' ? 'bg-amber-600/30 text-amber-400' : 'bg-zinc-800 hover:bg-zinc-700 text-amber-400'
                 }`}
               >
@@ -407,7 +407,7 @@ ${ic.text.slice(0, 3000)}
               </button>
               <button
                 onClick={() => setFilter('info')}
-                className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
                   filter === 'info' ? 'bg-blue-600/30 text-blue-400' : 'bg-zinc-800 hover:bg-zinc-700 text-blue-400'
                 }`}
               >
@@ -454,7 +454,14 @@ ${ic.text.slice(0, 3000)}
       {/* Empty state */}
       {!hasAnalyzed && !isAnalyzing && (
         <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400">Click "Run Analysis" to check your series for continuity issues</p>
+          <div className="text-5xl mb-4 opacity-30">🔍</div>
+          <h3 className="text-lg font-medium text-zinc-300 mb-2">Ready to analyze</h3>
+          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-2">
+            Click "Run Analysis" to check your series for continuity issues.
+          </p>
+          <p className="text-zinc-600 text-xs max-w-md mx-auto">
+            We'll scan character appearances, dialogue consistency, timeline logic, and more.
+          </p>
         </div>
       )}
 
@@ -462,7 +469,8 @@ ${ic.text.slice(0, 3000)}
       {isAnalyzing && (
         <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
           <div className="animate-pulse">
-            <p className="text-zinc-400">Analyzing {sortedIssues.length} issues...</p>
+            <div className="text-4xl mb-4">🔄</div>
+            <p className="text-zinc-300 font-medium">Analyzing {sortedIssues.length} issues...</p>
             <p className="text-zinc-500 text-sm mt-2">Checking characters, locations, timeline, and more</p>
           </div>
         </div>

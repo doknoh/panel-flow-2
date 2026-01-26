@@ -49,11 +49,18 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 50 : undefined,
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={isDragging ? 'ring-2 ring-blue-500 ring-opacity-50 rounded shadow-lg bg-zinc-800/90' : ''}
+      {...attributes}
+      {...listeners}
+    >
       {children}
     </div>
   )
@@ -442,9 +449,17 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       </div>
 
       {sortedActs.length === 0 ? (
-        <p className="text-sm text-zinc-500 text-center py-4">
-          No acts yet. Click "+ Act" to create one.
-        </p>
+        <div className="text-center py-8 px-4">
+          <div className="text-3xl mb-3 opacity-30">📖</div>
+          <p className="text-sm text-zinc-400 mb-2">Start your story structure</p>
+          <p className="text-xs text-zinc-500 mb-4">Acts organize your issue into beginning, middle, and end.</p>
+          <button
+            onClick={addAct}
+            className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded transition-colors"
+          >
+            + Create First Act
+          </button>
+        </div>
       ) : !isMounted ? (
         // Simple render during SSR to avoid hydration mismatch
         <div className="space-y-1">
@@ -469,6 +484,9 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                       className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-zinc-800 cursor-grab active:cursor-grabbing group"
                       onClick={() => !editingActId && toggleAct(act.id)}
                     >
+                      <span className="text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Drag to reorder">
+                        ⋮⋮
+                      </span>
                       <span className="text-zinc-500 text-xs">
                         {expandedActs.has(act.id) ? '▼' : '▶'}
                       </span>
@@ -586,6 +604,9 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                     className="flex items-center gap-2 px-2 py-1 rounded hover:bg-zinc-800 cursor-grab active:cursor-grabbing group"
                                     onClick={() => !editingSceneId && toggleScene(scene.id)}
                                   >
+                                    <span className="text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs" title="Drag to reorder">
+                                      ⋮⋮
+                                    </span>
                                     <span className="text-zinc-500 text-xs">
                                       {expandedScenes.has(scene.id) ? '▼' : '▶'}
                                     </span>
@@ -744,12 +765,15 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                             <SortableItem key={page.id} id={page.id}>
                                               <div
                                                 onClick={() => onSelectPage(page.id)}
-                                                className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm flex items-center group/page ${
+                                                className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm flex items-center gap-1 group/page ${
                                                   selectedPageId === page.id
                                                     ? 'bg-blue-600 text-white'
                                                     : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
                                                 }`}
                                               >
+                                                <span className={`text-xs opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-blue-200' : 'text-zinc-600'}`} title="Drag to reorder">
+                                                  ⋮⋮
+                                                </span>
                                                 <span className="flex-1">Page {page.page_number}</span>
                                                 <button
                                                   onClick={(e) => { e.stopPropagation(); deletePage(page.id, page.page_number) }}

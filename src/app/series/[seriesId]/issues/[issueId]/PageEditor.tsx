@@ -55,15 +55,22 @@ interface Page {
   panels: Panel[]
 }
 
+interface PageContext {
+  page: any
+  act: { id: string; name: string; sort_order: number }
+  scene: { id: string; name: string; sort_order: number }
+}
+
 interface PageEditorProps {
   page: Page
+  pageContext?: PageContext | null
   characters: Character[]
   locations: Location[]
   onUpdate: () => void
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
 }
 
-export default function PageEditor({ page, characters, locations, onUpdate, setSaveStatus }: PageEditorProps) {
+export default function PageEditor({ page, pageContext, characters, locations, onUpdate, setSaveStatus }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
@@ -77,16 +84,7 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
     setPanels(sortedPanels)
   }, [page])
 
-  // Auto-save with 2 second debounce
-  const scheduleAutoSave = useCallback(() => {
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current)
-    }
-    saveTimerRef.current = setTimeout(() => {
-      saveAllPendingChanges()
-    }, 2000)
-  }, [])
-
+  // Save all pending changes - defined before scheduleAutoSave to avoid circular dependency
   const saveAllPendingChanges = useCallback(async () => {
     if (pendingChanges.size === 0) return
 
@@ -133,6 +131,16 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
       showToast('Failed to save changes', 'error')
     }
   }, [pendingChanges, setSaveStatus, showToast, isOnline, queueChange])
+
+  // Auto-save with 2 second debounce
+  const scheduleAutoSave = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+    }
+    saveTimerRef.current = setTimeout(() => {
+      saveAllPendingChanges()
+    }, 2000)
+  }, [saveAllPendingChanges])
 
   // Manual save function (for Cmd+S)
   const manualSave = useCallback(async () => {
@@ -605,10 +613,21 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
   }
 
   const deletePanel = async (panelId: string) => {
-    const supabase = createClient()
-
     // Get full panel data for undo (including dialogue, captions, sfx)
     const panel = panels.find(p => p.id === panelId)
+
+    // Confirm deletion if panel has content
+    const hasContent = panel?.visual_description ||
+                       (panel?.dialogue_blocks?.length ?? 0) > 0 ||
+                       (panel?.captions?.length ?? 0) > 0 ||
+                       (panel?.sound_effects?.length ?? 0) > 0
+
+    if (hasContent) {
+      const confirmed = window.confirm('Delete this panel? This action can be undone.')
+      if (!confirmed) return
+    }
+
+    const supabase = createClient()
 
     const { error } = await supabase.from('panels').delete().eq('id', panelId)
 
@@ -635,6 +654,14 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
 
   return (
     <div className="p-6">
+      {/* Context breadcrumb */}
+      {pageContext && (
+        <div className="mb-2 text-sm text-zinc-500 flex items-center gap-1.5">
+          <span className="text-zinc-400">{pageContext.act.name || `Act ${pageContext.act.sort_order}`}</span>
+          <span className="text-zinc-600">›</span>
+          <span className="text-zinc-400">{pageContext.scene.name || `Scene ${pageContext.scene.sort_order}`}</span>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold">Page {page.page_number}</h2>
         <div className="flex items-center gap-3">
@@ -654,14 +681,21 @@ export default function PageEditor({ page, characters, locations, onUpdate, setS
       </div>
 
       {panels.length === 0 ? (
-        <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400 mb-4">No panels yet</p>
+        <div className="text-center py-16 bg-zinc-900 border border-zinc-800 border-dashed rounded-lg">
+          <div className="text-4xl mb-4 opacity-30">🎬</div>
+          <h3 className="text-lg font-medium text-zinc-300 mb-2">Ready to create your first panel</h3>
+          <p className="text-sm text-zinc-500 mb-6 max-w-sm mx-auto">
+            Panels are the building blocks of your comic. Add visual descriptions, dialogue, captions, and sound effects.
+          </p>
           <button
             onClick={addPanel}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
+            className="bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-lg font-medium transition-colors"
           >
-            Create First Panel
+            + Create First Panel
           </button>
+          <p className="text-xs text-zinc-600 mt-4">
+            or press <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded font-mono">⌘</kbd> + <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded font-mono">↵</kbd>
+          </p>
         </div>
       ) : (
         <div className="space-y-6">

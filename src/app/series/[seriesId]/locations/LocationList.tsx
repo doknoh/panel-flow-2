@@ -121,7 +121,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
   }
 
   const renderForm = () => (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-6">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6 mb-6">
       <h3 className="font-semibold mb-4">{isCreating ? 'New Location' : 'Edit Location'}</h3>
       <div className="space-y-4">
         <div>
@@ -205,7 +205,12 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
 
       {locations.length === 0 && !isCreating ? (
         <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400 mb-4">No locations yet</p>
+          <div className="text-5xl mb-4 opacity-30">🏛️</div>
+          <h3 className="text-lg font-medium text-zinc-300 mb-2">No locations yet</h3>
+          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-6">
+            Locations appear in autocomplete when describing panel settings.
+            Define their visual details to maintain consistency across scenes.
+          </p>
           <button
             onClick={startCreate}
             className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"

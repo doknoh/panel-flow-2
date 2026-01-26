@@ -14,7 +14,7 @@ export default async function ImportPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch issue and series info
+  // Fetch issue and series info (including acts to check for existing content)
   const { data: issueData, error } = await supabase
     .from('issues')
     .select(`
@@ -26,7 +26,8 @@ export default async function ImportPage({
         title,
         characters (id, name),
         locations (id, name)
-      )
+      ),
+      acts (id)
     `)
     .eq('id', issueId)
     .single()

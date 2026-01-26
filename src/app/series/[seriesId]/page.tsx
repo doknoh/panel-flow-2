@@ -12,12 +12,27 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch series with issues
+  // Fetch series with issues and their content counts
   const { data: series, error } = await supabase
     .from('series')
     .select(`
       *,
-      issues (*)
+      issues (
+        id,
+        number,
+        title,
+        tagline,
+        status,
+        updated_at,
+        acts (
+          scenes (
+            pages (
+              id,
+              panels (id, word_count)
+            )
+          )
+        )
+      )
     `)
     .eq('id', seriesId)
     .single()
@@ -59,7 +74,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         />
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
             <div className="text-2xl font-bold">{series.issues?.length || 0}</div>
             <div className="text-zinc-500 text-sm">Issues</div>
@@ -88,74 +103,89 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         </div>
 
         {/* Series Tools */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <Link
-            href={`/series/${seriesId}/outline`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Series Outline</h3>
-            <p className="text-zinc-500 text-sm">Plan structure with AI summaries</p>
-          </Link>
-          <Link
-            href={`/series/${seriesId}/analytics`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Analytics</h3>
-            <p className="text-zinc-500 text-sm">Stats, progress, and insights</p>
-          </Link>
-          <Link
-            href={`/series/${seriesId}/sessions`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Session History</h3>
-            <p className="text-zinc-500 text-sm">Track progress and loose ends</p>
-          </Link>
-          <Link
-            href={`/series/${seriesId}/continuity`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Continuity Check</h3>
-            <p className="text-zinc-500 text-sm">Detect errors and inconsistencies</p>
-          </Link>
-          <Link
-            href={`/series/${seriesId}/notes`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Project Notes</h3>
-            <p className="text-zinc-500 text-sm">Questions, decisions, insights</p>
-          </Link>
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4 text-zinc-400">Tools</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <Link
+              href={`/series/${seriesId}/outline`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📋</div>
+              <h3 className="font-medium mb-1">Series Outline</h3>
+              <p className="text-zinc-500 text-sm">Plan structure with AI summaries</p>
+            </Link>
+            <Link
+              href={`/series/${seriesId}/analytics`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📊</div>
+              <h3 className="font-medium mb-1">Analytics</h3>
+              <p className="text-zinc-500 text-sm">Stats, progress, and insights</p>
+            </Link>
+            <Link
+              href={`/series/${seriesId}/sessions`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🕐</div>
+              <h3 className="font-medium mb-1">Session History</h3>
+              <p className="text-zinc-500 text-sm">Track progress and loose ends</p>
+            </Link>
+            <Link
+              href={`/series/${seriesId}/continuity`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🔍</div>
+              <h3 className="font-medium mb-1">Continuity Check</h3>
+              <p className="text-zinc-500 text-sm">Detect errors and inconsistencies</p>
+            </Link>
+            <Link
+              href={`/series/${seriesId}/notes`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📝</div>
+              <h3 className="font-medium mb-1">Project Notes</h3>
+              <p className="text-zinc-500 text-sm">Questions, decisions, insights</p>
+            </Link>
+          </div>
         </div>
 
-        {/* Quick Links */}
-        <div className="grid grid-cols-4 gap-4">
-          <Link
-            href={`/series/${seriesId}/characters`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Characters</h3>
-            <p className="text-zinc-500 text-sm">Manage character database</p>
-          </Link>
-          <Link
-            href={`/series/${seriesId}/character-arcs`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Character Arcs</h3>
-            <p className="text-zinc-500 text-sm">Track emotional journeys</p>
-          </Link>
-          <Link
-            href={`/series/${seriesId}/locations`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Locations</h3>
-            <p className="text-zinc-500 text-sm">Manage location database</p>
-          </Link>
-          <Link
-            href={`/series/${seriesId}/plotlines`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors"
-          >
-            <h3 className="font-medium mb-1">Plotlines</h3>
-            <p className="text-zinc-500 text-sm">Define narrative threads</p>
-          </Link>
+        {/* World Building */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4 text-zinc-400">World Building</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Link
+              href={`/series/${seriesId}/characters`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">👤</div>
+              <h3 className="font-medium mb-1">Characters</h3>
+              <p className="text-zinc-500 text-sm">Manage character database</p>
+            </Link>
+            <Link
+              href={`/series/${seriesId}/character-arcs`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📈</div>
+              <h3 className="font-medium mb-1">Character Arcs</h3>
+              <p className="text-zinc-500 text-sm">Track emotional journeys</p>
+            </Link>
+            <Link
+              href={`/series/${seriesId}/locations`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🏛️</div>
+              <h3 className="font-medium mb-1">Locations</h3>
+              <p className="text-zinc-500 text-sm">Manage location database</p>
+            </Link>
+            <Link
+              href={`/series/${seriesId}/plotlines`}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🧵</div>
+              <h3 className="font-medium mb-1">Plotlines</h3>
+              <p className="text-zinc-500 text-sm">Define narrative threads</p>
+            </Link>
+          </div>
         </div>
       </main>
     </div>

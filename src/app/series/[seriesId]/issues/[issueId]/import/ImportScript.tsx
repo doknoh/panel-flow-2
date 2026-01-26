@@ -25,6 +25,7 @@ interface Issue {
     characters: Character[]
     locations: Location[]
   }
+  acts?: { id: string }[]
 }
 
 interface ParsedDialogue {
@@ -316,6 +317,19 @@ ${pageContent}`,
       return
     }
 
+    // Confirm if there's existing content
+    const hasExistingContent = issue.acts && issue.acts.length > 0
+    if (hasExistingContent) {
+      const confirmed = window.confirm(
+        `This will replace all existing content in Issue #${issue.number}.\n\n` +
+        `You are about to import ${parsedPages.length} pages with ${parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels.\n\n` +
+        `This action cannot be undone. Continue?`
+      )
+      if (!confirmed) {
+        return
+      }
+    }
+
     setIsImporting(true)
     setImportProgress(0)
 
@@ -557,22 +571,34 @@ ${pageContent}`,
   return (
     <div className="space-y-6">
       {/* Instructions */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-        <h2 className="font-semibold mb-2">Import from Google Docs</h2>
-        <p className="text-sm text-zinc-400 mb-3">
-          Paste your comic script text below. The AI will parse it into structured pages, panels, dialogue, and captions.
-        </p>
-        <div className="text-sm text-zinc-500">
-          <p className="mb-1">Supported formats:</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            <li>PAGE 1 (right) or PAGE 1 (left)</li>
-            <li>PANEL 1: Description of what we see</li>
-            <li>CHARACTER: Dialogue text</li>
-            <li>CHARACTER (V.O.): Voice over</li>
-            <li>CAP: Caption text</li>
-            <li>SFX: Sound effect</li>
-          </ul>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+        <div className="flex items-start gap-4">
+          <div className="text-4xl opacity-50">📋</div>
+          <div className="flex-1">
+            <h2 className="font-semibold text-lg mb-2">Import from Google Docs</h2>
+            <p className="text-sm text-zinc-400 mb-4">
+              Copy your comic script from Google Docs and paste it below. The AI will intelligently parse it into structured pages, panels, dialogue, captions, and sound effects.
+            </p>
+            <details className="text-sm text-zinc-500">
+              <summary className="cursor-pointer hover:text-zinc-400 mb-2">View supported formats</summary>
+              <div className="bg-zinc-800/50 rounded-lg p-3 mt-2 font-mono text-xs space-y-1">
+                <p className="text-zinc-400">PAGE 1 (right)</p>
+                <p className="text-zinc-400">PANEL 1: Description of what we see</p>
+                <p className="text-blue-400">CHARACTER: Dialogue text</p>
+                <p className="text-blue-400">CHARACTER (V.O.): Voice over narration</p>
+                <p className="text-amber-400">CAP: Caption or narration text</p>
+                <p className="text-green-400">SFX: CRASH! BANG!</p>
+              </div>
+            </details>
+          </div>
         </div>
+        {issue.acts && issue.acts.length > 0 && (
+          <div className="mt-4 p-3 bg-amber-900/20 border border-amber-800/50 rounded-lg">
+            <p className="text-sm text-amber-400">
+              ⚠️ <strong>Note:</strong> This issue already has content. Importing will replace all existing pages and panels.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Script Input */}
@@ -582,8 +608,21 @@ ${pageContent}`,
           <textarea
             value={scriptText}
             onChange={(e) => setScriptText(e.target.value)}
-            placeholder="PAGE 1 (right)&#10;PANEL 1: Wide shot of the city skyline at dawn...&#10;&#10;CAP: Detroit. 2027.&#10;&#10;MARSHALL: Is this what we've become?&#10;..."
-            className="w-full h-96 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-sm font-mono resize-none focus:border-blue-500 focus:outline-none"
+            placeholder={`PAGE 1 (right)
+
+PANEL 1: Wide establishing shot. Detroit skyline at dawn. The city rises from morning mist, a mix of decay and desperate renewal.
+
+CAP: Detroit. 2027.
+
+PANEL 2: Interior - Recording studio. MARSHALL (55, weathered, tired eyes) sits alone at the mic, hand on headphones.
+
+MARSHALL: Is this what we've become?
+
+SFX: *click* (recorder stopping)
+
+PAGE 2 (left)
+...`}
+            className="w-full h-96 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-sm font-mono resize-none focus:border-blue-500 focus:outline-none placeholder:text-zinc-600"
           />
           <div className="flex items-center justify-between mt-4">
             <span className="text-sm text-zinc-500">

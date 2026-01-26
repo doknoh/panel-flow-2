@@ -147,7 +147,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
   }
 
   const renderForm = () => (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-6">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6 mb-6">
       <h3 className="font-semibold mb-4">{isCreating ? 'New Plotline' : 'Edit Plotline'}</h3>
       <div className="space-y-4">
         <div>
@@ -236,7 +236,12 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
 
       {plotlines.length === 0 && !isCreating ? (
         <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400 mb-4">No plotlines yet</p>
+          <div className="text-5xl mb-4 opacity-30">🧵</div>
+          <h3 className="text-lg font-medium text-zinc-300 mb-2">No plotlines yet</h3>
+          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-6">
+            Plotlines help track narrative threads across your series.
+            Assign them to scenes and visualize how your story weaves together.
+          </p>
           <button
             onClick={startCreate}
             className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"

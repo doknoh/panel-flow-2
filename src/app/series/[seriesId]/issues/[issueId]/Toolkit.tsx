@@ -719,12 +719,53 @@ Locations: ${issue.series.locations.map((l: any) => l.name).join(', ') || 'None 
         {/* AI Chat Tab */}
         {activeTab === 'ai' && (
           <div className="flex flex-col h-full">
+            {/* Collapsible Context Summary */}
+            <details className="mb-3 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shrink-0">
+              <summary className="px-3 py-2 cursor-pointer text-xs text-zinc-400 hover:text-zinc-300 flex items-center gap-2">
+                <svg className="w-3 h-3 transition-transform details-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Issue Context
+                {issue.title && <span className="text-zinc-500 truncate">— {issue.title}</span>}
+              </summary>
+              <div className="px-3 pb-3 pt-1 text-xs space-y-2 border-t border-zinc-800">
+                {issue.summary && (
+                  <div>
+                    <span className="text-zinc-500">Summary:</span>
+                    <p className="text-zinc-300 line-clamp-2">{issue.summary}</p>
+                  </div>
+                )}
+                {issue.themes && (
+                  <div>
+                    <span className="text-zinc-500">Themes:</span>
+                    <p className="text-zinc-300 line-clamp-1">{issue.themes}</p>
+                  </div>
+                )}
+                {issue.stakes && (
+                  <div>
+                    <span className="text-zinc-500">Stakes:</span>
+                    <p className="text-zinc-300 line-clamp-1">{issue.stakes}</p>
+                  </div>
+                )}
+                {!issue.summary && !issue.themes && !issue.stakes && (
+                  <p className="text-zinc-500 italic">No context set. Add context in the Context tab.</p>
+                )}
+              </div>
+            </details>
+
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto space-y-3 mb-3">
               {chatMessages.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-zinc-500 text-sm mb-2">AI Writing Assistant</p>
-                  <p className="text-zinc-600 text-xs">Ask for help with dialogue, descriptions, or story ideas.</p>
+                <div className="text-center py-8 px-4">
+                  <div className="text-3xl mb-3 opacity-30">🤖</div>
+                  <p className="text-zinc-400 text-sm mb-3">AI Writing Assistant</p>
+                  <p className="text-zinc-500 text-xs mb-4">Get help with your comic script:</p>
+                  <div className="text-xs text-zinc-600 space-y-1.5 text-left bg-zinc-800/50 rounded-lg p-3">
+                    <p>• "Write dialogue for a tense confrontation"</p>
+                    <p>• "Describe a dramatic establishing shot"</p>
+                    <p>• "Suggest pacing for this action sequence"</p>
+                    <p>• "Help me with a character's inner monologue"</p>
+                  </div>
                 </div>
               ) : (
                 chatMessages.map((msg, i) => (

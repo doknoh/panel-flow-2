@@ -131,10 +131,10 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
   }
 
   const renderForm = () => (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-6">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6 mb-6">
       <h3 className="font-semibold mb-4">{isCreating ? 'New Character' : 'Edit Character'}</h3>
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-zinc-400 mb-1">Name *</label>
             <input
@@ -243,7 +243,12 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
 
       {characters.length === 0 && !isCreating ? (
         <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400 mb-4">No characters yet</p>
+          <div className="text-5xl mb-4 opacity-30">👤</div>
+          <h3 className="text-lg font-medium text-zinc-300 mb-2">No characters yet</h3>
+          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-6">
+            Characters appear in autocomplete when writing dialogue.
+            Define their visual descriptions to help your artist.
+          </p>
           <button
             onClick={startCreate}
             className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"

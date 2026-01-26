@@ -7,6 +7,7 @@ import NavigationTree from './NavigationTree'
 import PageEditor from './PageEditor'
 import Toolkit from './Toolkit'
 import FindReplaceModal from './FindReplaceModal'
+import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import StatusBar from './StatusBar'
 import { exportIssueToPdf } from '@/lib/exportPdf'
 import { exportIssueToDocx } from '@/lib/exportDocx'
@@ -53,11 +54,25 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const lastSnapshotRef = useRef<string>('')
   const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Find the selected page data
-  const selectedPage = issue.acts
-    ?.flatMap(act => act.scenes || [])
-    ?.flatMap(scene => scene.pages || [])
-    ?.find(page => page.id === selectedPageId)
+  // Find the selected page data along with its Act/Scene context
+  const selectedPageContext = (() => {
+    if (!selectedPageId) return null
+    for (const act of (issue.acts || [])) {
+      for (const scene of (act.scenes || [])) {
+        const page = (scene.pages || []).find((p: any) => p.id === selectedPageId)
+        if (page) {
+          return {
+            page,
+            act: { id: act.id, name: act.name, sort_order: act.sort_order },
+            scene: { id: scene.id, name: scene.name, sort_order: scene.sort_order }
+          }
+        }
+      }
+    }
+    return null
+  })()
+
+  const selectedPage = selectedPageContext?.page
 
   // Auto-select first page if none selected
   useEffect(() => {
@@ -210,6 +225,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         selectedPageId={selectedPageId}
         setSelectedPageId={setSelectedPageId}
         selectedPage={selectedPage}
+        selectedPageContext={selectedPageContext}
         saveStatus={saveStatus}
         setSaveStatus={setSaveStatus}
         isFindReplaceOpen={isFindReplaceOpen}
@@ -225,12 +241,19 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
 // Inner component that can use the useUndo hook
 type MobileView = 'nav' | 'editor' | 'toolkit'
 
+interface PageContext {
+  page: any
+  act: { id: string; name: string; sort_order: number }
+  scene: { id: string; name: string; sort_order: number }
+}
+
 function IssueEditorContent({
   issue,
   seriesId,
   selectedPageId,
   setSelectedPageId,
   selectedPage,
+  selectedPageContext,
   saveStatus,
   setSaveStatus,
   isFindReplaceOpen,
@@ -244,6 +267,7 @@ function IssueEditorContent({
   selectedPageId: string | null
   setSelectedPageId: (id: string | null) => void
   selectedPage: any
+  selectedPageContext: PageContext | null
   saveStatus: 'saved' | 'saving' | 'unsaved'
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
   isFindReplaceOpen: boolean
@@ -254,6 +278,7 @@ function IssueEditorContent({
 }) {
   const { undo, redo, canUndo, canRedo } = useUndo()
   const [mobileView, setMobileView] = useState<MobileView>('editor')
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
 
   // Keyboard shortcuts including undo/redo
   useEffect(() => {
@@ -293,11 +318,24 @@ function IssueEditorContent({
         }
         return
       }
+
+      // ? for keyboard shortcuts help (when not in an input)
+      if (e.key === '?' && !isMod) {
+        const activeElement = document.activeElement
+        const isInput = activeElement instanceof HTMLInputElement ||
+                       activeElement instanceof HTMLTextAreaElement ||
+                       activeElement?.getAttribute('contenteditable') === 'true'
+        if (!isInput) {
+          e.preventDefault()
+          setIsShortcutsOpen(true)
+          return
+        }
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen])
+  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen])
 
   return (
     <div className="h-screen flex flex-col bg-zinc-950 text-white">
@@ -312,6 +350,23 @@ function IssueEditorContent({
             {issue.title && <span className="text-zinc-400 hidden sm:inline truncate">— {issue.title}</span>}
           </div>
           <div className="flex items-center gap-2 md:gap-4">
+            <button
+              onClick={() => setIsShortcutsOpen(true)}
+              className="text-sm text-zinc-400 hover:text-white hidden md:flex items-center gap-1"
+              title="Keyboard shortcuts (?)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <path d="M6 8h.001"></path>
+                <path d="M10 8h.001"></path>
+                <path d="M14 8h.001"></path>
+                <path d="M18 8h.001"></path>
+                <path d="M8 12h.001"></path>
+                <path d="M12 12h.001"></path>
+                <path d="M16 12h.001"></path>
+                <path d="M7 16h10"></path>
+              </svg>
+            </button>
             <button
               onClick={() => setIsFindReplaceOpen(true)}
               className="text-sm text-zinc-400 hover:text-white hidden md:block"
@@ -339,19 +394,43 @@ function IssueEditorContent({
             </Link>
             <div className="flex items-center gap-1 md:gap-2">
               <button
-                onClick={() => exportIssueToPdf(issue)}
+                onClick={async () => {
+                  try {
+                    exportIssueToPdf(issue)
+                    showToast('PDF exported successfully', 'success')
+                  } catch (error) {
+                    showToast('Failed to export PDF', 'error')
+                    console.error('PDF export error:', error)
+                  }
+                }}
                 className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded"
               >
                 PDF
               </button>
               <button
-                onClick={() => exportIssueToDocx(issue)}
+                onClick={async () => {
+                  try {
+                    await exportIssueToDocx(issue)
+                    showToast('Doc exported successfully', 'success')
+                  } catch (error) {
+                    showToast('Failed to export Doc', 'error')
+                    console.error('Doc export error:', error)
+                  }
+                }}
                 className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded hidden sm:block"
               >
                 Doc
               </button>
               <button
-                onClick={() => exportIssueToTxt(issue)}
+                onClick={() => {
+                  try {
+                    exportIssueToTxt(issue)
+                    showToast('TXT exported successfully', 'success')
+                  } catch (error) {
+                    showToast('Failed to export TXT', 'error')
+                    console.error('TXT export error:', error)
+                  }
+                }}
                 className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded hidden sm:block"
               >
                 TXT
@@ -404,6 +483,7 @@ function IssueEditorContent({
           {selectedPage ? (
             <PageEditor
               page={selectedPage}
+              pageContext={selectedPageContext}
               characters={issue.series.characters}
               locations={issue.series.locations}
               onUpdate={refreshIssue}
@@ -411,12 +491,18 @@ function IssueEditorContent({
             />
           ) : (
             <div className="flex items-center justify-center h-full text-zinc-500">
-              <div className="text-center p-4">
-                <p className="mb-4">No pages yet</p>
-                <p className="text-sm">Create an act and scene in the navigation tree to get started</p>
+              <div className="text-center p-8 max-w-md">
+                <div className="text-5xl mb-4 opacity-30">📄</div>
+                <h3 className="text-lg font-medium text-zinc-300 mb-2">No pages yet</h3>
+                <p className="text-sm text-zinc-500 mb-6">
+                  Start by creating an act and scene in the navigation tree on the left. Each scene can contain multiple pages, and each page holds your comic panels.
+                </p>
+                <div className="text-xs text-zinc-600 space-y-1">
+                  <p>💡 Tip: Use <kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded">?</kbd> to see keyboard shortcuts</p>
+                </div>
                 <button
                   onClick={() => setMobileView('nav')}
-                  className="md:hidden mt-4 text-blue-400 hover:text-blue-300"
+                  className="md:hidden mt-6 text-blue-400 hover:text-blue-300"
                 >
                   Go to Navigation →
                 </button>
@@ -445,6 +531,12 @@ function IssueEditorContent({
         onClose={() => setIsFindReplaceOpen(false)}
         onNavigateToPanel={handleNavigateToPanel}
         onRefresh={refreshIssue}
+      />
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
       />
     </div>
   )

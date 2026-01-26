@@ -17,7 +17,7 @@ export default async function VersionHistoryPage({ params }: PageProps) {
   // Get issue details
   const { data: issue } = await supabase
     .from('issues')
-    .select('id, title, issue_number, series:series_id(id, title)')
+    .select('id, title, number, series:series_id(id, title)')
     .eq('id', issueId)
     .single()
 
@@ -48,7 +48,7 @@ export default async function VersionHistoryPage({ params }: PageProps) {
           </Link>
           <h1 className="text-2xl font-bold">Version History</h1>
           <p className="text-zinc-400 mt-1">
-            {series.title} - Issue #{issue.issue_number}: {issue.title}
+            {series.title} - Issue #{issue.number}: {issue.title}
           </p>
         </div>
       </header>

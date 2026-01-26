@@ -152,6 +152,31 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   const ROW_HEIGHT = 48 // pixels per plotline row
   const HEADER_HEIGHT = 40
 
+  // Show empty state if no content
+  if (sceneBlocks.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Issue #{issue.number} Structure</h2>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-12 text-center">
+          <div className="text-5xl mb-4 opacity-30">🧵</div>
+          <h3 className="text-lg font-medium text-zinc-300 mb-2">No content to weave yet</h3>
+          <p className="text-sm text-zinc-500 mb-6 max-w-md mx-auto">
+            The Weave view visualizes how your plotlines flow through scenes and pages.
+            Add some content to your issue first, then come back to see the structure.
+          </p>
+          <Link
+            href={`/series/${seriesId}/issues/${issue.id}`}
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            ← Back to Editor
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Controls */}
@@ -159,7 +184,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-semibold">Issue #{issue.number} Structure</h2>
           <span className="text-sm text-zinc-500">
-            {totalPages} pages across {sceneBlocks.length} scenes
+            {totalPages} pages across {sceneBlocks.length} scene{sceneBlocks.length !== 1 ? 's' : ''}
           </span>
         </div>
         <div className="flex items-center gap-3">
