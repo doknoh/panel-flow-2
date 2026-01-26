@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
@@ -10,8 +11,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
-  // Create the response we'll modify with cookies
-  const response = NextResponse.redirect(`${origin}${next}`)
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,15 +19,11 @@ export async function GET(request: Request) {
     {
       cookies: {
         getAll() {
-          const cookieHeader = request.headers.get('cookie') || ''
-          return cookieHeader.split('; ').filter(Boolean).map(cookie => {
-            const [name, ...rest] = cookie.split('=')
-            return { name, value: rest.join('=') }
-          })
+          return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
+            cookieStore.set(name, value, options)
           })
         },
       },
@@ -41,5 +37,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
   }
 
-  return response
+  return NextResponse.redirect(`${origin}${next}`)
 }
