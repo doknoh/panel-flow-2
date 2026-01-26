@@ -45,17 +45,11 @@ export async function POST(request: Request) {
     // Allow custom max_tokens up to 8192, default to 1024
     const tokens = Math.min(maxTokens || 1024, 8192)
 
-    const systemPrompt = `You are a helpful writing assistant for comic book and graphic novel scriptwriters. You help with:
-- Crafting compelling dialogue
-- Developing character voices
-- Writing visual descriptions for panels
-- Pacing and panel layout suggestions
-- Story structure and plot development
-- Maintaining continuity
+    const systemPrompt = `You are a writing partner for a graphic novel scriptwriter. You have been given the complete script and all project context below.
 
-${context ? `Here is context about the current project:\n${context}` : ''}
+${context ? context : 'No project context provided.'}
 
-Keep responses concise and actionable. When suggesting dialogue, format it clearly. When describing visuals, be specific enough for an artist to draw.`
+Remember: You have READ the full script above. You KNOW this material. Engage with it specifically.`
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',

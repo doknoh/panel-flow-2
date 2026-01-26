@@ -328,7 +328,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     setSaving(false)
   }
 
-  // Build hierarchical context for AI
+  // Build comprehensive context for AI - includes full script content
   const buildHierarchicalContext = () => {
     const parts: string[] = []
 
@@ -341,54 +341,90 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       parts.push(`Logline: ${issue.series.logline}`)
     }
 
+    // Characters with details
+    if (issue.series.characters.length > 0) {
+      parts.push(`\nCHARACTERS:`)
+      issue.series.characters.forEach((c: any) => {
+        parts.push(`- ${c.name}${c.role ? ` (${c.role})` : ''}${c.description ? `: ${c.description}` : ''}`)
+      })
+    }
+
+    // Locations with details
+    if (issue.series.locations.length > 0) {
+      parts.push(`\nLOCATIONS:`)
+      issue.series.locations.forEach((l: any) => {
+        parts.push(`- ${l.name}${l.description ? `: ${l.description}` : ''}`)
+      })
+    }
+
     // Issue level
-    parts.push(`\nISSUE #${issue.number}${issue.title ? `: ${issue.title}` : ''}`)
+    parts.push(`\n${'='.repeat(50)}`)
+    parts.push(`ISSUE #${issue.number}${issue.title ? `: ${issue.title}` : ''}`)
+    parts.push(`${'='.repeat(50)}`)
     if (issue.summary) parts.push(`Summary: ${issue.summary}`)
     if (issue.themes) parts.push(`Themes: ${issue.themes}`)
     if (issue.stakes) parts.push(`Stakes: ${issue.stakes}`)
-    if (issue.outline_notes) parts.push(`Issue Outline Notes: ${issue.outline_notes}`)
+    if (issue.outline_notes) parts.push(`Outline Notes: ${issue.outline_notes}`)
 
-    // Current location context
-    if (selectedPageContext) {
-      const { act, scene, page } = selectedPageContext
+    // Build full script content
+    const sortedActs = [...(issue.acts || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
-      // Act context
-      parts.push(`\nCURRENT ACT: ${act.title || `Act ${act.sort_order + 1}`}`)
-      if (act.intention) parts.push(`Act Intention: ${act.intention}`)
-      if (act.beat_summary) parts.push(`Act Beat Summary: ${act.beat_summary}`)
+    for (const act of sortedActs) {
+      parts.push(`\n${'─'.repeat(40)}`)
+      parts.push(`ACT: ${act.title || `Act ${act.sort_order + 1}`}`)
+      if (act.intention) parts.push(`Intention: ${act.intention}`)
+      if (act.beat_summary) parts.push(`Beat Summary: ${act.beat_summary}`)
+      parts.push(`${'─'.repeat(40)}`)
 
-      // Scene context
-      parts.push(`\nCURRENT SCENE: ${scene.title || scene.name || 'Untitled'}`)
-      if (scene.intention) parts.push(`Scene Intention: ${scene.intention}`)
-      if (scene.scene_summary) parts.push(`Scene Summary: ${scene.scene_summary}`)
+      const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
-      // Page context
-      parts.push(`\nCURRENT PAGE: Page ${page.page_number}`)
-      if (page.intention) parts.push(`Page Intention: ${page.intention}`)
-      if (page.page_summary) parts.push(`Page Summary: ${page.page_summary}`)
+      for (const scene of sortedScenes) {
+        parts.push(`\nSCENE: ${scene.title || scene.name || 'Untitled'}`)
+        if (scene.intention) parts.push(`Intention: ${scene.intention}`)
+        if (scene.scene_summary) parts.push(`Summary: ${scene.scene_summary}`)
 
-      // Panel summaries
-      const panels = page.panels || []
-      if (panels.length > 0) {
-        parts.push(`\nPage has ${panels.length} panel${panels.length > 1 ? 's' : ''}:`)
-        panels.slice(0, 5).forEach((panel: any, i: number) => {
-          const desc = panel.visual_description?.substring(0, 100) || 'No description'
-          parts.push(`  Panel ${i + 1}: ${desc}${desc.length >= 100 ? '...' : ''}`)
-        })
-        if (panels.length > 5) {
-          parts.push(`  ... and ${panels.length - 5} more panels`)
+        const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+
+        for (const page of sortedPages) {
+          parts.push(`\nPAGE ${page.page_number}`)
+          if (page.intention) parts.push(`[Intention: ${page.intention}]`)
+
+          const sortedPanels = [...(page.panels || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+
+          for (const panel of sortedPanels) {
+            parts.push(`\nPanel ${panel.panel_number}:`)
+            if (panel.visual_description) {
+              parts.push(panel.visual_description)
+            }
+
+            // Dialogue
+            const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+            for (const d of sortedDialogue) {
+              if (d.text) {
+                const speaker = d.speaker_name || 'UNKNOWN'
+                parts.push(`${speaker}: "${d.text}"`)
+              }
+            }
+
+            // Captions
+            const sortedCaptions = [...(panel.captions || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+            for (const c of sortedCaptions) {
+              if (c.text) {
+                const type = c.caption_type || 'CAPTION'
+                parts.push(`[${type.toUpperCase()}]: ${c.text}`)
+              }
+            }
+          }
         }
       }
     }
 
-    // Characters
-    if (issue.series.characters.length > 0) {
-      parts.push(`\nCHARACTERS: ${issue.series.characters.map((c: any) => c.name).join(', ')}`)
-    }
-
-    // Locations
-    if (issue.series.locations.length > 0) {
-      parts.push(`LOCATIONS: ${issue.series.locations.map((l: any) => l.name).join(', ')}`)
+    // Current location indicator
+    if (selectedPageContext) {
+      const { act, scene, page } = selectedPageContext
+      parts.push(`\n${'='.repeat(50)}`)
+      parts.push(`CURRENTLY VIEWING: ${act.title || `Act ${act.sort_order + 1}`} › ${scene.title || scene.name || 'Scene'} › Page ${page.page_number}`)
+      parts.push(`${'='.repeat(50)}`)
     }
 
     return parts.join('\n')
@@ -448,28 +484,45 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     setIsLoading(true)
 
     try {
-      // Build rich context
+      // Build rich context with full script
       const context = buildHierarchicalContext()
 
-      // Add mode-specific instructions
+      // Core instructions for a true writing partner
+      const coreInstructions = `
+YOU ARE A WRITING PARTNER who has thoroughly read and understood this entire script.
+
+CRITICAL RULES:
+1. ASK ONLY ONE QUESTION AT A TIME. Never ask multiple questions in a single response.
+2. You have READ THE FULL SCRIPT above. Reference specific scenes, dialogue, and moments when relevant.
+3. Don't treat the author like they're starting from scratch - they have a complete body of work.
+4. START by asking what the author wants help with, unless they've already told you.
+5. Be a collaborator, not an interrogator. Engage with what EXISTS, don't ask about basics that are clearly established in the script.
+6. If offering feedback, ask first: "Would you like my thoughts on [specific aspect]?" Don't just fire off critiques.
+7. When you do give feedback, be specific - reference actual pages, panels, dialogue lines.
+
+YOUR KNOWLEDGE: You have the complete script above. You know the characters, their voices, the locations, the plot beats, the dialogue. USE this knowledge.`
+
+      // Mode-specific additions
       const modeInstructions = aiMode === 'outline'
-        ? `\n\nMODE: OUTLINE
-You are helping the author develop their story from the top down - working out the macro structure before diving into details.
-Focus on: story beats, character intentions, scene purposes, thematic elements.
+        ? `
 
-When you help develop an idea that could be saved to the outline, wrap it in tags:
-- [SAVE_AS:act_intention]content[/SAVE_AS] for what an act should accomplish
-- [SAVE_AS:scene_intention]content[/SAVE_AS] for what a scene should accomplish
-- [SAVE_AS:page_intention]content[/SAVE_AS] for what a page should accomplish
-- [SAVE_AS:scene_summary]content[/SAVE_AS] for a one-line scene summary
-- [SAVE_AS:act_beat]content[/SAVE_AS] for act beat summaries
+OUTLINE MODE:
+- Help with story structure, act breaks, scene purposes, character arcs
+- When discussing ideas that should be saved, wrap them in tags:
+  [SAVE_AS:act_intention]content[/SAVE_AS]
+  [SAVE_AS:scene_intention]content[/SAVE_AS]
+  [SAVE_AS:page_intention]content[/SAVE_AS]
+  [SAVE_AS:scene_summary]content[/SAVE_AS]
+  [SAVE_AS:act_beat]content[/SAVE_AS]
+- But ONLY use these tags when the author has agreed to save something specific.`
+        : `
 
-Push the author to clarify their ideas. Ask probing questions. Help them discover what the story needs.`
-        : `\n\nMODE: DRAFT
-You are helping the author write actual script content - panel descriptions, dialogue, captions.
-Be specific and visual. Help craft compelling dialogue and vivid descriptions.`
+DRAFT MODE:
+- Help write and refine actual script content - panel descriptions, dialogue, captions
+- Be specific and visual in your suggestions
+- Match the existing voice and tone of the script`
 
-      const fullContext = context + modeInstructions
+      const fullContext = context + coreInstructions + modeInstructions
 
       const data = await postJsonWithRetry<{ response?: string; error?: string }>(
         '/api/chat',
