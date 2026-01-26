@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -10,8 +11,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
-  // Create response first so we can set cookies on it
-  let response = NextResponse.redirect(`${origin}${next}`)
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,15 +19,11 @@ export async function GET(request: Request) {
     {
       cookies: {
         getAll() {
-          const cookieHeader = request.headers.get('cookie') || ''
-          return cookieHeader.split('; ').filter(Boolean).map(cookie => {
-            const [name, ...rest] = cookie.split('=')
-            return { name, value: rest.join('=') }
-          })
+          return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
+            cookieStore.set(name, value, options as CookieOptions)
           })
         },
       },
@@ -41,5 +37,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
   }
 
-  return response
+  return NextResponse.redirect(`${origin}${next}`)
 }
