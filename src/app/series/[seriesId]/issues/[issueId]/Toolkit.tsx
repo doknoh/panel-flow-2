@@ -57,13 +57,17 @@ interface ChatMessage {
 }
 
 interface AISuggestion {
-  type: 'act_intention' | 'scene_intention' | 'page_intention' | 'scene_summary' | 'act_beat' | 'panel_description' | 'dialogue'
+  type: 'act_intention' | 'scene_intention' | 'page_intention' | 'scene_summary' | 'act_beat' | 'panel_description' | 'dialogue' | 'caption'
   targetId: string
   targetLabel: string
   content: string
+  panelNumber?: number // For panel-level content
+  speakerName?: string // For dialogue
+  captionType?: string // For captions
 }
 
 // Parse AI response for actionable suggestions
+// Supports outline fields AND panel content (descriptions, dialogue, captions)
 function parseAISuggestions(response: string, context: PageContext | null): AISuggestion[] {
   const suggestions: AISuggestion[] = []
 
@@ -71,11 +75,12 @@ function parseAISuggestions(response: string, context: PageContext | null): AISu
 
   // Look for markers in the response that indicate saveable content
   // Format: [SAVE_AS:type] content [/SAVE_AS]
-  const savePattern = /\[SAVE_AS:([\w_]+)\]([\s\S]*?)\[\/SAVE_AS\]/g
+  // For panel content: [SAVE_AS:panel_description:panelNum] or [SAVE_AS:dialogue:panelNum:SPEAKER]
+  const savePattern = /\[SAVE_AS:([\w_]+)(?::([^\]]+))?\]([\s\S]*?)\[\/SAVE_AS\]/g
   let match
 
   while ((match = savePattern.exec(response)) !== null) {
-    const [, type, content] = match
+    const [, type, metadata, content] = match
     const trimmedContent = content.trim()
 
     switch (type) {
@@ -118,6 +123,57 @@ function parseAISuggestions(response: string, context: PageContext | null): AISu
           targetLabel: context.act.title || `Act ${context.act.sort_order + 1}`,
           content: trimmedContent,
         })
+        break
+      case 'panel_description':
+        // Metadata format: panelNumber
+        const panelNum = metadata ? parseInt(metadata) : 1
+        const panel = context.page.panels?.find((p: any) => p.panel_number === panelNum)
+        if (panel) {
+          suggestions.push({
+            type: 'panel_description',
+            targetId: panel.id,
+            targetLabel: `Page ${context.page.page_number}, Panel ${panelNum}`,
+            content: trimmedContent,
+            panelNumber: panelNum,
+          })
+        }
+        break
+      case 'dialogue':
+        // Metadata format: panelNumber:SPEAKER_NAME
+        if (metadata) {
+          const [panelStr, ...speakerParts] = metadata.split(':')
+          const dialoguePanelNum = parseInt(panelStr)
+          const speakerName = speakerParts.join(':') // In case speaker name has colons
+          const dialoguePanel = context.page.panels?.find((p: any) => p.panel_number === dialoguePanelNum)
+          if (dialoguePanel) {
+            suggestions.push({
+              type: 'dialogue',
+              targetId: dialoguePanel.id,
+              targetLabel: `${speakerName} (Page ${context.page.page_number}, Panel ${dialoguePanelNum})`,
+              content: trimmedContent,
+              panelNumber: dialoguePanelNum,
+              speakerName: speakerName,
+            })
+          }
+        }
+        break
+      case 'caption':
+        // Metadata format: panelNumber:captionType
+        if (metadata) {
+          const [panelStr, captionType = 'narration'] = metadata.split(':')
+          const captionPanelNum = parseInt(panelStr)
+          const captionPanel = context.page.panels?.find((p: any) => p.panel_number === captionPanelNum)
+          if (captionPanel) {
+            suggestions.push({
+              type: 'caption',
+              targetId: captionPanel.id,
+              targetLabel: `${captionType.toUpperCase()} (Page ${context.page.page_number}, Panel ${captionPanelNum})`,
+              content: trimmedContent,
+              panelNumber: captionPanelNum,
+              captionType: captionType,
+            })
+          }
+        }
         break
     }
   }
@@ -433,6 +489,86 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   // Apply an AI suggestion to the database
   const applySuggestion = async (suggestion: AISuggestion) => {
     const supabase = createClient()
+
+    // Handle panel content separately (dialogue, captions need inserts, not updates)
+    if (suggestion.type === 'dialogue' && suggestion.speakerName) {
+      // Get the highest sort_order for existing dialogue blocks in this panel
+      const { data: existingDialogue } = await supabase
+        .from('dialogue_blocks')
+        .select('sort_order')
+        .eq('panel_id', suggestion.targetId)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+
+      const nextSortOrder = existingDialogue?.[0]?.sort_order !== undefined
+        ? existingDialogue[0].sort_order + 1
+        : 0
+
+      const { error } = await supabase
+        .from('dialogue_blocks')
+        .insert({
+          panel_id: suggestion.targetId,
+          speaker_name: suggestion.speakerName,
+          text: suggestion.content,
+          sort_order: nextSortOrder,
+        })
+
+      if (error) {
+        showToast('Failed to add dialogue', 'error')
+      } else {
+        showToast(`Added dialogue for ${suggestion.speakerName}`, 'success')
+        onRefresh?.()
+      }
+      return
+    }
+
+    if (suggestion.type === 'caption' && suggestion.captionType) {
+      // Get the highest sort_order for existing captions in this panel
+      const { data: existingCaptions } = await supabase
+        .from('captions')
+        .select('sort_order')
+        .eq('panel_id', suggestion.targetId)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+
+      const nextSortOrder = existingCaptions?.[0]?.sort_order !== undefined
+        ? existingCaptions[0].sort_order + 1
+        : 0
+
+      const { error } = await supabase
+        .from('captions')
+        .insert({
+          panel_id: suggestion.targetId,
+          caption_type: suggestion.captionType,
+          text: suggestion.content,
+          sort_order: nextSortOrder,
+        })
+
+      if (error) {
+        showToast('Failed to add caption', 'error')
+      } else {
+        showToast(`Added ${suggestion.captionType} caption`, 'success')
+        onRefresh?.()
+      }
+      return
+    }
+
+    if (suggestion.type === 'panel_description') {
+      const { error } = await supabase
+        .from('panels')
+        .update({ visual_description: suggestion.content })
+        .eq('id', suggestion.targetId)
+
+      if (error) {
+        showToast('Failed to save panel description', 'error')
+      } else {
+        showToast(`Saved description to ${suggestion.targetLabel}`, 'success')
+        onRefresh?.()
+      }
+      return
+    }
+
+    // Handle outline fields (original logic)
     let table: string
     let field: string
 
@@ -475,10 +611,41 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     }
   }
 
+  // Determine if the issue has substantial content or is blank
+  const hasExistingContent = useMemo(() => {
+    let panelCount = 0
+    let dialogueCount = 0
+    for (const act of (issue.acts || [])) {
+      for (const scene of (act.scenes || [])) {
+        for (const page of (scene.pages || [])) {
+          for (const panel of (page.panels || [])) {
+            panelCount++
+            if (panel.visual_description) panelCount++
+            dialogueCount += (panel.dialogue_blocks?.length || 0)
+          }
+        }
+      }
+    }
+    // Consider "has content" if there are panels with descriptions or dialogue
+    return panelCount > 5 || dialogueCount > 3
+  }, [issue])
+
+  // Build conversation history for context
+  const buildConversationHistory = () => {
+    // Include up to 10 recent messages for context
+    const recentMessages = chatMessages.slice(-10)
+    if (recentMessages.length === 0) return ''
+
+    return '\n\nCONVERSATION SO FAR:\n' + recentMessages.map(msg =>
+      `${msg.role === 'user' ? 'Author' : 'You'}: ${msg.content}`
+    ).join('\n\n')
+  }
+
   const sendMessage = async () => {
     if (!chatInput.trim() || isLoading) return
 
     const userMessage = chatInput.trim()
+    const isFirstMessage = chatMessages.length === 0
     setChatInput('')
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setIsLoading(true)
@@ -486,41 +653,67 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     try {
       // Build rich context with full script
       const context = buildHierarchicalContext()
+      const conversationHistory = buildConversationHistory()
+
+      // Determine opening approach based on content state
+      const openingGuidance = isFirstMessage
+        ? hasExistingContent
+          ? `
+OPENING APPROACH: This issue has existing content. You have read it all. Start by acknowledging the work that exists and ask ONE question about what the author wants to work on today.
+Example: "I've read through Issue #${issue.number}. [Brief observation about what you notice - a strength, a theme, something interesting]. What would you like to work on?"`
+          : `
+OPENING APPROACH: This is a new/blank issue with little content. Start with macro-level exploration. Ask ONE big-picture question to help define the story from the top down.
+Think: What is this issue ABOUT? What happens? Who changes? What's the emotional journey?
+Example: "Let's build out Issue #${issue.number}. What's the core story you want to tell in this issue?"`
+        : ''
 
       // Core instructions for a true writing partner
       const coreInstructions = `
 YOU ARE A WRITING PARTNER who has thoroughly read and understood this entire script.
 
 CRITICAL RULES:
-1. ASK ONLY ONE QUESTION AT A TIME. Never ask multiple questions in a single response.
+1. ASK ONLY ONE QUESTION AT A TIME. Never ask multiple questions in a single response. This is essential for a Socratic dialogue.
 2. You have READ THE FULL SCRIPT above. Reference specific scenes, dialogue, and moments when relevant.
-3. Don't treat the author like they're starting from scratch - they have a complete body of work.
-4. START by asking what the author wants help with, unless they've already told you.
-5. Be a collaborator, not an interrogator. Engage with what EXISTS, don't ask about basics that are clearly established in the script.
-6. If offering feedback, ask first: "Would you like my thoughts on [specific aspect]?" Don't just fire off critiques.
-7. When you do give feedback, be specific - reference actual pages, panels, dialogue lines.
+3. Don't treat the author like they're starting from scratch - engage with what EXISTS.
+4. Be a collaborator, not an interrogator.
+5. If offering feedback, ask first: "Would you like my thoughts on [specific aspect]?" Don't fire off critiques.
+6. When giving feedback, be specific - reference actual pages, panels, dialogue lines.
+7. LISTEN for when the author puts a "fine point" on something - when they articulate something clearly that could be saved (a plot point, scene intention, panel description, dialogue line). When you hear this, ASK if they want it added to the document.
+${openingGuidance}
+
+CONVERSATION MEMORY: You remember everything discussed in this conversation. Build on previous answers. Don't re-ask questions that have been answered.
+${conversationHistory}
 
 YOUR KNOWLEDGE: You have the complete script above. You know the characters, their voices, the locations, the plot beats, the dialogue. USE this knowledge.`
 
-      // Mode-specific additions
+      // Mode-specific additions with expanded save options
       const modeInstructions = aiMode === 'outline'
         ? `
 
 OUTLINE MODE:
 - Help with story structure, act breaks, scene purposes, character arcs
-- When discussing ideas that should be saved, wrap them in tags:
+- Work from macro to micro: Series theme → Issue stakes → Act purposes → Scene intentions → Page beats
+- When the author articulates something clearly, ASK: "That sounds like [type of thing]. Want me to save that as the [field name]?"
+- If they agree, wrap the content in tags:
   [SAVE_AS:act_intention]content[/SAVE_AS]
   [SAVE_AS:scene_intention]content[/SAVE_AS]
   [SAVE_AS:page_intention]content[/SAVE_AS]
   [SAVE_AS:scene_summary]content[/SAVE_AS]
   [SAVE_AS:act_beat]content[/SAVE_AS]
-- But ONLY use these tags when the author has agreed to save something specific.`
+- ONLY use these tags AFTER the author agrees to save something.`
         : `
 
 DRAFT MODE:
 - Help write and refine actual script content - panel descriptions, dialogue, captions
 - Be specific and visual in your suggestions
-- Match the existing voice and tone of the script`
+- Match the existing voice and tone of the script
+- When the author articulates a clear panel description, dialogue line, or caption, ASK: "Want me to add that to [location]?"
+- If they agree, wrap the content in tags:
+  [SAVE_AS:panel_description:panelNumber]visual description here[/SAVE_AS]
+  [SAVE_AS:dialogue:panelNumber:SPEAKER_NAME]dialogue text here[/SAVE_AS]
+  [SAVE_AS:caption:panelNumber:captionType]caption text here[/SAVE_AS]
+  (captionType can be: narration, thought, location, time)
+- ONLY use these tags AFTER the author agrees to save something.`
 
       const fullContext = context + coreInstructions + modeInstructions
 
@@ -537,7 +730,7 @@ DRAFT MODE:
         // Parse for suggestions
         const suggestions = parseAISuggestions(response, selectedPageContext || null)
         // Clean response by removing the SAVE_AS tags for display
-        const cleanResponse = response.replace(/\[SAVE_AS:[\w_]+\]([\s\S]*?)\[\/SAVE_AS\]/g, '$1')
+        const cleanResponse = response.replace(/\[SAVE_AS:[\w_]+(?::[^\]]+)?\]([\s\S]*?)\[\/SAVE_AS\]/g, '$1')
         setChatMessages(prev => [...prev, {
           role: 'assistant',
           content: cleanResponse,
@@ -1108,19 +1301,40 @@ DRAFT MODE:
                     {/* AI Suggestions */}
                     {msg.suggestions && msg.suggestions.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-zinc-700 space-y-2">
-                        <p className="text-xs text-zinc-400">Save to outline:</p>
-                        {msg.suggestions.map((suggestion, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => applySuggestion(suggestion)}
-                            className="w-full text-left p-2 bg-purple-900/30 hover:bg-purple-900/50 border border-purple-700/50 rounded text-xs transition-colors"
-                          >
-                            <span className="text-purple-300 font-medium">
-                              {suggestion.type.replace(/_/g, ' ')} → {suggestion.targetLabel}
-                            </span>
-                            <p className="text-zinc-300 mt-1 line-clamp-2">{suggestion.content}</p>
-                          </button>
-                        ))}
+                        <p className="text-xs text-zinc-400">Save to document:</p>
+                        {msg.suggestions.map((suggestion, idx) => {
+                          const isOutline = ['act_intention', 'scene_intention', 'page_intention', 'scene_summary', 'act_beat'].includes(suggestion.type)
+                          const isDialogue = suggestion.type === 'dialogue'
+                          const isCaption = suggestion.type === 'caption'
+                          const isPanelDesc = suggestion.type === 'panel_description'
+
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => applySuggestion(suggestion)}
+                              className={`w-full text-left p-2 rounded text-xs transition-colors ${
+                                isOutline
+                                  ? 'bg-purple-900/30 hover:bg-purple-900/50 border border-purple-700/50'
+                                  : isDialogue
+                                    ? 'bg-blue-900/30 hover:bg-blue-900/50 border border-blue-700/50'
+                                    : isCaption
+                                      ? 'bg-amber-900/30 hover:bg-amber-900/50 border border-amber-700/50'
+                                      : 'bg-green-900/30 hover:bg-green-900/50 border border-green-700/50'
+                              }`}
+                            >
+                              <span className={`font-medium ${
+                                isOutline ? 'text-purple-300'
+                                  : isDialogue ? 'text-blue-300'
+                                    : isCaption ? 'text-amber-300'
+                                      : 'text-green-300'
+                              }`}>
+                                {isOutline ? '📋' : isDialogue ? '💬' : isCaption ? '📝' : '🎬'}{' '}
+                                {suggestion.type.replace(/_/g, ' ')} → {suggestion.targetLabel}
+                              </span>
+                              <p className="text-zinc-300 mt-1 line-clamp-2">{suggestion.content}</p>
+                            </button>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
