@@ -17,7 +17,7 @@ export default async function GuidePage({
 
   if (!user) redirect('/login')
 
-  // Fetch series with all context
+  // Fetch series with context (excluding deep panel data for performance)
   const { data: series, error } = await supabase
     .from('series')
     .select(`
@@ -32,12 +32,7 @@ export default async function GuidePage({
           scenes (
             *,
             pages (
-              *,
-              panels (
-                *,
-                dialogue_blocks (*),
-                captions (*)
-              )
+              id, page_number, intention, summary
             )
           )
         )
