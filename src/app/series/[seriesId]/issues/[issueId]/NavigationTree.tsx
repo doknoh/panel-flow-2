@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useId } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { renumberPagesInIssue } from '@/lib/renumberPages'
 import {
   DndContext,
   closestCenter,
@@ -339,6 +340,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to delete act: ${error.message}`, 'error')
     } else {
+      // Renumber remaining pages after act deletion
+      await renumberPagesInIssue(issue.id)
       onRefresh()
     }
   }
@@ -354,6 +357,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to delete scene: ${error.message}`, 'error')
     } else {
+      // Renumber remaining pages after scene deletion
+      await renumberPagesInIssue(issue.id)
       onRefresh()
     }
   }
@@ -370,6 +375,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       if (selectedPageId === pageId) {
         onSelectPage('')
       }
+      // Renumber all pages after deletion
+      await renumberPagesInIssue(issue.id)
       onRefresh()
     }
   }
@@ -414,6 +421,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       showToast(`Failed to create page: ${error.message}`, 'error')
     } else if (data) {
       setExpandedScenes(new Set([...expandedScenes, sceneId]))
+      // Renumber all pages to ensure consistency
+      await renumberPagesInIssue(issue.id)
       onRefresh()
       onSelectPage(data.id)
     }
@@ -435,6 +444,10 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     )
 
     await Promise.all(updates)
+
+    // Renumber all pages in the issue after reordering acts
+    await renumberPagesInIssue(issue.id)
+
     onRefresh()
   }
 
@@ -455,6 +468,10 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     )
 
     await Promise.all(updates)
+
+    // Renumber all pages in the issue after reordering scenes
+    await renumberPagesInIssue(issue.id)
+
     onRefresh()
   }
 
@@ -475,6 +492,10 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     )
 
     await Promise.all(updates)
+
+    // Renumber all pages in the issue after reordering pages within a scene
+    await renumberPagesInIssue(issue.id)
+
     onRefresh()
   }
 
@@ -504,6 +525,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to move page: ${error.message}`, 'error')
     } else {
+      // Renumber all pages after moving between scenes
+      await renumberPagesInIssue(issue.id)
       showToast('Page moved successfully', 'success')
       setMovingPageId(null)
       onRefresh()
@@ -570,7 +593,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
           ))}
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleActDragEnd}>
+        <DndContext id="acts-dnd" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleActDragEnd}>
           <SortableContext items={sortedActs.map(a => a.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-1">
               {sortedActs.map((act: any) => (
@@ -743,7 +766,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                     {/* Scenes */}
                     {expandedActs.has(act.id) && (
                       <div className="ml-4">
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleSceneDragEnd(act.id, e)}>
+                        <DndContext id={`scenes-dnd-${act.id}`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleSceneDragEnd(act.id, e)}>
                           <SortableContext items={(act.scenes || []).map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
                             {(act.scenes || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((scene: any) => (
                               <SortableItem key={scene.id} id={scene.id}>
@@ -958,7 +981,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                   {/* Pages */}
                                   {expandedScenes.has(scene.id) && (
                                     <div className="ml-4">
-                                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handlePageDragEnd(scene.id, e)}>
+                                      <DndContext id={`pages-dnd-${scene.id}`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handlePageDragEnd(scene.id, e)}>
                                         <SortableContext items={(scene.pages || []).map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
                                           {(scene.pages || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((page: any) => (
                                             <SortableItem key={page.id} id={page.id}>
