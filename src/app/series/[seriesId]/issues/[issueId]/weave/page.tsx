@@ -15,7 +15,12 @@ export default async function WeavePage({
   if (!user) redirect('/login')
 
   // Fetch issue with all nested data including plotlines and full page details
-  const { data: issue, error } = await supabase
+  // First try with new fields, fall back to basic query if migration hasn't run
+  let issue: any = null
+  let error: any = null
+
+  // Try the full query with new fields
+  const fullQuery = await supabase
     .from('issues')
     .select(`
       *,
@@ -28,7 +33,6 @@ export default async function WeavePage({
         *,
         scenes (
           *,
-          plotline:plotline_id (*),
           pages (
             id,
             page_number,
@@ -37,14 +41,54 @@ export default async function WeavePage({
             intention,
             visual_motif,
             time_period,
-            plotline_id,
-            plotline:plotline_id (*)
+            plotline_id
           )
         )
       )
     `)
     .eq('id', issueId)
     .single()
+
+  if (fullQuery.error) {
+    console.error('Full query failed, trying basic query:', fullQuery.error)
+    // Fall back to basic query without new fields
+    const basicQuery = await supabase
+      .from('issues')
+      .select(`
+        *,
+        series:series_id (
+          id,
+          title
+        ),
+        acts (
+          *,
+          scenes (
+            *,
+            pages (
+              id,
+              page_number,
+              sort_order
+            )
+          )
+        )
+      `)
+      .eq('id', issueId)
+      .single()
+
+    issue = basicQuery.data
+    error = basicQuery.error
+
+    // Add empty plotlines array if not present
+    if (issue && !issue.plotlines) {
+      issue.plotlines = []
+    }
+  } else {
+    issue = fullQuery.data
+    // Ensure plotlines is an array
+    if (issue && !issue.plotlines) {
+      issue.plotlines = []
+    }
+  }
 
   if (error) {
     console.error('Issue fetch error:', error)
