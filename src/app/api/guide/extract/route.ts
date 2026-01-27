@@ -8,6 +8,21 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
+// Type for extracted insights
+interface ExtractedInsight {
+  type: string
+  category: string
+  description: string
+  confidence: number
+  entity_type: string | null
+  entity_name: string | null
+}
+
+interface ExtractionResult {
+  insights: ExtractedInsight[]
+  session_summary: string
+}
+
 // System prompt for extracting insights from a conversation
 const EXTRACTION_PROMPT = `You are an expert at analyzing creative writing conversations to extract actionable insights.
 
@@ -93,12 +108,12 @@ export async function POST(request: Request) {
     const text = textContent?.type === 'text' ? textContent.text : ''
 
     // Parse JSON response
-    let extractedData = { insights: [], session_summary: '' }
+    let extractedData: ExtractionResult = { insights: [], session_summary: '' }
     try {
       // Find JSON in response (it might have markdown code blocks)
       const jsonMatch = text.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        extractedData = JSON.parse(jsonMatch[0])
+        extractedData = JSON.parse(jsonMatch[0]) as ExtractionResult
       }
     } catch (e) {
       logger.warn('Failed to parse extraction response', { error: e })
@@ -134,7 +149,7 @@ export async function POST(request: Request) {
         .from('guided_sessions')
         .update({
           title: extractedData.session_summary.substring(0, 100),
-          completion_areas: extractedData.insights.map((i: { category: string }) => i.category).filter(Boolean)
+          completion_areas: extractedData.insights.map(i => i.category).filter(Boolean)
         })
         .eq('id', sessionId)
     }
