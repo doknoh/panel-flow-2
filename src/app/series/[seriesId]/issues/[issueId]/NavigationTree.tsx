@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext'
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -530,24 +531,37 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
         sort_order: newSortOrder,
       })
       .eq('id', pageId)
-      .select()
+      .select('id, scene_id, sort_order')
 
     if (error) {
       showToast(`Failed to move page: ${error.message}`, 'error')
-    } else {
-      // Expand the target scene so user can see the moved page
-      setExpandedScenes(new Set([...expandedScenes, targetSceneId]))
-      // Also expand the act containing the target scene
-      const targetAct = issue.acts?.find((a: any) =>
-        a.scenes?.some((s: any) => s.id === targetSceneId)
-      )
-      if (targetAct) {
-        setExpandedActs(new Set([...expandedActs, targetAct.id]))
-      }
-      showToast('Page moved successfully', 'success')
-      setMovingPageId(null)
-      onRefresh()
+      return
     }
+
+    // Verify the update actually happened
+    if (!data || data.length === 0) {
+      showToast('Move failed - no rows updated (check permissions)', 'error')
+      return
+    }
+
+    // Verify the scene_id was actually changed
+    if (data[0].scene_id !== targetSceneId) {
+      showToast(`Move failed - page still in original scene`, 'error')
+      return
+    }
+
+    // Expand the target scene so user can see the moved page
+    setExpandedScenes(new Set([...expandedScenes, targetSceneId]))
+    // Also expand the act containing the target scene
+    const targetAct = issue.acts?.find((a: any) =>
+      a.scenes?.some((s: any) => s.id === targetSceneId)
+    )
+    if (targetAct) {
+      setExpandedActs(new Set([...expandedActs, targetAct.id]))
+    }
+    showToast('Page moved successfully', 'success')
+    setMovingPageId(null)
+    onRefresh()
   }
 
   // Get all scenes for the move dropdown
@@ -998,7 +1012,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                   {/* Pages */}
                                   {expandedScenes.has(scene.id) && (
                                     <div className="ml-4">
-                                      <DndContext id={`pages-dnd-${scene.id}`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handlePageDragEnd(scene.id, e)}>
+                                      <DndContext id={`pages-dnd-${scene.id}`} sensors={sensors} collisionDetection={pointerWithin} onDragEnd={(e) => handlePageDragEnd(scene.id, e)}>
                                         <SortableContext items={(scene.pages || []).map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
                                           {(scene.pages || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((page: any) => (
                                             <SortableItem key={page.id} id={page.id}>
