@@ -47,6 +47,7 @@ export default async function GuidePage({
     .single()
 
   if (error || !series) {
+    console.error('Guide page error:', { error, seriesId, hasUser: !!user })
     notFound()
   }
 
