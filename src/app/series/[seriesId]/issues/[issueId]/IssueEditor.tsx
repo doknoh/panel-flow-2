@@ -51,6 +51,7 @@ interface Issue {
 
 export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: Issue; seriesId: string }) {
   const [issue, setIssue] = useState(initialIssue)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false)
@@ -157,6 +158,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
           }))
       }
       setIssue(sortedData)
+      setRefreshKey(k => k + 1)
     }
   }
 
@@ -255,6 +257,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       <IssueEditorContent
         issue={issue}
         seriesId={seriesId}
+        refreshKey={refreshKey}
         selectedPageId={selectedPageId}
         setSelectedPageId={setSelectedPageId}
         selectedPage={selectedPage}
@@ -283,6 +286,7 @@ interface PageContext {
 function IssueEditorContent({
   issue,
   seriesId,
+  refreshKey,
   selectedPageId,
   setSelectedPageId,
   selectedPage,
@@ -297,6 +301,7 @@ function IssueEditorContent({
 }: {
   issue: Issue
   seriesId: string
+  refreshKey: number
   selectedPageId: string | null
   setSelectedPageId: (id: string | null) => void
   selectedPage: any
@@ -514,7 +519,7 @@ function IssueEditorContent({
           leftPanel={
             <div className="h-full border-r border-zinc-800">
               <NavigationTree
-                key={JSON.stringify(issue.acts?.map((a: any) => a.scenes?.map((s: any) => s.pages?.map((p: any) => p.id + '-' + p.scene_id))))}
+                key={refreshKey}
                 issue={issue}
                 plotlines={issue.series.plotlines || []}
                 selectedPageId={selectedPageId}
@@ -567,6 +572,7 @@ function IssueEditorContent({
         {/* Left: Navigation Tree */}
         <div className={`w-full overflow-y-auto ${mobileView === 'nav' ? 'block' : 'hidden'}`}>
           <NavigationTree
+            key={`mobile-${refreshKey}`}
             issue={issue}
             plotlines={issue.series.plotlines || []}
             selectedPageId={selectedPageId}
