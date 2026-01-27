@@ -33,7 +33,7 @@ export default async function GuidePage({
           scenes (
             *,
             pages (
-              id, page_number, intention, summary
+              id, page_number, intention, page_summary
             )
           )
         )
