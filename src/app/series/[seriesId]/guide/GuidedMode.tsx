@@ -69,6 +69,9 @@ export default function GuidedMode({
   const [showSessionPicker, setShowSessionPicker] = useState(!existingSession && recentSessions.length > 0)
   const [analysis, setAnalysis] = useState<CompletenessAnalysis | null>(null)
   const [pendingExtraction, setPendingExtraction] = useState<any>(null)
+  const [showSessionMenu, setShowSessionMenu] = useState(false)
+  const [isExtracting, setIsExtracting] = useState(false)
+  const [extractionResults, setExtractionResults] = useState<any>(null)
 
   // Find the current context based on URL params
   const currentIssue = issueId ? series.issues?.find((i: any) => i.id === issueId) : null
@@ -308,6 +311,128 @@ export default function GuidedMode({
     }
   }
 
+  // Shift focus within the same session
+  const shiftFocus = async (newFocus: string) => {
+    if (!session || isLoading) return
+
+    setShowSessionMenu(false)
+    setIsLoading(true)
+
+    const supabase = createClient()
+
+    // Add a system-like message from the user indicating the shift
+    const shiftMessage = `I'd like to shift our focus to ${newFocus.replace(/_/g, ' ')}. Let's explore that area while keeping in mind what we've discussed so far.`
+
+    // Save user message
+    const { data: savedUserMessage } = await supabase
+      .from('guided_messages')
+      .insert({
+        session_id: session.id,
+        role: 'user',
+        content: shiftMessage,
+      })
+      .select()
+      .single()
+
+    if (savedUserMessage) {
+      setMessages(prev => [...prev, savedUserMessage])
+    }
+
+    try {
+      const response = await fetch('/api/guide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: session.id,
+          series,
+          issue: currentIssue,
+          scene: currentScene,
+          page: currentPage,
+          analysis,
+          writerInsights,
+          messages: [...messages, { role: 'user', content: shiftMessage }],
+          userMessage: shiftMessage,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to generate response')
+
+      const data = await response.json()
+
+      // Save assistant message
+      const { data: savedAssistantMessage } = await supabase
+        .from('guided_messages')
+        .insert({
+          session_id: session.id,
+          role: 'assistant',
+          content: data.response,
+          extracted_data: data.extractedData || null,
+        })
+        .select()
+        .single()
+
+      if (savedAssistantMessage) {
+        setMessages(prev => [...prev, savedAssistantMessage])
+      }
+
+      // Update session focus area
+      await supabase
+        .from('guided_sessions')
+        .update({
+          focus_area: newFocus,
+          session_type: newFocus // Also update session type to match new focus
+        })
+        .eq('id', session.id)
+
+      // Update local session state
+      setSession(prev => prev ? { ...prev, focus_area: newFocus, session_type: newFocus } : null)
+    } catch (error) {
+      showToast('Failed to shift focus', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Extract insights from the current session
+  const extractInsights = async () => {
+    if (!session || messages.length < 2) {
+      showToast('Need more conversation to extract insights', 'error')
+      return
+    }
+
+    setIsExtracting(true)
+    setExtractionResults(null)
+
+    try {
+      const response = await fetch('/api/guide/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: session.id,
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          series,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to extract insights')
+
+      const data = await response.json()
+      setExtractionResults(data)
+
+      if (data.savedInsights?.length > 0) {
+        showToast(`Saved ${data.savedInsights.length} insight(s) to your profile`, 'success')
+      } else if (data.insights?.length > 0) {
+        showToast(`Found ${data.insights.length} insight(s), but confidence was too low to save`, 'info')
+      } else {
+        showToast('No clear insights found yet. Keep exploring!', 'info')
+      }
+    } catch (error) {
+      showToast('Failed to extract insights', 'error')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
   // Determine the context label
   const contextLabel = currentPage
     ? `Page ${currentPage.page_number}`
@@ -346,16 +471,82 @@ export default function GuidedMode({
 
           <div className="flex items-center gap-2">
             {session && (
-              <button
-                onClick={() => {
-                  setSession(null)
-                  setMessages([])
-                  setShowSessionPicker(true)
-                }}
-                className="text-xs text-zinc-400 hover:text-white px-2 py-1"
-              >
-                New Session
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowSessionMenu(!showSessionMenu)}
+                  className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 border border-zinc-700 rounded-lg flex items-center gap-1"
+                >
+                  Options
+                  <span className="text-[10px]">▼</span>
+                </button>
+
+                {showSessionMenu && (
+                  <>
+                    {/* Backdrop */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowSessionMenu(false)}
+                    />
+                    {/* Menu */}
+                    <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden">
+                      {/* Shift Focus Options */}
+                      <div className="p-2 border-b border-zinc-700">
+                        <div className="text-[10px] uppercase text-zinc-500 px-2 py-1">Shift Focus To</div>
+                        <button
+                          onClick={() => shiftFocus('character_deep_dive')}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded"
+                        >
+                          🎭 Characters
+                        </button>
+                        <button
+                          onClick={() => shiftFocus('outline')}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded"
+                        >
+                          📐 Story Structure
+                        </button>
+                        <button
+                          onClick={() => shiftFocus('world_building')}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded"
+                        >
+                          🌍 World Building
+                        </button>
+                        <button
+                          onClick={() => shiftFocus('general')}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded"
+                        >
+                          🔮 Open Exploration
+                        </button>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="p-2">
+                        <button
+                          onClick={() => {
+                            setShowSessionMenu(false)
+                            extractInsights()
+                          }}
+                          disabled={isExtracting || messages.length < 2}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isExtracting ? '⏳ Extracting...' : '💡 Extract Insights'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowSessionMenu(false)
+                            setSession(null)
+                            setMessages([])
+                            setExtractionResults(null)
+                            setShowSessionPicker(true)
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-zinc-800 rounded"
+                        >
+                          ✨ New Session
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -515,7 +706,7 @@ export default function GuidedMode({
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Pending Extraction Banner */}
+            {/* Pending Extraction Banner (legacy - from AI markers) */}
             {pendingExtraction && (
               <div className="px-4 py-3 bg-purple-900/30 border-t border-purple-500/30">
                 <div className="flex items-center justify-between max-w-2xl mx-auto">
@@ -537,6 +728,66 @@ export default function GuidedMode({
                       Save
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Extraction Results Panel */}
+            {extractionResults && (
+              <div className="px-4 py-3 bg-emerald-900/20 border-t border-emerald-500/30">
+                <div className="max-w-2xl mx-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-medium text-emerald-300">
+                      💡 Extracted Insights
+                    </div>
+                    <button
+                      onClick={() => setExtractionResults(null)}
+                      className="text-xs text-zinc-400 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {extractionResults.sessionSummary && (
+                    <p className="text-xs text-zinc-400 mb-2 italic">
+                      "{extractionResults.sessionSummary}"
+                    </p>
+                  )}
+
+                  {extractionResults.insights?.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {extractionResults.insights.map((insight: any, i: number) => (
+                        <div
+                          key={i}
+                          className="text-xs bg-zinc-900/50 px-3 py-2 rounded flex items-start gap-2"
+                        >
+                          <span className="shrink-0">
+                            {insight.type === 'character' ? '🎭' :
+                             insight.type === 'story' ? '📖' :
+                             insight.type === 'world' ? '🌍' : '✨'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-zinc-200">{insight.description}</span>
+                            <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-500">
+                              <span className="bg-zinc-800 px-1.5 py-0.5 rounded">{insight.category}</span>
+                              <span>
+                                {Math.round(insight.confidence * 100)}% confidence
+                              </span>
+                              {extractionResults.savedInsights?.some((s: any) =>
+                                s.description === insight.description
+                              ) && (
+                                <span className="text-emerald-400">✓ Saved</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500">
+                      No clear insights found yet. Keep exploring your ideas!
+                    </p>
+                  )}
                 </div>
               </div>
             )}
