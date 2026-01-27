@@ -179,6 +179,7 @@ function SortablePage({
   isSelected,
   isPartOfSelection,
   selectionCount,
+  isJustMoved,
   onSelect,
   onSelectScene,
   onAssignPlotline,
@@ -199,6 +200,7 @@ function SortablePage({
   isSelected: boolean
   isPartOfSelection: boolean
   selectionCount: number
+  isJustMoved: boolean
   onSelect: (pageId: string, event: React.MouseEvent) => void
   onSelectScene: (sceneId: string) => void
   onAssignPlotline: (pageId: string, plotlineId: string | null) => void
@@ -286,15 +288,17 @@ function SortablePage({
       )}
 
       <div
-        className={`relative flex flex-col transition-all ${
+        className={`relative flex flex-col transition-all duration-300 ${
           isDragging ? 'ring-2 ring-blue-500' : ''
         } ${isSelected ? 'ring-2 ring-blue-500' : ''} ${
           isPartOfSelection && !isSelected ? 'ring-1 ring-blue-400/50' : ''
-        }`}
+        } ${isJustMoved ? 'ring-2 ring-green-400 shadow-lg shadow-green-500/30' : ''}`}
         style={{
           width: PAGE_WIDTH,
           height: PAGE_HEIGHT,
-          backgroundColor: plotlineColor ? `${plotlineColor}15` : '#18181b',
+          backgroundColor: isJustMoved
+            ? (plotlineColor ? `${plotlineColor}25` : '#1a2e1a')
+            : (plotlineColor ? `${plotlineColor}15` : '#18181b'),
         }}
       >
         {/* Plotline color bar - thick and prominent */}
@@ -493,6 +497,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   const [activePageId, setActivePageId] = useState<string | null>(null)
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set())
   const [lastSelectedPageId, setLastSelectedPageId] = useState<string | null>(null)
+  const [justMovedPageIds, setJustMovedPageIds] = useState<Set<string>>(new Set())
   const { showToast } = useToast()
   const router = useRouter()
 
@@ -664,11 +669,14 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
 
     if (updates.length === 0) return
 
-    // Clear selection and refresh immediately (optimistic update)
+    // Mark moved pages for visual highlight (persists after refresh)
+    setJustMovedPageIds(new Set(pagesToMove))
+
+    // Clear selection
     clearSelection()
 
     // Show brief feedback
-    showToast(`${pagesToMove.length > 1 ? pagesToMove.length + ' pages' : 'Page'} reordered`, 'success')
+    showToast(`${pagesToMove.length > 1 ? pagesToMove.length + ' pages' : 'Page'} moved`, 'success')
 
     // Batch database updates in the background
     const supabase = createClient()
@@ -681,9 +689,15 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
         )
       )
       router.refresh()
+
+      // Clear the "just moved" highlight after a delay
+      setTimeout(() => {
+        setJustMovedPageIds(new Set())
+      }, 2000)
     } catch (error) {
       showToast('Failed to save reorder - please refresh', 'error')
       console.error('Reorder error:', error)
+      setJustMovedPageIds(new Set())
     }
   }, [flatPages, selectedPageIds, router, showToast, clearSelection])
 
@@ -968,6 +982,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                     isSelected={selectedPageIds.has(spread.left.page.id)}
                     isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.left.page.id)}
                     selectionCount={selectedCount}
+                    isJustMoved={justMovedPageIds.has(spread.left.page.id)}
                     onSelect={handleSelectPage}
                     onSelectScene={handleSelectScene}
                     onAssignPlotline={assignPlotline}
@@ -1000,6 +1015,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                     isSelected={selectedPageIds.has(spread.right.page.id)}
                     isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.right.page.id)}
                     selectionCount={selectedCount}
+                    isJustMoved={justMovedPageIds.has(spread.right.page.id)}
                     onSelect={handleSelectPage}
                     onSelectScene={handleSelectScene}
                     onAssignPlotline={assignPlotline}
