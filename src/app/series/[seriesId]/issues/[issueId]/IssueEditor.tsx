@@ -157,8 +157,10 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
               }))
           }))
       }
+      console.log('refreshIssue: setting new issue data, scenes:', sortedData.acts?.map((a: any) => a.scenes?.map((s: any) => ({ title: s.title, pageCount: s.pages?.length }))))
       setIssue(sortedData)
       setRefreshKey(k => k + 1)
+      console.log('refreshIssue: refreshKey incremented')
     }
   }
 

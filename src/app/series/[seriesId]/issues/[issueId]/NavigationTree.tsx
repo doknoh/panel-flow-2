@@ -34,7 +34,7 @@ interface NavigationTreeProps {
   plotlines: Plotline[]
   selectedPageId: string | null
   onSelectPage: (pageId: string) => void
-  onRefresh: () => void
+  onRefresh: () => Promise<void> | void
 }
 
 function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
@@ -561,7 +561,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     }
     showToast('Page moved successfully', 'success')
     setMovingPageId(null)
-    onRefresh()
+    await onRefresh()
   }
 
   // Get all scenes for the move dropdown
