@@ -15,7 +15,6 @@ import { exportIssueToDocx } from '@/lib/exportDocx'
 import { exportIssueToTxt } from '@/lib/exportTxt'
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
-import { renumberPagesInIssue } from '@/lib/renumberPages'
 
 interface Plotline {
   id: string
@@ -90,15 +89,8 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   }, [issue, selectedPageId])
 
   // Refresh data on mount to ensure latest characters/locations are loaded
-  // Also renumber pages to fix any corrupt page_number values
   useEffect(() => {
-    const initializeIssue = async () => {
-      // First, ensure page numbers are correct
-      await renumberPagesInIssue(issue.id)
-      // Then refresh to get the updated data
-      await refreshIssue()
-    }
-    initializeIssue()
+    refreshIssue()
   }, [])
 
   const refreshIssue = async () => {

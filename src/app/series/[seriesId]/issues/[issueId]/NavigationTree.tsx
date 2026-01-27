@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, useId } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
-import { renumberPagesInIssue } from '@/lib/renumberPages'
 import {
   DndContext,
   closestCenter,
@@ -340,8 +339,6 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to delete act: ${error.message}`, 'error')
     } else {
-      // Renumber remaining pages after act deletion
-      await renumberPagesInIssue(issue.id)
       onRefresh()
     }
   }
@@ -357,8 +354,6 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to delete scene: ${error.message}`, 'error')
     } else {
-      // Renumber remaining pages after scene deletion
-      await renumberPagesInIssue(issue.id)
       onRefresh()
     }
   }
@@ -375,8 +370,6 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       if (selectedPageId === pageId) {
         onSelectPage('')
       }
-      // Renumber all pages after deletion
-      await renumberPagesInIssue(issue.id)
       onRefresh()
     }
   }
@@ -421,8 +414,6 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       showToast(`Failed to create page: ${error.message}`, 'error')
     } else if (data) {
       setExpandedScenes(new Set([...expandedScenes, sceneId]))
-      // Renumber all pages to ensure consistency
-      await renumberPagesInIssue(issue.id)
       onRefresh()
       onSelectPage(data.id)
     }
@@ -444,10 +435,6 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     )
 
     await Promise.all(updates)
-
-    // Renumber all pages in the issue after reordering acts
-    await renumberPagesInIssue(issue.id)
-
     onRefresh()
   }
 
@@ -468,10 +455,6 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     )
 
     await Promise.all(updates)
-
-    // Renumber all pages in the issue after reordering scenes
-    await renumberPagesInIssue(issue.id)
-
     onRefresh()
   }
 
@@ -519,15 +502,9 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       return
     }
 
-    // Renumber all pages in the issue after reordering pages within a scene
-    const renumberResult = await renumberPagesInIssue(issue.id)
-
-    if (!renumberResult.success) {
-      showToast(`Renumber failed: ${renumberResult.error}`, 'error')
-    } else {
-      showToast(`Reordered ${successCount} pages`, 'success')
-    }
-
+    // Note: We don't renumber page_number anymore - it's a static label set at creation
+    // Only sort_order determines the visual position
+    showToast(`Reordered ${successCount} pages`, 'success')
     onRefresh()
   }
 
@@ -558,8 +535,6 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to move page: ${error.message}`, 'error')
     } else {
-      // Renumber all pages after moving between scenes
-      await renumberPagesInIssue(issue.id)
       // Expand the target scene so user can see the moved page
       setExpandedScenes(new Set([...expandedScenes, targetSceneId]))
       // Also expand the act containing the target scene
