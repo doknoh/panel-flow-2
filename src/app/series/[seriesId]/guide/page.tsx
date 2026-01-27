@@ -18,15 +18,16 @@ export default async function GuidePage({
   if (!user) redirect('/login')
 
   // Fetch series with context (excluding deep panel data for performance)
+  // Note: plotlines are per-issue, so fetch them within issues
   const { data: series, error } = await supabase
     .from('series')
     .select(`
       *,
       characters (*),
       locations (*),
-      plotlines (*),
       issues (
         *,
+        plotlines (*),
         acts (
           *,
           scenes (
