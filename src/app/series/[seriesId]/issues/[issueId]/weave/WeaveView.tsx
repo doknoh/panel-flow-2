@@ -14,6 +14,29 @@ interface Plotline {
   sort_order: number
 }
 
+interface DialogueBlock {
+  id: string
+  speaker_name: string | null
+  text: string | null
+  sort_order: number
+}
+
+interface Caption {
+  id: string
+  caption_type: string | null
+  text: string | null
+  sort_order: number
+}
+
+interface Panel {
+  id: string
+  panel_number: number
+  sort_order: number
+  visual_description: string | null
+  dialogue_blocks: DialogueBlock[]
+  captions: Caption[]
+}
+
 interface Page {
   id: string
   page_number: number
@@ -24,6 +47,7 @@ interface Page {
   time_period: string | null
   plotline_id: string | null
   plotline: Plotline | null
+  panels?: Panel[]
 }
 
 interface Scene {
@@ -73,6 +97,50 @@ const PLOTLINE_COLORS = [
   '#FB923C', // Orange
   '#2DD4BF', // Teal
 ]
+
+// Generate a summary from page's panel content
+function generatePageSummary(page: Page): string | null {
+  if (!page.panels || page.panels.length === 0) return null
+
+  const sortedPanels = [...page.panels].sort((a, b) => a.sort_order - b.sort_order)
+  const summaryParts: string[] = []
+
+  for (const panel of sortedPanels) {
+    // Get dialogue speakers and snippets
+    const dialogues = (panel.dialogue_blocks || [])
+      .filter(d => d.text)
+      .sort((a, b) => a.sort_order - b.sort_order)
+
+    for (const d of dialogues) {
+      const speaker = d.speaker_name || 'UNKNOWN'
+      const text = d.text || ''
+      // Truncate long dialogue
+      const snippet = text.length > 40 ? text.substring(0, 40) + '...' : text
+      summaryParts.push(`${speaker}: "${snippet}"`)
+    }
+
+    // Get captions
+    const captions = (panel.captions || [])
+      .filter(c => c.text)
+      .sort((a, b) => a.sort_order - b.sort_order)
+
+    for (const c of captions) {
+      const text = c.text || ''
+      const snippet = text.length > 50 ? text.substring(0, 50) + '...' : text
+      summaryParts.push(`[${c.caption_type || 'caption'}] ${snippet}`)
+    }
+
+    // If no dialogue/captions, use visual description
+    if (dialogues.length === 0 && captions.length === 0 && panel.visual_description) {
+      const desc = panel.visual_description
+      const snippet = desc.length > 60 ? desc.substring(0, 60) + '...' : desc
+      summaryParts.push(snippet)
+    }
+  }
+
+  // Return first 2-3 meaningful items
+  return summaryParts.slice(0, 3).join(' • ') || null
+}
 
 interface FlatPage {
   page: Page
@@ -322,35 +390,49 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
         )}
 
         {/* Story beat (main content) */}
-        {isEditing && editingField === 'story_beat' ? (
-          <textarea
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={() => savePageField(page.id, 'story_beat', editValue)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
-            }}
-            className="w-full bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm resize-none"
-            placeholder="Story beat..."
-            rows={3}
-            autoFocus
-          />
-        ) : (
-          <div
-            className="text-sm text-zinc-200 cursor-pointer hover:bg-white/5 rounded px-1 py-0.5 -mx-1 min-h-[60px]"
-            onClick={() => {
-              setEditingPageId(page.id)
-              setEditingField('story_beat')
-              setEditValue(page.story_beat || '')
-            }}
-          >
-            {page.story_beat || (
-              <span className="text-zinc-500 italic opacity-0 group-hover:opacity-100">
-                Click to add story beat...
-              </span>
-            )}
-          </div>
-        )}
+        {(() => {
+          // Generate summary from panel content if no story_beat is set
+          const autoSummary = !page.story_beat ? generatePageSummary(page) : null
+          const displayContent = page.story_beat || autoSummary
+
+          if (isEditing && editingField === 'story_beat') {
+            return (
+              <textarea
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={() => savePageField(page.id, 'story_beat', editValue)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
+                }}
+                className="w-full bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm resize-none"
+                placeholder="Story beat..."
+                rows={3}
+                autoFocus
+              />
+            )
+          }
+
+          return (
+            <div
+              className="text-sm cursor-pointer hover:bg-white/5 rounded px-1 py-0.5 -mx-1 min-h-[60px]"
+              onClick={() => {
+                setEditingPageId(page.id)
+                setEditingField('story_beat')
+                setEditValue(page.story_beat || '')
+              }}
+            >
+              {page.story_beat ? (
+                <span className="text-zinc-200">{page.story_beat}</span>
+              ) : autoSummary ? (
+                <span className="text-zinc-400 text-xs leading-relaxed">{autoSummary}</span>
+              ) : (
+                <span className="text-zinc-500 italic opacity-0 group-hover:opacity-100">
+                  Click to add story beat...
+                </span>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Scene/Act indicator */}
         <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[10px] text-zinc-500">

@@ -14,7 +14,7 @@ export default async function WeavePage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch issue with all nested data
+  // Fetch issue with all nested data including panel content for summaries
   const { data: issue, error } = await supabase
     .from('issues')
     .select(`
@@ -35,7 +35,25 @@ export default async function WeavePage({
             intention,
             visual_motif,
             time_period,
-            plotline_id
+            plotline_id,
+            panels (
+              id,
+              panel_number,
+              sort_order,
+              visual_description,
+              dialogue_blocks (
+                id,
+                speaker_name,
+                text,
+                sort_order
+              ),
+              captions (
+                id,
+                caption_type,
+                text,
+                sort_order
+              )
+            )
           )
         )
       )
