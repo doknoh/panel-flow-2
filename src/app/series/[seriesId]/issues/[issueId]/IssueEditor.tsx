@@ -391,6 +391,12 @@ function IssueEditorContent({
               Weave
             </Link>
             <Link
+              href={`/series/${seriesId}/guide?issue=${issue.id}`}
+              className="text-sm text-purple-400 hover:text-purple-300 hidden lg:block"
+            >
+              Guide
+            </Link>
+            <Link
               href={`/series/${seriesId}/issues/${issue.id}/history`}
               className="text-sm text-zinc-400 hover:text-white hidden lg:block"
             >

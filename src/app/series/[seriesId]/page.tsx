@@ -124,6 +124,14 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           <h2 className="text-lg font-semibold mb-4 text-zinc-400">Tools</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Link
+              href={`/series/${seriesId}/guide`}
+              className="bg-gradient-to-br from-purple-900/50 to-zinc-900 border border-purple-700/50 rounded-lg p-4 hover:border-purple-600 hover:from-purple-900/70 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🎭</div>
+              <h3 className="font-medium mb-1 text-purple-200">Guide</h3>
+              <p className="text-purple-300/70 text-sm">AI-guided writing sessions</p>
+            </Link>
+            <Link
               href={`/series/${seriesId}/outline`}
               className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
             >
