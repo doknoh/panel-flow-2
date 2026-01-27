@@ -36,6 +36,11 @@ export default async function WeavePage({
             visual_motif,
             time_period,
             plotline_id,
+            plotline:plotline_id (
+              id,
+              name,
+              color
+            ),
             panels (
               id,
               panel_number,
