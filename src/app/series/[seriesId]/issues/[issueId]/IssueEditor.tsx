@@ -9,6 +9,7 @@ import Toolkit from './Toolkit'
 import FindReplaceModal from './FindReplaceModal'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import StatusBar from './StatusBar'
+import ResizablePanels from '@/components/ResizablePanels'
 import { exportIssueToPdf } from '@/lib/exportPdf'
 import { exportIssueToDocx } from '@/lib/exportDocx'
 import { exportIssueToTxt } from '@/lib/exportTxt'
@@ -465,24 +466,84 @@ function IssueEditorContent({
         </div>
       </header>
 
-      {/* Main Three-Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main Three-Column Layout - Desktop */}
+      <div className="hidden md:flex flex-1 overflow-hidden">
+        <ResizablePanels
+          storageKey="issue-editor-panels"
+          leftMinWidth={180}
+          leftMaxWidth={400}
+          rightMinWidth={200}
+          rightMaxWidth={500}
+          defaultLeftWidth={256}
+          defaultRightWidth={320}
+          leftPanel={
+            <div className="h-full border-r border-zinc-800">
+              <NavigationTree
+                issue={issue}
+                plotlines={issue.series.plotlines || []}
+                selectedPageId={selectedPageId}
+                onSelectPage={(pageId) => {
+                  setSelectedPageId(pageId)
+                }}
+                onRefresh={refreshIssue}
+              />
+            </div>
+          }
+          centerPanel={
+            selectedPage ? (
+              <PageEditor
+                page={selectedPage}
+                pageContext={selectedPageContext}
+                characters={issue.series.characters}
+                locations={issue.series.locations}
+                onUpdate={refreshIssue}
+                setSaveStatus={setSaveStatus}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-zinc-500">
+                <div className="text-center p-8 max-w-md">
+                  <div className="text-5xl mb-4 opacity-30">📄</div>
+                  <h3 className="text-lg font-medium text-zinc-300 mb-2">No pages yet</h3>
+                  <p className="text-sm text-zinc-500 mb-6">
+                    Start by creating an act and scene in the navigation tree on the left. Each scene can contain multiple pages, and each page holds your comic panels.
+                  </p>
+                  <div className="text-xs text-zinc-600 space-y-1">
+                    <p>💡 Tip: Use <kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded">?</kbd> to see keyboard shortcuts</p>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+          rightPanel={
+            <div className="h-full border-l border-zinc-800">
+              <Toolkit
+                issue={issue}
+                selectedPageContext={selectedPageContext}
+                onRefresh={refreshIssue}
+              />
+            </div>
+          }
+        />
+      </div>
+
+      {/* Mobile Layout - unchanged */}
+      <div className="flex-1 flex overflow-hidden md:hidden">
         {/* Left: Navigation Tree */}
-        <div className={`w-full md:w-64 border-r border-zinc-800 overflow-y-auto shrink-0 ${mobileView === 'nav' ? 'block' : 'hidden md:block'}`}>
+        <div className={`w-full overflow-y-auto ${mobileView === 'nav' ? 'block' : 'hidden'}`}>
           <NavigationTree
             issue={issue}
             plotlines={issue.series.plotlines || []}
             selectedPageId={selectedPageId}
             onSelectPage={(pageId) => {
               setSelectedPageId(pageId)
-              setMobileView('editor') // Switch to editor on mobile after selecting
+              setMobileView('editor')
             }}
             onRefresh={refreshIssue}
           />
         </div>
 
         {/* Center: Page/Panel Editor */}
-        <div className={`flex-1 overflow-y-auto ${mobileView === 'editor' ? 'block' : 'hidden md:block'}`}>
+        <div className={`flex-1 overflow-y-auto ${mobileView === 'editor' ? 'block' : 'hidden'}`}>
           {selectedPage ? (
             <PageEditor
               page={selectedPage}
@@ -498,14 +559,11 @@ function IssueEditorContent({
                 <div className="text-5xl mb-4 opacity-30">📄</div>
                 <h3 className="text-lg font-medium text-zinc-300 mb-2">No pages yet</h3>
                 <p className="text-sm text-zinc-500 mb-6">
-                  Start by creating an act and scene in the navigation tree on the left. Each scene can contain multiple pages, and each page holds your comic panels.
+                  Start by creating an act and scene in the navigation tree on the left.
                 </p>
-                <div className="text-xs text-zinc-600 space-y-1">
-                  <p>💡 Tip: Use <kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded">?</kbd> to see keyboard shortcuts</p>
-                </div>
                 <button
                   onClick={() => setMobileView('nav')}
-                  className="md:hidden mt-6 text-blue-400 hover:text-blue-300"
+                  className="mt-6 text-blue-400 hover:text-blue-300"
                 >
                   Go to Navigation →
                 </button>
@@ -515,7 +573,7 @@ function IssueEditorContent({
         </div>
 
         {/* Right: Toolkit */}
-        <div className={`w-full md:w-80 border-l border-zinc-800 overflow-y-auto shrink-0 ${mobileView === 'toolkit' ? 'block' : 'hidden md:block'}`}>
+        <div className={`w-full overflow-y-auto ${mobileView === 'toolkit' ? 'block' : 'hidden'}`}>
           <Toolkit
             issue={issue}
             selectedPageContext={selectedPageContext}
