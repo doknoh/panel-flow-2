@@ -477,10 +477,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
 
   const handlePageDragEnd = async (sceneId: string, event: DragEndEvent) => {
     const { active, over } = event
-    console.log('handlePageDragEnd called:', { sceneId, activeId: active.id, overId: over?.id })
 
     if (!over || active.id === over.id) {
-      console.log('Drag cancelled - no change')
       return
     }
 
@@ -489,7 +487,10 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     const oldIndex = sortedPages.findIndex((p: any) => p.id === active.id)
     const newIndex = sortedPages.findIndex((p: any) => p.id === over.id)
 
-    console.log('Reordering pages:', { oldIndex, newIndex, pageCount: sortedPages.length })
+    if (oldIndex === -1 || newIndex === -1) {
+      showToast('Could not find pages to reorder', 'error')
+      return
+    }
 
     const reordered = arrayMove(sortedPages, oldIndex, newIndex)
 
@@ -499,11 +500,19 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     )
 
     const results = await Promise.all(updates)
-    console.log('Page sort_order updates:', results.map(r => ({ error: r.error })))
+    const errors = results.filter(r => r.error)
+
+    if (errors.length > 0) {
+      showToast(`Failed to update ${errors.length} page(s)`, 'error')
+      return
+    }
 
     // Renumber all pages in the issue after reordering pages within a scene
     const renumberResult = await renumberPagesInIssue(issue.id)
-    console.log('Renumber result:', renumberResult)
+
+    if (!renumberResult.success) {
+      showToast(`Renumber failed: ${renumberResult.error}`, 'error')
+    }
 
     onRefresh()
   }
@@ -535,11 +544,17 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to move page: ${error.message}`, 'error')
     } else {
-      console.log('Page moved successfully:', data)
       // Renumber all pages after moving between scenes
       await renumberPagesInIssue(issue.id)
       // Expand the target scene so user can see the moved page
       setExpandedScenes(new Set([...expandedScenes, targetSceneId]))
+      // Also expand the act containing the target scene
+      const targetAct = issue.acts?.find((a: any) =>
+        a.scenes?.some((s: any) => s.id === targetSceneId)
+      )
+      if (targetAct) {
+        setExpandedActs(new Set([...expandedActs, targetAct.id]))
+      }
       showToast('Page moved successfully', 'success')
       setMovingPageId(null)
       onRefresh()
