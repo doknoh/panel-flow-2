@@ -495,15 +495,27 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     const reordered = arrayMove(sortedPages, oldIndex, newIndex)
 
     const supabase = createClient()
+
+    // Update each page's sort_order and verify with .select()
     const updates = reordered.map((page: any, index: number) =>
-      supabase.from('pages').update({ sort_order: index + 1 }).eq('id', page.id)
+      supabase
+        .from('pages')
+        .update({ sort_order: index + 1 })
+        .eq('id', page.id)
+        .select('id, sort_order')
     )
 
     const results = await Promise.all(updates)
     const errors = results.filter(r => r.error)
+    const successCount = results.filter(r => r.data && r.data.length > 0).length
 
     if (errors.length > 0) {
-      showToast(`Failed to update ${errors.length} page(s)`, 'error')
+      showToast(`Failed to update ${errors.length} page(s): ${errors[0].error?.message}`, 'error')
+      return
+    }
+
+    if (successCount === 0) {
+      showToast('No pages were updated - check permissions', 'error')
       return
     }
 
@@ -512,6 +524,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
 
     if (!renumberResult.success) {
       showToast(`Renumber failed: ${renumberResult.error}`, 'error')
+    } else {
+      showToast(`Reordered ${successCount} pages`, 'success')
     }
 
     onRefresh()
