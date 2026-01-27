@@ -103,7 +103,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
 
   const refreshIssue = async () => {
     const supabase = createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('issues')
       .select(`
         *,
@@ -134,8 +134,33 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       .eq('id', issue.id)
       .single()
 
+    if (error) {
+      console.error('Failed to refresh issue:', error)
+      return
+    }
+
     if (data) {
-      setIssue(data)
+      // Sort acts, scenes, and pages by sort_order for consistent display
+      const sortedData = {
+        ...data,
+        acts: (data.acts || [])
+          .sort((a: any, b: any) => a.sort_order - b.sort_order)
+          .map((act: any) => ({
+            ...act,
+            scenes: (act.scenes || [])
+              .sort((a: any, b: any) => a.sort_order - b.sort_order)
+              .map((scene: any) => ({
+                ...scene,
+                pages: (scene.pages || [])
+                  .sort((a: any, b: any) => a.sort_order - b.sort_order)
+                  .map((page: any) => ({
+                    ...page,
+                    panels: (page.panels || []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+                  }))
+              }))
+          }))
+      }
+      setIssue(sortedData)
     }
   }
 
