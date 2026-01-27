@@ -669,6 +669,127 @@ END OF ISSUE #[NUMBER]
 
 ---
 
+## Guided Mode
+
+**URL:** `/series/[seriesId]/guide`
+
+**Purpose:** AI-driven Socratic writing partner that helps writers develop their story through conversation. Unlike the sidebar AI chat (quick questions during drafting), Guided Mode is for dedicated exploration sessions.
+
+### Core Concept
+The AI acts as an elite veteran editor of sequential art storytelling. It guides writers through discovering their stories by asking incisive questions—pulling the sculpture from the rock rather than telling writers what to do.
+
+### Session Types
+Writers can start sessions focused on:
+- **Open Exploration** — AI guides based on project analysis
+- **Character Deep Dive** — Explore motivations, arcs, relationships, and voices
+- **Story Structure** — Work out acts, beats, turning points, and pacing
+- **World Building** — Define locations, rules, atmosphere, and setting
+
+### Key Features
+
+#### Session Persistence
+- Sessions save to `guided_sessions` table
+- Messages save to `guided_messages` table
+- Writers can pause and resume sessions later
+- Session history shows recent sessions to continue
+
+#### Project Completeness Analysis
+On entering Guide mode, the system analyzes:
+- Series metadata completeness
+- Character development depth
+- Issue structure (acts, scenes, pages)
+- Location definitions
+
+Displays as percentage with suggested focus area.
+
+#### Shift Focus (Mid-Session Pivots)
+Writers can shift conversation topic without losing context:
+- Click "Options" dropdown → "Shift Focus To"
+- Select new focus (Characters, Story Structure, World Building, Open Exploration)
+- AI acknowledges the pivot and continues with full conversation context
+- Session type updates to match new focus
+
+#### Insight Extraction
+After meaningful conversation, writers can extract structured insights:
+- Click "Options" → "Extract Insights"
+- AI analyzes conversation transcript
+- Extracts character insights, story insights, world insights, and writer patterns
+- Assigns confidence scores (0.5-1.0) based on explicit writer confirmation
+- Saves insights with confidence ≥ 0.6 to `writer_insights` table
+- Updates session with summary title
+
+### Database Tables
+
+```typescript
+// Guided sessions - persistent conversation threads
+interface GuidedSession {
+  id: string
+  user_id: string
+  series_id: string
+  issue_id?: string  // optional context narrowing
+  scene_id?: string
+  page_id?: string
+  title?: string     // auto-generated from extraction
+  session_type: 'general' | 'outline' | 'character_deep_dive' | 'world_building'
+  status: 'active' | 'paused' | 'completed'
+  focus_area?: string
+  completion_areas?: string[]
+  started_at: Date
+  last_active_at: Date
+}
+
+// Individual messages in a session
+interface GuidedMessage {
+  id: string
+  session_id: string
+  role: 'assistant' | 'user'
+  content: string
+  extracted_data?: object  // if AI detected extractable insight
+  context_snapshot?: object
+  created_at: Date
+}
+
+// Writer insights - learned patterns about the writer
+interface WriterInsight {
+  id: string
+  user_id: string
+  insight_type: 'preference' | 'strength' | 'pattern' | 'trigger'
+  category?: string  // 'motivation', 'arc', 'theme', etc.
+  description: string
+  confidence: number  // 0.0-1.0
+  evidence_session_ids: string[]
+  created_at: Date
+}
+```
+
+### API Routes
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/guide` | POST | Generate AI response (initial or continued) |
+| `/api/guide/extract` | POST | Analyze session and extract insights |
+
+### AI Editor Persona
+The AI persona is:
+- Warm but direct — doesn't waste time with platitudes
+- Asks ONE focused question at a time
+- Listens carefully and builds on what the writer reveals
+- Notices patterns and connections the writer might miss
+- Pushes gently on weak spots
+- Celebrates specificity and concrete details
+- Allergic to vagueness — probes until things are sharp
+
+### Integration with Project Context
+Every AI interaction receives:
+- Full series metadata (title, theme, logline, genre)
+- All characters with profiles
+- All locations
+- Current issue context (if narrowed)
+- Completeness analysis
+- Previously extracted writer insights
+
+---
+
 ## Phase 2: Structure & Import
 
 ### Weave Visualization
