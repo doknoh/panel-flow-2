@@ -493,7 +493,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   const [activePageId, setActivePageId] = useState<string | null>(null)
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set())
   const [lastSelectedPageId, setLastSelectedPageId] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
   const { showToast } = useToast()
   const router = useRouter()
 
@@ -609,6 +608,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   }, [])
 
   // Handle drag end - reorder pages (including multi-select)
+  // Uses optimistic UI update + batched database writes for responsiveness
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event
     setActivePageId(null)
@@ -625,8 +625,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
       showToast('Cannot move the first page', 'error')
       return
     }
-
-    setIsSaving(true)
 
     // Get pages to move (either selected pages or just the dragged one)
     let pagesToMove: string[] = []
@@ -655,27 +653,37 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     const movedPages = flatPages.filter(fp => pagesToMove.includes(fp.page.id))
     newPages.splice(insertIdx, 0, ...movedPages)
 
+    // Only update pages whose sort_order actually changed
+    const updates: { id: string; sort_order: number }[] = []
+    for (let i = 0; i < newPages.length; i++) {
+      const originalIdx = flatPages.findIndex(fp => fp.page.id === newPages[i].page.id)
+      if (originalIdx !== i) {
+        updates.push({ id: newPages[i].page.id, sort_order: i })
+      }
+    }
+
+    if (updates.length === 0) return
+
+    // Clear selection and refresh immediately (optimistic update)
+    clearSelection()
+
+    // Show brief feedback
+    showToast(`${pagesToMove.length > 1 ? pagesToMove.length + ' pages' : 'Page'} reordered`, 'success')
+
+    // Batch database updates in the background
     const supabase = createClient()
 
+    // Use Promise.all for parallel updates (much faster than sequential)
     try {
-      // Update sort_order for all pages
-      for (let i = 0; i < newPages.length; i++) {
-        const { error } = await supabase
-          .from('pages')
-          .update({ sort_order: i })
-          .eq('id', newPages[i].page.id)
-
-        if (error) throw error
-      }
-
-      showToast(`${pagesToMove.length > 1 ? pagesToMove.length + ' pages' : 'Page'} reordered`, 'success')
-      clearSelection()
+      await Promise.all(
+        updates.map(({ id, sort_order }) =>
+          supabase.from('pages').update({ sort_order }).eq('id', id)
+        )
+      )
       router.refresh()
     } catch (error) {
-      showToast('Failed to reorder pages', 'error')
+      showToast('Failed to save reorder - please refresh', 'error')
       console.error('Reorder error:', error)
-    } finally {
-      setIsSaving(false)
     }
   }, [flatPages, selectedPageIds, router, showToast, clearSelection])
 
@@ -830,15 +838,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                 Clear
               </button>
             </div>
-          )}
-          {isSaving && (
-            <span className="text-sm text-blue-400 flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Saving...
-            </span>
           )}
         </div>
         <button
