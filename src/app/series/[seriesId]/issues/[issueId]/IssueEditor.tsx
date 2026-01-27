@@ -95,6 +95,10 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
 
   const refreshIssue = async () => {
     const supabase = createClient()
+
+    // Add a small delay to ensure DB transaction is committed
+    await new Promise(resolve => setTimeout(resolve, 100))
+
     const { data, error } = await supabase
       .from('issues')
       .select(`
@@ -510,6 +514,7 @@ function IssueEditorContent({
           leftPanel={
             <div className="h-full border-r border-zinc-800">
               <NavigationTree
+                key={JSON.stringify(issue.acts?.map((a: any) => a.scenes?.map((s: any) => s.pages?.map((p: any) => p.id + '-' + p.scene_id))))}
                 issue={issue}
                 plotlines={issue.series.plotlines || []}
                 selectedPageId={selectedPageId}
