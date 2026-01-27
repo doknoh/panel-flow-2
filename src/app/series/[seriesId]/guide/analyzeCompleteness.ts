@@ -117,7 +117,7 @@ export function analyzeProjectCompleteness(
     .map((l: any) => l.name)
 
   // Structure analysis (for current issue)
-  let structureAnalysis = {
+  const structureAnalysis = {
     score: 0,
     hasActs: false,
     hasScenes: false,
