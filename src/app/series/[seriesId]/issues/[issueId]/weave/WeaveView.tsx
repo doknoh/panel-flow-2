@@ -105,7 +105,7 @@ interface WeaveViewProps {
   seriesId: string
 }
 
-// Default plotline colors
+// Default plotline colors - vibrant and distinct
 const PLOTLINE_COLORS = [
   '#FACC15', // Yellow (A plot)
   '#F87171', // Red (B plot)
@@ -117,6 +117,10 @@ const PLOTLINE_COLORS = [
   '#F472B6', // Pink
 ]
 
+// Page dimensions - comic book aspect ratio (roughly 2:3)
+const PAGE_WIDTH = 180
+const PAGE_HEIGHT = 260
+
 // Generate a summary from page's panel content
 function generatePageSummary(page: Page): string | null {
   if (!page.panels || page.panels.length === 0) return null
@@ -125,7 +129,6 @@ function generatePageSummary(page: Page): string | null {
   const summaryParts: string[] = []
 
   for (const panel of sortedPanels) {
-    // Get dialogue speakers and snippets
     const dialogues = (panel.dialogue_blocks || [])
       .filter(d => d.text)
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -133,32 +136,28 @@ function generatePageSummary(page: Page): string | null {
     for (const d of dialogues) {
       const speaker = d.speaker_name || 'UNKNOWN'
       const text = d.text || ''
-      // Truncate long dialogue
-      const snippet = text.length > 40 ? text.substring(0, 40) + '...' : text
+      const snippet = text.length > 30 ? text.substring(0, 30) + '...' : text
       summaryParts.push(`${speaker}: "${snippet}"`)
     }
 
-    // Get captions
     const captions = (panel.captions || [])
       .filter(c => c.text)
       .sort((a, b) => a.sort_order - b.sort_order)
 
     for (const c of captions) {
       const text = c.text || ''
-      const snippet = text.length > 50 ? text.substring(0, 50) + '...' : text
+      const snippet = text.length > 40 ? text.substring(0, 40) + '...' : text
       summaryParts.push(`[${c.caption_type || 'caption'}] ${snippet}`)
     }
 
-    // If no dialogue/captions, use visual description
     if (dialogues.length === 0 && captions.length === 0 && panel.visual_description) {
       const desc = panel.visual_description
-      const snippet = desc.length > 60 ? desc.substring(0, 60) + '...' : desc
+      const snippet = desc.length > 50 ? desc.substring(0, 50) + '...' : desc
       summaryParts.push(snippet)
     }
   }
 
-  // Return first 2-3 meaningful items
-  return summaryParts.slice(0, 3).join(' • ') || null
+  return summaryParts.slice(0, 2).join(' • ') || null
 }
 
 interface FlatPage {
@@ -176,21 +175,42 @@ interface Spread {
   id: string
 }
 
+// Drag handle component - always visible
+function DragHandle({ listeners, attributes }: { listeners: any; attributes: any }) {
+  return (
+    <div
+      {...attributes}
+      {...listeners}
+      className="flex flex-col items-center justify-center w-8 cursor-grab active:cursor-grabbing hover:bg-zinc-700/50 rounded transition-colors py-4"
+      title="Drag to reorder"
+    >
+      <div className="flex flex-col gap-1">
+        {[0, 1, 2].map(i => (
+          <div key={i} className="flex gap-1">
+            <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full" />
+            <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // Sortable spread component
 function SortableSpread({
   spread,
   spreadIdx,
-  actStartPages,
   renderPageCell,
   isActStart,
   actTitle,
+  plotlines,
 }: {
   spread: Spread
   spreadIdx: number
-  actStartPages: Map<string, number>
   renderPageCell: (fp: FlatPage | null, orientation: 'left' | 'right', isDragging?: boolean) => React.ReactNode
   isActStart: boolean
   actTitle: string | null | undefined
+  plotlines: Plotline[]
 }) {
   const {
     attributes,
@@ -212,68 +232,62 @@ function SortableSpread({
     <div ref={setNodeRef} style={style}>
       {/* Act divider */}
       {isActStart && spreadIdx > 0 && (
-        <div className="flex items-center gap-4 py-4">
-          <div className="flex-1 h-px bg-zinc-700" />
-          <span className="text-sm font-medium text-zinc-400 px-3 py-1 bg-zinc-800 rounded">
+        <div className="flex items-center gap-4 py-6 mb-2">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-600 to-transparent" />
+          <span className="text-sm font-semibold text-zinc-300 px-4 py-1.5 bg-zinc-800 border border-zinc-700 rounded-full">
             {actTitle || `Act ${spreadIdx > 0 ? 'II' : 'I'}`}
           </span>
-          <div className="flex-1 h-px bg-zinc-700" />
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-600 to-transparent" />
         </div>
       )}
 
       {/* Spread container */}
-      <div className="flex justify-center mb-4">
+      <div className="flex items-center justify-center gap-2 mb-6">
+        {/* Drag handle - always visible */}
+        {spreadIdx > 0 && (
+          <DragHandle listeners={listeners} attributes={attributes} />
+        )}
+        {spreadIdx === 0 && <div className="w-8" />}
+
         <div
-          className={`bg-zinc-900 border rounded-lg overflow-hidden flex relative group ${
-            isDragging ? 'border-blue-500 shadow-lg shadow-blue-500/20' : 'border-zinc-800'
+          className={`flex rounded-lg overflow-hidden transition-all ${
+            isDragging
+              ? 'ring-2 ring-blue-500 shadow-xl shadow-blue-500/20'
+              : 'ring-1 ring-zinc-700 hover:ring-zinc-600'
           }`}
         >
-          {/* Drag handle */}
-          <div
-            {...attributes}
-            {...listeners}
-            className="absolute -left-8 top-1/2 -translate-y-1/2 w-6 h-12 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          >
-            <div className="flex flex-col gap-1">
-              <div className="flex gap-0.5">
-                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full" />
-                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full" />
-              </div>
-              <div className="flex gap-0.5">
-                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full" />
-                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full" />
-              </div>
-              <div className="flex gap-0.5">
-                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full" />
-                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full" />
-              </div>
-            </div>
-          </div>
-
-          {/* Gutter indicator for non-first spreads */}
-          {spreadIdx > 0 && spread.left && (
+          {/* First spread (page 1 with inside cover) */}
+          {spreadIdx === 0 && (
             <>
-              {renderPageCell(spread.left, 'left', isDragging)}
-              {/* Gutter/spine */}
-              <div className="w-2 bg-zinc-800 flex items-center justify-center">
-                <div className="w-px h-full bg-zinc-700" />
+              <div
+                className="flex items-center justify-center bg-zinc-900/80 border-r border-zinc-700"
+                style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
+              >
+                <span className="text-zinc-600 text-xs">Inside cover</span>
+              </div>
+              {/* Spine */}
+              <div className="w-3 bg-zinc-800 flex items-center justify-center">
+                <div className="w-px h-[90%] bg-zinc-600" />
               </div>
               {renderPageCell(spread.right, 'right', isDragging)}
             </>
           )}
-          {/* First spread (just page 1) */}
-          {spreadIdx === 0 && (
-            <div className="flex">
-              <div className="w-[280px] h-[140px] bg-zinc-800/50 flex items-center justify-center border-r border-zinc-700">
-                <span className="text-zinc-600 text-sm">Inside cover</span>
-              </div>
-              <div className="w-2 bg-zinc-800 flex items-center justify-center">
-                <div className="w-px h-full bg-zinc-700" />
+
+          {/* Regular spreads */}
+          {spreadIdx > 0 && spread.left && (
+            <>
+              {renderPageCell(spread.left, 'left', isDragging)}
+              {/* Spine */}
+              <div className="w-3 bg-zinc-800 flex items-center justify-center">
+                <div className="w-px h-[90%] bg-zinc-600" />
               </div>
               {renderPageCell(spread.right, 'right', isDragging)}
-            </div>
+            </>
           )}
         </div>
+
+        {/* Spacer to balance layout */}
+        <div className="w-8" />
       </div>
     </div>
   )
@@ -292,12 +306,9 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   const { showToast } = useToast()
   const router = useRouter()
 
-  // Sensors for drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -307,34 +318,30 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   // Flatten all pages with their context
   const flatPages = useMemo<FlatPage[]>(() => {
     const pages: FlatPage[] = []
-
     const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
 
     for (const act of sortedActs) {
       const sortedScenes = [...(act.scenes || [])].sort((a, b) => a.sort_order - b.sort_order)
-
       for (const scene of sortedScenes) {
         const sortedPages = [...(scene.pages || [])].sort((a, b) => a.sort_order - b.sort_order)
-
         for (const page of sortedPages) {
           pages.push({
             page,
             scene,
             act,
             globalPageNumber: pages.length + 1,
-            orientation: 'right', // Will be set below
+            orientation: 'right',
           })
         }
       }
     }
 
-    // Set orientations: Page 1 is right, then alternates in spreads
+    // Set orientations
     for (let i = 0; i < pages.length; i++) {
       const pageNum = i + 1
       if (pageNum === 1) {
         pages[i].orientation = 'right'
       } else {
-        // After page 1, even pages are left, odd are right
         pages[i].orientation = pageNum % 2 === 0 ? 'left' : 'right'
       }
     }
@@ -345,10 +352,8 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   // Group pages into spreads
   const spreads = useMemo<Spread[]>(() => {
     const result: Spread[] = []
-
     if (flatPages.length === 0) return result
 
-    // Page 1 is a solo right page (opening)
     if (flatPages.length >= 1) {
       result.push({
         left: null,
@@ -358,7 +363,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
       })
     }
 
-    // Remaining pages form spreads (2-3, 4-5, 6-7, etc.)
     for (let i = 1; i < flatPages.length; i += 2) {
       const leftPage = flatPages[i] || null
       const rightPage = flatPages[i + 1] || null
@@ -373,7 +377,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     return result
   }, [flatPages])
 
-  // Get act boundaries for visual separation
   const actStartPages = useMemo(() => {
     const starts: Map<string, number> = new Map()
     for (const fp of flatPages) {
@@ -384,10 +387,9 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     return starts
   }, [flatPages])
 
-  // Plotlines from the issue
   const plotlines = issue.plotlines || []
 
-  // Handle drag end - reorder pages
+  // Handle drag end
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveSpreadId(null)
@@ -399,30 +401,25 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
 
     if (activeIdx === -1 || overIdx === -1) return
     if (activeIdx === 0 || overIdx === 0) {
-      // Don't allow moving the opening spread
       showToast('Cannot reorder the opening page', 'error')
       return
     }
 
     setIsSaving(true)
 
-    // Collect all page IDs in order after the move
     const newSpreads = [...spreads]
     const [movedSpread] = newSpreads.splice(activeIdx, 1)
     newSpreads.splice(overIdx, 0, movedSpread)
 
-    // Flatten to get new page order
     const newPageOrder: string[] = []
     for (const spread of newSpreads) {
       if (spread.left) newPageOrder.push(spread.left.page.id)
       if (spread.right) newPageOrder.push(spread.right.page.id)
     }
 
-    // Update all page sort_orders in database
     const supabase = createClient()
 
     try {
-      // Update each page's sort_order
       for (let i = 0; i < newPageOrder.length; i++) {
         const { error } = await supabase
           .from('pages')
@@ -446,7 +443,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     setActiveSpreadId(event.active.id as string)
   }, [])
 
-  // Save page field
   const savePageField = async (pageId: string, field: string, value: string) => {
     const supabase = createClient()
     const { error } = await supabase
@@ -464,7 +460,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     setEditingField(null)
   }
 
-  // Assign plotline to page
   const assignPlotline = async (pageId: string, plotlineId: string | null) => {
     const supabase = createClient()
     const { error } = await supabase
@@ -479,7 +474,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     }
   }
 
-  // Create new plotline
   const createPlotline = async () => {
     if (!newPlotlineName.trim()) return
 
@@ -504,7 +498,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     }
   }
 
-  // Delete plotline
   const deletePlotline = async (plotlineId: string) => {
     const supabase = createClient()
     const { error } = await supabase
@@ -519,7 +512,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     }
   }
 
-  // Update plotline color
   const updatePlotlineColor = async (plotlineId: string, color: string) => {
     const supabase = createClient()
     const { error } = await supabase
@@ -535,124 +527,140 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     }
   }
 
-  // Render a single page cell
+  // Render a single page cell - comic book proportions
   const renderPageCell = useCallback((fp: FlatPage | null, orientation: 'left' | 'right', isDragging?: boolean) => {
     if (!fp) {
       return (
-        <div className={`w-[280px] h-[140px] ${orientation === 'left' ? 'border-r border-zinc-700' : ''}`}>
-          {/* Empty cell */}
-        </div>
+        <div
+          className="bg-zinc-900/50"
+          style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
+        />
       )
     }
 
     const { page, scene, globalPageNumber } = fp
     const plotline = page.plotline || scene.plotline
-    const bgColor = plotline?.color || '#3F3F46' // zinc-700 default
+    const plotlineColor = plotline?.color
 
     const isEditing = editingPageId === page.id
+    const autoSummary = !page.story_beat ? generatePageSummary(page) : null
 
     return (
       <div
-        className={`w-[280px] min-h-[140px] p-3 relative group transition-all ${
-          orientation === 'left' ? 'border-r border-zinc-700' : ''
-        } ${isDragging ? 'opacity-50' : ''}`}
-        style={{ backgroundColor: bgColor + '30' }}
+        className={`relative flex flex-col group transition-all ${isDragging ? 'opacity-60' : ''}`}
+        style={{
+          width: PAGE_WIDTH,
+          height: PAGE_HEIGHT,
+          backgroundColor: plotlineColor ? `${plotlineColor}15` : '#18181b',
+        }}
       >
-        {/* Page number and orientation badge */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">{globalPageNumber}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-              orientation === 'left' ? 'bg-zinc-700 text-zinc-300' : 'bg-zinc-600 text-zinc-200'
-            }`}>
-              {orientation.toUpperCase()}
-            </span>
+        {/* Plotline color bar - thick and prominent */}
+        {plotlineColor && (
+          <div
+            className="absolute top-0 left-0 right-0 h-2"
+            style={{ backgroundColor: plotlineColor }}
+          />
+        )}
+
+        {/* Page content */}
+        <div className={`flex-1 p-3 flex flex-col ${plotlineColor ? 'pt-4' : ''}`}>
+          {/* Header: Page number + orientation */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xl font-bold text-white">{globalPageNumber}</span>
+              <span className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded font-medium ${
+                orientation === 'left'
+                  ? 'bg-zinc-700/80 text-zinc-300'
+                  : 'bg-zinc-600/80 text-zinc-200'
+              }`}>
+                {orientation === 'left' ? 'L' : 'R'}
+              </span>
+            </div>
+
+            {/* Plotline selector */}
+            <select
+              value={page.plotline_id || ''}
+              onChange={(e) => assignPlotline(page.id, e.target.value || null)}
+              className="text-[10px] bg-zinc-800/80 border border-zinc-600 rounded px-1 py-0.5 max-w-[70px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              style={plotlineColor ? { borderColor: plotlineColor } : {}}
+            >
+              <option value="">—</option>
+              {plotlines.map(pl => (
+                <option key={pl.id} value={pl.id}>{pl.name}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Plotline selector */}
-          <select
-            value={page.plotline_id || ''}
-            onChange={(e) => assignPlotline(page.id, e.target.value || null)}
-            className="text-xs bg-zinc-800 border border-zinc-600 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-            style={plotline ? { borderColor: plotline.color } : {}}
-          >
-            <option value="">No plotline</option>
-            {plotlines.map(pl => (
-              <option key={pl.id} value={pl.id}>{pl.name}</option>
-            ))}
-          </select>
-        </div>
+          {/* Metadata row: Time period & Visual motif */}
+          <div className="flex items-center gap-3 mb-3 min-h-[18px]">
+            {/* Time period */}
+            {isEditing && editingField === 'time_period' ? (
+              <input
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={() => savePageField(page.id, 'time_period', editValue)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') savePageField(page.id, 'time_period', editValue)
+                  if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
+                }}
+                className="flex-1 bg-zinc-800 border border-zinc-500 rounded px-1.5 py-0.5 text-[10px]"
+                placeholder="Year/Era"
+                autoFocus
+              />
+            ) : (
+              <button
+                className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-0.5"
+                onClick={() => {
+                  setEditingPageId(page.id)
+                  setEditingField('time_period')
+                  setEditValue(page.time_period || '')
+                }}
+              >
+                {page.time_period ? (
+                  <span className="text-amber-400/80 font-medium">{page.time_period}</span>
+                ) : (
+                  <span className="opacity-0 group-hover:opacity-60">+ time</span>
+                )}
+              </button>
+            )}
 
-        {/* Time period row */}
-        <div className="flex items-center gap-2 mb-1">
-          {isEditing && editingField === 'time_period' ? (
-            <input
-              type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={() => savePageField(page.id, 'time_period', editValue)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') savePageField(page.id, 'time_period', editValue)
-                if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
-              }}
-              className="flex-1 bg-zinc-800 border border-zinc-600 rounded px-2 py-0.5 text-xs"
-              placeholder="Time period (e.g., 2023)"
-              autoFocus
-            />
-          ) : (
-            <div
-              className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-300 flex items-center gap-1"
-              onClick={() => {
-                setEditingPageId(page.id)
-                setEditingField('time_period')
-                setEditValue(page.time_period || '')
-              }}
-            >
-              <span className="text-zinc-600">⏰</span>
-              {page.time_period || <span className="opacity-0 group-hover:opacity-50">+ Time</span>}
-            </div>
-          )}
-        </div>
+            {/* Visual motif */}
+            {isEditing && editingField === 'visual_motif' ? (
+              <input
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={() => savePageField(page.id, 'visual_motif', editValue)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') savePageField(page.id, 'visual_motif', editValue)
+                  if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
+                }}
+                className="flex-1 bg-zinc-800 border border-zinc-500 rounded px-1.5 py-0.5 text-[10px]"
+                placeholder="Motif"
+                autoFocus
+              />
+            ) : (
+              <button
+                className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-0.5"
+                onClick={() => {
+                  setEditingPageId(page.id)
+                  setEditingField('visual_motif')
+                  setEditValue(page.visual_motif || '')
+                }}
+              >
+                {page.visual_motif ? (
+                  <span className="text-purple-400/80 font-medium">{page.visual_motif}</span>
+                ) : (
+                  <span className="opacity-0 group-hover:opacity-60">+ motif</span>
+                )}
+              </button>
+            )}
+          </div>
 
-        {/* Visual motif row */}
-        <div className="flex items-center gap-2 mb-2">
-          {isEditing && editingField === 'visual_motif' ? (
-            <input
-              type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={() => savePageField(page.id, 'visual_motif', editValue)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') savePageField(page.id, 'visual_motif', editValue)
-                if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
-              }}
-              className="flex-1 bg-zinc-800 border border-zinc-600 rounded px-2 py-0.5 text-xs"
-              placeholder="Visual motif (e.g., rain, mirrors)"
-              autoFocus
-            />
-          ) : (
-            <div
-              className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-300 flex items-center gap-1"
-              onClick={() => {
-                setEditingPageId(page.id)
-                setEditingField('visual_motif')
-                setEditValue(page.visual_motif || '')
-              }}
-            >
-              <span className="text-zinc-600">🎨</span>
-              {page.visual_motif || <span className="opacity-0 group-hover:opacity-50">+ Motif</span>}
-            </div>
-          )}
-        </div>
-
-        {/* Story beat (main content) */}
-        {(() => {
-          // Generate summary from panel content if no story_beat is set
-          const autoSummary = !page.story_beat ? generatePageSummary(page) : null
-          const displayContent = page.story_beat || autoSummary
-
-          if (isEditing && editingField === 'story_beat') {
-            return (
+          {/* Story beat - main content area */}
+          <div className="flex-1 min-h-0">
+            {isEditing && editingField === 'story_beat' ? (
               <textarea
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
@@ -660,73 +668,61 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
                 }}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm resize-none"
+                className="w-full h-full bg-zinc-800 border border-zinc-500 rounded px-2 py-1.5 text-xs resize-none"
                 placeholder="Story beat..."
-                rows={2}
                 autoFocus
               />
-            )
-          }
+            ) : (
+              <div
+                className="h-full cursor-pointer hover:bg-white/5 rounded p-1 -m-1 overflow-hidden"
+                onClick={() => {
+                  setEditingPageId(page.id)
+                  setEditingField('story_beat')
+                  setEditValue(page.story_beat || '')
+                }}
+              >
+                {page.story_beat ? (
+                  <p className="text-xs text-zinc-200 leading-relaxed line-clamp-6">{page.story_beat}</p>
+                ) : autoSummary ? (
+                  <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-5 italic">{autoSummary}</p>
+                ) : (
+                  <p className="text-[11px] text-zinc-600 italic opacity-0 group-hover:opacity-100">
+                    Click to add story beat...
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
-          return (
-            <div
-              className="text-sm cursor-pointer hover:bg-white/5 rounded px-1 py-0.5 -mx-1 min-h-[40px]"
-              onClick={() => {
-                setEditingPageId(page.id)
-                setEditingField('story_beat')
-                setEditValue(page.story_beat || '')
-              }}
+          {/* Footer: Scene name + Edit link */}
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-800">
+            <span className="text-[10px] text-zinc-600 truncate max-w-[100px]">
+              {scene.title || scene.name || 'Scene'}
+            </span>
+            <Link
+              href={`/series/${seriesId}/issues/${issue.id}?page=${page.id}`}
+              className="text-[10px] text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              {page.story_beat ? (
-                <span className="text-zinc-200">{page.story_beat}</span>
-              ) : autoSummary ? (
-                <span className="text-zinc-400 text-xs leading-relaxed">{autoSummary}</span>
-              ) : (
-                <span className="text-zinc-500 italic opacity-0 group-hover:opacity-100">
-                  Click to add story beat...
-                </span>
-              )}
-            </div>
-          )
-        })()}
-
-        {/* Scene/Act indicator */}
-        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[10px] text-zinc-500">
-          <span className="truncate">
-            {scene.title || scene.name || 'Scene'}
-          </span>
-          <Link
-            href={`/series/${seriesId}/issues/${issue.id}?page=${page.id}`}
-            className="text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100"
-          >
-            Edit →
-          </Link>
+              Edit →
+            </Link>
+          </div>
         </div>
-
-        {/* Plotline color bar */}
-        {plotline && (
-          <div
-            className="absolute top-0 left-0 right-0 h-1"
-            style={{ backgroundColor: plotline.color }}
-          />
-        )}
       </div>
     )
-  }, [editingPageId, editingField, editValue, plotlines, seriesId, issue.id, assignPlotline, savePageField])
+  }, [editingPageId, editingField, editValue, plotlines, seriesId, issue.id])
 
-  // Get active spread for drag overlay
   const activeSpread = activeSpreadId ? spreads.find(s => s.id === activeSpreadId) : null
 
   // Empty state
   if (flatPages.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-12 text-center">
-          <div className="text-5xl mb-4 opacity-30">🧵</div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center max-w-md">
+          <div className="text-6xl mb-4 opacity-30">🧵</div>
           <h3 className="text-lg font-medium text-zinc-300 mb-2">No pages to weave yet</h3>
-          <p className="text-sm text-zinc-500 mb-6 max-w-md mx-auto">
+          <p className="text-sm text-zinc-500 mb-6">
             The Weave shows your story beats arranged across physical page spreads.
-            Add some pages to your issue first, then come back to arrange your story.
+            Add some pages to your issue first.
           </p>
           <Link
             href={`/series/${seriesId}/issues/${issue.id}`}
@@ -741,10 +737,10 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Controls */}
-      <div className="flex items-center justify-between">
+      {/* Header bar */}
+      <div className="flex items-center justify-between bg-zinc-900/50 border border-zinc-800 rounded-lg px-4 py-3">
         <div className="flex items-center gap-4">
-          <span className="text-sm text-zinc-400">
+          <span className="text-sm text-zinc-300 font-medium">
             {flatPages.length} pages • {spreads.length} spreads
           </span>
           {isSaving && (
@@ -759,7 +755,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
         </div>
         <button
           onClick={() => setShowPlotlineManager(!showPlotlineManager)}
-          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded text-sm transition-colors"
+          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition-colors"
         >
           {showPlotlineManager ? 'Hide' : 'Manage'} Plotlines
         </button>
@@ -767,42 +763,43 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
 
       {/* Plotline Manager */}
       {showPlotlineManager && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <h3 className="font-medium mb-3">Plotlines</h3>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <h3 className="font-semibold text-zinc-200 mb-4">Plotlines</h3>
           <div className="flex flex-wrap gap-2 mb-4">
             {plotlines.map((pl) => (
               <div
                 key={pl.id}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm relative"
-                style={{ backgroundColor: pl.color + '30', borderColor: pl.color, borderWidth: 1 }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm relative border"
+                style={{
+                  backgroundColor: pl.color + '20',
+                  borderColor: pl.color + '60',
+                }}
               >
-                {/* Color picker button */}
                 <button
-                  className="w-4 h-4 rounded-full border-2 border-white/30 hover:scale-110 transition-transform"
+                  className="w-5 h-5 rounded-full border-2 border-white/40 hover:scale-110 transition-transform shadow-sm"
                   style={{ backgroundColor: pl.color }}
                   onClick={() => {
-                    setEditingPlotlineId(pl.id)
+                    setEditingPlotlineId(editingPlotlineId === pl.id ? null : pl.id)
                     setEditingPlotlineColor(pl.color)
                   }}
                   title="Change color"
                 />
-                <span>{pl.name}</span>
+                <span className="font-medium">{pl.name}</span>
                 <button
                   onClick={() => deletePlotline(pl.id)}
-                  className="text-zinc-400 hover:text-red-400 ml-1"
+                  className="text-zinc-400 hover:text-red-400 ml-1 text-lg leading-none"
                 >
                   ×
                 </button>
 
-                {/* Color picker dropdown */}
                 {editingPlotlineId === pl.id && (
-                  <div className="absolute top-full left-0 mt-2 p-2 bg-zinc-800 rounded-lg shadow-xl border border-zinc-700 z-50">
-                    <div className="grid grid-cols-4 gap-1.5">
+                  <div className="absolute top-full left-0 mt-2 p-3 bg-zinc-800 rounded-lg shadow-xl border border-zinc-600 z-50">
+                    <div className="grid grid-cols-4 gap-2 mb-2">
                       {PLOTLINE_COLORS.map((color) => (
                         <button
                           key={color}
-                          className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                            editingPlotlineColor === color ? 'border-white' : 'border-transparent'
+                          className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${
+                            editingPlotlineColor === color ? 'border-white scale-110' : 'border-transparent'
                           }`}
                           style={{ backgroundColor: color }}
                           onClick={() => updatePlotlineColor(pl.id, color)}
@@ -814,14 +811,14 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                       value={editingPlotlineColor}
                       onChange={(e) => setEditingPlotlineColor(e.target.value)}
                       onBlur={() => updatePlotlineColor(pl.id, editingPlotlineColor)}
-                      className="w-full h-6 mt-2 rounded cursor-pointer"
+                      className="w-full h-8 rounded cursor-pointer"
                     />
                   </div>
                 )}
               </div>
             ))}
             {plotlines.length === 0 && (
-              <span className="text-sm text-zinc-500">No plotlines yet</span>
+              <span className="text-sm text-zinc-500 py-2">No plotlines yet — create one to start color-coding your pages</span>
             )}
           </div>
           <div className="flex gap-2">
@@ -830,13 +827,13 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
               value={newPlotlineName}
               onChange={(e) => setNewPlotlineName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && createPlotline()}
-              placeholder="New plotline name (e.g., A Plot, B Plot...)"
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm"
+              placeholder="New plotline (e.g., A Plot - Marshall's Story)"
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm"
             />
             <button
               onClick={createPlotline}
               disabled={!newPlotlineName.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 rounded text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg text-sm font-medium transition-colors"
             >
               Add
             </button>
@@ -844,25 +841,22 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
         </div>
       )}
 
-      {/* Legend */}
-      {plotlines.length > 0 && (
-        <div className="flex flex-wrap items-center gap-4 p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-          <span className="text-sm text-zinc-400">Plotlines:</span>
+      {/* Legend - always show if plotlines exist */}
+      {plotlines.length > 0 && !showPlotlineManager && (
+        <div className="flex flex-wrap items-center gap-4 px-4 py-2">
           {plotlines.map((pl) => (
             <div key={pl.id} className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: pl.color }} />
-              <span className="text-sm">{pl.name}</span>
+              <div
+                className="w-4 h-4 rounded shadow-sm"
+                style={{ backgroundColor: pl.color }}
+              />
+              <span className="text-sm text-zinc-400">{pl.name}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Drag hint */}
-      <div className="text-xs text-zinc-500 text-center">
-        ⋮⋮ Drag spreads to reorder • Left/Right orientations update automatically
-      </div>
-
-      {/* Spreads View with Drag and Drop */}
+      {/* Spreads View */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -873,9 +867,8 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
           items={spreads.map(s => s.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-2 pl-10">
+          <div className="py-4">
             {spreads.map((spread, spreadIdx) => {
-              // Check if this is the start of a new act
               const leftActStart = !!(spread.left && actStartPages.get(spread.left.act.id) === spread.left.globalPageNumber)
               const rightActStart = !!(spread.right && actStartPages.get(spread.right.act.id) === spread.right.globalPageNumber)
               const isActStart = leftActStart || rightActStart
@@ -886,73 +879,57 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                   key={spread.id}
                   spread={spread}
                   spreadIdx={spreadIdx}
-                  actStartPages={actStartPages}
                   renderPageCell={renderPageCell}
                   isActStart={isActStart}
                   actTitle={actTitle}
+                  plotlines={plotlines}
                 />
               )
             })}
           </div>
         </SortableContext>
 
-        {/* Drag overlay */}
         <DragOverlay>
           {activeSpread && (
-            <div className="bg-zinc-900 border border-blue-500 rounded-lg overflow-hidden flex shadow-2xl shadow-blue-500/30 transform scale-105">
-              {activeSpread.spreadNumber > 0 && activeSpread.left && (
+            <div className="flex rounded-lg overflow-hidden ring-2 ring-blue-500 shadow-2xl shadow-blue-500/30 transform scale-105">
+              {activeSpread.spreadNumber === 0 && (
                 <>
-                  {renderPageCell(activeSpread.left, 'left', true)}
-                  <div className="w-2 bg-zinc-800 flex items-center justify-center">
-                    <div className="w-px h-full bg-zinc-700" />
+                  <div
+                    className="flex items-center justify-center bg-zinc-900/80"
+                    style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
+                  >
+                    <span className="text-zinc-600 text-xs">Inside cover</span>
                   </div>
+                  <div className="w-3 bg-zinc-800" />
                   {renderPageCell(activeSpread.right, 'right', true)}
                 </>
               )}
-              {activeSpread.spreadNumber === 0 && (
-                <div className="flex">
-                  <div className="w-[280px] h-[140px] bg-zinc-800/50 flex items-center justify-center border-r border-zinc-700">
-                    <span className="text-zinc-600 text-sm">Inside cover</span>
-                  </div>
-                  <div className="w-2 bg-zinc-800 flex items-center justify-center">
-                    <div className="w-px h-full bg-zinc-700" />
-                  </div>
+              {activeSpread.spreadNumber > 0 && activeSpread.left && (
+                <>
+                  {renderPageCell(activeSpread.left, 'left', true)}
+                  <div className="w-3 bg-zinc-800" />
                   {renderPageCell(activeSpread.right, 'right', true)}
-                </div>
+                </>
               )}
             </div>
           )}
         </DragOverlay>
       </DndContext>
 
-      {/* Final page indicator (if odd number of pages) */}
-      {flatPages.length > 1 && flatPages.length % 2 === 0 && (
-        <div className="flex justify-center pl-10">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden flex">
-            {renderPageCell(flatPages[flatPages.length - 1], 'left')}
-            <div className="w-2 bg-zinc-800 flex items-center justify-center">
-              <div className="w-px h-full bg-zinc-700" />
-            </div>
-            <div className="w-[280px] h-[140px] bg-zinc-800/50 flex items-center justify-center">
-              <span className="text-zinc-600 text-sm">Back cover</span>
-            </div>
-          </div>
+      {/* Instructions - collapsible */}
+      <details className="bg-zinc-900/30 border border-zinc-800 rounded-lg">
+        <summary className="px-4 py-3 text-sm text-zinc-400 cursor-pointer hover:text-zinc-300">
+          How to use The Weave
+        </summary>
+        <div className="px-4 pb-4 text-sm text-zinc-500 space-y-1.5">
+          <p>• <strong className="text-zinc-400">Drag the handle</strong> on the left of any spread to reorder</p>
+          <p>• <strong className="text-zinc-400">Click any page</strong> to add a story beat</p>
+          <p>• <strong className="text-zinc-400">Assign plotlines</strong> via the dropdown (hover to see)</p>
+          <p>• <strong className="text-zinc-400">Add time periods</strong> for time jumps</p>
+          <p>• <strong className="text-zinc-400">Add visual motifs</strong> to track imagery themes</p>
+          <p>• Pages show as physical spreads (Left/Right)</p>
         </div>
-      )}
-
-      {/* Instructions */}
-      <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-        <h3 className="font-medium text-zinc-300 mb-2">How to use The Weave</h3>
-        <ul className="text-sm text-zinc-500 space-y-1">
-          <li>• <strong>Drag spreads</strong> to reorder pages — Left/Right orientations update automatically</li>
-          <li>• Click on any page to add a <strong>story beat</strong> — what happens on that page</li>
-          <li>• Use the dropdown to assign pages to <strong>plotlines</strong> (A plot, B plot, etc.)</li>
-          <li>• Add <strong>time periods</strong> if your story jumps in time</li>
-          <li>• Add <strong>visual motifs</strong> to track recurring imagery themes</li>
-          <li>• Pages are shown in spreads as they&apos;ll appear in the physical comic</li>
-          <li>• Click &quot;Edit →&quot; to jump to the full page editor</li>
-        </ul>
-      </div>
+      </details>
     </div>
   )
 }
