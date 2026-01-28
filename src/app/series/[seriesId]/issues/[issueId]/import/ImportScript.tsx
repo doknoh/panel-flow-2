@@ -95,6 +95,7 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   const [detectedSpeakers, setDetectedSpeakers] = useState<DetectedSpeaker[]>([])
   const [showCharacterReview, setShowCharacterReview] = useState(false)
   const [targetSceneId, setTargetSceneId] = useState<string | null>(null)
+  const [confirmDestructive, setConfirmDestructive] = useState(false)
   const { showToast } = useToast()
   const router = useRouter()
 
@@ -660,16 +661,19 @@ ${pageContent}`,
             </details>
           </div>
         </div>
-        {/* Target Scene Selector */}
-        {allScenes.length > 0 && (
-          <div className="mt-4 p-4 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg">
-            <label className="block text-sm font-medium mb-2">Import destination:</label>
+        {/* Target Scene Selector - ALWAYS shown */}
+        <div className="mt-4 p-4 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg">
+          <label className="block text-sm font-medium mb-2">Import destination:</label>
+          {allScenes.length > 0 ? (
             <select
               value={targetSceneId || ''}
-              onChange={(e) => setTargetSceneId(e.target.value || null)}
+              onChange={(e) => {
+                setTargetSceneId(e.target.value || null)
+                setConfirmDestructive(false) // Reset when changing selection
+              }}
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
             >
-              <option value="">Replace entire issue (delete all existing content)</option>
+              <option value="">⚠️ Replace entire issue (delete all existing content)</option>
               {(issue.acts || [])
                 .sort((a, b) => a.sort_order - b.sort_order)
                 .map(act => (
@@ -685,26 +689,44 @@ ${pageContent}`,
                   </optgroup>
                 ))}
             </select>
+          ) : (
+            <div className="text-sm text-[var(--text-secondary)] p-2 bg-[var(--bg-secondary)] rounded border border-[var(--border)]">
+              <p className="mb-2">📋 <strong>No scenes found.</strong> Pages will be imported into a new "Act 1 / Main" structure.</p>
+              <p className="text-xs text-[var(--text-muted)]">
+                To import into specific scenes, first create your act/scene structure in the Issue Editor, then return here.
+              </p>
+            </div>
+          )}
 
-            {/* Contextual warning based on selection */}
-            {targetSceneId ? (
-              <div className="mt-3 p-2 bg-blue-900/20 border border-blue-800/50 rounded">
-                <p className="text-sm text-blue-400">
-                  📍 Pages will be added to <strong>{selectedScene?.title || 'selected scene'}</strong> ({selectedScene?.actName}).
-                  {selectedScene?.pages && selectedScene.pages.length > 0 && (
-                    <> This scene already has {selectedScene.pages.length} page(s).</>
-                  )}
-                </p>
-              </div>
-            ) : (
-              <div className="mt-3 p-2 bg-amber-900/20 border border-amber-800/50 rounded">
-                <p className="text-sm text-amber-400">
-                  ⚠️ <strong>Warning:</strong> This will delete ALL existing acts, scenes, and pages in this issue.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+          {/* Contextual warning based on selection */}
+          {allScenes.length > 0 && targetSceneId ? (
+            <div className="mt-3 p-2 bg-blue-900/20 border border-blue-800/50 rounded">
+              <p className="text-sm text-blue-400">
+                📍 Pages will be added to <strong>{selectedScene?.title || 'selected scene'}</strong> ({selectedScene?.actName}).
+                {selectedScene?.pages && selectedScene.pages.length > 0 && (
+                  <> This scene already has {selectedScene.pages.length} page(s).</>
+                )}
+              </p>
+            </div>
+          ) : allScenes.length > 0 ? (
+            <div className="mt-3 p-3 bg-red-900/30 border border-red-800/50 rounded">
+              <p className="text-sm text-red-400 mb-3">
+                🚨 <strong>DESTRUCTIVE:</strong> This will permanently delete ALL {allScenes.length} existing scenes and their content.
+              </p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={confirmDestructive}
+                  onChange={(e) => setConfirmDestructive(e.target.checked)}
+                  className="w-4 h-4 rounded border-red-600 bg-red-900/50 text-red-500 focus:ring-red-500"
+                />
+                <span className="text-sm text-red-300">
+                  I understand this will delete my existing act/scene structure
+                </span>
+              </label>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {/* Script Input */}
@@ -923,7 +945,7 @@ PAGE 2 (left)
               </button>
               <button
                 onClick={importParsedScript}
-                disabled={isImporting || isParsing || showCharacterReview}
+                disabled={isImporting || isParsing || showCharacterReview || (allScenes.length > 0 && !targetSceneId && !confirmDestructive)}
                 className="bg-green-600 hover:bg-green-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
               >
                 {isImporting
@@ -932,7 +954,9 @@ PAGE 2 (left)
                     ? 'Parsing...'
                     : showCharacterReview
                       ? 'Review Characters First'
-                      : 'Import Script'}
+                      : (allScenes.length > 0 && !targetSceneId && !confirmDestructive)
+                        ? 'Confirm Destructive Import Above'
+                        : 'Import Script'}
               </button>
             </div>
           </div>
