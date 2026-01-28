@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import NavigationTree from './NavigationTree'
@@ -293,6 +293,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     <UndoProvider onRefresh={refreshIssue}>
       <IssueEditorContent
         issue={issue}
+        setIssue={setIssue}
         seriesId={seriesId}
         refreshKey={refreshKey}
         selectedPageId={selectedPageId}
@@ -306,6 +307,12 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         refreshIssue={refreshIssue}
         handleNavigateToPanel={handleNavigateToPanel}
         showToast={showToast}
+        isEditingTitle={isEditingTitle}
+        setIsEditingTitle={setIsEditingTitle}
+        editedTitle={editedTitle}
+        setEditedTitle={setEditedTitle}
+        titleInputRef={titleInputRef}
+        saveTitle={saveTitle}
       />
     </UndoProvider>
   )
@@ -322,6 +329,7 @@ interface PageContext {
 
 function IssueEditorContent({
   issue,
+  setIssue,
   seriesId,
   refreshKey,
   selectedPageId,
@@ -335,8 +343,15 @@ function IssueEditorContent({
   refreshIssue,
   handleNavigateToPanel,
   showToast,
+  isEditingTitle,
+  setIsEditingTitle,
+  editedTitle,
+  setEditedTitle,
+  titleInputRef,
+  saveTitle,
 }: {
   issue: Issue
+  setIssue: React.Dispatch<React.SetStateAction<Issue>>
   seriesId: string
   refreshKey: number
   selectedPageId: string | null
@@ -350,6 +365,12 @@ function IssueEditorContent({
   refreshIssue: () => void
   handleNavigateToPanel: (pageId: string, panelId: string) => void
   showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
+  isEditingTitle: boolean
+  setIsEditingTitle: (editing: boolean) => void
+  editedTitle: string
+  setEditedTitle: (title: string) => void
+  titleInputRef: React.RefObject<HTMLInputElement | null>
+  saveTitle: () => Promise<void>
 }) {
   const { undo, redo, canUndo, canRedo } = useUndo()
   const [mobileView, setMobileView] = useState<MobileView>('editor')
