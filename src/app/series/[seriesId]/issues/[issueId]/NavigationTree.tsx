@@ -83,8 +83,11 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   const [editingActIntention, setEditingActIntention] = useState('')
   const [editingSceneIntentionId, setEditingSceneIntentionId] = useState<string | null>(null)
   const [editingSceneIntention, setEditingSceneIntention] = useState('')
+  const [editingPageId, setEditingPageId] = useState<string | null>(null)
+  const [editingPageTitle, setEditingPageTitle] = useState('')
   const [movingPageId, setMovingPageId] = useState<string | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
+  const pageInputRef = useRef<HTMLInputElement>(null)
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
   const beatSummaryInputRef = useRef<HTMLTextAreaElement>(null)
   const actIntentionRef = useRef<HTMLTextAreaElement>(null)
@@ -185,6 +188,35 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       onRefresh()
     }
     setEditingSceneId(null)
+  }
+
+  // Start editing page title
+  const startEditingPage = (pageId: string, currentTitle: string) => {
+    setEditingPageId(pageId)
+    setEditingPageTitle(currentTitle)
+    setTimeout(() => pageInputRef.current?.select(), 0)
+  }
+
+  // Save page title
+  const savePageTitle = async (pageId: string) => {
+    const trimmedTitle = editingPageTitle.trim()
+    if (!trimmedTitle) {
+      showToast('Page title cannot be empty', 'error')
+      return
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('pages')
+      .update({ title: trimmedTitle })
+      .eq('id', pageId)
+
+    if (error) {
+      showToast(`Failed to rename page: ${error.message}`, 'error')
+    } else {
+      onRefresh()
+    }
+    setEditingPageId(null)
   }
 
   // Start editing scene summary
@@ -292,6 +324,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     setEditingActIntention('')
     setEditingSceneIntentionId(null)
     setEditingSceneIntention('')
+    setEditingPageId(null)
+    setEditingPageTitle('')
   }
 
   // Handle key press in edit input
@@ -1018,7 +1052,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                             <SortableItem key={page.id} id={page.id}>
                                               <div>
                                                 <div
-                                                  onClick={() => onSelectPage(page.id)}
+                                                  onClick={() => !editingPageId && onSelectPage(page.id)}
                                                   className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm flex items-center gap-1 group/page ${
                                                     selectedPageId === page.id
                                                       ? 'bg-blue-600 text-white'
@@ -1028,7 +1062,43 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                                   <span className={`text-xs opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-blue-200' : 'text-zinc-600'}`} title="Drag to reorder">
                                                     ⋮⋮
                                                   </span>
-                                                  <span className="flex-1">Page {page.page_number}</span>
+                                                  {editingPageId === page.id ? (
+                                                    <input
+                                                      ref={pageInputRef}
+                                                      type="text"
+                                                      value={editingPageTitle}
+                                                      onChange={(e) => setEditingPageTitle(e.target.value)}
+                                                      onBlur={() => savePageTitle(page.id)}
+                                                      onKeyDown={(e) => handleEditKeyDown(e, () => savePageTitle(page.id))}
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-1 py-0.5 text-xs focus:border-blue-500 focus:outline-none"
+                                                      autoFocus
+                                                    />
+                                                  ) : (
+                                                    <span
+                                                      className="flex-1 truncate cursor-text"
+                                                      onDoubleClick={(e) => {
+                                                        e.stopPropagation()
+                                                        startEditingPage(page.id, page.title || `Page ${page.page_number}`)
+                                                      }}
+                                                    >
+                                                      {page.title || `Page ${page.page_number}`}
+                                                    </span>
+                                                  )}
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      startEditingPage(page.id, page.title || `Page ${page.page_number}`)
+                                                    }}
+                                                    className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
+                                                      selectedPageId === page.id
+                                                        ? 'text-blue-200 hover:text-white'
+                                                        : 'text-zinc-500 hover:text-white'
+                                                    }`}
+                                                    title="Rename page"
+                                                  >
+                                                    ✎
+                                                  </button>
                                                   <button
                                                     onClick={(e) => {
                                                       e.stopPropagation()
