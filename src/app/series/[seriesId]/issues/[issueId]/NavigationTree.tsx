@@ -163,7 +163,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to rename act: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
     setEditingActId(null)
   }
@@ -185,7 +185,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to rename scene: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
     setEditingSceneId(null)
   }
@@ -214,7 +214,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to rename page: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
     setEditingPageId(null)
   }
@@ -237,7 +237,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to save summary: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
     setEditingSceneSummaryId(null)
   }
@@ -260,7 +260,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to save beat summary: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
     setEditingActBeatSummaryId(null)
   }
@@ -283,7 +283,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to save intention: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
     setEditingActIntentionId(null)
   }
@@ -306,7 +306,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to save intention: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
     setEditingSceneIntentionId(null)
   }
@@ -356,7 +356,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to create act: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
   }
 
@@ -374,7 +374,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to delete act: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
   }
 
@@ -389,7 +389,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to delete scene: ${error.message}`, 'error')
     } else {
-      onRefresh()
+      await onRefresh()
     }
   }
 
@@ -405,7 +405,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       if (selectedPageId === pageId) {
         onSelectPage('')
       }
-      onRefresh()
+      await onRefresh()
     }
   }
 
@@ -428,7 +428,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       showToast(`Failed to create scene: ${error.message}`, 'error')
     } else {
       setExpandedActs(new Set([...expandedActs, actId]))
-      onRefresh()
+      await onRefresh()
     }
   }
 
@@ -453,7 +453,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       showToast(`Failed to create page: ${error.message}`, 'error')
     } else if (data) {
       setExpandedScenes(new Set([...expandedScenes, sceneId]))
-      onRefresh()
+      await onRefresh()
       onSelectPage(data.id)
     }
   }
@@ -474,7 +474,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     )
 
     await Promise.all(updates)
-    onRefresh()
+    await onRefresh()
   }
 
   const handleSceneDragEnd = async (actId: string, event: DragEndEvent) => {
@@ -494,7 +494,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     )
 
     await Promise.all(updates)
-    onRefresh()
+    await onRefresh()
   }
 
   const handlePageDragEnd = async (sceneId: string, event: DragEndEvent) => {
@@ -544,7 +544,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     // Note: We don't renumber page_number anymore - it's a static label set at creation
     // Only sort_order determines the visual position
     showToast(`Reordered ${successCount} pages`, 'success')
-    onRefresh()
+    await onRefresh()
   }
 
   const movePageToScene = async (pageId: string, targetSceneId: string) => {
@@ -618,7 +618,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       .eq('id', sceneId)
 
     if (!error) {
-      onRefresh()
+      await onRefresh()
     }
     setEditingScenePlotline(null)
   }

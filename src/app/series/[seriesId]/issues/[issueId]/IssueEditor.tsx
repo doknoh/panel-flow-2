@@ -129,11 +129,12 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     setIsEditingTitle(false)
   }
 
-  const refreshIssue = async () => {
+  const refreshIssue = useCallback(async () => {
+    console.log('refreshIssue: STARTING refresh for issue', initialIssue.id)
     const supabase = createClient()
 
     // Add a small delay to ensure DB transaction is committed
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 150))
 
     const { data, error } = await supabase
       .from('issues')
@@ -163,18 +164,21 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
           )
         )
       `)
-      .eq('id', issue.id)
+      .eq('id', initialIssue.id)
       .single()
 
     if (error) {
-      console.error('Failed to refresh issue:', error)
+      console.error('refreshIssue: FAILED to refresh issue:', error)
       return
     }
 
     if (data) {
+      console.log('refreshIssue: GOT DATA, acts count:', data.acts?.length, 'scenes:', data.acts?.flatMap((a: any) => a.scenes || []).length)
       // Sort acts, scenes, and pages by sort_order for consistent display
       const sortedData = {
         ...data,
+        // Add a timestamp to force React to see this as new data
+        _refreshedAt: Date.now(),
         acts: (data.acts || [])
           .sort((a: any, b: any) => a.sort_order - b.sort_order)
           .map((act: any) => ({
@@ -192,12 +196,12 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
               }))
           }))
       }
-      console.log('refreshIssue: setting new issue data, scenes:', sortedData.acts?.map((a: any) => a.scenes?.map((s: any) => ({ title: s.title, pageCount: s.pages?.length }))))
+      console.log('refreshIssue: SETTING new issue data')
       setIssue(sortedData)
       setRefreshKey(k => k + 1)
-      console.log('refreshIssue: refreshKey incremented')
+      console.log('refreshIssue: DONE, refreshKey incremented')
     }
-  }
+  }, [initialIssue.id])
 
   // Create snapshot of current state
   const createSnapshot = useCallback(async () => {
