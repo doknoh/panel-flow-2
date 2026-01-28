@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Header from '@/components/ui/Header'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -18,24 +19,8 @@ export default async function DashboardPage() {
     .order('updated_at', { ascending: false })
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Header */}
-      <header className="border-b border-zinc-800 px-4 sm:px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-lg sm:text-xl font-bold">Panel Flow</h1>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <span className="text-zinc-400 text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{user.email}</span>
-            <form action="/auth/signout" method="post">
-              <button
-                type="submit"
-                className="text-zinc-400 hover:text-white text-sm whitespace-nowrap"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <Header userEmail={user.email} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -43,7 +28,7 @@ export default async function DashboardPage() {
           <h2 className="text-xl sm:text-2xl font-semibold">Your Projects</h2>
           <Link
             href="/series/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-center sm:text-left"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-4 py-2 rounded-lg font-medium transition-colors text-center sm:text-left"
           >
             + New Series
           </Link>
@@ -55,25 +40,25 @@ export default async function DashboardPage() {
               <Link
                 key={series.id}
                 href={`/series/${series.id}`}
-                className="block bg-zinc-900 border border-zinc-800 rounded-lg p-6 hover:border-zinc-700 transition-colors"
+                className="block bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 hover:border-[var(--border-strong)] transition-colors"
               >
                 <h3 className="text-lg font-semibold mb-2">{series.title}</h3>
                 {series.logline && (
-                  <p className="text-zinc-400 text-sm line-clamp-2">{series.logline}</p>
+                  <p className="text-[var(--text-secondary)] text-sm line-clamp-2">{series.logline}</p>
                 )}
-                <p className="text-zinc-500 text-xs mt-4">
+                <p className="text-[var(--text-muted)] text-xs mt-4">
                   Updated {new Date(series.updated_at).toLocaleDateString()}
                 </p>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 bg-zinc-900 border border-zinc-800 rounded-lg">
+          <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
             <h3 className="text-xl font-medium mb-2">No projects yet</h3>
-            <p className="text-zinc-400 mb-6">Create your first comic series to get started</p>
+            <p className="text-[var(--text-secondary)] mb-6">Create your first comic series to get started</p>
             <Link
               href="/series/new"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              className="inline-block bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               Create Your First Series
             </Link>
