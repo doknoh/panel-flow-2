@@ -98,6 +98,10 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   const { showToast } = useToast()
   const router = useRouter()
 
+  // Debug: Log what acts data we received
+  console.log('ImportScript received issue.acts:', issue.acts)
+  console.log('Acts count:', issue.acts?.length || 0)
+
   // Get all scenes flattened with their parent act info for the dropdown
   const allScenes = (issue.acts || [])
     .sort((a, b) => a.sort_order - b.sort_order)

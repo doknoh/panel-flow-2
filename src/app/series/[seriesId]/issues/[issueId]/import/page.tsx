@@ -42,7 +42,7 @@ export default async function ImportPage({
   }
 
   // Fetch acts/scenes structure separately (more reliable for nested relations)
-  const { data: actsData } = await supabase
+  const { data: actsData, error: actsError } = await supabase
     .from('acts')
     .select(`
       id,
@@ -57,6 +57,9 @@ export default async function ImportPage({
     `)
     .eq('issue_id', issueId)
     .order('sort_order')
+
+  // Debug: Log what we got from the acts query
+  console.log('Import page - Acts query result:', { actsData, actsError, issueId })
 
   // Normalize the series data (Supabase returns it as an object, not array)
   const issue = {
