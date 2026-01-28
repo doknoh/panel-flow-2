@@ -410,15 +410,19 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   }
 
   const addScene = async (actId: string) => {
+    console.log('addScene called with actId:', actId)
     const supabase = createClient()
     const act = issue.acts?.find((a: any) => a.id === actId)
     const sceneCount = act?.scenes?.length || 0
+    console.log('Found act:', act, 'sceneCount:', sceneCount)
 
-    const { error } = await supabase.from('scenes').insert({
+    const { data, error } = await supabase.from('scenes').insert({
       act_id: actId,
       title: `Scene ${sceneCount + 1}`,
       sort_order: sceneCount + 1,
-    })
+    }).select()
+
+    console.log('Insert result:', { data, error })
 
     if (error) {
       showToast(`Failed to create scene: ${error.message}`, 'error')
@@ -914,6 +918,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                         onChange={(e) => setEditingSummary(e.target.value)}
                                         onBlur={() => saveSceneSummary(scene.id)}
                                         onKeyDown={(e) => {
+                                          e.stopPropagation() // Prevent space/other keys from bubbling
                                           if (e.key === 'Escape') {
                                             e.preventDefault()
                                             setEditingSceneSummaryId(null)
