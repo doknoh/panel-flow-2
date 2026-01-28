@@ -571,19 +571,19 @@ ${pageContent}`,
   return (
     <div className="space-y-6">
       {/* Instructions */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6">
         <div className="flex items-start gap-4">
           <div className="text-4xl opacity-50">📋</div>
           <div className="flex-1">
             <h2 className="font-semibold text-lg mb-2">Import from Google Docs</h2>
-            <p className="text-sm text-zinc-400 mb-4">
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
               Copy your comic script from Google Docs and paste it below. The AI will intelligently parse it into structured pages, panels, dialogue, captions, and sound effects.
             </p>
-            <details className="text-sm text-zinc-500">
-              <summary className="cursor-pointer hover:text-zinc-400 mb-2">View supported formats</summary>
-              <div className="bg-zinc-800/50 rounded-lg p-3 mt-2 font-mono text-xs space-y-1">
-                <p className="text-zinc-400">PAGE 1 (right)</p>
-                <p className="text-zinc-400">PANEL 1: Description of what we see</p>
+            <details className="text-sm text-[var(--text-secondary)]">
+              <summary className="cursor-pointer hover:text-[var(--text-secondary)] mb-2">View supported formats</summary>
+              <div className="bg-[var(--bg-tertiary)]/50 rounded-lg p-3 mt-2 font-mono text-xs space-y-1">
+                <p className="text-[var(--text-secondary)]">PAGE 1 (right)</p>
+                <p className="text-[var(--text-secondary)]">PANEL 1: Description of what we see</p>
                 <p className="text-blue-400">CHARACTER: Dialogue text</p>
                 <p className="text-blue-400">CHARACTER (V.O.): Voice over narration</p>
                 <p className="text-amber-400">CAP: Caption or narration text</p>
@@ -604,7 +604,7 @@ ${pageContent}`,
       {/* Script Input */}
       {parsedPages.length === 0 && (
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">Paste your script:</label>
+          <label className="block text-sm text-[var(--text-secondary)] mb-2">Paste your script:</label>
           <textarea
             value={scriptText}
             onChange={(e) => setScriptText(e.target.value)}
@@ -622,16 +622,16 @@ SFX: *click* (recorder stopping)
 
 PAGE 2 (left)
 ...`}
-            className="w-full h-96 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-sm font-mono resize-none focus:border-blue-500 focus:outline-none placeholder:text-zinc-600"
+            className="w-full h-96 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-4 py-3 text-sm font-mono resize-none focus:border-blue-500 focus:outline-none placeholder:text-[var(--text-muted)]"
           />
           <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-zinc-500">
+            <span className="text-sm text-[var(--text-secondary)]">
               {scriptText.length.toLocaleString()} characters
             </span>
             <button
               onClick={parseScript}
               disabled={isParsing || !scriptText.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
             >
               {isParsing ? 'Parsing...' : 'Parse Script'}
             </button>
@@ -643,7 +643,7 @@ PAGE 2 (left)
       {parseError && (
         <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
           <h3 className="font-medium text-red-400 mb-1">Parse Error</h3>
-          <p className="text-sm text-zinc-400">{parseError}</p>
+          <p className="text-sm text-[var(--text-secondary)]">{parseError}</p>
           <button
             onClick={() => {
               setParseError(null)
@@ -665,13 +665,13 @@ PAGE 2 (left)
               Page {currentParsingPage} of {totalPagesToProcess}
             </span>
           </div>
-          <div className="w-full bg-zinc-700 rounded-full h-2">
+          <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-2">
             <div
               className="bg-blue-500 h-2 rounded-full transition-all duration-300"
               style={{ width: `${importProgress}%` }}
             />
           </div>
-          <p className="text-sm text-zinc-400 mt-2">
+          <p className="text-sm text-[var(--text-secondary)] mt-2">
             Please wait while all pages are parsed. Do not click Import until parsing is complete.
           </p>
         </div>
@@ -679,11 +679,11 @@ PAGE 2 (left)
 
       {/* Character Review */}
       {showCharacterReview && detectedSpeakers.length > 0 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold">Review Detected Characters</h3>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-[var(--text-secondary)]">
                 {detectedSpeakers.length} speaker(s) found. Confirm how to handle each one.
               </p>
             </div>
@@ -699,11 +699,11 @@ PAGE 2 (left)
             {detectedSpeakers.map((speaker, idx) => (
               <div
                 key={speaker.name}
-                className="bg-zinc-800 rounded-lg p-3 flex items-center gap-4"
+                className="bg-[var(--bg-tertiary)] rounded-lg p-3 flex items-center gap-4"
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{speaker.name}</div>
-                  <div className="text-xs text-zinc-500">
+                  <div className="text-xs text-[var(--text-secondary)]">
                     {speaker.dialogueCount ? `${speaker.dialogueCount} line(s)` : 'No dialogue'}
                     {speaker.appearanceCount ? ` · ${speaker.appearanceCount} panel(s)` : ''}
                   </div>
@@ -720,7 +720,7 @@ PAGE 2 (left)
                     }
                     setDetectedSpeakers(newSpeakers)
                   }}
-                  className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm"
+                  className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
                 >
                   <option value="new">Create New Character</option>
                   <option value="existing">Link to Existing</option>
@@ -748,7 +748,7 @@ PAGE 2 (left)
                       }
                       setDetectedSpeakers(newSpeakers)
                     }}
-                    className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm"
+                    className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
                   >
                     <option value="">Select character...</option>
                     {/* Existing database characters */}
@@ -783,7 +783,7 @@ PAGE 2 (left)
                 )}
 
                 {speaker.mapping === 'skip' && (
-                  <span className="text-xs text-zinc-400 bg-zinc-700 px-2 py-1 rounded">
+                  <span className="text-xs text-[var(--text-secondary)] bg-[var(--bg-tertiary)] px-2 py-1 rounded">
                     No character
                   </span>
                 )}
@@ -811,14 +811,14 @@ PAGE 2 (left)
                   setTotalPagesToProcess(0)
                 }}
                 disabled={isParsing}
-                className="text-sm text-zinc-400 hover:text-white px-3 py-1.5 disabled:opacity-50"
+                className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1.5 disabled:opacity-50"
               >
                 Start Over
               </button>
               <button
                 onClick={importParsedScript}
                 disabled={isImporting || isParsing || showCharacterReview}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+                className="bg-green-600 hover:bg-green-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
               >
                 {isImporting
                   ? `Importing... ${importProgress}%`
@@ -835,20 +835,20 @@ PAGE 2 (left)
             {parsedPages.map((page) => (
               <div
                 key={page.number}
-                className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden"
+                className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden"
               >
-                <div className="px-4 py-2 bg-zinc-800/50 border-b border-zinc-800 flex items-center justify-between">
+                <div className="px-4 py-2 bg-[var(--bg-tertiary)]/50 border-b border-[var(--border)] flex items-center justify-between">
                   <span className="font-medium">
                     Page {page.number} ({page.orientation})
                   </span>
-                  <span className="text-sm text-zinc-500">
+                  <span className="text-sm text-[var(--text-secondary)]">
                     {page.panels.length} panel{page.panels.length !== 1 ? 's' : ''}
                   </span>
                 </div>
                 <div className="p-4 space-y-3">
                   {page.panels.map((panel) => (
-                    <div key={panel.number} className="border-l-2 border-zinc-700 pl-3">
-                      <div className="text-sm font-medium text-zinc-400 mb-1">
+                    <div key={panel.number} className="border-l-2 border-[var(--border)] pl-3">
+                      <div className="text-sm font-medium text-[var(--text-secondary)] mb-1">
                         Panel {panel.number}
                       </div>
                       {panel.visualDescription && (

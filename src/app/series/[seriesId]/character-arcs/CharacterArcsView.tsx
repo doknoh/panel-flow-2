@@ -214,11 +214,11 @@ ${JSON.stringify(appearanceData, null, 2)}`,
       {/* Character Selector */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <label className="text-sm text-zinc-400">Character:</label>
+          <label className="text-sm text-[var(--text-secondary)]">Character:</label>
           <select
             value={selectedCharacter || ''}
             onChange={(e) => setSelectedCharacter(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2"
+            className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2"
           >
             {series.characters.map((char) => (
               <option key={char.id} value={char.id}>
@@ -230,7 +230,7 @@ ${JSON.stringify(appearanceData, null, 2)}`,
         <button
           onClick={generateStates}
           disabled={isGenerating || !selectedCharacter}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
         >
           {isGenerating ? 'Analyzing...' : 'Generate Arc with AI'}
         </button>
@@ -238,11 +238,11 @@ ${JSON.stringify(appearanceData, null, 2)}`,
 
       {/* Arc Visualization */}
       {arcData.length > 1 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6">
           <h3 className="font-medium mb-4">Emotional Journey</h3>
           <div className="relative h-40">
             {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between text-xs text-zinc-500">
+            <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between text-xs text-[var(--text-secondary)]">
               <span>High</span>
               <span>Mid</span>
               <span>Low</span>
@@ -253,7 +253,7 @@ ${JSON.stringify(appearanceData, null, 2)}`,
               {/* Grid lines */}
               <div className="absolute inset-0 flex flex-col justify-between">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="border-b border-zinc-800" />
+                  <div key={i} className="border-b border-[var(--border)]" />
                 ))}
               </div>
 
@@ -290,7 +290,7 @@ ${JSON.stringify(appearanceData, null, 2)}`,
               </svg>
 
               {/* X-axis labels */}
-              <div className="absolute -bottom-6 left-0 right-0 flex justify-between text-xs text-zinc-500">
+              <div className="absolute -bottom-6 left-0 right-0 flex justify-between text-xs text-[var(--text-secondary)]">
                 {arcData.map((d, i) => (
                   <span key={i}>#{d.issue}</span>
                 ))}
@@ -306,12 +306,12 @@ ${JSON.stringify(appearanceData, null, 2)}`,
         {statesForCharacter.map(({ issue, state }) => (
           <div
             key={issue.id}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4"
           >
             <div className="flex items-center justify-between mb-2">
               <div>
                 <span className="font-medium">Issue #{issue.number}</span>
-                {issue.title && <span className="text-zinc-400 ml-2">{issue.title}</span>}
+                {issue.title && <span className="text-[var(--text-secondary)] ml-2">{issue.title}</span>}
               </div>
               {state?.emotional_score && (
                 <div className={`text-lg font-bold ${
@@ -328,23 +328,23 @@ ${JSON.stringify(appearanceData, null, 2)}`,
               <div className="space-y-2 text-sm">
                 <div className="flex gap-4">
                   {state.emotional_state && (
-                    <span className="bg-zinc-800 px-2 py-1 rounded">
+                    <span className="bg-[var(--bg-tertiary)] px-2 py-1 rounded">
                       {state.emotional_state}
                     </span>
                   )}
                   {state.plot_position && (
-                    <span className="text-zinc-400">{state.plot_position}</span>
+                    <span className="text-[var(--text-secondary)]">{state.plot_position}</span>
                   )}
                 </div>
                 {state.arc_summary && (
-                  <p className="text-zinc-300">{state.arc_summary}</p>
+                  <p className="text-[var(--text-secondary)]">{state.arc_summary}</p>
                 )}
                 {state.key_moments && (
-                  <p className="text-zinc-500">Key moments: {state.key_moments}</p>
+                  <p className="text-[var(--text-secondary)]">Key moments: {state.key_moments}</p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-zinc-500 italic">
+              <p className="text-sm text-[var(--text-secondary)] italic">
                 No arc data yet. Click "Generate Arc with AI" to analyze.
               </p>
             )}
@@ -353,8 +353,8 @@ ${JSON.stringify(appearanceData, null, 2)}`,
       </div>
 
       {series.characters.length === 0 && (
-        <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400">No characters in this series yet</p>
+        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
+          <p className="text-[var(--text-secondary)]">No characters in this series yet</p>
         </div>
       )}
     </div>

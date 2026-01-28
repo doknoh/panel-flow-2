@@ -147,22 +147,22 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
   }
 
   const renderForm = () => (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6 mb-6">
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 sm:p-6 mb-6">
       <h3 className="font-semibold mb-4">{isCreating ? 'New Plotline' : 'Edit Plotline'}</h3>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm text-zinc-400 mb-1">Name *</label>
+          <label className="block text-sm text-[var(--text-secondary)] mb-1">Name *</label>
           <input
             type="text"
             value={form.name || ''}
             onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
             placeholder="e.g., Marshall IRL, Tracy Solo, B-Plot"
           />
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">Color</label>
+          <label className="block text-sm text-[var(--text-secondary)] mb-2">Color</label>
           <div className="flex flex-wrap gap-2">
             {PLOTLINE_COLORS.map((color) => (
               <button
@@ -172,7 +172,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
                 className={`w-8 h-8 rounded-full border-2 transition-all ${
                   form.color === color.value
                     ? 'border-white scale-110'
-                    : 'border-transparent hover:border-zinc-500'
+                    : 'border-transparent hover:border-[var(--text-muted)]'
                 }`}
                 style={{ backgroundColor: color.value }}
                 title={color.name}
@@ -182,11 +182,11 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400 mb-1">Description</label>
+          <label className="block text-sm text-[var(--text-secondary)] mb-1">Description</label>
           <textarea
             value={form.description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
             rows={3}
             placeholder="Brief description of this plotline's focus"
           />
@@ -196,13 +196,13 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
           <button
             onClick={savePlotline}
             disabled={!form.name?.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
           >
             {isCreating ? 'Create Plotline' : 'Save Changes'}
           </button>
           <button
             onClick={cancelEdit}
-            className="bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded"
+            className="bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-4 py-2 rounded"
           >
             Cancel
           </button>
@@ -214,14 +214,14 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
   return (
     <div>
       <div className="mb-6">
-        <p className="text-zinc-400 mb-2">
+        <p className="text-[var(--text-secondary)] mb-2">
           Plotlines help you track different narrative threads in your story.
           Assign plotlines to scenes to visualize how your story weaves together.
         </p>
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <p className="text-zinc-400">{plotlines.length} plotline{plotlines.length !== 1 ? 's' : ''}</p>
+        <p className="text-[var(--text-secondary)]">{plotlines.length} plotline{plotlines.length !== 1 ? 's' : ''}</p>
         {!isCreating && !editingId && (
           <button
             onClick={startCreate}
@@ -235,10 +235,10 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
       {(isCreating || editingId) && renderForm()}
 
       {plotlines.length === 0 && !isCreating ? (
-        <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
+        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
           <div className="text-5xl mb-4 opacity-30">🧵</div>
-          <h3 className="text-lg font-medium text-zinc-300 mb-2">No plotlines yet</h3>
-          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-6">
+          <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">No plotlines yet</h3>
+          <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto mb-6">
             Plotlines help track narrative threads across your series.
             Assign them to scenes and visualize how your story weaves together.
           </p>
@@ -254,8 +254,8 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
           {plotlines.map((plotline) => (
             <div
               key={plotline.id}
-              className={`bg-zinc-900 border rounded-lg p-4 ${
-                editingId === plotline.id ? 'border-blue-500' : 'border-zinc-800'
+              className={`bg-[var(--bg-secondary)] border rounded-lg p-4 ${
+                editingId === plotline.id ? 'border-blue-500' : 'border-[var(--border)]'
               }`}
             >
               <div className="flex items-start justify-between">
@@ -267,20 +267,20 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">{plotline.name}</h3>
                     {plotline.description && (
-                      <p className="text-zinc-400 text-sm mt-1">{plotline.description}</p>
+                      <p className="text-[var(--text-secondary)] text-sm mt-1">{plotline.description}</p>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-2 ml-4">
                   <button
                     onClick={() => startEdit(plotline)}
-                    className="text-zinc-400 hover:text-white text-sm"
+                    className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => deletePlotline(plotline.id)}
-                    className="text-zinc-400 hover:text-red-400 text-sm"
+                    className="text-[var(--text-secondary)] hover:text-red-400 text-sm"
                   >
                     Delete
                   </button>

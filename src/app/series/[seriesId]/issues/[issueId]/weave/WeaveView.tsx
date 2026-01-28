@@ -252,7 +252,7 @@ function SortablePage({
             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
               isSelected
                 ? 'bg-blue-500 border-blue-500 text-white'
-                : 'bg-[var(--bg-tertiary)]/90 border-zinc-600 hover:border-zinc-400'
+                : 'bg-[var(--bg-tertiary)]/90 border-[var(--border)] hover:border-[var(--text-secondary)]'
             }`}
             title="Click to select, Shift+click for range, ⌘/Ctrl+click to toggle"
           >
@@ -317,8 +317,8 @@ function SortablePage({
               <span className="text-lg font-bold text-white">{pageIndex + 1}</span>
               <span className={`text-[8px] uppercase tracking-wide px-1 py-0.5 rounded font-medium ${
                 orientation === 'left'
-                  ? 'bg-zinc-700/80 text-[var(--text-secondary)]'
-                  : 'bg-zinc-600/80 text-[var(--text-primary)]'
+                  ? 'bg-[var(--bg-tertiary)]/80 text-[var(--text-secondary)]'
+                  : 'bg-[var(--bg-tertiary)]/80 text-[var(--text-primary)]'
               }`}>
                 {orientation === 'left' ? 'L' : 'R'}
               </span>
@@ -329,7 +329,7 @@ function SortablePage({
               value={page.plotline_id || ''}
               onChange={(e) => onAssignPlotline(page.id, e.target.value || null)}
               onClick={(e) => e.stopPropagation()}
-              className="text-[9px] bg-[var(--bg-tertiary)]/80 border border-zinc-600 rounded px-1 py-0.5 max-w-[55px] cursor-pointer"
+              className="text-[9px] bg-[var(--bg-tertiary)]/80 border border-[var(--border)] rounded px-1 py-0.5 max-w-[55px] cursor-pointer"
               style={plotlineColor ? { borderColor: plotlineColor } : {}}
             >
               <option value="">—</option>
@@ -353,7 +353,7 @@ function SortablePage({
                   if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="flex-1 bg-[var(--bg-tertiary)] border border-zinc-500 rounded px-1 py-0.5 text-[9px]"
+                className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1 py-0.5 text-[9px]"
                 placeholder="Year/Era"
                 autoFocus
               />
@@ -387,7 +387,7 @@ function SortablePage({
                   if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="flex-1 bg-[var(--bg-tertiary)] border border-zinc-500 rounded px-1 py-0.5 text-[9px]"
+                className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1 py-0.5 text-[9px]"
                 placeholder="Motif"
                 autoFocus
               />
@@ -421,7 +421,7 @@ function SortablePage({
                   if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full h-full bg-[var(--bg-tertiary)] border border-zinc-500 rounded px-1.5 py-1 text-[10px] resize-none"
+                className="w-full h-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1.5 py-1 text-[10px] resize-none"
                 placeholder="Story beat..."
                 autoFocus
               />
@@ -894,7 +894,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                 </button>
 
                 {editingPlotlineId === pl.id && (
-                  <div className="absolute top-full left-0 mt-2 p-3 bg-[var(--bg-tertiary)] rounded-lg shadow-xl border border-zinc-600 z-50">
+                  <div className="absolute top-full left-0 mt-2 p-3 bg-[var(--bg-tertiary)] rounded-lg shadow-xl border border-[var(--border)] z-50">
                     <div className="grid grid-cols-4 gap-2 mb-2">
                       {PLOTLINE_COLORS.map((color) => (
                         <button
@@ -934,7 +934,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
             <button
               onClick={createPlotline}
               disabled={!newPlotlineName.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium transition-colors"
             >
               Add
             </button>
@@ -1003,7 +1003,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
 
                 {/* Spine */}
                 <div className="w-2 bg-[var(--bg-tertiary)] flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
-                  <div className="w-px h-[90%] bg-zinc-700" />
+                  <div className="w-px h-[90%] bg-[var(--bg-tertiary)]" />
                 </div>
 
                 {/* Right side */}
@@ -1045,11 +1045,11 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
               {selectedPageIds.has(activePage.page.id) && selectedCount > 1 && (
                 <>
                   <div
-                    className="absolute top-2 left-2 rounded-lg bg-zinc-700/80"
+                    className="absolute top-2 left-2 rounded-lg bg-[var(--bg-tertiary)]/80"
                     style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
                   />
                   <div
-                    className="absolute top-1 left-1 rounded-lg bg-zinc-600/80"
+                    className="absolute top-1 left-1 rounded-lg bg-[var(--bg-tertiary)]/80"
                     style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
                   />
                 </>

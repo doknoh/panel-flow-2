@@ -121,48 +121,48 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
   }
 
   const renderForm = () => (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6 mb-6">
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 sm:p-6 mb-6">
       <h3 className="font-semibold mb-4">{isCreating ? 'New Location' : 'Edit Location'}</h3>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm text-zinc-400 mb-1">Name *</label>
+          <label className="block text-sm text-[var(--text-secondary)] mb-1">Name *</label>
           <input
             type="text"
             value={form.name || ''}
             onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
             placeholder="Location name"
           />
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400 mb-1">Description</label>
+          <label className="block text-sm text-[var(--text-secondary)] mb-1">Description</label>
           <textarea
             value={form.description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
             rows={2}
             placeholder="General description of this location"
           />
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400 mb-1">Visual Description</label>
+          <label className="block text-sm text-[var(--text-secondary)] mb-1">Visual Description</label>
           <textarea
             value={form.visual_description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, visual_description: e.target.value }))}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
             rows={3}
             placeholder="Detailed visual description for artists"
           />
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400 mb-1">Story Significance</label>
+          <label className="block text-sm text-[var(--text-secondary)] mb-1">Story Significance</label>
           <textarea
             value={form.significance || ''}
             onChange={(e) => setForm(prev => ({ ...prev, significance: e.target.value }))}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
             rows={2}
             placeholder="Why is this location important to the story?"
           />
@@ -172,13 +172,13 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           <button
             onClick={saveLocation}
             disabled={!form.name?.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
           >
             {isCreating ? 'Create Location' : 'Save Changes'}
           </button>
           <button
             onClick={cancelEdit}
-            className="bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded"
+            className="bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-4 py-2 rounded"
           >
             Cancel
           </button>
@@ -190,7 +190,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <p className="text-zinc-400">{locations.length} location{locations.length !== 1 ? 's' : ''}</p>
+        <p className="text-[var(--text-secondary)]">{locations.length} location{locations.length !== 1 ? 's' : ''}</p>
         {!isCreating && !editingId && (
           <button
             onClick={startCreate}
@@ -204,10 +204,10 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
       {(isCreating || editingId) && renderForm()}
 
       {locations.length === 0 && !isCreating ? (
-        <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
+        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
           <div className="text-5xl mb-4 opacity-30">🏛️</div>
-          <h3 className="text-lg font-medium text-zinc-300 mb-2">No locations yet</h3>
-          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-6">
+          <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">No locations yet</h3>
+          <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto mb-6">
             Locations appear in autocomplete when describing panel settings.
             Define their visual details to maintain consistency across scenes.
           </p>
@@ -223,8 +223,8 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           {locations.map((location) => (
             <div
               key={location.id}
-              className={`bg-zinc-900 border rounded-lg p-4 ${
-                editingId === location.id ? 'border-blue-500' : 'border-zinc-800'
+              className={`bg-[var(--bg-secondary)] border rounded-lg p-4 ${
+                editingId === location.id ? 'border-blue-500' : 'border-[var(--border)]'
               }`}
             >
               <div className="flex items-start justify-between mb-2">
@@ -232,24 +232,24 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
                 <div className="flex gap-2">
                   <button
                     onClick={() => startEdit(location)}
-                    className="text-zinc-400 hover:text-white text-sm"
+                    className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => deleteLocation(location.id)}
-                    className="text-zinc-400 hover:text-red-400 text-sm"
+                    className="text-[var(--text-secondary)] hover:text-red-400 text-sm"
                   >
                     Delete
                   </button>
                 </div>
               </div>
               {location.description && (
-                <p className="text-zinc-400 text-sm mb-2">{location.description}</p>
+                <p className="text-[var(--text-secondary)] text-sm mb-2">{location.description}</p>
               )}
               {location.visual_description && (
-                <p className="text-zinc-500 text-sm line-clamp-2">
-                  <span className="text-zinc-400">Visual: </span>
+                <p className="text-[var(--text-muted)] text-sm line-clamp-2">
+                  <span className="text-[var(--text-secondary)]">Visual: </span>
                   {location.visual_description}
                 </p>
               )}

@@ -14,7 +14,7 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
 
   return (
     <div
-      className={`${sizeClasses[size]} border-zinc-600 border-t-blue-500 rounded-full animate-spin ${className}`}
+      className={`${sizeClasses[size]} border-[var(--text-muted)] border-t-blue-500 rounded-full animate-spin ${className}`}
       role="status"
       aria-label="Loading"
     />
@@ -27,10 +27,10 @@ interface LoadingPageProps {
 
 export function LoadingPage({ message = 'Loading...' }: LoadingPageProps) {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <LoadingSpinner size="lg" />
-        <p className="text-zinc-400">{message}</p>
+        <p className="text-[var(--text-secondary)]">{message}</p>
       </div>
     </div>
   )
@@ -42,10 +42,10 @@ interface LoadingOverlayProps {
 
 export function LoadingOverlay({ message }: LoadingOverlayProps) {
   return (
-    <div className="absolute inset-0 bg-zinc-950/80 flex items-center justify-center z-50">
+    <div className="absolute inset-0 bg-[var(--bg-primary)]/80 flex items-center justify-center z-50">
       <div className="flex flex-col items-center gap-3">
         <LoadingSpinner size="md" />
-        {message && <p className="text-zinc-400 text-sm">{message}</p>}
+        {message && <p className="text-[var(--text-secondary)] text-sm">{message}</p>}
       </div>
     </div>
   )
@@ -57,7 +57,7 @@ interface SkeletonProps {
 
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
-    <div className={`bg-zinc-800 animate-pulse rounded ${className}`} />
+    <div className={`bg-[var(--bg-tertiary)] animate-pulse rounded ${className}`} />
   )
 }
 

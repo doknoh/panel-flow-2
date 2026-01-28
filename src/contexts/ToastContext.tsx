@@ -60,10 +60,10 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
         <div
           key={toast.id}
           className={`px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[280px] animate-slide-in ${
-            toast.type === 'success' ? 'bg-green-600 text-white' :
-            toast.type === 'error' ? 'bg-red-600 text-white' :
-            toast.type === 'warning' ? 'bg-yellow-600 text-white' :
-            'bg-zinc-700 text-white'
+            toast.type === 'success' ? 'bg-green-600 text-[var(--text-primary)]' :
+            toast.type === 'error' ? 'bg-red-600 text-[var(--text-primary)]' :
+            toast.type === 'warning' ? 'bg-yellow-600 text-[var(--text-primary)]' :
+            'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
           }`}
         >
           <span className="flex-1">{toast.message}</span>

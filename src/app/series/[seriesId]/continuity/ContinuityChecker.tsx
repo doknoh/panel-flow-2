@@ -321,7 +321,7 @@ ${ic.text.slice(0, 3000)}
       case 'error': return 'text-red-400 bg-red-400/10 border-red-400/30'
       case 'warning': return 'text-amber-400 bg-amber-400/10 border-amber-400/30'
       case 'info': return 'text-blue-400 bg-blue-400/10 border-blue-400/30'
-      default: return 'text-zinc-400 bg-zinc-400/10 border-zinc-400/30'
+      default: return 'text-[var(--text-secondary)] bg-[var(--text-secondary)]/10 border-[var(--text-secondary)]/30'
     }
   }
 
@@ -341,14 +341,14 @@ ${ic.text.slice(0, 3000)}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <p className="text-zinc-400 text-sm sm:text-base">
+          <p className="text-[var(--text-secondary)] text-sm sm:text-base">
             Analyze your series for continuity errors, character inconsistencies, and timeline issues.
           </p>
         </div>
         <button
           onClick={analyze}
           disabled={isAnalyzing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap"
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap"
         >
           {isAnalyzing ? 'Analyzing...' : hasAnalyzed ? 'Re-analyze' : 'Run Analysis'}
         </button>
@@ -356,21 +356,21 @@ ${ic.text.slice(0, 3000)}
 
       {/* Series Overview */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
           <div className="text-2xl font-bold">{sortedIssues.length}</div>
-          <div className="text-zinc-500 text-sm">Issues</div>
+          <div className="text-[var(--text-secondary)] text-sm">Issues</div>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
           <div className="text-2xl font-bold">{series.characters.length}</div>
-          <div className="text-zinc-500 text-sm">Characters</div>
+          <div className="text-[var(--text-secondary)] text-sm">Characters</div>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
           <div className="text-2xl font-bold">{series.locations.length}</div>
-          <div className="text-zinc-500 text-sm">Locations</div>
+          <div className="text-[var(--text-secondary)] text-sm">Locations</div>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
           <div className="text-2xl font-bold">{issues.length}</div>
-          <div className="text-zinc-500 text-sm">Issues Found</div>
+          <div className="text-[var(--text-secondary)] text-sm">Issues Found</div>
         </div>
       </div>
 
@@ -378,13 +378,13 @@ ${ic.text.slice(0, 3000)}
       {hasAnalyzed && (
         <>
           {/* Summary */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <h3 className="font-medium mb-4">Analysis Summary</h3>
             <div className="flex flex-wrap gap-2 sm:gap-4">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-3 py-1.5 rounded text-sm ${
-                  filter === 'all' ? 'bg-zinc-700' : 'bg-zinc-800 hover:bg-zinc-700'
+                  filter === 'all' ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]'
                 }`}
               >
                 All ({issues.length})
@@ -392,7 +392,7 @@ ${ic.text.slice(0, 3000)}
               <button
                 onClick={() => setFilter('error')}
                 className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  filter === 'error' ? 'bg-red-600/30 text-red-400' : 'bg-zinc-800 hover:bg-zinc-700 text-red-400'
+                  filter === 'error' ? 'bg-red-600/30 text-red-400' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-red-400'
                 }`}
               >
                 Errors ({issuesByType.error})
@@ -400,7 +400,7 @@ ${ic.text.slice(0, 3000)}
               <button
                 onClick={() => setFilter('warning')}
                 className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  filter === 'warning' ? 'bg-amber-600/30 text-amber-400' : 'bg-zinc-800 hover:bg-zinc-700 text-amber-400'
+                  filter === 'warning' ? 'bg-amber-600/30 text-amber-400' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-amber-400'
                 }`}
               >
                 Warnings ({issuesByType.warning})
@@ -408,7 +408,7 @@ ${ic.text.slice(0, 3000)}
               <button
                 onClick={() => setFilter('info')}
                 className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  filter === 'info' ? 'bg-blue-600/30 text-blue-400' : 'bg-zinc-800 hover:bg-zinc-700 text-blue-400'
+                  filter === 'info' ? 'bg-blue-600/30 text-blue-400' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-blue-400'
                 }`}
               >
                 Info ({issuesByType.info})
@@ -443,9 +443,9 @@ ${ic.text.slice(0, 3000)}
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
+            <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
               <p className="text-green-400 text-lg font-medium">No issues found!</p>
-              <p className="text-zinc-500 mt-2">Your series appears to be continuity-clean.</p>
+              <p className="text-[var(--text-secondary)] mt-2">Your series appears to be continuity-clean.</p>
             </div>
           )}
         </>
@@ -453,13 +453,13 @@ ${ic.text.slice(0, 3000)}
 
       {/* Empty state */}
       {!hasAnalyzed && !isAnalyzing && (
-        <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
+        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
           <div className="text-5xl mb-4 opacity-30">🔍</div>
-          <h3 className="text-lg font-medium text-zinc-300 mb-2">Ready to analyze</h3>
-          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-2">
+          <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">Ready to analyze</h3>
+          <p className="text-[var(--text-secondary)] text-sm max-w-md mx-auto mb-2">
             Click "Run Analysis" to check your series for continuity issues.
           </p>
-          <p className="text-zinc-600 text-xs max-w-md mx-auto">
+          <p className="text-[var(--text-muted)] text-xs max-w-md mx-auto">
             We'll scan character appearances, dialogue consistency, timeline logic, and more.
           </p>
         </div>
@@ -467,11 +467,11 @@ ${ic.text.slice(0, 3000)}
 
       {/* Loading state */}
       {isAnalyzing && (
-        <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
+        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
           <div className="animate-pulse">
             <div className="text-4xl mb-4">🔄</div>
-            <p className="text-zinc-300 font-medium">Analyzing {sortedIssues.length} issues...</p>
-            <p className="text-zinc-500 text-sm mt-2">Checking characters, locations, timeline, and more</p>
+            <p className="text-[var(--text-secondary)] font-medium">Analyzing {sortedIssues.length} issues...</p>
+            <p className="text-[var(--text-secondary)] text-sm mt-2">Checking characters, locations, timeline, and more</p>
           </div>
         </div>
       )}

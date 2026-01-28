@@ -237,21 +237,21 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
       <section>
         <h2 className="text-lg font-semibold mb-4">Volume</h2>
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{stats.totalWords.toLocaleString()}</div>
-            <div className="text-zinc-500 text-sm">Total Words</div>
+            <div className="text-[var(--text-secondary)] text-sm">Total Words</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{stats.totalPanels.toLocaleString()}</div>
-            <div className="text-zinc-500 text-sm">Total Panels</div>
+            <div className="text-[var(--text-secondary)] text-sm">Total Panels</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{stats.totalPages}</div>
-            <div className="text-zinc-500 text-sm">Total Pages</div>
+            <div className="text-[var(--text-secondary)] text-sm">Total Pages</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{stats.totalIssues}</div>
-            <div className="text-zinc-500 text-sm">Issues</div>
+            <div className="text-[var(--text-secondary)] text-sm">Issues</div>
           </div>
         </div>
       </section>
@@ -260,39 +260,39 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
       <section>
         <h2 className="text-lg font-semibold mb-4">Progress</h2>
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-zinc-400">Series Completion</span>
+              <span className="text-[var(--text-secondary)]">Series Completion</span>
               <span className="text-2xl font-bold">{stats.completionPercent}%</span>
             </div>
-            <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-3 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-green-500 rounded-full transition-all"
                 style={{ width: `${stats.completionPercent}%` }}
               />
             </div>
-            <div className="text-sm text-zinc-500 mt-2">
+            <div className="text-sm text-[var(--text-secondary)] mt-2">
               {stats.completedIssues} of {stats.totalIssues} issues complete
             </div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-            <div className="text-sm text-zinc-400 mb-3">Issue Progress</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
+            <div className="text-sm text-[var(--text-secondary)] mb-3">Issue Progress</div>
             <div className="space-y-2">
               {stats.issueStats.slice(0, 5).map((issue) => (
                 <div key={issue.id} className="flex items-center gap-3">
                   <span className="text-sm w-16">#{issue.number}</span>
-                  <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${
                         issue.status === 'complete' ? 'bg-green-500' :
                         issue.status === 'revision' ? 'bg-amber-500' :
                         issue.status === 'drafting' ? 'bg-blue-500' :
-                        'bg-zinc-600'
+                        'bg-[var(--text-muted)]'
                       }`}
                       style={{ width: issue.status === 'complete' ? '100%' : `${Math.min((issue.pages / 40) * 100, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs text-zinc-500 w-12">{issue.pages} pg</span>
+                  <span className="text-xs text-[var(--text-secondary)] w-12">{issue.pages} pg</span>
                 </div>
               ))}
             </div>
@@ -304,27 +304,27 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
       <section>
         <h2 className="text-lg font-semibold mb-4">Consistency</h2>
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold text-amber-400">{stats.writingStreak}</div>
-            <div className="text-zinc-500 text-sm">Day Streak</div>
+            <div className="text-[var(--text-secondary)] text-sm">Day Streak</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{stats.totalSessions}</div>
-            <div className="text-zinc-500 text-sm">Total Sessions</div>
+            <div className="text-[var(--text-secondary)] text-sm">Total Sessions</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{stats.avgSessionMinutes}m</div>
-            <div className="text-zinc-500 text-sm">Avg Session</div>
+            <div className="text-[var(--text-secondary)] text-sm">Avg Session</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{Math.round(stats.totalSessionMinutes / 60)}h</div>
-            <div className="text-zinc-500 text-sm">Total Time</div>
+            <div className="text-[var(--text-secondary)] text-sm">Total Time</div>
           </div>
         </div>
 
         {/* Activity Heatmap */}
-        <div className="mt-4 bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-sm text-zinc-400 mb-3">Last 30 Days Activity</div>
+        <div className="mt-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
+          <div className="text-sm text-[var(--text-secondary)] mb-3">Last 30 Days Activity</div>
           <div className="flex items-end gap-1 h-16">
             {recentActivity.map((day, i) => (
               <div
@@ -338,15 +338,15 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
               />
             ))}
           </div>
-          <div className="flex justify-between text-xs text-zinc-500 mt-2">
+          <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-2">
             <span>30 days ago</span>
             <span>Today</span>
           </div>
         </div>
 
         {/* Day of Week */}
-        <div className="mt-4 bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-sm text-zinc-400 mb-3">Words by Day of Week</div>
+        <div className="mt-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
+          <div className="text-sm text-[var(--text-secondary)] mb-3">Words by Day of Week</div>
           <div className="flex items-end gap-2 h-20">
             {activityByDay.map((day) => (
               <div key={day.day} className="flex-1 flex flex-col items-center">
@@ -354,7 +354,7 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
                   className="w-full bg-purple-500 rounded-t transition-all"
                   style={{ height: `${Math.max(day.percent, day.words > 0 ? 10 : 5)}%` }}
                 />
-                <span className="text-xs text-zinc-500 mt-2">{day.day}</span>
+                <span className="text-xs text-[var(--text-secondary)] mt-2">{day.day}</span>
               </div>
             ))}
           </div>
@@ -365,22 +365,22 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
       <section>
         <h2 className="text-lg font-semibold mb-4">Quality Metrics</h2>
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{stats.avgPanelsPerPage}</div>
-            <div className="text-zinc-500 text-sm">Avg Panels/Page</div>
-            <div className="text-xs text-zinc-600 mt-1">Industry avg: 5-6</div>
+            <div className="text-[var(--text-secondary)] text-sm">Avg Panels/Page</div>
+            <div className="text-xs text-[var(--text-muted)] mt-1">Industry avg: 5-6</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">{stats.dialogueRatio}%</div>
-            <div className="text-zinc-500 text-sm">Dialogue Ratio</div>
-            <div className="text-xs text-zinc-600 mt-1">Words in dialogue</div>
+            <div className="text-[var(--text-secondary)] text-sm">Dialogue Ratio</div>
+            <div className="text-xs text-[var(--text-muted)] mt-1">Words in dialogue</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-3xl font-bold">
               {stats.totalPanels > 0 ? Math.round(stats.totalWords / stats.totalPanels) : 0}
             </div>
-            <div className="text-zinc-500 text-sm">Words/Panel</div>
-            <div className="text-xs text-zinc-600 mt-1">Avg density</div>
+            <div className="text-[var(--text-secondary)] text-sm">Words/Panel</div>
+            <div className="text-xs text-[var(--text-muted)] mt-1">Avg density</div>
           </div>
         </div>
       </section>
@@ -388,10 +388,10 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
       {/* Per-Issue Breakdown */}
       <section>
         <h2 className="text-lg font-semibold mb-4">Issue Breakdown</h2>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-zinc-800 text-left text-sm text-zinc-400">
+              <tr className="border-b border-[var(--border)] text-left text-sm text-[var(--text-secondary)]">
                 <th className="px-4 py-3">Issue</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Pages</th>
@@ -402,25 +402,25 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
             </thead>
             <tbody>
               {stats.issueStats.map((issue) => (
-                <tr key={issue.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                <tr key={issue.id} className="border-b border-[var(--border)]/50 hover:bg-[var(--bg-tertiary)]/30">
                   <td className="px-4 py-3">
                     <span className="font-medium">#{issue.number}</span>
-                    {issue.title && <span className="text-zinc-400 ml-2">{issue.title}</span>}
+                    {issue.title && <span className="text-[var(--text-secondary)] ml-2">{issue.title}</span>}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded ${
                       issue.status === 'complete' ? 'bg-green-900 text-green-300' :
                       issue.status === 'revision' ? 'bg-amber-900 text-amber-300' :
                       issue.status === 'drafting' ? 'bg-blue-900 text-blue-300' :
-                      'bg-zinc-800 text-zinc-400'
+                      'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
                     }`}>
                       {issue.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-zinc-300">{issue.pages}</td>
-                  <td className="px-4 py-3 text-right text-zinc-300">{issue.panels}</td>
-                  <td className="px-4 py-3 text-right text-zinc-300">{issue.words.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-zinc-300">{issue.panelsPerPage}</td>
+                  <td className="px-4 py-3 text-right text-[var(--text-primary)]">{issue.pages}</td>
+                  <td className="px-4 py-3 text-right text-[var(--text-primary)]">{issue.panels}</td>
+                  <td className="px-4 py-3 text-right text-[var(--text-primary)]">{issue.words.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-[var(--text-primary)]">{issue.panelsPerPage}</td>
                 </tr>
               ))}
             </tbody>

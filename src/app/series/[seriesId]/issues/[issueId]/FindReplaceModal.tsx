@@ -233,13 +233,13 @@ export default function FindReplaceModal({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-zinc-900 rounded-lg shadow-xl w-full max-w-2xl border border-zinc-700">
+      <div className="relative bg-[var(--bg-secondary)] rounded-lg shadow-xl w-full max-w-2xl border border-[var(--border)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <h2 className="text-lg font-semibold">Find and Replace</h2>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-white text-xl leading-none"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xl leading-none"
           >
             ×
           </button>
@@ -249,21 +249,21 @@ export default function FindReplaceModal({
         <div className="p-4 space-y-3">
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="block text-sm text-zinc-400 mb-1">Find</label>
+              <label className="block text-sm text-[var(--text-secondary)] mb-1">Find</label>
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search text..."
-                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div className="flex items-end gap-2">
               <button
                 onClick={handlePrevious}
                 disabled={matches.length === 0}
-                className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Previous (Shift+Enter)"
               >
                 ↑
@@ -271,7 +271,7 @@ export default function FindReplaceModal({
               <button
                 onClick={handleNext}
                 disabled={matches.length === 0}
-                className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Next (Enter)"
               >
                 ↓
@@ -280,33 +280,33 @@ export default function FindReplaceModal({
           </div>
 
           <div>
-            <label className="block text-sm text-zinc-400 mb-1">Replace with</label>
+            <label className="block text-sm text-[var(--text-secondary)] mb-1">Replace with</label>
             <input
               type="text"
               value={replaceTerm}
               onChange={(e) => setReplaceTerm(e.target.value)}
               placeholder="Replacement text..."
-              className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           {/* Options */}
           <div className="flex gap-4">
-            <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={matchCase}
                 onChange={(e) => setMatchCase(e.target.checked)}
-                className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500"
+                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] text-indigo-500 focus:ring-indigo-500"
               />
               Match case
             </label>
-            <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={wholeWord}
                 onChange={(e) => setWholeWord(e.target.checked)}
-                className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500"
+                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] text-indigo-500 focus:ring-indigo-500"
               />
               Whole word
             </label>
@@ -314,27 +314,27 @@ export default function FindReplaceModal({
         </div>
 
         {/* Results count */}
-        <div className="px-4 py-2 bg-zinc-800/50 border-t border-b border-zinc-700">
+        <div className="px-4 py-2 bg-[var(--bg-tertiary)]/50 border-t border-b border-[var(--border)]">
           {matches.length > 0 ? (
-            <span className="text-sm text-zinc-300">
+            <span className="text-sm text-[var(--text-secondary)]">
               {currentMatchIndex + 1} of {matches.length} matches
             </span>
           ) : searchTerm ? (
-            <span className="text-sm text-zinc-500">No matches found</span>
+            <span className="text-sm text-[var(--text-secondary)]">No matches found</span>
           ) : (
-            <span className="text-sm text-zinc-500">Enter search term</span>
+            <span className="text-sm text-[var(--text-secondary)]">Enter search term</span>
           )}
         </div>
 
         {/* Current match preview */}
         {currentMatch && (
-          <div className="p-4 border-b border-zinc-700">
-            <div className="text-xs text-zinc-500 mb-1">
+          <div className="p-4 border-b border-[var(--border)]">
+            <div className="text-xs text-[var(--text-secondary)] mb-1">
               Act {currentMatch.actNumber} • Page {currentMatch.pageNumber} • Panel {currentMatch.panelNumber}
-              <span className="text-zinc-600 mx-1">•</span>
+              <span className="text-[var(--text-muted)] mx-1">•</span>
               {currentMatch.fieldName}
             </div>
-            <div className="text-sm bg-zinc-800 rounded p-2 font-mono break-words">
+            <div className="text-sm bg-[var(--bg-tertiary)] rounded p-2 font-mono break-words">
               {(() => {
                 const { before, match, after } = highlightMatch(
                   currentMatch.text,
@@ -347,9 +347,9 @@ export default function FindReplaceModal({
                 const displayAfter = after.length > maxContext ? after.slice(0, maxContext) + '...' : after
                 return (
                   <>
-                    <span className="text-zinc-400">{displayBefore}</span>
+                    <span className="text-[var(--text-secondary)]">{displayBefore}</span>
                     <span className="bg-yellow-500/30 text-yellow-200 px-0.5 rounded">{match}</span>
-                    <span className="text-zinc-400">{displayAfter}</span>
+                    <span className="text-[var(--text-secondary)]">{displayAfter}</span>
                   </>
                 )
               })()}
@@ -361,7 +361,7 @@ export default function FindReplaceModal({
         <div className="p-4 flex justify-between">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-zinc-400 hover:text-white"
+            className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             Close
           </button>
@@ -369,7 +369,7 @@ export default function FindReplaceModal({
             <button
               onClick={handleReplaceCurrent}
               disabled={matches.length === 0 || !replaceTerm || isReplacing}
-              className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Replace
             </button>

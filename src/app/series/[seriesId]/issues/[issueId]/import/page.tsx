@@ -43,16 +43,16 @@ export default async function ImportPage({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <header className="border-b border-zinc-800 px-6 py-4">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <header className="border-b border-[var(--border)] px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center gap-4">
           <Link
             href={`/series/${seriesId}/issues/${issueId}`}
-            className="text-zinc-400 hover:text-white"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             ← Issue #{issue.number}
           </Link>
-          <span className="text-zinc-600">/</span>
+          <span className="text-[var(--text-muted)]">/</span>
           <h1 className="text-xl font-bold">Import Script</h1>
         </div>
       </header>

@@ -15,13 +15,13 @@ export default function AnalyticsClient({ series, sessions }: AnalyticsClientPro
   return (
     <div>
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-zinc-800">
+      <div className="flex gap-1 mb-6 border-b border-[var(--border)]">
         <button
           onClick={() => setActiveTab('dashboard')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'dashboard'
-              ? 'border-blue-500 text-white'
-              : 'border-transparent text-zinc-400 hover:text-white'
+              ? 'border-blue-500 text-[var(--text-primary)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           Dashboard
@@ -30,8 +30,8 @@ export default function AnalyticsClient({ series, sessions }: AnalyticsClientPro
           onClick={() => setActiveTab('rankings')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'rankings'
-              ? 'border-blue-500 text-white'
-              : 'border-transparent text-zinc-400 hover:text-white'
+              ? 'border-blue-500 text-[var(--text-primary)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           Power Rankings

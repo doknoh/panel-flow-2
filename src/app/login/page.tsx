@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import LoginButton from './LoginButton'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 export default async function LoginPage() {
   const supabase = await createClient()
@@ -12,7 +13,12 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] relative">
+      {/* Theme toggle in corner */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-2">Panel Flow</h1>

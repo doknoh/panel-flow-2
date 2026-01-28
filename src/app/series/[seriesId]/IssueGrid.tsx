@@ -69,25 +69,25 @@ function formatRelativeTime(dateString: string): string {
 function getStatusConfig(status: string) {
   switch (status) {
     case 'complete':
-      return { bg: 'bg-green-900/50', text: 'text-green-300', border: 'border-green-800' }
+      return { bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-700 dark:text-green-300', border: 'border-green-300 dark:border-green-800' }
     case 'drafting':
-      return { bg: 'bg-blue-900/50', text: 'text-blue-300', border: 'border-blue-800' }
+      return { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-300 dark:border-blue-800' }
     case 'revision':
-      return { bg: 'bg-yellow-900/50', text: 'text-yellow-300', border: 'border-yellow-800' }
+      return { bg: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-300 dark:border-yellow-800' }
     case 'outline':
-      return { bg: 'bg-purple-900/50', text: 'text-purple-300', border: 'border-purple-800' }
+      return { bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-300 dark:border-purple-800' }
     default:
-      return { bg: 'bg-zinc-800', text: 'text-zinc-400', border: 'border-zinc-700' }
+      return { bg: 'bg-[var(--bg-tertiary)]', text: 'text-[var(--text-secondary)]', border: 'border-[var(--border)]' }
   }
 }
 
 export default function IssueGrid({ issues, seriesId }: { issues: Issue[]; seriesId: string }) {
   if (issues.length === 0) {
     return (
-      <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
+      <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
         <div className="text-5xl mb-4 opacity-30">📚</div>
-        <h3 className="text-lg font-medium text-zinc-300 mb-2">No issues yet</h3>
-        <p className="text-zinc-500 text-sm max-w-md mx-auto">
+        <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">No issues yet</h3>
+        <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto">
           Create your first issue to start writing your graphic novel.
           Each issue can contain multiple acts, scenes, and pages.
         </p>
@@ -109,10 +109,10 @@ export default function IssueGrid({ issues, seriesId }: { issues: Issue[]; serie
           <Link
             key={issue.id}
             href={`/series/${seriesId}/issues/${issue.id}`}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-600 hover:bg-zinc-800/50 transition-all group"
+            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-all group"
           >
             <div className="flex items-start justify-between mb-2">
-              <span className="text-2xl font-bold group-hover:text-blue-400 transition-colors">
+              <span className="text-2xl font-bold text-[var(--text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
                 #{issue.number}
               </span>
               <span className={`text-xs px-2 py-1 rounded border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}>
@@ -121,15 +121,15 @@ export default function IssueGrid({ issues, seriesId }: { issues: Issue[]; serie
             </div>
 
             {issue.title && (
-              <h3 className="font-medium mb-1 line-clamp-1">{issue.title}</h3>
+              <h3 className="font-medium mb-1 text-[var(--text-primary)] line-clamp-1">{issue.title}</h3>
             )}
             {issue.tagline && (
-              <p className="text-zinc-500 text-sm line-clamp-2 mb-3">{issue.tagline}</p>
+              <p className="text-[var(--text-muted)] text-sm line-clamp-2 mb-3">{issue.tagline}</p>
             )}
 
             {/* Stats Row */}
             {hasContent ? (
-              <div className="flex items-center gap-3 text-xs text-zinc-500 mt-auto pt-2 border-t border-zinc-800">
+              <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] mt-auto pt-2 border-t border-[var(--border)]">
                 <span title="Pages" className="flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -152,13 +152,13 @@ export default function IssueGrid({ issues, seriesId }: { issues: Issue[]; serie
                 )}
               </div>
             ) : (
-              <div className="text-xs text-zinc-600 mt-auto pt-2 border-t border-zinc-800 italic">
+              <div className="text-xs text-[var(--text-muted)] mt-auto pt-2 border-t border-[var(--border)] italic">
                 No content yet
               </div>
             )}
 
             {/* Last edited */}
-            <div className="text-xs text-zinc-600 mt-2">
+            <div className="text-xs text-[var(--text-muted)] mt-2">
               Updated {formatRelativeTime(issue.updated_at)}
             </div>
           </Link>

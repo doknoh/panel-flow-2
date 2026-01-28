@@ -184,7 +184,7 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
       case 'antagonist': return 'bg-red-900 text-red-300'
       case 'supporting': return 'bg-purple-900 text-purple-300'
       case 'recurring': return 'bg-amber-900 text-amber-300'
-      default: return 'bg-zinc-800 text-zinc-400'
+      default: return 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
     }
   }
 
@@ -199,13 +199,13 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold">Character Power Rankings</h2>
-        <p className="text-sm text-zinc-400">Character appearances across your series</p>
+        <p className="text-sm text-[var(--text-secondary)]">Character appearances across your series</p>
       </div>
 
       {characterStats.length === 0 ? (
-        <div className="text-center py-8 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400">No characters to rank yet</p>
-          <p className="text-sm text-zinc-500 mt-1">Add characters and write some dialogue</p>
+        <div className="text-center py-8 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
+          <p className="text-[var(--text-secondary)]">No characters to rank yet</p>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">Add characters and write some dialogue</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -217,11 +217,11 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
             return (
               <div
                 key={stat.character.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+                className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl font-bold text-zinc-500 w-8">
+                    <span className="text-xl font-bold text-[var(--text-secondary)] w-8">
                       {getRankBadge(index + 1)}
                     </span>
                     <div>
@@ -235,12 +235,12 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-blue-400">{stat.totalAppearances}</div>
-                    <div className="text-xs text-zinc-500">appearances</div>
+                    <div className="text-xs text-[var(--text-secondary)]">appearances</div>
                   </div>
                 </div>
 
                 {/* Visual bar */}
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden mb-3">
+                <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden mb-3">
                   <div
                     className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-300"
                     style={{ width: `${barWidth}%` }}
@@ -250,31 +250,31 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
                 {/* Detailed stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <div className="text-zinc-500">Dialogue</div>
+                    <div className="text-[var(--text-secondary)]">Dialogue</div>
                     <div className="font-medium">{stat.dialogueAppearances}</div>
                   </div>
                   <div>
-                    <div className="text-zinc-500">Visual mentions</div>
+                    <div className="text-[var(--text-secondary)]">Visual mentions</div>
                     <div className="font-medium">{stat.visualAppearances}</div>
                   </div>
                   <div>
-                    <div className="text-zinc-500">Pages</div>
+                    <div className="text-[var(--text-secondary)]">Pages</div>
                     <div className="font-medium">
-                      {stat.pageAppearances} <span className="text-zinc-500">({pagePercentage}%)</span>
+                      {stat.pageAppearances} <span className="text-[var(--text-secondary)]">({pagePercentage}%)</span>
                     </div>
                   </div>
                   <div>
-                    <div className="text-zinc-500">Panels</div>
+                    <div className="text-[var(--text-secondary)]">Panels</div>
                     <div className="font-medium">
-                      {stat.panelAppearances} <span className="text-zinc-500">({panelPercentage}%)</span>
+                      {stat.panelAppearances} <span className="text-[var(--text-secondary)]">({panelPercentage}%)</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Issue coverage */}
-                <div className="mt-3 pt-3 border-t border-zinc-800">
+                <div className="mt-3 pt-3 border-t border-[var(--border)]">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-zinc-500">Issues:</span>
+                    <span className="text-[var(--text-secondary)]">Issues:</span>
                     <div className="flex gap-1">
                       {series.issues.map(issue => (
                         <span
@@ -282,14 +282,14 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
                           className={`px-2 py-0.5 rounded text-xs ${
                             stat.issueAppearances.has(issue.number)
                               ? 'bg-blue-900 text-blue-300'
-                              : 'bg-zinc-800 text-zinc-600'
+                              : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
                           }`}
                         >
                           #{issue.number}
                         </span>
                       ))}
                     </div>
-                    <span className="text-zinc-500 ml-auto">
+                    <span className="text-[var(--text-secondary)] ml-auto">
                       {stat.wordCount.toLocaleString()} words spoken
                     </span>
                   </div>
@@ -302,23 +302,23 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
 
       {/* Summary stats */}
       {characterStats.length > 0 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
           <h3 className="font-medium mb-3">Series Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <div className="text-zinc-500">Total Characters</div>
+              <div className="text-[var(--text-secondary)]">Total Characters</div>
               <div className="text-xl font-bold">{characterStats.length}</div>
             </div>
             <div>
-              <div className="text-zinc-500">Total Pages</div>
+              <div className="text-[var(--text-secondary)]">Total Pages</div>
               <div className="text-xl font-bold">{totalPages}</div>
             </div>
             <div>
-              <div className="text-zinc-500">Total Panels</div>
+              <div className="text-[var(--text-secondary)]">Total Panels</div>
               <div className="text-xl font-bold">{totalPanels}</div>
             </div>
             <div>
-              <div className="text-zinc-500">Most Active</div>
+              <div className="text-[var(--text-secondary)]">Most Active</div>
               <div className="text-xl font-bold text-blue-400">
                 {characterStats[0]?.character.name || '—'}
               </div>

@@ -26,7 +26,7 @@ const NOTE_TYPES: { value: NoteType; label: string; color: string }[] = [
   { value: 'OPEN_QUESTION', label: 'Open Question', color: 'bg-amber-500' },
   { value: 'DECISION', label: 'Decision', color: 'bg-blue-500' },
   { value: 'AI_INSIGHT', label: 'AI Insight', color: 'bg-purple-500' },
-  { value: 'GENERAL', label: 'General', color: 'bg-zinc-500' },
+  { value: 'GENERAL', label: 'General', color: 'bg-gray-500' },
 ]
 
 export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
@@ -155,11 +155,11 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
     <div>
       {/* Stats */}
       <div className="flex items-center gap-6 mb-6 text-sm">
-        <span className="text-zinc-400">
-          <span className="text-white font-medium">{openCount}</span> open
+        <span className="text-[var(--text-secondary)]">
+          <span className="text-[var(--text-primary)] font-medium">{openCount}</span> open
         </span>
-        <span className="text-zinc-400">
-          <span className="text-white font-medium">{resolvedCount}</span> resolved
+        <span className="text-[var(--text-secondary)]">
+          <span className="text-[var(--text-primary)] font-medium">{resolvedCount}</span> resolved
         </span>
       </div>
 
@@ -170,7 +170,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as NoteType | 'ALL')}
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
           >
             <option value="ALL">All Types</option>
             {NOTE_TYPES.map(type => (
@@ -179,11 +179,11 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
           </select>
 
           {/* Resolved filter */}
-          <div className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 rounded p-0.5">
+          <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded p-0.5">
             <button
               onClick={() => setFilterResolved('OPEN')}
               className={`px-3 py-1 text-sm rounded ${
-                filterResolved === 'OPEN' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                filterResolved === 'OPEN' ? 'bg-[var(--border)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Open
@@ -191,7 +191,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             <button
               onClick={() => setFilterResolved('RESOLVED')}
               className={`px-3 py-1 text-sm rounded ${
-                filterResolved === 'RESOLVED' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                filterResolved === 'RESOLVED' ? 'bg-[var(--border)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Resolved
@@ -199,7 +199,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             <button
               onClick={() => setFilterResolved('ALL')}
               className={`px-3 py-1 text-sm rounded ${
-                filterResolved === 'ALL' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                filterResolved === 'ALL' ? 'bg-[var(--border)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               All
@@ -217,12 +217,12 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
 
       {/* Create Note Form */}
       {isCreating && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 mb-6">
           <div className="flex items-center gap-4 mb-3">
             <select
               value={newNoteType}
               onChange={(e) => setNewNoteType(e.target.value as NoteType)}
-              className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
             >
               {NOTE_TYPES.map(type => (
                 <option key={type.value} value={type.value}>{type.label}</option>
@@ -233,7 +233,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             value={newNoteContent}
             onChange={(e) => setNewNoteContent(e.target.value)}
             placeholder="What's on your mind?"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none mb-3"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none mb-3"
             rows={3}
             autoFocus
           />
@@ -249,7 +249,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                 setIsCreating(false)
                 setNewNoteContent('')
               }}
-              className="text-zinc-400 hover:text-white px-4 py-1.5 text-sm"
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-1.5 text-sm"
             >
               Cancel
             </button>
@@ -259,7 +259,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
 
       {/* Notes List */}
       {filteredNotes.length === 0 ? (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-[var(--text-muted)]">
           {notes.length === 0
             ? 'No notes yet. Click "+ Add Note" to create one.'
             : 'No notes match your filters.'
@@ -272,7 +272,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             return (
               <div
                 key={note.id}
-                className={`bg-zinc-900 border border-zinc-800 rounded-lg p-4 ${
+                className={`bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 ${
                   note.resolved ? 'opacity-60' : ''
                 }`}
               >
@@ -282,8 +282,8 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                     onClick={() => toggleResolved(note)}
                     className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
                       note.resolved
-                        ? 'bg-green-600 border-green-600 text-white'
-                        : 'border-zinc-600 hover:border-zinc-500'
+                        ? 'bg-green-600 border-green-600 text-[var(--text-primary)]'
+                        : 'border-[var(--text-muted)] hover:border-[var(--text-muted)]'
                     }`}
                   >
                     {note.resolved && (
@@ -296,10 +296,10 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                   <div className="flex-1 min-w-0">
                     {/* Header */}
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`${typeInfo.color} text-white text-xs px-2 py-0.5 rounded`}>
+                      <span className={`${typeInfo.color} text-[var(--text-primary)] text-xs px-2 py-0.5 rounded`}>
                         {typeInfo.label}
                       </span>
-                      <span className="text-zinc-500 text-xs">
+                      <span className="text-[var(--text-muted)] text-xs">
                         {formatDate(note.created_at)}
                       </span>
                       {note.resolved && note.resolved_at && (
@@ -315,7 +315,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                         <textarea
                           value={editingContent}
                           onChange={(e) => setEditingContent(e.target.value)}
-                          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none mb-2"
+                          className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none mb-2"
                           rows={3}
                           autoFocus
                         />
@@ -328,14 +328,14 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="text-zinc-400 hover:text-white px-3 py-1 text-xs"
+                            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1 text-xs"
                           >
                             Cancel
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-sm whitespace-pre-wrap ${note.resolved ? 'text-zinc-400 line-through' : 'text-zinc-200'}`}>
+                      <p className={`text-sm whitespace-pre-wrap ${note.resolved ? 'text-[var(--text-secondary)] line-through' : 'text-[var(--text-primary)]'}`}>
                         {note.content}
                       </p>
                     )}
@@ -349,7 +349,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                           setEditingId(note.id)
                           setEditingContent(note.content)
                         }}
-                        className="text-zinc-500 hover:text-white p-1"
+                        className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1"
                         title="Edit"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -358,7 +358,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                       </button>
                       <button
                         onClick={() => deleteNote(note.id)}
-                        className="text-zinc-500 hover:text-red-400 p-1"
+                        className="text-[var(--text-muted)] hover:text-red-400 p-1"
                         title="Delete"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

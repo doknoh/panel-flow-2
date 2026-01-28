@@ -455,7 +455,7 @@ Return this exact JSON structure:
   }
 
   const statusColors: Record<string, string> = {
-    outline: 'bg-zinc-700 text-zinc-300',
+    outline: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]',
     drafting: 'bg-blue-900 text-blue-300',
     revision: 'bg-amber-900 text-amber-300',
     complete: 'bg-green-900 text-green-300',
@@ -464,22 +464,22 @@ Return this exact JSON structure:
   return (
     <div className="space-y-8">
       {/* Series Header */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-2">{series.title}</h2>
         {series.logline && (
-          <p className="text-zinc-300 text-lg mb-4">{series.logline}</p>
+          <p className="text-[var(--text-secondary)] text-lg mb-4">{series.logline}</p>
         )}
         {series.central_theme && (
-          <p className="text-zinc-500">
-            <span className="font-medium text-zinc-400">Central Theme: </span>
+          <p className="text-[var(--text-secondary)]">
+            <span className="font-medium text-[var(--text-secondary)]">Central Theme: </span>
             {series.central_theme}
           </p>
         )}
 
         {/* Series Outline Notes */}
-        <div className="mt-4 pt-4 border-t border-zinc-800">
+        <div className="mt-4 pt-4 border-t border-[var(--border)]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-zinc-400">Series Outline Notes</span>
+            <span className="text-sm font-medium text-[var(--text-secondary)]">Series Outline Notes</span>
             <button
               onClick={() => setEditingSeriesNotes(!editingSeriesNotes)}
               className="text-xs text-blue-400 hover:text-blue-300"
@@ -493,7 +493,7 @@ Return this exact JSON structure:
                 value={seriesNotes}
                 onChange={(e) => setSeriesNotes(e.target.value)}
                 placeholder="High-level outline notes for the entire series..."
-                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-vertical min-h-[100px] focus:border-purple-500 focus:outline-none"
+                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-vertical min-h-[100px] focus:border-purple-500 focus:outline-none"
                 rows={4}
               />
               <button
@@ -504,16 +504,16 @@ Return this exact JSON structure:
               </button>
             </div>
           ) : series.outline_notes ? (
-            <p className="text-sm text-zinc-300 whitespace-pre-wrap">{series.outline_notes}</p>
+            <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{series.outline_notes}</p>
           ) : (
-            <p className="text-sm text-zinc-500 italic">No outline notes yet. Click Edit to add.</p>
+            <p className="text-sm text-[var(--text-secondary)] italic">No outline notes yet. Click Edit to add.</p>
           )}
         </div>
 
         {/* Plotlines */}
         {series.plotlines.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-zinc-800">
-            <span className="text-sm text-zinc-400 mr-3">Plotlines:</span>
+          <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <span className="text-sm text-[var(--text-secondary)] mr-3">Plotlines:</span>
             <div className="inline-flex flex-wrap gap-2 mt-2">
               {series.plotlines.map((plotline) => (
                 <span
@@ -536,8 +536,8 @@ Return this exact JSON structure:
       {/* Diff View Modal */}
       {showDiffView && proposedOutlines.length > 0 && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
               <h2 className="text-xl font-bold">Review Proposed Outline Changes</h2>
               <div className="flex items-center gap-3">
                 <button
@@ -548,13 +548,13 @@ Return this exact JSON structure:
                 </button>
                 <button
                   onClick={() => setAcceptedChanges(new Set())}
-                  className="text-sm text-zinc-400 hover:text-white"
+                  className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
                   Clear
                 </button>
                 <button
                   onClick={() => setShowDiffView(false)}
-                  className="text-zinc-400 hover:text-white text-xl"
+                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xl"
                 >
                   ×
                 </button>
@@ -563,8 +563,8 @@ Return this exact JSON structure:
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {proposedOutlines.map((po) => (
-                <div key={po.issueId} className="border border-zinc-700 rounded-lg overflow-hidden">
-                  <div className="bg-zinc-800 px-4 py-2 font-medium">
+                <div key={po.issueId} className="border border-[var(--border)] rounded-lg overflow-hidden">
+                  <div className="bg-[var(--bg-tertiary)] px-4 py-2 font-medium">
                     Issue #{po.issueNumber}
                   </div>
                   <div className="p-4 space-y-4">
@@ -578,16 +578,16 @@ Return this exact JSON structure:
                             onChange={() => toggleAcceptChange(`${po.issueId}-summary`)}
                             className="rounded"
                           />
-                          <span className="text-sm font-medium text-zinc-400">Summary</span>
+                          <span className="text-sm font-medium text-[var(--text-secondary)]">Summary</span>
                         </label>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
                             <div className="text-red-400 text-xs mb-1">Current</div>
-                            <p className="text-zinc-300">{po.currentSummary || <em className="text-zinc-500">Empty</em>}</p>
+                            <p className="text-[var(--text-secondary)]">{po.currentSummary || <em className="text-[var(--text-secondary)]">Empty</em>}</p>
                           </div>
                           <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
                             <div className="text-green-400 text-xs mb-1">Proposed</div>
-                            <p className="text-zinc-300">{po.proposedSummary}</p>
+                            <p className="text-[var(--text-secondary)]">{po.proposedSummary}</p>
                           </div>
                         </div>
                       </div>
@@ -603,16 +603,16 @@ Return this exact JSON structure:
                             onChange={() => toggleAcceptChange(`${po.issueId}-themes`)}
                             className="rounded"
                           />
-                          <span className="text-sm font-medium text-zinc-400">Themes</span>
+                          <span className="text-sm font-medium text-[var(--text-secondary)]">Themes</span>
                         </label>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
                             <div className="text-red-400 text-xs mb-1">Current</div>
-                            <p className="text-zinc-300">{po.currentThemes || <em className="text-zinc-500">Empty</em>}</p>
+                            <p className="text-[var(--text-secondary)]">{po.currentThemes || <em className="text-[var(--text-secondary)]">Empty</em>}</p>
                           </div>
                           <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
                             <div className="text-green-400 text-xs mb-1">Proposed</div>
-                            <p className="text-zinc-300">{po.proposedThemes}</p>
+                            <p className="text-[var(--text-secondary)]">{po.proposedThemes}</p>
                           </div>
                         </div>
                       </div>
@@ -628,18 +628,18 @@ Return this exact JSON structure:
                             onChange={() => toggleAcceptChange(`${po.issueId}-act-${act.actNumber}-beat`)}
                             className="rounded"
                           />
-                          <span className="text-sm font-medium text-zinc-400">
+                          <span className="text-sm font-medium text-[var(--text-secondary)]">
                             Act {act.actNumber} Beat Summary
                           </span>
                         </label>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
                             <div className="text-red-400 text-xs mb-1">Current</div>
-                            <p className="text-zinc-300">{act.currentBeatSummary || <em className="text-zinc-500">Empty</em>}</p>
+                            <p className="text-[var(--text-secondary)]">{act.currentBeatSummary || <em className="text-[var(--text-secondary)]">Empty</em>}</p>
                           </div>
                           <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
                             <div className="text-green-400 text-xs mb-1">Proposed</div>
-                            <p className="text-zinc-300">{act.proposedBeatSummary}</p>
+                            <p className="text-[var(--text-secondary)]">{act.proposedBeatSummary}</p>
                           </div>
                         </div>
                       </div>
@@ -649,21 +649,21 @@ Return this exact JSON structure:
               ))}
             </div>
 
-            <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-700 bg-zinc-800">
-              <span className="text-sm text-zinc-400">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-tertiary)]">
+              <span className="text-sm text-[var(--text-secondary)]">
                 {acceptedChanges.size} changes selected
               </span>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowDiffView(false)}
-                  className="px-4 py-2 text-zinc-400 hover:text-white"
+                  className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={applyAcceptedChanges}
                   disabled={acceptedChanges.size === 0}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded font-medium"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed rounded font-medium"
                 >
                   Apply Selected Changes
                 </button>
@@ -680,19 +680,19 @@ Return this exact JSON structure:
           <button
             onClick={syncOutlineFromScripts}
             disabled={isSyncing}
-            className="text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 px-3 py-1 rounded"
+            className="text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-tertiary)] px-3 py-1 rounded"
           >
             {isSyncing ? 'Syncing...' : 'Sync from Scripts'}
           </button>
           <button
             onClick={expandAll}
-            className="text-sm text-zinc-400 hover:text-white px-2 py-1"
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1"
           >
             Expand All
           </button>
           <button
             onClick={collapseAll}
-            className="text-sm text-zinc-400 hover:text-white px-2 py-1"
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1"
           >
             Collapse All
           </button>
@@ -709,24 +709,24 @@ Return this exact JSON structure:
           return (
             <div
               key={issue.id}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden"
             >
               {/* Issue Header */}
               <div
-                className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[var(--bg-tertiary)]/50 transition-colors"
                 onClick={() => toggleIssue(issue.id)}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-zinc-500">{isExpanded ? '▼' : '▶'}</span>
+                  <span className="text-[var(--text-secondary)]">{isExpanded ? '▼' : '▶'}</span>
                   <span className="font-semibold">Issue #{issue.number}</span>
                   {issue.title && (
-                    <span className="text-zinc-400">— {issue.title}</span>
+                    <span className="text-[var(--text-secondary)]">— {issue.title}</span>
                   )}
                   <span className={`text-xs px-2 py-0.5 rounded ${statusColors[issue.status] || statusColors.outline}`}>
                     {issue.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-zinc-500">
+                <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)]">
                   <span>{stats.totalPages} pages</span>
                   <span>{stats.totalPanels} panels</span>
                   <span>{stats.totalWords.toLocaleString()} words</span>
@@ -742,15 +742,15 @@ Return this exact JSON structure:
 
               {/* Issue Content */}
               {isExpanded && (
-                <div className="px-4 pb-4 border-t border-zinc-800">
+                <div className="px-4 pb-4 border-t border-[var(--border)]">
                   {/* Summary Section */}
                   <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-medium text-zinc-400">Summary</h4>
+                      <h4 className="text-sm font-medium text-[var(--text-secondary)]">Summary</h4>
                       <button
                         onClick={() => generateAISummary(issue)}
                         disabled={isGenerating}
-                        className="text-xs text-blue-400 hover:text-blue-300 disabled:text-zinc-600"
+                        className="text-xs text-blue-400 hover:text-blue-300 disabled:text-[var(--text-muted)]"
                       >
                         {isGenerating ? 'Generating...' : 'Generate with AI'}
                       </button>
@@ -759,7 +759,7 @@ Return this exact JSON structure:
                     {generatedSummary ? (
                       <div className="space-y-2">
                         <div className="p-3 bg-blue-900/20 border border-blue-800/50 rounded text-sm">
-                          <p className="text-zinc-300">{generatedSummary}</p>
+                          <p className="text-[var(--text-secondary)]">{generatedSummary}</p>
                         </div>
                         <div className="flex gap-2">
                           <button
@@ -774,30 +774,30 @@ Return this exact JSON structure:
                               next.delete(issue.id)
                               return next
                             })}
-                            className="text-xs text-zinc-400 hover:text-white px-3 py-1"
+                            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1"
                           >
                             Discard
                           </button>
                         </div>
                       </div>
                     ) : issue.summary ? (
-                      <p className="text-sm text-zinc-300">{issue.summary}</p>
+                      <p className="text-sm text-[var(--text-secondary)]">{issue.summary}</p>
                     ) : (
-                      <p className="text-sm text-zinc-500 italic">No summary yet</p>
+                      <p className="text-sm text-[var(--text-secondary)] italic">No summary yet</p>
                     )}
                   </div>
 
                   {/* Themes */}
                   {issue.themes && (
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium text-zinc-400 mb-1">Themes</h4>
-                      <p className="text-sm text-zinc-300">{issue.themes}</p>
+                      <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-1">Themes</h4>
+                      <p className="text-sm text-[var(--text-secondary)]">{issue.themes}</p>
                     </div>
                   )}
 
                   {/* Act Breakdown */}
                   <div className="mt-4">
-                    <h4 className="text-sm font-medium text-zinc-400 mb-2">Structure</h4>
+                    <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Structure</h4>
                     <div className="space-y-2">
                       {[...(issue.acts || [])]
                         .sort((a, b) => a.sort_order - b.sort_order)
@@ -809,12 +809,12 @@ Return this exact JSON structure:
                           )
 
                           return (
-                            <div key={act.id} className="pl-4 border-l-2 border-zinc-700">
+                            <div key={act.id} className="pl-4 border-l-2 border-[var(--border)]">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-sm">
                                   {act.title || `Act ${act.number}`}
                                 </span>
-                                <span className="text-xs text-zinc-500">
+                                <span className="text-xs text-[var(--text-secondary)]">
                                   ({actPages} pages, {sortedScenes.length} scenes)
                                 </span>
                               </div>
@@ -824,7 +824,7 @@ Return this exact JSON structure:
                                 </p>
                               )}
                               {act.beat_summary && (
-                                <p className="text-xs text-zinc-500 italic mt-0.5">
+                                <p className="text-xs text-[var(--text-secondary)] italic mt-0.5">
                                   {act.beat_summary}
                                 </p>
                               )}
@@ -832,7 +832,7 @@ Return this exact JSON structure:
                                 {sortedScenes.map((scene) => (
                                   <div
                                     key={scene.id}
-                                    className="flex items-center gap-2 text-sm text-zinc-400"
+                                    className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
                                   >
                                     {scene.plotline && (
                                       <span
@@ -841,7 +841,7 @@ Return this exact JSON structure:
                                       />
                                     )}
                                     <span>{scene.title || 'Untitled Scene'}</span>
-                                    <span className="text-zinc-600">
+                                    <span className="text-[var(--text-muted)]">
                                       ({scene.pages?.length || 0} pg)
                                     </span>
                                   </div>
@@ -860,8 +860,8 @@ Return this exact JSON structure:
       </div>
 
       {series.issues.length === 0 && (
-        <div className="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-400">No issues yet</p>
+        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
+          <p className="text-[var(--text-secondary)]">No issues yet</p>
           <Link
             href={`/series/${series.id}`}
             className="text-blue-400 hover:text-blue-300 text-sm mt-2 inline-block"

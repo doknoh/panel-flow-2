@@ -15,6 +15,7 @@ import { exportIssueToDocx } from '@/lib/exportDocx'
 import { exportIssueToTxt } from '@/lib/exportTxt'
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 interface Plotline {
   id: string
@@ -482,6 +483,7 @@ function IssueEditorContent({
                 TXT
               </button>
             </div>
+            <ThemeToggle />
           </div>
         </div>
 

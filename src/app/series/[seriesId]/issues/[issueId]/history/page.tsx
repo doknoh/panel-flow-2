@@ -37,17 +37,17 @@ export default async function VersionHistoryPage({ params }: PageProps) {
   const series = (seriesData as { id: string; title: string }) || { id: seriesId, title: 'Unknown Series' }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <header className="border-b border-zinc-800 px-6 py-4">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <header className="border-b border-[var(--border)] px-6 py-4">
         <div className="max-w-4xl mx-auto">
           <Link
             href={`/series/${seriesId}/issues/${issueId}`}
-            className="text-zinc-400 hover:text-white text-sm mb-2 inline-block"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm mb-2 inline-block"
           >
             &larr; Back to Editor
           </Link>
           <h1 className="text-2xl font-bold">Version History</h1>
-          <p className="text-zinc-400 mt-1">
+          <p className="text-[var(--text-secondary)] mt-1">
             {series.title} - Issue #{issue.number}: {issue.title}
           </p>
         </div>

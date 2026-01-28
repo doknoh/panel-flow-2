@@ -38,7 +38,7 @@ export default function CreateIssueButton({ seriesId, issueCount }: { seriesId: 
     <button
       onClick={handleCreate}
       disabled={loading}
-      className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+      className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--border)] text-[var(--text-primary)] px-4 py-2 rounded-lg font-medium transition-colors"
     >
       {loading ? 'Creating...' : '+ New Issue'}
     </button>

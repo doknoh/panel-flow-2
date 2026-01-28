@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import WeaveView from './WeaveView'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 export default async function WeavePage({
   params
@@ -102,8 +103,11 @@ export default async function WeavePage({
             <span className="text-[var(--text-muted)]">/</span>
             <h1 className="text-xl font-bold">The Weave</h1>
           </div>
-          <div className="text-sm text-[var(--text-secondary)]">
-            Arrange story beats across pages and spreads
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--text-secondary)] hidden sm:block">
+              Arrange story beats across pages and spreads
+            </span>
+            <ThemeToggle />
           </div>
         </div>
       </header>

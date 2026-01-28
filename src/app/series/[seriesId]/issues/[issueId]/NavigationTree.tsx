@@ -853,7 +853,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                         e.stopPropagation()
                                         setEditingScenePlotline(editingScenePlotline === scene.id ? null : scene.id)
                                       }}
-                                      className="w-3 h-3 rounded-full flex-shrink-0 border border-[var(--border)] hover:border-zinc-400"
+                                      className="w-3 h-3 rounded-full flex-shrink-0 border border-[var(--border)] hover:border-[var(--border)]"
                                       style={{ backgroundColor: scene.plotline?.color || 'transparent' }}
                                       title={scene.plotline?.name || 'No plotline assigned'}
                                     />
@@ -1018,7 +1018,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                             !scene.plotline_id ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-tertiary)]'
                                           }`}
                                         >
-                                          <span className="w-2 h-2 rounded-full border border-zinc-500" />
+                                          <span className="w-2 h-2 rounded-full border border-[var(--border)]" />
                                           <span className="text-[var(--text-secondary)]">None</span>
                                         </button>
                                         {plotlines.map((plotline) => (

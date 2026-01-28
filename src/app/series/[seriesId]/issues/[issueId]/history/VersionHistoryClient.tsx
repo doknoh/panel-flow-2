@@ -225,9 +225,9 @@ export default function VersionHistoryClient({
 
   if (snapshots.length === 0) {
     return (
-      <div className="text-center py-16 bg-zinc-900 border border-zinc-800 rounded-lg">
-        <p className="text-zinc-400 mb-2">No version history available</p>
-        <p className="text-zinc-500 text-sm">
+      <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
+        <p className="text-[var(--text-secondary)] mb-2">No version history available</p>
+        <p className="text-[var(--text-secondary)] text-sm">
           Versions are automatically saved as you work.
         </p>
       </div>
@@ -252,13 +252,13 @@ export default function VersionHistoryClient({
               className={`w-full text-left p-4 rounded-lg border transition-colors ${
                 selectedIndex === index
                   ? 'bg-blue-900/30 border-blue-500'
-                  : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                  : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border)]'
               }`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <p className="font-medium">{formatDate(snapshot.created_at)}</p>
-                  <p className="text-sm text-zinc-400">{getSnapshotSummary(snapshot)}</p>
+                  <p className="text-sm text-[var(--text-secondary)]">{getSnapshotSummary(snapshot)}</p>
                 </div>
                 {index === 0 && (
                   <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">
@@ -267,17 +267,17 @@ export default function VersionHistoryClient({
                 )}
               </div>
               {snapshot.description && (
-                <p className="text-sm text-zinc-400 mb-2 italic">{snapshot.description}</p>
+                <p className="text-sm text-[var(--text-secondary)] mb-2 italic">{snapshot.description}</p>
               )}
               <div className="mt-2">
                 {diffs.slice(0, 3).map((diff, i) => (
-                  <p key={i} className="text-xs text-zinc-500">
+                  <p key={i} className="text-xs text-[var(--text-secondary)]">
                     <span className="text-yellow-500 mr-1">&bull;</span>
                     {diff}
                   </p>
                 ))}
                 {diffs.length > 3 && (
-                  <p className="text-xs text-zinc-600">+{diffs.length - 3} more changes</p>
+                  <p className="text-xs text-[var(--text-muted)]">+{diffs.length - 3} more changes</p>
                 )}
               </div>
             </button>
@@ -289,17 +289,17 @@ export default function VersionHistoryClient({
       <div>
         <h2 className="text-lg font-semibold mb-4">Preview</h2>
         {selectedSnapshot ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="font-medium">{formatDate(selectedSnapshot.created_at)}</p>
-                <p className="text-sm text-zinc-400">{getSnapshotSummary(selectedSnapshot)}</p>
+                <p className="text-sm text-[var(--text-secondary)]">{getSnapshotSummary(selectedSnapshot)}</p>
               </div>
               {selectedIndex !== 0 && (
                 <button
                   onClick={() => handleRestore(selectedSnapshot)}
                   disabled={isRestoring}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 px-4 py-2 rounded font-medium text-sm"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded font-medium text-sm"
                 >
                   {isRestoring ? 'Restoring...' : 'Restore This Version'}
                 </button>
@@ -308,8 +308,8 @@ export default function VersionHistoryClient({
 
             {/* Changes from previous version */}
             <div className="mb-6">
-              <h3 className="text-sm font-medium text-zinc-400 mb-2">Changes from previous version:</h3>
-              <div className="bg-zinc-800 rounded p-3">
+              <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Changes from previous version:</h3>
+              <div className="bg-[var(--bg-tertiary)] rounded p-3">
                 {findDifferences(previousSnapshot, selectedSnapshot).map((diff, i) => (
                   <p key={i} className="text-sm">
                     <span className={diff.includes('added') || diff.includes('Added') ? 'text-green-400' : diff.includes('removed') || diff.includes('Removed') ? 'text-red-400' : 'text-yellow-400'}>
@@ -323,20 +323,20 @@ export default function VersionHistoryClient({
 
             {/* Content Preview */}
             <div>
-              <h3 className="text-sm font-medium text-zinc-400 mb-2">Content:</h3>
+              <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Content:</h3>
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {(selectedSnapshot.snapshot_data?.pages || []).map((page) => (
-                  <div key={page.id} className="bg-zinc-800 rounded p-3">
+                  <div key={page.id} className="bg-[var(--bg-tertiary)] rounded p-3">
                     <p className="font-medium text-sm mb-2">Page {page.page_number}</p>
                     <div className="space-y-2">
                       {(page.panels || []).map((panel) => (
-                        <div key={panel.id} className="text-sm text-zinc-400 pl-3 border-l border-zinc-700">
-                          <p className="text-zinc-500">Panel {panel.panel_number}</p>
+                        <div key={panel.id} className="text-sm text-[var(--text-secondary)] pl-3 border-l border-[var(--border)]">
+                          <p className="text-[var(--text-secondary)]">Panel {panel.panel_number}</p>
                           {panel.visual_description && (
                             <p className="text-xs line-clamp-2">{panel.visual_description}</p>
                           )}
                           {(panel.dialogue_blocks?.length || 0) > 0 && (
-                            <p className="text-xs text-zinc-500">
+                            <p className="text-xs text-[var(--text-secondary)]">
                               {panel.dialogue_blocks?.length} dialogue block(s)
                             </p>
                           )}
@@ -349,7 +349,7 @@ export default function VersionHistoryClient({
             </div>
           </div>
         ) : (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center text-zinc-400">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 text-center text-[var(--text-secondary)]">
             Select a version to preview
           </div>
         )}

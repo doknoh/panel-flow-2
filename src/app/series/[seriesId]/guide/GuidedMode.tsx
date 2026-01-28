@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/contexts/ToastContext'
 import { analyzeProjectCompleteness, type CompletenessAnalysis } from './analyzeCompleteness'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 interface GuidedSession {
   id: string
@@ -548,6 +549,7 @@ export default function GuidedMode({
                 )}
               </div>
             )}
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -665,7 +667,7 @@ export default function GuidedMode({
                     className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                       msg.role === 'user'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-[var(--bg-tertiary)] text-zinc-100'
+                        : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
                     }`}
                   >
                     <div className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -673,7 +675,7 @@ export default function GuidedMode({
                     </div>
                     {msg.extracted_data && (
                       <div className="mt-3 pt-3 border-t border-white/10">
-                        <div className="text-xs text-zinc-300 mb-2">
+                        <div className="text-xs text-[var(--text-secondary)] mb-2">
                           💾 Detected: {msg.extracted_data.type}
                         </div>
                         <button
@@ -693,9 +695,9 @@ export default function GuidedMode({
                   <div className="bg-[var(--bg-tertiary)] rounded-2xl px-4 py-3">
                     <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                       <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                       <span>Thinking...</span>
                     </div>
@@ -767,7 +769,7 @@ export default function GuidedMode({
                              insight.type === 'world' ? '🌍' : '✨'}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <span className="text-zinc-200">{insight.description}</span>
+                            <span className="text-[var(--text-primary)]">{insight.description}</span>
                             <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--text-muted)]">
                               <span className="bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">{insight.category}</span>
                               <span>
@@ -808,7 +810,7 @@ export default function GuidedMode({
                 <button
                   onClick={sendMessage}
                   disabled={!input.trim() || isLoading}
-                  className="px-4 bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-700 disabled:text-[var(--text-muted)] rounded-xl font-medium transition-colors"
+                  className="px-4 bg-purple-600 hover:bg-purple-500 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-xl font-medium transition-colors"
                 >
                   Send
                 </button>

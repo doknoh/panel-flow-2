@@ -12,13 +12,13 @@ interface OutlineToggleProps {
 
 export default function OutlineToggle({ mode, onChange, className = '' }: OutlineToggleProps) {
   return (
-    <div className={`flex gap-1 bg-zinc-800 rounded-lg p-0.5 ${className}`}>
+    <div className={`flex gap-1 bg-[var(--bg-tertiary)] rounded-lg p-0.5 ${className}`}>
       <button
         onClick={() => onChange('outline')}
         className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
           mode === 'outline'
-            ? 'bg-purple-600 text-white'
-            : 'text-zinc-400 hover:text-white'
+            ? 'bg-purple-600 text-[var(--text-primary)]'
+            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
         }`}
         title="View and edit story structure"
       >
@@ -28,8 +28,8 @@ export default function OutlineToggle({ mode, onChange, className = '' }: Outlin
         onClick={() => onChange('draft')}
         className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
           mode === 'draft'
-            ? 'bg-green-600 text-white'
-            : 'text-zinc-400 hover:text-white'
+            ? 'bg-green-600 text-[var(--text-primary)]'
+            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
         }`}
         title="Write panel descriptions and dialogue"
       >
