@@ -616,6 +616,7 @@ function IssueEditorContent({
               <NavigationTree
                 key={refreshKey}
                 issue={issue}
+                setIssue={setIssue}
                 plotlines={issue.series.plotlines || []}
                 selectedPageId={selectedPageId}
                 onSelectPage={(pageId) => {
@@ -669,6 +670,7 @@ function IssueEditorContent({
           <NavigationTree
             key={`mobile-${refreshKey}`}
             issue={issue}
+            setIssue={setIssue}
             plotlines={issue.series.plotlines || []}
             selectedPageId={selectedPageId}
             onSelectPage={(pageId) => {

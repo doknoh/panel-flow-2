@@ -31,6 +31,7 @@ interface Plotline {
 
 interface NavigationTreeProps {
   issue: any
+  setIssue: React.Dispatch<React.SetStateAction<any>>
   plotlines: Plotline[]
   selectedPageId: string | null
   onSelectPage: (pageId: string) => void
@@ -67,7 +68,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
   )
 }
 
-export default function NavigationTree({ issue, plotlines, selectedPageId, onSelectPage, onRefresh }: NavigationTreeProps) {
+export default function NavigationTree({ issue, setIssue, plotlines, selectedPageId, onSelectPage, onRefresh }: NavigationTreeProps) {
   const [expandedActs, setExpandedActs] = useState<Set<string>>(new Set(issue.acts?.map((a: any) => a.id) || []))
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
   const [isMounted, setIsMounted] = useState(false)
@@ -163,7 +164,13 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to rename act: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update - update the act title in local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) =>
+          a.id === actId ? { ...a, title: trimmedTitle } : a
+        ),
+      }))
     }
     setEditingActId(null)
   }
@@ -185,7 +192,16 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to rename scene: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update - update the scene title in local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) =>
+            s.id === sceneId ? { ...s, title: trimmedTitle } : s
+          ),
+        })),
+      }))
     }
     setEditingSceneId(null)
   }
@@ -214,7 +230,19 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to rename page: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update - update the page title in local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) => ({
+            ...s,
+            pages: (s.pages || []).map((p: any) =>
+              p.id === pageId ? { ...p, title: trimmedTitle } : p
+            ),
+          })),
+        })),
+      }))
     }
     setEditingPageId(null)
   }
@@ -229,15 +257,25 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   // Save scene summary
   const saveSceneSummary = async (sceneId: string) => {
     const supabase = createClient()
+    const trimmedSummary = editingSummary.trim() || null
     const { error } = await supabase
       .from('scenes')
-      .update({ scene_summary: editingSummary.trim() || null })
+      .update({ scene_summary: trimmedSummary })
       .eq('id', sceneId)
 
     if (error) {
       showToast(`Failed to save summary: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) =>
+            s.id === sceneId ? { ...s, scene_summary: trimmedSummary } : s
+          ),
+        })),
+      }))
     }
     setEditingSceneSummaryId(null)
   }
@@ -252,15 +290,22 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   // Save act beat summary
   const saveActBeatSummary = async (actId: string) => {
     const supabase = createClient()
+    const trimmedSummary = editingBeatSummary.trim() || null
     const { error } = await supabase
       .from('acts')
-      .update({ beat_summary: editingBeatSummary.trim() || null })
+      .update({ beat_summary: trimmedSummary })
       .eq('id', actId)
 
     if (error) {
       showToast(`Failed to save beat summary: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) =>
+          a.id === actId ? { ...a, beat_summary: trimmedSummary } : a
+        ),
+      }))
     }
     setEditingActBeatSummaryId(null)
   }
@@ -275,15 +320,22 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   // Save act intention
   const saveActIntention = async (actId: string) => {
     const supabase = createClient()
+    const trimmedIntention = editingActIntention.trim() || null
     const { error } = await supabase
       .from('acts')
-      .update({ intention: editingActIntention.trim() || null })
+      .update({ intention: trimmedIntention })
       .eq('id', actId)
 
     if (error) {
       showToast(`Failed to save intention: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) =>
+          a.id === actId ? { ...a, intention: trimmedIntention } : a
+        ),
+      }))
     }
     setEditingActIntentionId(null)
   }
@@ -298,15 +350,25 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   // Save scene intention
   const saveSceneIntention = async (sceneId: string) => {
     const supabase = createClient()
+    const trimmedIntention = editingSceneIntention.trim() || null
     const { error } = await supabase
       .from('scenes')
-      .update({ intention: editingSceneIntention.trim() || null })
+      .update({ intention: trimmedIntention })
       .eq('id', sceneId)
 
     if (error) {
       showToast(`Failed to save intention: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) =>
+            s.id === sceneId ? { ...s, intention: trimmedIntention } : s
+          ),
+        })),
+      }))
     }
     setEditingSceneIntentionId(null)
   }
@@ -346,17 +408,23 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     const supabase = createClient()
     const actNumber = (issue.acts?.length || 0) + 1
 
-    const { error } = await supabase.from('acts').insert({
+    const { data: newAct, error } = await supabase.from('acts').insert({
       issue_id: issue.id,
       number: actNumber,
       title: `Act ${actNumber}`,
       sort_order: actNumber,
-    })
+    }).select().single()
 
     if (error) {
       showToast(`Failed to create act: ${error.message}`, 'error')
-    } else {
-      await onRefresh()
+    } else if (newAct) {
+      // Optimistic update - add the new act to local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: [...(prev.acts || []), { ...newAct, scenes: [] }],
+      }))
+      setExpandedActs(new Set([...expandedActs, newAct.id]))
+      showToast('Act created', 'success')
     }
   }
 
@@ -374,7 +442,12 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to delete act: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update - remove the act from local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.filter((a: any) => a.id !== actId),
+      }))
+      showToast('Act deleted', 'success')
     }
   }
 
@@ -389,7 +462,15 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     if (error) {
       showToast(`Failed to delete scene: ${error.message}`, 'error')
     } else {
-      await onRefresh()
+      // Optimistic update - remove the scene from local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).filter((s: any) => s.id !== sceneId),
+        })),
+      }))
+      showToast('Scene deleted', 'success')
     }
   }
 
@@ -405,30 +486,46 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       if (selectedPageId === pageId) {
         onSelectPage('')
       }
-      await onRefresh()
+      // Optimistic update - remove the page from local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) => ({
+            ...s,
+            pages: (s.pages || []).filter((p: any) => p.id !== pageId),
+          })),
+        })),
+      }))
+      showToast('Page deleted', 'success')
     }
   }
 
   const addScene = async (actId: string) => {
-    console.log('addScene called with actId:', actId)
     const supabase = createClient()
     const act = issue.acts?.find((a: any) => a.id === actId)
     const sceneCount = act?.scenes?.length || 0
-    console.log('Found act:', act, 'sceneCount:', sceneCount)
 
-    const { data, error } = await supabase.from('scenes').insert({
+    const { data: newScene, error } = await supabase.from('scenes').insert({
       act_id: actId,
       title: `Scene ${sceneCount + 1}`,
       sort_order: sceneCount + 1,
-    }).select()
-
-    console.log('Insert result:', { data, error })
+    }).select().single()
 
     if (error) {
       showToast(`Failed to create scene: ${error.message}`, 'error')
-    } else {
+    } else if (newScene) {
+      // Optimistic update - add the new scene to local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) =>
+          a.id === actId
+            ? { ...a, scenes: [...(a.scenes || []), { ...newScene, pages: [] }] }
+            : a
+        ),
+      }))
       setExpandedActs(new Set([...expandedActs, actId]))
-      await onRefresh()
+      showToast('Scene created', 'success')
     }
   }
 
@@ -443,18 +540,31 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     const scene = issue.acts?.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === sceneId)
     const pagesInScene = scene?.pages?.length || 0
 
-    const { data, error } = await supabase.from('pages').insert({
+    const { data: newPage, error } = await supabase.from('pages').insert({
       scene_id: sceneId,
       page_number: pageNumber,
       sort_order: pagesInScene + 1,
+      title: `Page ${pageNumber}`,
     }).select().single()
 
     if (error) {
       showToast(`Failed to create page: ${error.message}`, 'error')
-    } else if (data) {
+    } else if (newPage) {
+      // Optimistic update - add the new page to local state immediately
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) =>
+            s.id === sceneId
+              ? { ...s, pages: [...(s.pages || []), { ...newPage, panels: [] }] }
+              : s
+          ),
+        })),
+      }))
       setExpandedScenes(new Set([...expandedScenes, sceneId]))
-      await onRefresh()
-      onSelectPage(data.id)
+      onSelectPage(newPage.id)
+      showToast('Page created', 'success')
     }
   }
 
@@ -468,13 +578,23 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
 
     const reordered = arrayMove(sortedActs, oldIndex, newIndex)
 
+    // Optimistic update - update local state immediately
+    const reorderedWithSortOrder = reordered.map((act, index) => ({
+      ...act,
+      sort_order: index + 1,
+    }))
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: reorderedWithSortOrder,
+    }))
+
+    // Then persist to database
     const supabase = createClient()
     const updates = reordered.map((act, index) =>
       supabase.from('acts').update({ sort_order: index + 1 }).eq('id', act.id)
     )
-
     await Promise.all(updates)
-    await onRefresh()
+    showToast('Acts reordered', 'success')
   }
 
   const handleSceneDragEnd = async (actId: string, event: DragEndEvent) => {
@@ -488,13 +608,25 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
 
     const reordered = arrayMove(sortedScenes, oldIndex, newIndex)
 
+    // Optimistic update - update local state immediately
+    const reorderedWithSortOrder = reordered.map((scene: any, index: number) => ({
+      ...scene,
+      sort_order: index + 1,
+    }))
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: prev.acts.map((a: any) =>
+        a.id === actId ? { ...a, scenes: reorderedWithSortOrder } : a
+      ),
+    }))
+
+    // Then persist to database
     const supabase = createClient()
     const updates = reordered.map((scene: any, index: number) =>
       supabase.from('scenes').update({ sort_order: index + 1 }).eq('id', scene.id)
     )
-
     await Promise.all(updates)
-    await onRefresh()
+    showToast('Scenes reordered', 'success')
   }
 
   const handlePageDragEnd = async (sceneId: string, event: DragEndEvent) => {
@@ -516,9 +648,23 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
 
     const reordered = arrayMove(sortedPages, oldIndex, newIndex)
 
-    const supabase = createClient()
+    // Optimistic update - update local state immediately
+    const reorderedWithSortOrder = reordered.map((page: any, index: number) => ({
+      ...page,
+      sort_order: index + 1,
+    }))
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: prev.acts.map((a: any) => ({
+        ...a,
+        scenes: (a.scenes || []).map((s: any) =>
+          s.id === sceneId ? { ...s, pages: reorderedWithSortOrder } : s
+        ),
+      })),
+    }))
 
-    // Update each page's sort_order and verify with .select()
+    // Then persist to database
+    const supabase = createClient()
     const updates = reordered.map((page: any, index: number) =>
       supabase
         .from('pages')
@@ -533,18 +679,18 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
 
     if (errors.length > 0) {
       showToast(`Failed to update ${errors.length} page(s): ${errors[0].error?.message}`, 'error')
+      // Revert optimistic update on error by refreshing
+      await onRefresh()
       return
     }
 
     if (successCount === 0) {
       showToast('No pages were updated - check permissions', 'error')
+      await onRefresh()
       return
     }
 
-    // Note: We don't renumber page_number anymore - it's a static label set at creation
-    // Only sort_order determines the visual position
     showToast(`Reordered ${successCount} pages`, 'success')
-    await onRefresh()
   }
 
   const movePageToScene = async (pageId: string, targetSceneId: string) => {
@@ -588,6 +734,39 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       return
     }
 
+    // Optimistic update - move the page in local state immediately
+    setIssue((prev: any) => {
+      // Find and remove the page from its current scene
+      let movedPage: any = null
+      const updatedActs = prev.acts.map((a: any) => ({
+        ...a,
+        scenes: (a.scenes || []).map((s: any) => {
+          const pageInScene = (s.pages || []).find((p: any) => p.id === pageId)
+          if (pageInScene) {
+            movedPage = { ...pageInScene, scene_id: targetSceneId, sort_order: newSortOrder }
+            return { ...s, pages: s.pages.filter((p: any) => p.id !== pageId) }
+          }
+          return s
+        }),
+      }))
+
+      // Add the page to the target scene
+      if (movedPage) {
+        return {
+          ...prev,
+          acts: updatedActs.map((a: any) => ({
+            ...a,
+            scenes: (a.scenes || []).map((s: any) =>
+              s.id === targetSceneId
+                ? { ...s, pages: [...(s.pages || []), movedPage] }
+                : s
+            ),
+          })),
+        }
+      }
+      return prev
+    })
+
     // Expand the target scene so user can see the moved page
     setExpandedScenes(new Set([...expandedScenes, targetSceneId]))
     // Also expand the act containing the target scene
@@ -599,7 +778,6 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
     }
     showToast('Page moved successfully', 'success')
     setMovingPageId(null)
-    await onRefresh()
   }
 
   // Get all scenes for the move dropdown
@@ -618,7 +796,17 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       .eq('id', sceneId)
 
     if (!error) {
-      await onRefresh()
+      // Optimistic update - update the scene's plotline in local state
+      const plotline = plotlineId ? plotlines.find(p => p.id === plotlineId) : null
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) =>
+            s.id === sceneId ? { ...s, plotline_id: plotlineId, plotline } : s
+          ),
+        })),
+      }))
     }
     setEditingScenePlotline(null)
   }
