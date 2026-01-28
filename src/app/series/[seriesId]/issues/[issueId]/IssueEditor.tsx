@@ -56,6 +56,9 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editedTitle, setEditedTitle] = useState(issue.title || '')
+  const titleInputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
   const lastSnapshotRef = useRef<string>('')
   const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -94,6 +97,37 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   useEffect(() => {
     refreshIssue()
   }, [])
+
+  // Focus title input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus()
+      titleInputRef.current.select()
+    }
+  }, [isEditingTitle])
+
+  const saveTitle = async () => {
+    const trimmedTitle = editedTitle.trim()
+    if (trimmedTitle === (issue.title || '')) {
+      setIsEditingTitle(false)
+      return
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('issues')
+      .update({ title: trimmedTitle || null })
+      .eq('id', issue.id)
+
+    if (error) {
+      showToast('Failed to save title', 'error')
+      setEditedTitle(issue.title || '')
+    } else {
+      setIssue(prev => ({ ...prev, title: trimmedTitle || null }))
+      showToast('Title updated', 'success')
+    }
+    setIsEditingTitle(false)
+  }
 
   const refreshIssue = async () => {
     const supabase = createClient()
@@ -387,8 +421,40 @@ function IssueEditorContent({
             <Link href={`/series/${seriesId}`} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] shrink-0">
               ←
             </Link>
-            <span className="font-semibold truncate">Issue #{issue.number}</span>
-            {issue.title && <span className="text-[var(--text-secondary)] hidden sm:inline truncate">— {issue.title}</span>}
+            <span className="font-semibold shrink-0">Issue #{issue.number}</span>
+            <span className="text-[var(--text-secondary)] hidden sm:inline shrink-0">—</span>
+            {isEditingTitle ? (
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onBlur={saveTitle}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveTitle()
+                  if (e.key === 'Escape') {
+                    setEditedTitle(issue.title || '')
+                    setIsEditingTitle(false)
+                  }
+                }}
+                className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-0.5 text-[var(--text-primary)] min-w-[150px] max-w-[300px]"
+                placeholder="Issue title..."
+              />
+            ) : (
+              <button
+                onClick={() => {
+                  setEditedTitle(issue.title || '')
+                  setIsEditingTitle(true)
+                }}
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden sm:inline truncate max-w-[300px] text-left group"
+                title="Click to edit title"
+              >
+                {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
+                <svg className="w-3 h-3 inline ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2 md:gap-4">
             <button
