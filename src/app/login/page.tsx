@@ -12,16 +12,16 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">Panel Flow</h1>
-          <p className="text-zinc-400">Professional Comic Script Writing</p>
+          <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-2">Panel Flow</h1>
+          <p className="text-[var(--text-secondary)]">Professional Comic Script Writing</p>
         </div>
 
         <LoginButton />
 
-        <p className="text-center text-zinc-500 text-sm">
+        <p className="text-center text-[var(--text-muted)] text-sm">
           Your scripts, structured and secure.
         </p>
       </div>

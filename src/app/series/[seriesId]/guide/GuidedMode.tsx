@@ -443,25 +443,25 @@ export default function GuidedMode({
     : series.title
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950 text-white">
+    <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-white">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-4 py-3 shrink-0">
+      <header className="border-b border-[var(--border)] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
             <Link
               href={currentIssue ? `/series/${series.id}/issues/${currentIssue.id}` : `/series/${series.id}`}
-              className="text-zinc-400 hover:text-white"
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               ←
             </Link>
             <div>
               <h1 className="font-semibold flex items-center gap-2">
                 <span className="text-purple-400">Guide</span>
-                <span className="text-zinc-600">/</span>
+                <span className="text-[var(--text-muted)]">/</span>
                 <span>{contextLabel}</span>
               </h1>
               {session && (
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[var(--text-muted)]">
                   {session.session_type === 'general' ? 'General Session' : session.session_type.replace(/_/g, ' ')}
                   {session.focus_area && ` • Exploring: ${session.focus_area}`}
                 </p>
@@ -474,7 +474,7 @@ export default function GuidedMode({
               <div className="relative">
                 <button
                   onClick={() => setShowSessionMenu(!showSessionMenu)}
-                  className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 border border-zinc-700 rounded-lg flex items-center gap-1"
+                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1.5 border border-[var(--border)] rounded-lg flex items-center gap-1"
                 >
                   Options
                   <span className="text-[10px]">▼</span>
@@ -488,31 +488,31 @@ export default function GuidedMode({
                       onClick={() => setShowSessionMenu(false)}
                     />
                     {/* Menu */}
-                    <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden">
+                    <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl overflow-hidden">
                       {/* Shift Focus Options */}
-                      <div className="p-2 border-b border-zinc-700">
-                        <div className="text-[10px] uppercase text-zinc-500 px-2 py-1">Shift Focus To</div>
+                      <div className="p-2 border-b border-[var(--border)]">
+                        <div className="text-[10px] uppercase text-[var(--text-muted)] px-2 py-1">Shift Focus To</div>
                         <button
                           onClick={() => shiftFocus('character_deep_dive')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded"
                         >
                           🎭 Characters
                         </button>
                         <button
                           onClick={() => shiftFocus('outline')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded"
                         >
                           📐 Story Structure
                         </button>
                         <button
                           onClick={() => shiftFocus('world_building')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded"
                         >
                           🌍 World Building
                         </button>
                         <button
                           onClick={() => shiftFocus('general')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded"
                         >
                           🔮 Open Exploration
                         </button>
@@ -526,7 +526,7 @@ export default function GuidedMode({
                             extractInsights()
                           }}
                           disabled={isExtracting || messages.length < 2}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isExtracting ? '⏳ Extracting...' : '💡 Extract Insights'}
                         </button>
@@ -538,7 +538,7 @@ export default function GuidedMode({
                             setExtractionResults(null)
                             setShowSessionPicker(true)
                           }}
-                          className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-zinc-800 rounded"
+                          className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-[var(--bg-tertiary)] rounded"
                         >
                           ✨ New Session
                         </button>
@@ -560,7 +560,7 @@ export default function GuidedMode({
             <div className="text-center mb-8">
               <div className="text-6xl mb-4">🎭</div>
               <h2 className="text-2xl font-bold mb-2">Guided Writing Session</h2>
-              <p className="text-zinc-400 max-w-md">
+              <p className="text-[var(--text-secondary)] max-w-md">
                 Your AI writing partner will guide you through developing your story,
                 asking questions and helping you discover the details that bring it to life.
               </p>
@@ -568,18 +568,18 @@ export default function GuidedMode({
 
             {/* Completeness Summary */}
             {analysis && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6 w-full max-w-md">
+              <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 mb-6 w-full max-w-md">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium">Project Completeness</span>
-                  <span className="text-sm text-zinc-400">{analysis.overallScore}%</span>
+                  <span className="text-sm text-[var(--text-secondary)]">{analysis.overallScore}%</span>
                 </div>
-                <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all"
                     style={{ width: `${analysis.overallScore}%` }}
                   />
                 </div>
-                <div className="mt-3 text-xs text-zinc-500">
+                <div className="mt-3 text-xs text-[var(--text-muted)]">
                   {analysis.suggestedFocus && (
                     <p>Suggested focus: <span className="text-purple-400">{analysis.suggestedFocus}</span></p>
                   )}
@@ -591,55 +591,55 @@ export default function GuidedMode({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md mb-6">
               <button
                 onClick={() => startNewSession('general')}
-                className="p-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-left transition-colors"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left transition-colors"
               >
                 <div className="font-medium mb-1">Open Exploration</div>
-                <div className="text-xs text-zinc-400">Let the AI guide based on what's needed</div>
+                <div className="text-xs text-[var(--text-secondary)]">Let the AI guide based on what's needed</div>
               </button>
               <button
                 onClick={() => startNewSession('character_deep_dive')}
-                className="p-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-left transition-colors"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left transition-colors"
               >
                 <div className="font-medium mb-1">Character Deep Dive</div>
-                <div className="text-xs text-zinc-400">Explore motivations, arcs, and voices</div>
+                <div className="text-xs text-[var(--text-secondary)]">Explore motivations, arcs, and voices</div>
               </button>
               <button
                 onClick={() => startNewSession('outline')}
-                className="p-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-left transition-colors"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left transition-colors"
               >
                 <div className="font-medium mb-1">Story Structure</div>
-                <div className="text-xs text-zinc-400">Work out acts, beats, and pacing</div>
+                <div className="text-xs text-[var(--text-secondary)]">Work out acts, beats, and pacing</div>
               </button>
               <button
                 onClick={() => startNewSession('world_building')}
-                className="p-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-left transition-colors"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left transition-colors"
               >
                 <div className="font-medium mb-1">World Building</div>
-                <div className="text-xs text-zinc-400">Define locations, rules, and atmosphere</div>
+                <div className="text-xs text-[var(--text-secondary)]">Define locations, rules, and atmosphere</div>
               </button>
             </div>
 
             {/* Recent Sessions */}
             {recentSessions.length > 0 && (
               <div className="w-full max-w-md">
-                <h3 className="text-sm font-medium text-zinc-400 mb-2">Resume a session</h3>
+                <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Resume a session</h3>
                 <div className="space-y-2">
                   {recentSessions.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => resumeSession(s)}
-                      className="w-full p-3 bg-zinc-900/50 hover:bg-zinc-800/50 border border-zinc-800 rounded-lg text-left transition-colors"
+                      className="w-full p-3 bg-[var(--bg-secondary)]/50 hover:bg-[var(--bg-tertiary)]/50 border border-[var(--border)] rounded-lg text-left transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm">
                           {s.title || s.session_type.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-xs text-[var(--text-muted)]">
                           {new Date(s.last_active_at).toLocaleDateString()}
                         </span>
                       </div>
                       {s.focus_area && (
-                        <div className="text-xs text-zinc-500 mt-1">
+                        <div className="text-xs text-[var(--text-muted)] mt-1">
                           Last exploring: {s.focus_area}
                         </div>
                       )}
@@ -665,7 +665,7 @@ export default function GuidedMode({
                     className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                       msg.role === 'user'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-zinc-800 text-zinc-100'
+                        : 'bg-[var(--bg-tertiary)] text-zinc-100'
                     }`}
                   >
                     <div className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -690,8 +690,8 @@ export default function GuidedMode({
 
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-zinc-800 rounded-2xl px-4 py-3">
-                    <div className="flex items-center gap-2 text-sm text-zinc-400">
+                  <div className="bg-[var(--bg-tertiary)] rounded-2xl px-4 py-3">
+                    <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                       <div className="flex gap-1">
                         <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                         <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -717,7 +717,7 @@ export default function GuidedMode({
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPendingExtraction(null)}
-                      className="text-xs text-zinc-400 hover:text-white px-2 py-1"
+                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1"
                     >
                       Dismiss
                     </button>
@@ -742,14 +742,14 @@ export default function GuidedMode({
                     </div>
                     <button
                       onClick={() => setExtractionResults(null)}
-                      className="text-xs text-zinc-400 hover:text-white"
+                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
                       ✕
                     </button>
                   </div>
 
                   {extractionResults.sessionSummary && (
-                    <p className="text-xs text-zinc-400 mb-2 italic">
+                    <p className="text-xs text-[var(--text-secondary)] mb-2 italic">
                       "{extractionResults.sessionSummary}"
                     </p>
                   )}
@@ -759,7 +759,7 @@ export default function GuidedMode({
                       {extractionResults.insights.map((insight: any, i: number) => (
                         <div
                           key={i}
-                          className="text-xs bg-zinc-900/50 px-3 py-2 rounded flex items-start gap-2"
+                          className="text-xs bg-[var(--bg-secondary)]/50 px-3 py-2 rounded flex items-start gap-2"
                         >
                           <span className="shrink-0">
                             {insight.type === 'character' ? '🎭' :
@@ -768,8 +768,8 @@ export default function GuidedMode({
                           </span>
                           <div className="flex-1 min-w-0">
                             <span className="text-zinc-200">{insight.description}</span>
-                            <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-500">
-                              <span className="bg-zinc-800 px-1.5 py-0.5 rounded">{insight.category}</span>
+                            <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--text-muted)]">
+                              <span className="bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">{insight.category}</span>
                               <span>
                                 {Math.round(insight.confidence * 100)}% confidence
                               </span>
@@ -784,7 +784,7 @@ export default function GuidedMode({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-[var(--text-muted)]">
                       No clear insights found yet. Keep exploring your ideas!
                     </p>
                   )}
@@ -793,7 +793,7 @@ export default function GuidedMode({
             )}
 
             {/* Input */}
-            <div className="p-4 border-t border-zinc-800">
+            <div className="p-4 border-t border-[var(--border)]">
               <div className="max-w-2xl mx-auto flex gap-3">
                 <textarea
                   ref={inputRef}
@@ -801,19 +801,19 @@ export default function GuidedMode({
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Share your thoughts..."
-                  className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 resize-none text-sm focus:outline-none focus:border-purple-500 transition-colors"
+                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl px-4 py-3 resize-none text-sm focus:outline-none focus:border-purple-500 transition-colors"
                   rows={2}
                   disabled={isLoading}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={!input.trim() || isLoading}
-                  className="px-4 bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-xl font-medium transition-colors"
+                  className="px-4 bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-700 disabled:text-[var(--text-muted)] rounded-xl font-medium transition-colors"
                 >
                   Send
                 </button>
               </div>
-              <div className="max-w-2xl mx-auto mt-2 text-xs text-zinc-500 text-center">
+              <div className="max-w-2xl mx-auto mt-2 text-xs text-[var(--text-muted)] text-center">
                 Press Enter to send • Shift+Enter for new line
               </div>
             </div>

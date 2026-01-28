@@ -89,20 +89,20 @@ export default async function WeavePage({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <header className="border-b border-zinc-800 px-6 py-4">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <header className="border-b border-[var(--border)] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href={`/series/${seriesId}/issues/${issueId}`}
-              className="text-zinc-400 hover:text-white"
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               ← Issue #{issue.number}
             </Link>
-            <span className="text-zinc-600">/</span>
+            <span className="text-[var(--text-muted)]">/</span>
             <h1 className="text-xl font-bold">The Weave</h1>
           </div>
-          <div className="text-sm text-zinc-400">
+          <div className="text-sm text-[var(--text-secondary)]">
             Arrange story beats across pages and spreads
           </div>
         </div>

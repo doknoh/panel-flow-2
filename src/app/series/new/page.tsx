@@ -50,10 +50,10 @@ export default function NewSeriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <header className="border-b border-zinc-800 px-6 py-4">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <header className="border-b border-[var(--border)] px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/dashboard" className="text-xl font-bold hover:text-zinc-300">
+          <Link href="/dashboard" className="text-xl font-bold hover:text-[var(--text-secondary)]">
             ← Back
           </Link>
         </div>
@@ -73,7 +73,7 @@ export default function NewSeriesPage() {
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--color-primary)]"
               placeholder="e.g., The Marshall Mathers GN"
             />
           </div>
@@ -87,7 +87,7 @@ export default function NewSeriesPage() {
               value={formData.logline}
               onChange={(e) => setFormData({ ...formData, logline: e.target.value })}
               rows={3}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--color-primary)]"
               placeholder="One paragraph describing your series concept..."
             />
           </div>
@@ -101,7 +101,7 @@ export default function NewSeriesPage() {
               type="text"
               value={formData.central_theme}
               onChange={(e) => setFormData({ ...formData, central_theme: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--color-primary)]"
               placeholder="e.g., The cost of creative genius"
             />
           </div>
@@ -110,13 +110,13 @@ export default function NewSeriesPage() {
             <button
               type="submit"
               disabled={loading || !formData.title}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               {loading ? 'Creating...' : 'Create Series'}
             </button>
             <Link
               href="/dashboard"
-              className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              className="bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-6 py-3 rounded-lg font-medium transition-colors"
             >
               Cancel
             </Link>

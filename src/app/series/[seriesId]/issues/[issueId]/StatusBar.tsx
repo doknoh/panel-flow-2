@@ -113,20 +113,20 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
   }, [issue, selectedPageId])
 
   return (
-    <div className="h-8 bg-zinc-900 border-t border-zinc-800 px-4 flex items-center justify-between text-xs text-zinc-400 shrink-0">
+    <div className="h-8 bg-[var(--bg-secondary)] border-t border-[var(--border)] px-4 flex items-center justify-between text-xs text-[var(--text-secondary)] shrink-0">
       {/* Left side - Page stats */}
       <div className="flex items-center gap-4">
         {selectedPage && (
           <>
             <span>
               Page {selectedPage.page_number}
-              <span className="text-zinc-600 mx-1">•</span>
+              <span className="text-[var(--text-muted)] mx-1">•</span>
               {stats.pagePanels} panel{stats.pagePanels !== 1 ? 's' : ''}
             </span>
-            <span className="text-zinc-600">|</span>
+            <span className="text-[var(--text-muted)]">|</span>
             <span>
               {stats.pageWords.toLocaleString()} words
-              <span className="text-zinc-600 mx-1">•</span>
+              <span className="text-[var(--text-muted)] mx-1">•</span>
               {stats.pageCharacters.toLocaleString()} chars
             </span>
           </>
@@ -140,14 +140,14 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
           disabled={!canUndo}
           className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
             canUndo
-              ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
-              : 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
+              ? 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+              : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-not-allowed'
           }`}
           title="Undo (⌘Z)"
         >
           ↩ Undo
           {undoStack.length > 0 && (
-            <span className="text-zinc-500">({undoStack.length})</span>
+            <span className="text-[var(--text-muted)]">({undoStack.length})</span>
           )}
         </button>
         <button
@@ -155,14 +155,14 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
           disabled={!canRedo}
           className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
             canRedo
-              ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
-              : 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
+              ? 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+              : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-not-allowed'
           }`}
           title="Redo (⌘⇧Z)"
         >
           ↪ Redo
           {redoStack.length > 0 && (
-            <span className="text-zinc-500">({redoStack.length})</span>
+            <span className="text-[var(--text-muted)]">({redoStack.length})</span>
           )}
         </button>
       </div>
@@ -171,12 +171,12 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
       <div className="flex items-center gap-4">
         <span>
           Issue: {stats.totalPages} page{stats.totalPages !== 1 ? 's' : ''}
-          <span className="text-zinc-600 mx-1">•</span>
+          <span className="text-[var(--text-muted)] mx-1">•</span>
           {stats.totalPanels} panel{stats.totalPanels !== 1 ? 's' : ''}
-          <span className="text-zinc-600 mx-1">•</span>
+          <span className="text-[var(--text-muted)] mx-1">•</span>
           {stats.issueWords.toLocaleString()} words
         </span>
-        <span className="text-zinc-600">|</span>
+        <span className="text-[var(--text-muted)]">|</span>
         <span className={`flex items-center gap-1 ${
           saveStatus === 'saved' ? 'text-green-500' :
           saveStatus === 'saving' ? 'text-yellow-500' :

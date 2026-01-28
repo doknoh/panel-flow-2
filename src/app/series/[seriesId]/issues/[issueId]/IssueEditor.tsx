@@ -378,21 +378,21 @@ function IssueEditorContent({
   }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen])
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950 text-white">
+    <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-4 py-3 shrink-0">
+      <header className="border-b border-[var(--border)] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
-            <Link href={`/series/${seriesId}`} className="text-zinc-400 hover:text-white shrink-0">
+            <Link href={`/series/${seriesId}`} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] shrink-0">
               ←
             </Link>
             <span className="font-semibold truncate">Issue #{issue.number}</span>
-            {issue.title && <span className="text-zinc-400 hidden sm:inline truncate">— {issue.title}</span>}
+            {issue.title && <span className="text-[var(--text-secondary)] hidden sm:inline truncate">— {issue.title}</span>}
           </div>
           <div className="flex items-center gap-2 md:gap-4">
             <button
               onClick={() => setIsShortcutsOpen(true)}
-              className="text-sm text-zinc-400 hover:text-white hidden md:flex items-center gap-1"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
               title="Keyboard shortcuts (?)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -409,20 +409,20 @@ function IssueEditorContent({
             </button>
             <button
               onClick={() => setIsFindReplaceOpen(true)}
-              className="text-sm text-zinc-400 hover:text-white hidden md:block"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:block"
               title="Find & Replace (⌘F)"
             >
               Find
             </button>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/import`}
-              className="text-sm text-zinc-400 hover:text-white hidden lg:block"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
               Import
             </Link>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/weave`}
-              className="text-sm text-zinc-400 hover:text-white hidden lg:block"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
               Weave
             </Link>
@@ -434,7 +434,7 @@ function IssueEditorContent({
             </Link>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/history`}
-              className="text-sm text-zinc-400 hover:text-white hidden lg:block"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
               History
             </Link>
@@ -449,7 +449,7 @@ function IssueEditorContent({
                     console.error('PDF export error:', error)
                   }
                 }}
-                className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded"
+                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded"
               >
                 PDF
               </button>
@@ -463,7 +463,7 @@ function IssueEditorContent({
                     console.error('Doc export error:', error)
                   }
                 }}
-                className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded hidden sm:block"
+                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded hidden sm:block"
               >
                 Doc
               </button>
@@ -477,7 +477,7 @@ function IssueEditorContent({
                     console.error('TXT export error:', error)
                   }
                 }}
-                className="text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 px-2 md:px-3 py-1.5 rounded hidden sm:block"
+                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded hidden sm:block"
               >
                 TXT
               </button>
@@ -486,22 +486,22 @@ function IssueEditorContent({
         </div>
 
         {/* Mobile view switcher */}
-        <div className="flex md:hidden mt-3 gap-1 border-t border-zinc-800 pt-3 -mx-4 px-4">
+        <div className="flex md:hidden mt-3 gap-1 border-t border-[var(--border)] pt-3 -mx-4 px-4">
           <button
             onClick={() => setMobileView('nav')}
-            className={`flex-1 py-2 text-sm rounded ${mobileView === 'nav' ? 'bg-zinc-700 text-white' : 'text-zinc-400'}`}
+            className={`flex-1 py-2 text-sm rounded ${mobileView === 'nav' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
           >
             Navigation
           </button>
           <button
             onClick={() => setMobileView('editor')}
-            className={`flex-1 py-2 text-sm rounded ${mobileView === 'editor' ? 'bg-zinc-700 text-white' : 'text-zinc-400'}`}
+            className={`flex-1 py-2 text-sm rounded ${mobileView === 'editor' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
           >
             Editor
           </button>
           <button
             onClick={() => setMobileView('toolkit')}
-            className={`flex-1 py-2 text-sm rounded ${mobileView === 'toolkit' ? 'bg-zinc-700 text-white' : 'text-zinc-400'}`}
+            className={`flex-1 py-2 text-sm rounded ${mobileView === 'toolkit' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
           >
             Toolkit
           </button>
@@ -519,7 +519,7 @@ function IssueEditorContent({
           defaultLeftWidth={256}
           defaultRightWidth={320}
           leftPanel={
-            <div className="h-full border-r border-zinc-800">
+            <div className="h-full border-r border-[var(--border)]">
               <NavigationTree
                 key={refreshKey}
                 issue={issue}
@@ -543,22 +543,22 @@ function IssueEditorContent({
                 setSaveStatus={setSaveStatus}
               />
             ) : (
-              <div className="flex items-center justify-center h-full text-zinc-500">
+              <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
                 <div className="text-center p-8 max-w-md">
                   <div className="text-5xl mb-4 opacity-30">📄</div>
-                  <h3 className="text-lg font-medium text-zinc-300 mb-2">No pages yet</h3>
-                  <p className="text-sm text-zinc-500 mb-6">
+                  <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">No pages yet</h3>
+                  <p className="text-sm text-[var(--text-muted)] mb-6">
                     Start by creating an act and scene in the navigation tree on the left. Each scene can contain multiple pages, and each page holds your comic panels.
                   </p>
-                  <div className="text-xs text-zinc-600 space-y-1">
-                    <p>💡 Tip: Use <kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded">?</kbd> to see keyboard shortcuts</p>
+                  <div className="text-xs text-[var(--text-muted)] space-y-1">
+                    <p>💡 Tip: Use <kbd className="px-1 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded">?</kbd> to see keyboard shortcuts</p>
                   </div>
                 </div>
               </div>
             )
           }
           rightPanel={
-            <div className="h-full border-l border-zinc-800">
+            <div className="h-full border-l border-[var(--border)]">
               <Toolkit
                 issue={issue}
                 selectedPageContext={selectedPageContext}
@@ -598,16 +598,16 @@ function IssueEditorContent({
               setSaveStatus={setSaveStatus}
             />
           ) : (
-            <div className="flex items-center justify-center h-full text-zinc-500">
+            <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
               <div className="text-center p-8 max-w-md">
                 <div className="text-5xl mb-4 opacity-30">📄</div>
-                <h3 className="text-lg font-medium text-zinc-300 mb-2">No pages yet</h3>
-                <p className="text-sm text-zinc-500 mb-6">
+                <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">No pages yet</h3>
+                <p className="text-sm text-[var(--text-muted)] mb-6">
                   Start by creating an act and scene in the navigation tree on the left.
                 </p>
                 <button
                   onClick={() => setMobileView('nav')}
-                  className="mt-6 text-blue-400 hover:text-blue-300"
+                  className="mt-6 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                 >
                   Go to Navigation →
                 </button>

@@ -769,13 +769,13 @@ DRAFT MODE:
   return (
     <div className="p-4 h-full flex flex-col">
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-4 bg-zinc-800 rounded-lg p-1 shrink-0">
+      <div className="flex gap-1 mb-4 bg-[var(--bg-tertiary)] rounded-lg p-1 shrink-0">
         <button
           onClick={() => setActiveTab('context')}
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
             activeTab === 'context'
-              ? 'bg-zinc-700 text-white'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-[var(--bg-tertiary)] text-white'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           Context
@@ -784,8 +784,8 @@ DRAFT MODE:
           onClick={() => setActiveTab('characters')}
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
             activeTab === 'characters'
-              ? 'bg-zinc-700 text-white'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-[var(--bg-tertiary)] text-white'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           Chars
@@ -794,8 +794,8 @@ DRAFT MODE:
           onClick={() => setActiveTab('locations')}
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
             activeTab === 'locations'
-              ? 'bg-zinc-700 text-white'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-[var(--bg-tertiary)] text-white'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           Locs
@@ -804,8 +804,8 @@ DRAFT MODE:
           onClick={() => setActiveTab('alerts')}
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors relative ${
             activeTab === 'alerts'
-              ? 'bg-zinc-700 text-white'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-[var(--bg-tertiary)] text-white'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           Alerts
@@ -820,7 +820,7 @@ DRAFT MODE:
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
             activeTab === 'ai'
               ? 'bg-blue-600 text-white'
-              : 'text-zinc-400 hover:text-white'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           AI
@@ -834,22 +834,22 @@ DRAFT MODE:
           <div className="space-y-4 overflow-y-auto">
             {/* Issue Stats */}
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-zinc-800 rounded p-3">
+              <div className="bg-[var(--bg-tertiary)] rounded p-3">
                 <div className="text-2xl font-bold">{issue.acts?.length || 0}</div>
-                <div className="text-xs text-zinc-400">Acts</div>
+                <div className="text-xs text-[var(--text-secondary)]">Acts</div>
               </div>
-              <div className="bg-zinc-800 rounded p-3">
+              <div className="bg-[var(--bg-tertiary)] rounded p-3">
                 <div className="text-2xl font-bold">{totalPages}</div>
-                <div className="text-xs text-zinc-400">Pages</div>
+                <div className="text-xs text-[var(--text-secondary)]">Pages</div>
               </div>
-              <div className="bg-zinc-800 rounded p-3">
+              <div className="bg-[var(--bg-tertiary)] rounded p-3">
                 <div className="text-2xl font-bold">{totalPanels}</div>
-                <div className="text-xs text-zinc-400">Panels</div>
+                <div className="text-xs text-[var(--text-secondary)]">Panels</div>
               </div>
             </div>
 
             {/* Issue Context */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm">Issue Context</h3>
                 <button
@@ -863,101 +863,101 @@ DRAFT MODE:
               {isEditingContext ? (
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Title</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Title</label>
                     <input
                       type="text"
                       value={contextForm.title}
                       onChange={(e) => setContextForm(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="Issue title..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Tagline</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Tagline</label>
                     <input
                       type="text"
                       value={contextForm.tagline}
                       onChange={(e) => setContextForm(prev => ({ ...prev, tagline: e.target.value }))}
                       placeholder="One-line hook for this issue..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Summary (TL;DR)</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Summary (TL;DR)</label>
                     <textarea
                       value={contextForm.summary}
                       onChange={(e) => setContextForm(prev => ({ ...prev, summary: e.target.value }))}
                       placeholder="Brief summary of this issue..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                       rows={2}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Themes</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Themes</label>
                     <textarea
                       value={contextForm.themes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, themes: e.target.value }))}
                       placeholder="Key themes explored..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                       rows={2}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Stakes</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Stakes</label>
                     <textarea
                       value={contextForm.stakes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, stakes: e.target.value }))}
                       placeholder="What's at risk in this issue..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                       rows={2}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Outline Notes</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Outline Notes</label>
                     <textarea
                       value={contextForm.outline_notes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, outline_notes: e.target.value }))}
                       placeholder="Working notes for this issue's outline..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                       rows={3}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Motifs</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Motifs</label>
                     <textarea
                       value={contextForm.motifs}
                       onChange={(e) => setContextForm(prev => ({ ...prev, motifs: e.target.value }))}
                       placeholder="Visual/narrative motifs for this issue..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                       rows={2}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Visual Style</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Visual Style</label>
                     <textarea
                       value={contextForm.visual_style}
                       onChange={(e) => setContextForm(prev => ({ ...prev, visual_style: e.target.value }))}
                       placeholder="Visual style notes for artist..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                       rows={2}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Issue Rules</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Issue Rules</label>
                     <textarea
                       value={contextForm.rules}
                       onChange={(e) => setContextForm(prev => ({ ...prev, rules: e.target.value }))}
                       placeholder="Issue-specific conventions (e.g., 9-panel grid for introspection)..."
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                       rows={2}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Series Position</label>
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Series Position</label>
                     <select
                       value={contextForm.series_act}
                       onChange={(e) => setContextForm(prev => ({ ...prev, series_act: e.target.value }))}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
                     >
                       <option value="">Not set</option>
                       <option value="BEGINNING">Beginning (Act 1)</option>
@@ -968,7 +968,7 @@ DRAFT MODE:
                   <button
                     onClick={saveContext}
                     disabled={saving}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 py-2 rounded text-sm sticky bottom-0"
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] py-2 rounded text-sm sticky bottom-0"
                   >
                     {saving ? 'Saving...' : 'Save Context'}
                   </button>
@@ -977,62 +977,62 @@ DRAFT MODE:
                 <div className="space-y-3 text-sm max-h-80 overflow-y-auto">
                   {issue.title && (
                     <div>
-                      <span className="text-zinc-400">Title: </span>
+                      <span className="text-[var(--text-secondary)]">Title: </span>
                       <span>{issue.title}</span>
                     </div>
                   )}
                   {issue.tagline && (
-                    <div className="italic text-zinc-300">&ldquo;{issue.tagline}&rdquo;</div>
+                    <div className="italic text-[var(--text-secondary)]">&ldquo;{issue.tagline}&rdquo;</div>
                   )}
                   {issue.series_act && (
-                    <div className="inline-block px-2 py-0.5 bg-zinc-800 rounded text-xs">
+                    <div className="inline-block px-2 py-0.5 bg-[var(--bg-tertiary)] rounded text-xs">
                       Series {issue.series_act.toLowerCase()}
                     </div>
                   )}
                   {issue.summary && (
                     <div>
-                      <span className="text-zinc-500 block text-xs mb-1">Summary</span>
-                      <p className="text-zinc-300">{issue.summary}</p>
+                      <span className="text-[var(--text-muted)] block text-xs mb-1">Summary</span>
+                      <p className="text-[var(--text-secondary)]">{issue.summary}</p>
                     </div>
                   )}
                   {issue.themes && (
                     <div>
-                      <span className="text-zinc-500 block text-xs mb-1">Themes</span>
-                      <p className="text-zinc-300">{issue.themes}</p>
+                      <span className="text-[var(--text-muted)] block text-xs mb-1">Themes</span>
+                      <p className="text-[var(--text-secondary)]">{issue.themes}</p>
                     </div>
                   )}
                   {issue.stakes && (
                     <div>
-                      <span className="text-zinc-500 block text-xs mb-1">Stakes</span>
-                      <p className="text-zinc-300">{issue.stakes}</p>
+                      <span className="text-[var(--text-muted)] block text-xs mb-1">Stakes</span>
+                      <p className="text-[var(--text-secondary)]">{issue.stakes}</p>
                     </div>
                   )}
                   {issue.outline_notes && (
                     <div>
-                      <span className="text-zinc-500 block text-xs mb-1">Outline Notes</span>
-                      <p className="text-zinc-300">{issue.outline_notes}</p>
+                      <span className="text-[var(--text-muted)] block text-xs mb-1">Outline Notes</span>
+                      <p className="text-[var(--text-secondary)]">{issue.outline_notes}</p>
                     </div>
                   )}
                   {issue.motifs && (
                     <div>
-                      <span className="text-zinc-500 block text-xs mb-1">Motifs</span>
-                      <p className="text-zinc-300">{issue.motifs}</p>
+                      <span className="text-[var(--text-muted)] block text-xs mb-1">Motifs</span>
+                      <p className="text-[var(--text-secondary)]">{issue.motifs}</p>
                     </div>
                   )}
                   {issue.visual_style && (
                     <div>
-                      <span className="text-zinc-500 block text-xs mb-1">Visual Style</span>
-                      <p className="text-zinc-300">{issue.visual_style}</p>
+                      <span className="text-[var(--text-muted)] block text-xs mb-1">Visual Style</span>
+                      <p className="text-[var(--text-secondary)]">{issue.visual_style}</p>
                     </div>
                   )}
                   {issue.rules && (
                     <div>
-                      <span className="text-zinc-500 block text-xs mb-1">Issue Rules</span>
-                      <p className="text-zinc-300">{issue.rules}</p>
+                      <span className="text-[var(--text-muted)] block text-xs mb-1">Issue Rules</span>
+                      <p className="text-[var(--text-secondary)]">{issue.rules}</p>
                     </div>
                   )}
                   {!issue.title && !issue.summary && !issue.themes && !issue.tagline && (
-                    <p className="text-zinc-500 text-center py-2">
+                    <p className="text-[var(--text-muted)] text-center py-2">
                       No context set. Click Edit to add details.
                     </p>
                   )}
@@ -1041,7 +1041,7 @@ DRAFT MODE:
             </div>
 
             {/* Status */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
               <h3 className="font-semibold text-sm mb-3">Status</h3>
               <select
                 value={issue.status}
@@ -1053,7 +1053,7 @@ DRAFT MODE:
                     .eq('id', issue.id)
                   onRefresh?.()
                 }}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm"
+                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
               >
                 <option value="outline">Outline</option>
                 <option value="drafting">Drafting</option>
@@ -1068,10 +1068,10 @@ DRAFT MODE:
         {activeTab === 'characters' && (
           <div className="space-y-2 overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm text-zinc-400">Series Characters</h3>
+              <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Series Characters</h3>
             </div>
             {issue.series.characters.length === 0 ? (
-              <p className="text-zinc-500 text-sm text-center py-4">
+              <p className="text-[var(--text-muted)] text-sm text-center py-4">
                 No characters defined yet. Add characters from the series page.
               </p>
             ) : (
@@ -1079,14 +1079,14 @@ DRAFT MODE:
                 {issue.series.characters.map((char: any) => (
                   <div
                     key={char.id}
-                    className="bg-zinc-800 rounded p-3"
+                    className="bg-[var(--bg-tertiary)] rounded p-3"
                   >
                     <div className="font-medium text-sm">{char.name}</div>
                     {char.role && (
-                      <div className="text-xs text-zinc-400">{char.role}</div>
+                      <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
                     )}
                     {char.description && (
-                      <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{char.description}</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-1 line-clamp-2">{char.description}</p>
                     )}
                   </div>
                 ))}
@@ -1099,10 +1099,10 @@ DRAFT MODE:
         {activeTab === 'locations' && (
           <div className="space-y-2 overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm text-zinc-400">Series Locations</h3>
+              <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Series Locations</h3>
             </div>
             {issue.series.locations.length === 0 ? (
-              <p className="text-zinc-500 text-sm text-center py-4">
+              <p className="text-[var(--text-muted)] text-sm text-center py-4">
                 No locations defined yet. Add locations from the series page.
               </p>
             ) : (
@@ -1110,11 +1110,11 @@ DRAFT MODE:
                 {issue.series.locations.map((loc: any) => (
                   <div
                     key={loc.id}
-                    className="bg-zinc-800 rounded p-3"
+                    className="bg-[var(--bg-tertiary)] rounded p-3"
                   >
                     <div className="font-medium text-sm">{loc.name}</div>
                     {loc.description && (
-                      <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{loc.description}</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-1 line-clamp-2">{loc.description}</p>
                     )}
                   </div>
                 ))}
@@ -1127,11 +1127,11 @@ DRAFT MODE:
         {activeTab === 'alerts' && (
           <div className="space-y-3 overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm text-zinc-400">Continuity Alerts</h3>
+              <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Continuity Alerts</h3>
               {dismissedAlerts.size > 0 && (
                 <button
                   onClick={clearDismissed}
-                  className="text-xs text-zinc-500 hover:text-zinc-400"
+                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 >
                   Show dismissed ({dismissedAlerts.size})
                 </button>
@@ -1141,8 +1141,8 @@ DRAFT MODE:
             {activeAlerts.length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-green-400 text-2xl mb-2">✓</div>
-                <p className="text-zinc-400 text-sm">No issues detected</p>
-                <p className="text-zinc-600 text-xs mt-1">
+                <p className="text-[var(--text-secondary)] text-sm">No issues detected</p>
+                <p className="text-[var(--text-muted)] text-xs mt-1">
                   {dismissedAlerts.size > 0
                     ? `${dismissedAlerts.size} dismissed`
                     : 'Your issue looks good!'}
@@ -1175,11 +1175,11 @@ DRAFT MODE:
                             {alert.message}
                           </span>
                         </div>
-                        <p className="text-xs text-zinc-400">{alert.details}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{alert.details}</p>
                       </div>
                       <button
                         onClick={() => dismissAlert(alert.id)}
-                        className="text-zinc-500 hover:text-zinc-300 text-sm shrink-0"
+                        className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-sm shrink-0"
                         title="Dismiss"
                       >
                         ×
@@ -1190,7 +1190,7 @@ DRAFT MODE:
               </div>
             )}
 
-            <div className="pt-4 border-t border-zinc-800">
+            <div className="pt-4 border-t border-[var(--border)]">
               <a
                 href={`/series/${issue.series.id}/continuity`}
                 className="text-xs text-blue-400 hover:text-blue-300"
@@ -1207,13 +1207,13 @@ DRAFT MODE:
             {/* Mode Toggle & Current Scope */}
             <div className="mb-3 space-y-2 shrink-0">
               {/* Mode Toggle */}
-              <div className="flex gap-1 bg-zinc-900 rounded-lg p-1">
+              <div className="flex gap-1 bg-[var(--bg-secondary)] rounded-lg p-1">
                 <button
                   onClick={() => setAiMode('outline')}
                   className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
                     aiMode === 'outline'
                       ? 'bg-purple-600 text-white'
-                      : 'text-zinc-400 hover:text-white'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   Outline Mode
@@ -1223,7 +1223,7 @@ DRAFT MODE:
                   className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
                     aiMode === 'draft'
                       ? 'bg-green-600 text-white'
-                      : 'text-zinc-400 hover:text-white'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   Draft Mode
@@ -1232,17 +1232,17 @@ DRAFT MODE:
 
               {/* Current Scope Indicator */}
               {selectedPageContext && (
-                <div className="text-xs text-zinc-500 bg-zinc-900 rounded px-3 py-2">
-                  <span className="text-zinc-400">Working on:</span>{' '}
-                  <span className="text-zinc-300">
+                <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] rounded px-3 py-2">
+                  <span className="text-[var(--text-secondary)]">Working on:</span>{' '}
+                  <span className="text-[var(--text-secondary)]">
                     {selectedPageContext.act.title || `Act ${selectedPageContext.act.sort_order + 1}`}
                   </span>
                   {' › '}
-                  <span className="text-zinc-300">
+                  <span className="text-[var(--text-secondary)]">
                     {selectedPageContext.scene.title || selectedPageContext.scene.name || 'Scene'}
                   </span>
                   {' › '}
-                  <span className="text-zinc-300">
+                  <span className="text-[var(--text-secondary)]">
                     Page {selectedPageContext.page.page_number}
                   </span>
                 </div>
@@ -1256,16 +1256,16 @@ DRAFT MODE:
                   <div className="text-3xl mb-3 opacity-30">
                     {aiMode === 'outline' ? '🧠' : '✍️'}
                   </div>
-                  <p className="text-zinc-400 text-sm mb-2">
+                  <p className="text-[var(--text-secondary)] text-sm mb-2">
                     {aiMode === 'outline' ? 'AI Outline Partner' : 'AI Writing Partner'}
                   </p>
-                  <p className="text-zinc-500 text-xs mb-4">
+                  <p className="text-[var(--text-muted)] text-xs mb-4">
                     {aiMode === 'outline'
                       ? 'Work out your story from the top down. The AI will push you to clarify your ideas and can save them to your outline.'
                       : 'Get help writing panel descriptions, dialogue, and captions for your script.'
                     }
                   </p>
-                  <div className="text-xs text-zinc-600 space-y-1.5 text-left bg-zinc-800/50 rounded-lg p-3">
+                  <div className="text-xs text-[var(--text-muted)] space-y-1.5 text-left bg-[var(--bg-tertiary)]/50 rounded-lg p-3">
                     {aiMode === 'outline' ? (
                       <>
                         <p>• "What should this scene accomplish?"</p>
@@ -1290,18 +1290,18 @@ DRAFT MODE:
                     className={`rounded-lg text-sm ${
                       msg.role === 'user'
                         ? 'bg-blue-900/30 ml-4 p-3'
-                        : 'bg-zinc-800 mr-2 p-3'
+                        : 'bg-[var(--bg-tertiary)] mr-2 p-3'
                     }`}
                   >
-                    <p className="text-xs text-zinc-500 mb-1">
+                    <p className="text-xs text-[var(--text-muted)] mb-1">
                       {msg.role === 'user' ? 'You' : 'AI Writing Partner'}
                     </p>
                     <p className="whitespace-pre-wrap">{msg.content}</p>
 
                     {/* AI Suggestions */}
                     {msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-zinc-700 space-y-2">
-                        <p className="text-xs text-zinc-400">Save to document:</p>
+                      <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
+                        <p className="text-xs text-[var(--text-secondary)]">Save to document:</p>
                         {msg.suggestions.map((suggestion, idx) => {
                           const isOutline = ['act_intention', 'scene_intention', 'page_intention', 'scene_summary', 'act_beat'].includes(suggestion.type)
                           const isDialogue = suggestion.type === 'dialogue'
@@ -1331,7 +1331,7 @@ DRAFT MODE:
                                 {isOutline ? '📋' : isDialogue ? '💬' : isCaption ? '📝' : '🎬'}{' '}
                                 {suggestion.type.replace(/_/g, ' ')} → {suggestion.targetLabel}
                               </span>
-                              <p className="text-zinc-300 mt-1 line-clamp-2">{suggestion.content}</p>
+                              <p className="text-[var(--text-secondary)] mt-1 line-clamp-2">{suggestion.content}</p>
                             </button>
                           )
                         })}
@@ -1341,9 +1341,9 @@ DRAFT MODE:
                 ))
               )}
               {isLoading && (
-                <div className="bg-zinc-800 p-3 rounded-lg mr-4">
-                  <p className="text-xs text-zinc-500 mb-1">AI Writing Partner</p>
-                  <p className="text-zinc-400">Thinking...</p>
+                <div className="bg-[var(--bg-tertiary)] p-3 rounded-lg mr-4">
+                  <p className="text-xs text-[var(--text-muted)] mb-1">AI Writing Partner</p>
+                  <p className="text-[var(--text-secondary)]">Thinking...</p>
                 </div>
               )}
               <div ref={chatEndRef} />
@@ -1358,13 +1358,13 @@ DRAFT MODE:
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                   placeholder={aiMode === 'outline' ? "Work out your story..." : "Ask for writing help..."}
-                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
                   disabled={isLoading}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={isLoading || !chatInput.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 px-4 py-2 rounded text-sm shrink-0"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded text-sm shrink-0"
                 >
                   Send
                 </button>

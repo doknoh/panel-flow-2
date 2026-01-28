@@ -136,7 +136,7 @@ export default function ResizablePanels({
 
       {/* Left Divider */}
       <div
-        className="w-1 bg-zinc-800 hover:bg-blue-500/50 cursor-col-resize shrink-0 relative group hidden md:block transition-colors"
+        className="w-1 bg-[var(--border)] hover:bg-blue-500/50 cursor-col-resize shrink-0 relative group hidden md:block transition-colors"
         onMouseDown={handleLeftMouseDown}
         onDoubleClick={handleLeftDoubleClick}
         title="Drag to resize • Double-click to reset"
@@ -155,7 +155,7 @@ export default function ResizablePanels({
 
       {/* Right Divider */}
       <div
-        className="w-1 bg-zinc-800 hover:bg-blue-500/50 cursor-col-resize shrink-0 relative group hidden md:block transition-colors"
+        className="w-1 bg-[var(--border)] hover:bg-blue-500/50 cursor-col-resize shrink-0 relative group hidden md:block transition-colors"
         onMouseDown={handleRightMouseDown}
         onDoubleClick={handleRightDoubleClick}
         title="Drag to resize • Double-click to reset"

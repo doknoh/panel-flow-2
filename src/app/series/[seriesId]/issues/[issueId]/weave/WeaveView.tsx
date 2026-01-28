@@ -252,7 +252,7 @@ function SortablePage({
             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
               isSelected
                 ? 'bg-blue-500 border-blue-500 text-white'
-                : 'bg-zinc-800/90 border-zinc-600 hover:border-zinc-400'
+                : 'bg-[var(--bg-tertiary)]/90 border-zinc-600 hover:border-zinc-400'
             }`}
             title="Click to select, Shift+click for range, ⌘/Ctrl+click to toggle"
           >
@@ -268,11 +268,11 @@ function SortablePage({
             {...attributes}
             {...listeners}
             className={`cursor-grab active:cursor-grabbing px-1.5 py-0.5 rounded transition-all flex items-center gap-1 ${
-              isSelected ? 'bg-blue-500/80' : 'bg-zinc-800/90 opacity-0 group-hover:opacity-100'
+              isSelected ? 'bg-blue-500/80' : 'bg-[var(--bg-tertiary)]/90 opacity-0 group-hover:opacity-100'
             }`}
             title={isSelected && selectionCount > 1 ? `Drag ${selectionCount} pages` : 'Drag to reorder'}
           >
-            <svg className="w-3 h-3 text-zinc-300" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-3 h-3 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="8" cy="6" r="2" />
               <circle cx="16" cy="6" r="2" />
               <circle cx="8" cy="12" r="2" />
@@ -317,8 +317,8 @@ function SortablePage({
               <span className="text-lg font-bold text-white">{pageIndex + 1}</span>
               <span className={`text-[8px] uppercase tracking-wide px-1 py-0.5 rounded font-medium ${
                 orientation === 'left'
-                  ? 'bg-zinc-700/80 text-zinc-300'
-                  : 'bg-zinc-600/80 text-zinc-200'
+                  ? 'bg-zinc-700/80 text-[var(--text-secondary)]'
+                  : 'bg-zinc-600/80 text-[var(--text-primary)]'
               }`}>
                 {orientation === 'left' ? 'L' : 'R'}
               </span>
@@ -329,7 +329,7 @@ function SortablePage({
               value={page.plotline_id || ''}
               onChange={(e) => onAssignPlotline(page.id, e.target.value || null)}
               onClick={(e) => e.stopPropagation()}
-              className="text-[9px] bg-zinc-800/80 border border-zinc-600 rounded px-1 py-0.5 max-w-[55px] cursor-pointer"
+              className="text-[9px] bg-[var(--bg-tertiary)]/80 border border-zinc-600 rounded px-1 py-0.5 max-w-[55px] cursor-pointer"
               style={plotlineColor ? { borderColor: plotlineColor } : {}}
             >
               <option value="">—</option>
@@ -353,13 +353,13 @@ function SortablePage({
                   if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="flex-1 bg-zinc-800 border border-zinc-500 rounded px-1 py-0.5 text-[9px]"
+                className="flex-1 bg-[var(--bg-tertiary)] border border-zinc-500 rounded px-1 py-0.5 text-[9px]"
                 placeholder="Year/Era"
                 autoFocus
               />
             ) : (
               <button
-                className="text-[9px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="text-[9px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
                 onClick={(e) => {
                   e.stopPropagation()
                   setEditingPageId(page.id)
@@ -387,13 +387,13 @@ function SortablePage({
                   if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="flex-1 bg-zinc-800 border border-zinc-500 rounded px-1 py-0.5 text-[9px]"
+                className="flex-1 bg-[var(--bg-tertiary)] border border-zinc-500 rounded px-1 py-0.5 text-[9px]"
                 placeholder="Motif"
                 autoFocus
               />
             ) : (
               <button
-                className="text-[9px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="text-[9px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
                 onClick={(e) => {
                   e.stopPropagation()
                   setEditingPageId(page.id)
@@ -421,7 +421,7 @@ function SortablePage({
                   if (e.key === 'Escape') { setEditingPageId(null); setEditingField(null) }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full h-full bg-zinc-800 border border-zinc-500 rounded px-1.5 py-1 text-[10px] resize-none"
+                className="w-full h-full bg-[var(--bg-tertiary)] border border-zinc-500 rounded px-1.5 py-1 text-[10px] resize-none"
                 placeholder="Story beat..."
                 autoFocus
               />
@@ -436,11 +436,11 @@ function SortablePage({
                 }}
               >
                 {page.story_beat ? (
-                  <p className="text-[10px] text-zinc-200 leading-tight line-clamp-5">{page.story_beat}</p>
+                  <p className="text-[10px] text-[var(--text-primary)] leading-tight line-clamp-5">{page.story_beat}</p>
                 ) : autoSummary ? (
-                  <p className="text-[9px] text-zinc-500 leading-tight line-clamp-4 italic">{autoSummary}</p>
+                  <p className="text-[9px] text-[var(--text-muted)] leading-tight line-clamp-4 italic">{autoSummary}</p>
                 ) : (
-                  <p className="text-[9px] text-zinc-600 italic opacity-0 group-hover:opacity-100">
+                  <p className="text-[9px] text-[var(--text-muted)] italic opacity-0 group-hover:opacity-100">
                     Click to add...
                   </p>
                 )}
@@ -449,9 +449,9 @@ function SortablePage({
           </div>
 
           {/* Footer: Scene name (click to select scene) + Edit link */}
-          <div className="flex items-center justify-between mt-1 pt-1 border-t border-zinc-800">
+          <div className="flex items-center justify-between mt-1 pt-1 border-t border-[var(--border)]">
             <button
-              className="text-[8px] text-zinc-600 hover:text-blue-400 truncate max-w-[70px] transition-colors"
+              className="text-[8px] text-[var(--text-muted)] hover:text-blue-400 truncate max-w-[70px] transition-colors"
               onClick={(e) => {
                 e.stopPropagation()
                 onSelectScene(scene.id)
@@ -478,10 +478,10 @@ function SortablePage({
 function InsideCover() {
   return (
     <div
-      className="flex items-center justify-center bg-zinc-900/80 border-r border-zinc-700"
+      className="flex items-center justify-center bg-[var(--bg-secondary)]/80 border-r border-[var(--border)]"
       style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
     >
-      <span className="text-zinc-600 text-xs">Inside cover</span>
+      <span className="text-[var(--text-muted)] text-xs">Inside cover</span>
     </div>
   )
 }
@@ -797,10 +797,10 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   if (flatPages.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center max-w-md">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-12 text-center max-w-md">
           <div className="text-6xl mb-4 opacity-30">🧵</div>
-          <h3 className="text-lg font-medium text-zinc-300 mb-2">No pages to weave yet</h3>
-          <p className="text-sm text-zinc-500 mb-6">
+          <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">No pages to weave yet</h3>
+          <p className="text-sm text-[var(--text-muted)] mb-6">
             The Weave shows your story beats arranged across physical page spreads.
             Add some pages to your issue first.
           </p>
@@ -835,9 +835,9 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
   return (
     <div className="space-y-6">
       {/* Header bar */}
-      <div className="flex items-center justify-between bg-zinc-900/50 border border-zinc-800 rounded-lg px-4 py-3">
+      <div className="flex items-center justify-between bg-[var(--bg-secondary)]/50 border border-[var(--border)] rounded-lg px-4 py-3">
         <div className="flex items-center gap-4">
-          <span className="text-sm text-zinc-300 font-medium">
+          <span className="text-sm text-[var(--text-secondary)] font-medium">
             {flatPages.length} pages • {spreads.length} spreads
           </span>
           {selectedCount > 0 && (
@@ -847,7 +847,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
               </span>
               <button
                 onClick={clearSelection}
-                className="text-xs text-zinc-400 hover:text-white px-2 py-0.5 bg-zinc-800 rounded"
+                className="text-xs text-[var(--text-secondary)] hover:text-white px-2 py-0.5 bg-[var(--bg-tertiary)] rounded"
               >
                 Clear
               </button>
@@ -856,7 +856,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
         </div>
         <button
           onClick={() => setShowPlotlineManager(!showPlotlineManager)}
-          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition-colors"
+          className="px-3 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-sm font-medium transition-colors"
         >
           {showPlotlineManager ? 'Hide' : 'Manage'} Plotlines
         </button>
@@ -864,8 +864,8 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
 
       {/* Plotline Manager */}
       {showPlotlineManager && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h3 className="font-semibold text-zinc-200 mb-4">Plotlines</h3>
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5">
+          <h3 className="font-semibold text-[var(--text-primary)] mb-4">Plotlines</h3>
           <div className="flex flex-wrap gap-2 mb-4">
             {plotlines.map((pl) => (
               <div
@@ -888,13 +888,13 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                 <span className="font-medium">{pl.name}</span>
                 <button
                   onClick={() => deletePlotline(pl.id)}
-                  className="text-zinc-400 hover:text-red-400 ml-1 text-lg leading-none"
+                  className="text-[var(--text-secondary)] hover:text-red-400 ml-1 text-lg leading-none"
                 >
                   ×
                 </button>
 
                 {editingPlotlineId === pl.id && (
-                  <div className="absolute top-full left-0 mt-2 p-3 bg-zinc-800 rounded-lg shadow-xl border border-zinc-600 z-50">
+                  <div className="absolute top-full left-0 mt-2 p-3 bg-[var(--bg-tertiary)] rounded-lg shadow-xl border border-zinc-600 z-50">
                     <div className="grid grid-cols-4 gap-2 mb-2">
                       {PLOTLINE_COLORS.map((color) => (
                         <button
@@ -919,7 +919,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
               </div>
             ))}
             {plotlines.length === 0 && (
-              <span className="text-sm text-zinc-500 py-2">No plotlines yet — create one to start color-coding your pages</span>
+              <span className="text-sm text-[var(--text-muted)] py-2">No plotlines yet — create one to start color-coding your pages</span>
             )}
           </div>
           <div className="flex gap-2">
@@ -929,12 +929,12 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
               onChange={(e) => setNewPlotlineName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && createPlotline()}
               placeholder="New plotline (e.g., A Plot - Marshall's Story)"
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm"
+              className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
             />
             <button
               onClick={createPlotline}
               disabled={!newPlotlineName.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium transition-colors"
             >
               Add
             </button>
@@ -951,7 +951,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                 className="w-4 h-4 rounded shadow-sm"
                 style={{ backgroundColor: pl.color }}
               />
-              <span className="text-sm text-zinc-400">{pl.name}</span>
+              <span className="text-sm text-[var(--text-secondary)]">{pl.name}</span>
             </div>
           ))}
         </div>
@@ -998,11 +998,11 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                     issueId={issue.id}
                   />
                 ) : (
-                  <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-zinc-900/30" />
+                  <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-[var(--bg-secondary)]/30" />
                 )}
 
                 {/* Spine */}
-                <div className="w-2 bg-zinc-800 flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
+                <div className="w-2 bg-[var(--bg-tertiary)] flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
                   <div className="w-px h-[90%] bg-zinc-700" />
                 </div>
 
@@ -1031,7 +1031,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                     issueId={issue.id}
                   />
                 ) : (
-                  <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-zinc-900/30" />
+                  <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-[var(--bg-secondary)]/30" />
                 )}
               </div>
             ))}
@@ -1076,7 +1076,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
                     </span>
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <p className="text-[10px] text-zinc-300 line-clamp-4">
+                    <p className="text-[10px] text-[var(--text-secondary)] line-clamp-4">
                       {activePage.page.story_beat || generatePageSummary(activePage.page) || 'Page content...'}
                     </p>
                   </div>
@@ -1088,17 +1088,17 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
       </DndContext>
 
       {/* Instructions - collapsible */}
-      <details className="bg-zinc-900/30 border border-zinc-800 rounded-lg">
-        <summary className="px-4 py-3 text-sm text-zinc-400 cursor-pointer hover:text-zinc-300">
+      <details className="bg-[var(--bg-secondary)]/30 border border-[var(--border)] rounded-lg">
+        <summary className="px-4 py-3 text-sm text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-secondary)]">
           How to use The Weave
         </summary>
-        <div className="px-4 pb-4 text-sm text-zinc-500 space-y-1.5">
-          <p>• <strong className="text-zinc-400">Select pages</strong> with checkboxes (Shift+click for range, ⌘/Ctrl+click to toggle)</p>
-          <p>• <strong className="text-zinc-400">Click scene name</strong> to select all pages in that scene</p>
-          <p>• <strong className="text-zinc-400">Drag selected pages</strong> to reorder them together</p>
-          <p>• <strong className="text-zinc-400">L/R orientation auto-updates</strong> based on position</p>
-          <p>• <strong className="text-zinc-400">Click any page</strong> to add a story beat</p>
-          <p>• <strong className="text-zinc-400">Assign plotlines</strong> via the dropdown</p>
+        <div className="px-4 pb-4 text-sm text-[var(--text-muted)] space-y-1.5">
+          <p>• <strong className="text-[var(--text-secondary)]">Select pages</strong> with checkboxes (Shift+click for range, ⌘/Ctrl+click to toggle)</p>
+          <p>• <strong className="text-[var(--text-secondary)]">Click scene name</strong> to select all pages in that scene</p>
+          <p>• <strong className="text-[var(--text-secondary)]">Drag selected pages</strong> to reorder them together</p>
+          <p>• <strong className="text-[var(--text-secondary)]">L/R orientation auto-updates</strong> based on position</p>
+          <p>• <strong className="text-[var(--text-secondary)]">Click any page</strong> to add a story beat</p>
+          <p>• <strong className="text-[var(--text-secondary)]">Assign plotlines</strong> via the dropdown</p>
         </div>
       </details>
     </div>

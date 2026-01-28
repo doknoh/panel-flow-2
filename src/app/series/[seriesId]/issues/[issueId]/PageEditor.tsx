@@ -656,16 +656,16 @@ export default function PageEditor({ page, pageContext, characters, locations, o
     <div className="p-6">
       {/* Context breadcrumb */}
       {pageContext && (
-        <div className="mb-2 text-sm text-zinc-500 flex items-center gap-1.5">
-          <span className="text-zinc-400">{pageContext.act.name || `Act ${pageContext.act.sort_order}`}</span>
-          <span className="text-zinc-600">›</span>
-          <span className="text-zinc-400">{pageContext.scene.name || `Scene ${pageContext.scene.sort_order}`}</span>
+        <div className="mb-2 text-sm text-[var(--text-muted)] flex items-center gap-1.5">
+          <span className="text-[var(--text-secondary)]">{pageContext.act.name || `Act ${pageContext.act.sort_order}`}</span>
+          <span className="text-[var(--text-muted)]">›</span>
+          <span className="text-[var(--text-secondary)]">{pageContext.scene.name || `Scene ${pageContext.scene.sort_order}`}</span>
         </div>
       )}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold">Page {page.page_number}</h2>
         <div className="flex items-center gap-3">
-          <div className="text-xs text-zinc-500 space-x-3">
+          <div className="text-xs text-[var(--text-muted)] space-x-3">
             <span>⌘S save</span>
             <span>⌘↵ panel</span>
             <span>⌘D dialog</span>
@@ -673,7 +673,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
           </div>
           <button
             onClick={addPanel}
-            className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-sm"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-3 py-1.5 rounded text-sm text-white"
           >
             + Add Panel
           </button>
@@ -681,28 +681,28 @@ export default function PageEditor({ page, pageContext, characters, locations, o
       </div>
 
       {panels.length === 0 ? (
-        <div className="text-center py-16 bg-zinc-900 border border-zinc-800 border-dashed rounded-lg">
+        <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)] border-dashed rounded-lg">
           <div className="text-4xl mb-4 opacity-30">🎬</div>
-          <h3 className="text-lg font-medium text-zinc-300 mb-2">Ready to create your first panel</h3>
-          <p className="text-sm text-zinc-500 mb-6 max-w-sm mx-auto">
+          <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">Ready to create your first panel</h3>
+          <p className="text-sm text-[var(--text-muted)] mb-6 max-w-sm mx-auto">
             Panels are the building blocks of your comic. Add visual descriptions, dialogue, captions, and sound effects.
           </p>
           <button
             onClick={addPanel}
-            className="bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-lg font-medium transition-colors"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
           >
             + Create First Panel
           </button>
-          <p className="text-xs text-zinc-600 mt-4">
-            or press <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded font-mono">⌘</kbd> + <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded font-mono">↵</kbd>
+          <p className="text-xs text-[var(--text-muted)] mt-4">
+            or press <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded font-mono">⌘</kbd> + <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded font-mono">↵</kbd>
           </p>
         </div>
       ) : (
         <div className="space-y-6">
           {panels.map((panel) => (
-            <div key={panel.id} className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+            <div key={panel.id} className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden">
               {/* Panel Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-zinc-800/50 border-b border-zinc-800">
+              <div className="flex items-center justify-between px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border)]">
                 <span className="font-semibold">Panel {panel.panel_number}</span>
                 <div className="flex items-center gap-2">
                   <select
@@ -710,7 +710,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                     onChange={(e) => {
                       updatePanelField(panel.id, 'shot_type', e.target.value)
                     }}
-                    className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm"
+                    className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
                   >
                     <option value="">Shot Type</option>
                     <option value="wide">Wide Shot</option>
@@ -723,7 +723,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                   </select>
                   <button
                     onClick={() => deletePanel(panel.id)}
-                    className="text-zinc-500 hover:text-red-400 text-sm"
+                    className="text-[var(--text-muted)] hover:text-red-400 text-sm"
                   >
                     Delete
                   </button>
@@ -733,9 +733,9 @@ export default function PageEditor({ page, pageContext, characters, locations, o
               <div className="p-4 space-y-4">
                 {/* Visual Description */}
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">
+                  <label className="block text-sm text-[var(--text-secondary)] mb-1">
                     Visual Description
-                    <span className="text-zinc-500 font-normal ml-2">(character names auto-capitalize)</span>
+                    <span className="text-[var(--text-muted)] font-normal ml-2">(character names auto-capitalize)</span>
                   </label>
                   <textarea
                     value={panel.visual_description || ''}
@@ -743,7 +743,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                     onChange={(e) => updatePanelField(panel.id, 'visual_description', e.target.value)}
                     onBlur={() => handleVisualDescriptionBlur(panel)}
                     placeholder="Describe what the reader sees in this panel..."
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-vertical focus:border-blue-500 focus:outline-none min-h-[100px]"
+                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-vertical focus:border-[var(--color-primary)] focus:outline-none min-h-[100px]"
                     rows={5}
                   />
                 </div>
@@ -751,10 +751,10 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                 {/* Dialogue Blocks */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm text-zinc-400">Dialogue</label>
+                    <label className="text-sm text-[var(--text-secondary)]">Dialogue</label>
                     <button
                       onClick={() => addDialogue(panel.id)}
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                     >
                       + Add Dialogue
                     </button>
@@ -763,12 +763,12 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                     {(panel.dialogue_blocks || [])
                       .sort((a, b) => a.sort_order - b.sort_order)
                       .map((dialogue) => (
-                        <div key={dialogue.id} className="bg-zinc-800 rounded p-3 space-y-2">
+                        <div key={dialogue.id} className="bg-[var(--bg-tertiary)] rounded p-3 space-y-2">
                           <div className="flex gap-2">
                             <select
                               value={dialogue.character_id || ''}
                               onChange={(e) => updateDialogue(dialogue.id, 'character_id', e.target.value)}
-                              className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm flex-1"
+                              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex-1"
                             >
                               <option value="">Select Character</option>
                               {characters.map((char) => (
@@ -778,7 +778,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                             <select
                               value={dialogue.dialogue_type}
                               onChange={(e) => updateDialogue(dialogue.id, 'dialogue_type', e.target.value)}
-                              className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm"
+                              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
                             >
                               <option value="dialogue">Dialogue</option>
                               <option value="thought">Thought</option>
@@ -789,7 +789,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                             </select>
                             <button
                               onClick={() => deleteDialogue(dialogue.id, panel.id)}
-                              className="text-zinc-500 hover:text-red-400 px-2"
+                              className="text-[var(--text-muted)] hover:text-red-400 px-2"
                             >
                               ×
                             </button>
@@ -798,7 +798,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                             defaultValue={dialogue.text}
                             onBlur={(e) => updateDialogue(dialogue.id, 'text', e.target.value)}
                             placeholder="Enter dialogue..."
-                            className="w-full bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                             rows={2}
                           />
                         </div>
@@ -809,10 +809,10 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                 {/* Captions */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm text-zinc-400">Captions</label>
+                    <label className="text-sm text-[var(--text-secondary)]">Captions</label>
                     <button
                       onClick={() => addCaption(panel.id)}
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                     >
                       + Add Caption
                     </button>
@@ -821,12 +821,12 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                     {(panel.captions || [])
                       .sort((a, b) => a.sort_order - b.sort_order)
                       .map((caption) => (
-                        <div key={caption.id} className="bg-zinc-800 rounded p-3 space-y-2">
+                        <div key={caption.id} className="bg-[var(--bg-tertiary)] rounded p-3 space-y-2">
                           <div className="flex gap-2">
                             <select
                               value={caption.caption_type}
                               onChange={(e) => updateCaption(caption.id, 'caption_type', e.target.value)}
-                              className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm"
+                              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
                             >
                               <option value="narrative">Narrative</option>
                               <option value="location">Location</option>
@@ -835,7 +835,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                             </select>
                             <button
                               onClick={() => deleteCaption(caption.id, panel.id)}
-                              className="text-zinc-500 hover:text-red-400 px-2 ml-auto"
+                              className="text-[var(--text-muted)] hover:text-red-400 px-2 ml-auto"
                             >
                               ×
                             </button>
@@ -844,7 +844,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                             defaultValue={caption.text}
                             onBlur={(e) => updateCaption(caption.id, 'text', e.target.value)}
                             placeholder="Enter caption text..."
-                            className="w-full bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                             rows={2}
                           />
                         </div>
@@ -855,10 +855,10 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                 {/* Sound Effects */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm text-zinc-400">Sound Effects</label>
+                    <label className="text-sm text-[var(--text-secondary)]">Sound Effects</label>
                     <button
                       onClick={() => addSoundEffect(panel.id)}
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                     >
                       + Add SFX
                     </button>
@@ -867,17 +867,17 @@ export default function PageEditor({ page, pageContext, characters, locations, o
                     {(panel.sound_effects || [])
                       .sort((a, b) => a.sort_order - b.sort_order)
                       .map((sfx) => (
-                        <div key={sfx.id} className="bg-zinc-800 rounded p-3 flex gap-2 items-center">
+                        <div key={sfx.id} className="bg-[var(--bg-tertiary)] rounded p-3 flex gap-2 items-center">
                           <input
                             type="text"
                             defaultValue={sfx.text}
                             onBlur={(e) => updateSoundEffect(sfx.id, e.target.value)}
                             placeholder="CRASH!, BANG!, WHOOSH!..."
-                            className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm font-bold uppercase focus:border-blue-500 focus:outline-none"
+                            className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm font-bold uppercase focus:border-[var(--color-primary)] focus:outline-none"
                           />
                           <button
                             onClick={() => deleteSoundEffect(sfx.id, panel.id)}
-                            className="text-zinc-500 hover:text-red-400 px-2"
+                            className="text-[var(--text-muted)] hover:text-red-400 px-2"
                           >
                             ×
                           </button>
@@ -888,14 +888,14 @@ export default function PageEditor({ page, pageContext, characters, locations, o
 
                 {/* Panel Notes */}
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Artist Notes (Optional)</label>
+                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Artist Notes (Optional)</label>
                   <textarea
                     value={panel.notes || ''}
                     onFocus={() => handleTextFieldFocus(panel.id, 'notes', panel.notes)}
                     onChange={(e) => updatePanelField(panel.id, 'notes', e.target.value)}
                     onBlur={() => handleOtherFieldBlur(panel, 'notes')}
                     placeholder="Additional notes for the artist..."
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:border-blue-500 focus:outline-none"
+                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
                     rows={2}
                   />
                 </div>

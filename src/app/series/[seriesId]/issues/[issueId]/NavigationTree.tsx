@@ -58,7 +58,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
     <div
       ref={setNodeRef}
       style={style}
-      className={isDragging ? 'ring-2 ring-blue-500 ring-opacity-50 rounded shadow-lg bg-zinc-800/90' : ''}
+      className={isDragging ? 'ring-2 ring-[var(--color-primary)] ring-opacity-50 rounded shadow-lg bg-[var(--bg-secondary)]' : ''}
       {...attributes}
       {...listeners}
     >
@@ -624,10 +624,10 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
   return (
     <div className="p-3">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wide">Structure</h3>
+        <h3 className="font-semibold text-sm text-[var(--text-secondary)] uppercase tracking-wide">Structure</h3>
         <button
           onClick={addAct}
-          className="text-xs bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded"
+          className="text-xs bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded"
         >
           + Act
         </button>
@@ -636,11 +636,11 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
       {sortedActs.length === 0 ? (
         <div className="text-center py-8 px-4">
           <div className="text-3xl mb-3 opacity-30">📖</div>
-          <p className="text-sm text-zinc-400 mb-2">Start your story structure</p>
-          <p className="text-xs text-zinc-500 mb-4">Acts organize your issue into beginning, middle, and end.</p>
+          <p className="text-sm text-[var(--text-secondary)] mb-2">Start your story structure</p>
+          <p className="text-xs text-[var(--text-muted)] mb-4">Acts organize your issue into beginning, middle, and end.</p>
           <button
             onClick={addAct}
-            className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded transition-colors"
+            className="text-xs bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] px-3 py-1.5 rounded transition-colors"
           >
             + Create First Act
           </button>
@@ -650,8 +650,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
         <div className="space-y-1">
           {sortedActs.map((act: any) => (
             <div key={act.id}>
-              <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-zinc-800 cursor-pointer group">
-                <span className="text-zinc-500 text-xs">▶</span>
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] cursor-pointer group">
+                <span className="text-[var(--text-muted)] text-xs">▶</span>
                 <span className="font-medium text-sm flex-1">{act.title || `Act ${act.number}`}</span>
               </div>
             </div>
@@ -666,13 +666,13 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                   <div>
                     {/* Act Header */}
                     <div
-                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-zinc-800 cursor-grab active:cursor-grabbing group"
+                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group"
                       onClick={() => !editingActId && toggleAct(act.id)}
                     >
-                      <span className="text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Drag to reorder">
+                      <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" title="Drag to reorder">
                         ⋮⋮
                       </span>
-                      <span className="text-zinc-500 text-xs">
+                      <span className="text-[var(--text-muted)] text-xs">
                         {expandedActs.has(act.id) ? '▼' : '▶'}
                       </span>
                       {editingActId === act.id ? (
@@ -684,7 +684,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                           onBlur={() => saveActTitle(act.id)}
                           onKeyDown={(e) => handleEditKeyDown(e, () => saveActTitle(act.id))}
                           onClick={(e) => e.stopPropagation()}
-                          className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-1 py-0.5 text-sm font-medium focus:border-blue-500 focus:outline-none"
+                          className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1 py-0.5 text-sm font-medium focus:border-[var(--color-primary)] focus:outline-none"
                           autoFocus
                         />
                       ) : (
@@ -703,21 +703,21 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                           e.stopPropagation()
                           startEditingAct(act.id, act.title || `Act ${act.number}`)
                         }}
-                        className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white px-1"
+                        className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1"
                         title="Rename act"
                       >
                         ✎
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); addScene(act.id) }}
-                        className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white px-1"
+                        className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1"
                         title="Add scene"
                       >
                         +
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteAct(act.id, act.title || `Act ${act.number}`) }}
-                        className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-400 px-1"
+                        className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-red-400 px-1"
                         title="Delete act"
                       >
                         ×
@@ -744,7 +744,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                               }
                             }}
                             placeholder="Key beats in this act (not panel-level detail)..."
-                            className="w-full text-xs bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-zinc-300 resize-none focus:border-blue-500 focus:outline-none"
+                            className="w-full text-xs bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-secondary)] resize-none focus:border-[var(--color-primary)] focus:outline-none"
                             rows={2}
                             onClick={(e) => e.stopPropagation()}
                           />
@@ -757,7 +757,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                             startEditingActBeatSummary(act.id, act.beat_summary)
                           }}
                         >
-                          <p className="text-xs text-zinc-500 italic line-clamp-2 group-hover/beatsummary:text-zinc-400">
+                          <p className="text-xs text-[var(--text-muted)] italic line-clamp-2 group-hover/beatsummary:text-[var(--text-secondary)]">
                             {act.beat_summary}
                           </p>
                         </div>
@@ -769,7 +769,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                             startEditingActBeatSummary(act.id, '')
                           }}
                         >
-                          <p className="text-xs text-zinc-600 italic hover:text-zinc-500">
+                          <p className="text-xs text-[var(--text-muted)] italic hover:text-[var(--text-muted)]">
                             + Add beat summary
                           </p>
                         </div>
@@ -796,7 +796,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                               }
                             }}
                             placeholder="What this act needs to accomplish..."
-                            className="w-full text-xs bg-purple-900/30 border border-purple-700/50 rounded px-2 py-1 text-zinc-300 resize-none focus:border-purple-500 focus:outline-none"
+                            className="w-full text-xs bg-purple-900/30 border border-purple-700/50 rounded px-2 py-1 text-[var(--text-secondary)] resize-none focus:border-purple-500 focus:outline-none"
                             rows={2}
                             onClick={(e) => e.stopPropagation()}
                           />
@@ -838,13 +838,13 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                 <div>
                                   {/* Scene Header */}
                                   <div
-                                    className="flex items-center gap-2 px-2 py-1 rounded hover:bg-zinc-800 cursor-grab active:cursor-grabbing group"
+                                    className="flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group"
                                     onClick={() => !editingSceneId && toggleScene(scene.id)}
                                   >
-                                    <span className="text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs" title="Drag to reorder">
+                                    <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity text-xs" title="Drag to reorder">
                                       ⋮⋮
                                     </span>
-                                    <span className="text-zinc-500 text-xs">
+                                    <span className="text-[var(--text-muted)] text-xs">
                                       {expandedScenes.has(scene.id) ? '▼' : '▶'}
                                     </span>
                                     {/* Plotline color indicator */}
@@ -853,7 +853,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                         e.stopPropagation()
                                         setEditingScenePlotline(editingScenePlotline === scene.id ? null : scene.id)
                                       }}
-                                      className="w-3 h-3 rounded-full flex-shrink-0 border border-zinc-600 hover:border-zinc-400"
+                                      className="w-3 h-3 rounded-full flex-shrink-0 border border-[var(--border)] hover:border-zinc-400"
                                       style={{ backgroundColor: scene.plotline?.color || 'transparent' }}
                                       title={scene.plotline?.name || 'No plotline assigned'}
                                     />
@@ -866,12 +866,12 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                         onBlur={() => saveSceneTitle(scene.id)}
                                         onKeyDown={(e) => handleEditKeyDown(e, () => saveSceneTitle(scene.id))}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-1 py-0.5 text-sm focus:border-blue-500 focus:outline-none"
+                                        className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1 py-0.5 text-sm focus:border-[var(--color-primary)] focus:outline-none"
                                         autoFocus
                                       />
                                     ) : (
                                       <span
-                                        className="text-sm text-zinc-300 flex-1 truncate cursor-text"
+                                        className="text-sm text-[var(--text-secondary)] flex-1 truncate cursor-text"
                                         onDoubleClick={(e) => {
                                           e.stopPropagation()
                                           startEditingScene(scene.id, scene.title || 'Untitled Scene')
@@ -885,21 +885,21 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                         e.stopPropagation()
                                         startEditingScene(scene.id, scene.title || 'Untitled Scene')
                                       }}
-                                      className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white px-1"
+                                      className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1"
                                       title="Rename scene"
                                     >
                                       ✎
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); addPage(scene.id) }}
-                                      className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-white px-1"
+                                      className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1"
                                       title="Add page"
                                     >
                                       +
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); deleteScene(scene.id, scene.title || 'Untitled Scene', scene.pages?.length || 0) }}
-                                      className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 hover:text-red-400 px-1"
+                                      className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-red-400 px-1"
                                       title="Delete scene"
                                     >
                                       ×
@@ -923,7 +923,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                           }
                                         }}
                                         placeholder="One-sentence scene summary..."
-                                        className="w-full text-xs bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-zinc-300 resize-none focus:border-blue-500 focus:outline-none"
+                                        className="w-full text-xs bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-secondary)] resize-none focus:border-[var(--color-primary)] focus:outline-none"
                                         rows={2}
                                         onClick={(e) => e.stopPropagation()}
                                       />
@@ -936,7 +936,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                         startEditingSceneSummary(scene.id, scene.scene_summary)
                                       }}
                                     >
-                                      <p className="text-xs text-zinc-500 italic line-clamp-2 group-hover/summary:text-zinc-400">
+                                      <p className="text-xs text-[var(--text-muted)] italic line-clamp-2 group-hover/summary:text-[var(--text-secondary)]">
                                         {scene.scene_summary}
                                       </p>
                                     </div>
@@ -948,7 +948,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                         startEditingSceneSummary(scene.id, '')
                                       }}
                                     >
-                                      <p className="text-xs text-zinc-600 italic hover:text-zinc-500">
+                                      <p className="text-xs text-[var(--text-muted)] italic hover:text-[var(--text-muted)]">
                                         + Add summary
                                       </p>
                                     </div>
@@ -973,7 +973,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                           }
                                         }}
                                         placeholder="What this scene needs to accomplish..."
-                                        className="w-full text-xs bg-purple-900/30 border border-purple-700/50 rounded px-2 py-1 text-zinc-300 resize-none focus:border-purple-500 focus:outline-none"
+                                        className="w-full text-xs bg-purple-900/30 border border-purple-700/50 rounded px-2 py-1 text-[var(--text-secondary)] resize-none focus:border-purple-500 focus:outline-none"
                                         rows={2}
                                         onClick={(e) => e.stopPropagation()}
                                       />
@@ -1006,8 +1006,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
 
                                   {/* Plotline selector dropdown */}
                                   {editingScenePlotline === scene.id && (
-                                    <div className="ml-6 mt-1 mb-2 bg-zinc-800 border border-zinc-700 rounded p-2">
-                                      <div className="text-xs text-zinc-400 mb-2">Assign plotline:</div>
+                                    <div className="ml-6 mt-1 mb-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-2">
+                                      <div className="text-xs text-[var(--text-secondary)] mb-2">Assign plotline:</div>
                                       <div className="space-y-1">
                                         <button
                                           onClick={(e) => {
@@ -1015,11 +1015,11 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                             updateScenePlotline(scene.id, null)
                                           }}
                                           className={`w-full text-left text-xs px-2 py-1 rounded flex items-center gap-2 ${
-                                            !scene.plotline_id ? 'bg-zinc-700' : 'hover:bg-zinc-700'
+                                            !scene.plotline_id ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-tertiary)]'
                                           }`}
                                         >
                                           <span className="w-2 h-2 rounded-full border border-zinc-500" />
-                                          <span className="text-zinc-400">None</span>
+                                          <span className="text-[var(--text-secondary)]">None</span>
                                         </button>
                                         {plotlines.map((plotline) => (
                                           <button
@@ -1029,7 +1029,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                               updateScenePlotline(scene.id, plotline.id)
                                             }}
                                             className={`w-full text-left text-xs px-2 py-1 rounded flex items-center gap-2 ${
-                                              scene.plotline?.id === plotline.id ? 'bg-zinc-700' : 'hover:bg-zinc-700'
+                                              scene.plotline?.id === plotline.id ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-tertiary)]'
                                             }`}
                                           >
                                             <span
@@ -1056,10 +1056,10 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                                   className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm flex items-center gap-1 group/page ${
                                                     selectedPageId === page.id
                                                       ? 'bg-blue-600 text-white'
-                                                      : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                                                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'
                                                   }`}
                                                 >
-                                                  <span className={`text-xs opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-blue-200' : 'text-zinc-600'}`} title="Drag to reorder">
+                                                  <span className={`text-xs opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-blue-200' : 'text-[var(--text-muted)]'}`} title="Drag to reorder">
                                                     ⋮⋮
                                                   </span>
                                                   {editingPageId === page.id ? (
@@ -1071,7 +1071,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                                       onBlur={() => savePageTitle(page.id)}
                                                       onKeyDown={(e) => handleEditKeyDown(e, () => savePageTitle(page.id))}
                                                       onClick={(e) => e.stopPropagation()}
-                                                      className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-1 py-0.5 text-xs focus:border-blue-500 focus:outline-none"
+                                                      className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1 py-0.5 text-xs focus:border-[var(--color-primary)] focus:outline-none"
                                                       autoFocus
                                                     />
                                                   ) : (
@@ -1092,8 +1092,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                                     }}
                                                     className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
                                                       selectedPageId === page.id
-                                                        ? 'text-blue-200 hover:text-white'
-                                                        : 'text-zinc-500 hover:text-white'
+                                                        ? 'text-blue-200 hover:text-[var(--text-primary)]'
+                                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                                     }`}
                                                     title="Rename page"
                                                   >
@@ -1106,8 +1106,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                                     }}
                                                     className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
                                                       selectedPageId === page.id
-                                                        ? 'text-blue-200 hover:text-white'
-                                                        : 'text-zinc-500 hover:text-white'
+                                                        ? 'text-blue-200 hover:text-[var(--text-primary)]'
+                                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                                     }`}
                                                     title="Move to scene"
                                                   >
@@ -1118,7 +1118,7 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                                     className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
                                                       selectedPageId === page.id
                                                         ? 'text-blue-200 hover:text-red-300'
-                                                        : 'text-zinc-500 hover:text-red-400'
+                                                        : 'text-[var(--text-muted)] hover:text-red-400'
                                                     }`}
                                                     title="Delete page"
                                                   >
@@ -1127,8 +1127,8 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                                 </div>
                                                 {/* Move to scene dropdown */}
                                                 {movingPageId === page.id && (
-                                                  <div className="ml-4 mt-1 mb-2 bg-zinc-800 border border-zinc-700 rounded p-2 max-h-48 overflow-y-auto">
-                                                    <div className="text-xs text-zinc-400 mb-2">Move to scene:</div>
+                                                  <div className="ml-4 mt-1 mb-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-2 max-h-48 overflow-y-auto">
+                                                    <div className="text-xs text-[var(--text-secondary)] mb-2">Move to scene:</div>
                                                     <div className="space-y-1">
                                                       {allScenes.filter((s: any) => s.id !== scene.id).map((targetScene: any) => (
                                                         <button
@@ -1137,9 +1137,9 @@ export default function NavigationTree({ issue, plotlines, selectedPageId, onSel
                                                             e.stopPropagation()
                                                             movePageToScene(page.id, targetScene.id)
                                                           }}
-                                                          className="w-full text-left text-xs px-2 py-1 rounded hover:bg-zinc-700 flex items-center gap-2"
+                                                          className="w-full text-left text-xs px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
                                                         >
-                                                          <span className="text-zinc-500">{targetScene.actTitle} →</span>
+                                                          <span className="text-[var(--text-muted)]">{targetScene.actTitle} →</span>
                                                           <span className="truncate">{targetScene.title || 'Untitled Scene'}</span>
                                                         </button>
                                                       ))}

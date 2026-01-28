@@ -4,6 +4,7 @@ import Link from 'next/link'
 import IssueGrid from './IssueGrid'
 import CreateIssueButton from './CreateIssueButton'
 import SeriesMetadata from './SeriesMetadata'
+import Header from '@/components/ui/Header'
 
 export default async function SeriesPage({ params }: { params: Promise<{ seriesId: string }> }) {
   const { seriesId } = await params
@@ -39,12 +40,12 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
   if (seriesError || !series) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Series Not Found</h1>
-          <p className="text-zinc-400 mb-4">This series doesn&apos;t exist or you don&apos;t have access.</p>
-          <p className="text-zinc-500 text-xs mb-4">Debug: User={user?.id?.substring(0, 8)}... Error={seriesError?.message || 'none'}</p>
-          <Link href="/dashboard" className="text-blue-500 hover:underline">
+          <p className="text-[var(--text-secondary)] mb-4">This series doesn&apos;t exist or you don&apos;t have access.</p>
+          <p className="text-[var(--text-muted)] text-xs mb-4">Debug: User={user?.id?.substring(0, 8)}... Error={seriesError?.message || 'none'}</p>
+          <Link href="/dashboard" className="text-[var(--color-primary)] hover:underline">
             Back to Dashboard
           </Link>
         </div>
@@ -66,19 +67,8 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-zinc-400 hover:text-white">
-              ← Dashboard
-            </Link>
-            <span className="text-zinc-600">/</span>
-            <h1 className="text-xl font-bold">{series.title}</h1>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <Header showBackLink title={series.title} />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Series Info */}
@@ -92,21 +82,21 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-2xl font-bold">{issues?.length || 0}</div>
-            <div className="text-zinc-500 text-sm">Issues</div>
+            <div className="text-[var(--text-muted)] text-sm">Issues</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-2xl font-bold">{counts.characters}</div>
-            <div className="text-zinc-500 text-sm">Characters</div>
+            <div className="text-[var(--text-muted)] text-sm">Characters</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-2xl font-bold">{counts.locations}</div>
-            <div className="text-zinc-500 text-sm">Locations</div>
+            <div className="text-[var(--text-muted)] text-sm">Locations</div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <div className="text-2xl font-bold">{counts.plotlines}</div>
-            <div className="text-zinc-500 text-sm">Plotlines</div>
+            <div className="text-[var(--text-muted)] text-sm">Plotlines</div>
           </div>
         </div>
 
@@ -121,11 +111,11 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
         {/* Series Tools */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-zinc-400">Tools</h2>
+          <h2 className="text-lg font-semibold mb-4 text-[var(--text-secondary)]">Tools</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Link
               href={`/series/${seriesId}/guide`}
-              className="bg-gradient-to-br from-purple-900/50 to-zinc-900 border border-purple-700/50 rounded-lg p-4 hover:border-purple-600 hover:from-purple-900/70 transition-colors group"
+              className="bg-gradient-to-br from-purple-900/50 to-[var(--bg-secondary)] border border-purple-700/50 rounded-lg p-4 hover:border-purple-600 hover:from-purple-900/70 transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🎭</div>
               <h3 className="font-medium mb-1 text-purple-200">Guide</h3>
@@ -133,82 +123,82 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             </Link>
             <Link
               href={`/series/${seriesId}/outline`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📋</div>
               <h3 className="font-medium mb-1">Series Outline</h3>
-              <p className="text-zinc-500 text-sm">Plan structure with AI summaries</p>
+              <p className="text-[var(--text-muted)] text-sm">Plan structure with AI summaries</p>
             </Link>
             <Link
               href={`/series/${seriesId}/analytics`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📊</div>
               <h3 className="font-medium mb-1">Analytics</h3>
-              <p className="text-zinc-500 text-sm">Stats, progress, and insights</p>
+              <p className="text-[var(--text-muted)] text-sm">Stats, progress, and insights</p>
             </Link>
             <Link
               href={`/series/${seriesId}/sessions`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🕐</div>
               <h3 className="font-medium mb-1">Session History</h3>
-              <p className="text-zinc-500 text-sm">Track progress and loose ends</p>
+              <p className="text-[var(--text-muted)] text-sm">Track progress and loose ends</p>
             </Link>
             <Link
               href={`/series/${seriesId}/continuity`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🔍</div>
               <h3 className="font-medium mb-1">Continuity Check</h3>
-              <p className="text-zinc-500 text-sm">Detect errors and inconsistencies</p>
+              <p className="text-[var(--text-muted)] text-sm">Detect errors and inconsistencies</p>
             </Link>
             <Link
               href={`/series/${seriesId}/notes`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📝</div>
               <h3 className="font-medium mb-1">Project Notes</h3>
-              <p className="text-zinc-500 text-sm">Questions, decisions, insights</p>
+              <p className="text-[var(--text-muted)] text-sm">Questions, decisions, insights</p>
             </Link>
           </div>
         </div>
 
         {/* World Building */}
         <div>
-          <h2 className="text-lg font-semibold mb-4 text-zinc-400">World Building</h2>
+          <h2 className="text-lg font-semibold mb-4 text-[var(--text-secondary)]">World Building</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link
               href={`/series/${seriesId}/characters`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">👤</div>
               <h3 className="font-medium mb-1">Characters</h3>
-              <p className="text-zinc-500 text-sm">Manage character database</p>
+              <p className="text-[var(--text-muted)] text-sm">Manage character database</p>
             </Link>
             <Link
               href={`/series/${seriesId}/character-arcs`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📈</div>
               <h3 className="font-medium mb-1">Character Arcs</h3>
-              <p className="text-zinc-500 text-sm">Track emotional journeys</p>
+              <p className="text-[var(--text-muted)] text-sm">Track emotional journeys</p>
             </Link>
             <Link
               href={`/series/${seriesId}/locations`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🏛️</div>
               <h3 className="font-medium mb-1">Locations</h3>
-              <p className="text-zinc-500 text-sm">Manage location database</p>
+              <p className="text-[var(--text-muted)] text-sm">Manage location database</p>
             </Link>
             <Link
               href={`/series/${seriesId}/plotlines`}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🧵</div>
               <h3 className="font-medium mb-1">Plotlines</h3>
-              <p className="text-zinc-500 text-sm">Define narrative threads</p>
+              <p className="text-[var(--text-muted)] text-sm">Define narrative threads</p>
             </Link>
           </div>
         </div>
