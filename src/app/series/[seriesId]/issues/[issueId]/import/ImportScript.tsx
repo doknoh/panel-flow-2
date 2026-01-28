@@ -15,6 +15,20 @@ interface Location {
   name: string
 }
 
+interface Scene {
+  id: string
+  title: string | null
+  sort_order: number
+  pages?: { id: string }[]
+}
+
+interface Act {
+  id: string
+  name: string | null
+  sort_order: number
+  scenes?: Scene[]
+}
+
 interface Issue {
   id: string
   number: number
@@ -25,7 +39,7 @@ interface Issue {
     characters: Character[]
     locations: Location[]
   }
-  acts?: { id: string }[]
+  acts?: Act[]
 }
 
 interface ParsedDialogue {
@@ -80,8 +94,27 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   const [currentParsingPage, setCurrentParsingPage] = useState(0)
   const [detectedSpeakers, setDetectedSpeakers] = useState<DetectedSpeaker[]>([])
   const [showCharacterReview, setShowCharacterReview] = useState(false)
+  const [targetSceneId, setTargetSceneId] = useState<string | null>(null)
   const { showToast } = useToast()
   const router = useRouter()
+
+  // Get all scenes flattened with their parent act info for the dropdown
+  const allScenes = (issue.acts || [])
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .flatMap(act =>
+      (act.scenes || [])
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map(scene => ({
+          ...scene,
+          actName: act.name || `Act ${act.sort_order}`,
+          actId: act.id,
+        }))
+    )
+
+  // Find the selected scene for display
+  const selectedScene = targetSceneId
+    ? allScenes.find(s => s.id === targetSceneId)
+    : null
 
   // Split script into individual pages based on page markers
   const splitScriptByPages = (script: string): { pageNum: number; content: string }[] => {
@@ -311,22 +344,35 @@ ${pageContent}`,
     console.log('=== IMPORT STARTED ===')
     console.log(`parsedPages.length = ${parsedPages.length}`)
     console.log('parsedPages:', parsedPages.map(p => ({ number: p.number, panels: p.panels.length })))
+    console.log('targetSceneId:', targetSceneId)
 
     if (parsedPages.length === 0) {
       console.log('No pages to import, returning early')
       return
     }
 
-    // Confirm if there's existing content
-    const hasExistingContent = issue.acts && issue.acts.length > 0
-    if (hasExistingContent) {
+    // Different confirmation based on import mode
+    if (targetSceneId) {
+      // Targeted import - append to specific scene
+      const sceneName = selectedScene?.title || 'selected scene'
+      const actName = selectedScene?.actName || 'act'
       const confirmed = window.confirm(
-        `This will replace all existing content in Issue #${issue.number}.\n\n` +
-        `You are about to import ${parsedPages.length} pages with ${parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels.\n\n` +
-        `This action cannot be undone. Continue?`
+        `Import ${parsedPages.length} pages into "${sceneName}" (${actName})?\n\n` +
+        `This will add ${parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels to this scene.\n` +
+        `Existing pages in this scene will be preserved.`
       )
-      if (!confirmed) {
-        return
+      if (!confirmed) return
+    } else {
+      // Replace all - original behavior
+      const hasExistingContent = issue.acts && issue.acts.length > 0
+      if (hasExistingContent) {
+        const confirmed = window.confirm(
+          `This will REPLACE ALL existing content in Issue #${issue.number}.\n\n` +
+          `You are about to import ${parsedPages.length} pages with ${parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels.\n\n` +
+          `All existing acts, scenes, and pages will be deleted.\n` +
+          `This action cannot be undone. Continue?`
+        )
+        if (!confirmed) return
       }
     }
 
@@ -336,39 +382,55 @@ ${pageContent}`,
     const supabase = createClient()
 
     try {
-      // Clear existing content - delete all acts (cascades to scenes, pages, panels, etc.)
-      await supabase
-        .from('acts')
-        .delete()
-        .eq('issue_id', issue.id)
+      let sceneId: string
 
-      // Create a fresh act
-      const { data: newAct, error: actError } = await supabase
-        .from('acts')
-        .insert({
-          issue_id: issue.id,
-          number: 1,
-          title: 'Act 1',
-          sort_order: 1,
-        })
-        .select()
-        .single()
+      if (targetSceneId) {
+        // TARGETED IMPORT - use existing scene
+        sceneId = targetSceneId
+        console.log(`Targeted import to scene: ${sceneId}`)
+      } else {
+        // REPLACE ALL - delete everything and create fresh structure
+        console.log('Replace all mode - deleting existing content')
 
-      if (actError) throw actError
-      const actId = newAct.id
+        // Clear existing content - delete all acts (cascades to scenes, pages, panels, etc.)
+        await supabase
+          .from('acts')
+          .delete()
+          .eq('issue_id', issue.id)
 
-      // Create a scene for the imported content
-      const { data: scene, error: sceneError } = await supabase
-        .from('scenes')
-        .insert({
-          act_id: actId,
-          title: 'Main',
-          sort_order: 1,
-        })
-        .select()
-        .single()
+        // Create a fresh act
+        const { data: newAct, error: actError } = await supabase
+          .from('acts')
+          .insert({
+            issue_id: issue.id,
+            number: 1,
+            title: 'Act 1',
+            sort_order: 1,
+          })
+          .select()
+          .single()
 
-      if (sceneError) throw sceneError
+        if (actError) throw actError
+
+        // Create a scene for the imported content
+        const { data: newScene, error: sceneError } = await supabase
+          .from('scenes')
+          .insert({
+            act_id: newAct.id,
+            title: 'Main',
+            sort_order: 1,
+          })
+          .select()
+          .single()
+
+        if (sceneError) throw sceneError
+        sceneId = newScene.id
+      }
+
+      // Get existing page count in target scene for sort_order calculation
+      const existingPagesInScene = targetSceneId
+        ? (selectedScene?.pages?.length || 0)
+        : 0
 
       // Build character name to ID map from existing characters
       const characterMap = new Map<string, string>(
@@ -436,19 +498,21 @@ ${pageContent}`,
       }
 
       // Import pages
-      console.log(`Starting import of ${parsedPages.length} pages`)
+      console.log(`Starting import of ${parsedPages.length} pages into scene ${sceneId}`)
+      console.log(`Existing pages in scene: ${existingPagesInScene}`)
       for (let i = 0; i < parsedPages.length; i++) {
         const parsedPage = parsedPages[i]
         setImportProgress(Math.round(((i + 1) / parsedPages.length) * 100))
         console.log(`Importing page ${i + 1}/${parsedPages.length}: page number ${parsedPage.number}`)
 
         // Create page
+        // page_number is the label (from script), sort_order determines position in scene
         const { data: page, error: pageError } = await supabase
           .from('pages')
           .insert({
-            scene_id: scene.id,
+            scene_id: sceneId,
             page_number: parsedPage.number,
-            sort_order: parsedPage.number,
+            sort_order: existingPagesInScene + i + 1,
           })
           .select()
           .single()
@@ -592,11 +656,49 @@ ${pageContent}`,
             </details>
           </div>
         </div>
-        {issue.acts && issue.acts.length > 0 && (
-          <div className="mt-4 p-3 bg-amber-900/20 border border-amber-800/50 rounded-lg">
-            <p className="text-sm text-amber-400">
-              ⚠️ <strong>Note:</strong> This issue already has content. Importing will replace all existing pages and panels.
-            </p>
+        {/* Target Scene Selector */}
+        {allScenes.length > 0 && (
+          <div className="mt-4 p-4 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg">
+            <label className="block text-sm font-medium mb-2">Import destination:</label>
+            <select
+              value={targetSceneId || ''}
+              onChange={(e) => setTargetSceneId(e.target.value || null)}
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
+            >
+              <option value="">Replace entire issue (delete all existing content)</option>
+              {(issue.acts || [])
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map(act => (
+                  <optgroup key={act.id} label={act.name || `Act ${act.sort_order}`}>
+                    {(act.scenes || [])
+                      .sort((a, b) => a.sort_order - b.sort_order)
+                      .map(scene => (
+                        <option key={scene.id} value={scene.id}>
+                          {scene.title || `Scene ${scene.sort_order}`}
+                          {scene.pages && scene.pages.length > 0 && ` (${scene.pages.length} pages)`}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+            </select>
+
+            {/* Contextual warning based on selection */}
+            {targetSceneId ? (
+              <div className="mt-3 p-2 bg-blue-900/20 border border-blue-800/50 rounded">
+                <p className="text-sm text-blue-400">
+                  📍 Pages will be added to <strong>{selectedScene?.title || 'selected scene'}</strong> ({selectedScene?.actName}).
+                  {selectedScene?.pages && selectedScene.pages.length > 0 && (
+                    <> This scene already has {selectedScene.pages.length} page(s).</>
+                  )}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 p-2 bg-amber-900/20 border border-amber-800/50 rounded">
+                <p className="text-sm text-amber-400">
+                  ⚠️ <strong>Warning:</strong> This will delete ALL existing acts, scenes, and pages in this issue.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

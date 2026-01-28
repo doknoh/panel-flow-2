@@ -14,7 +14,7 @@ export default async function ImportPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch issue and series info (including acts to check for existing content)
+  // Fetch issue and series info (including full acts/scenes structure for targeted import)
   const { data: issueData, error } = await supabase
     .from('issues')
     .select(`
@@ -27,7 +27,17 @@ export default async function ImportPage({
         characters (id, name),
         locations (id, name)
       ),
-      acts (id)
+      acts (
+        id,
+        name,
+        sort_order,
+        scenes (
+          id,
+          title,
+          sort_order,
+          pages (id)
+        )
+      )
     `)
     .eq('id', issueId)
     .single()
