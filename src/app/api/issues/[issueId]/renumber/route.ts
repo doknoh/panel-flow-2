@@ -8,6 +8,12 @@ export async function POST(
   const { issueId } = await params
   const supabase = await createClient()
 
+  // Check authentication
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   // Fetch the full issue structure with acts, scenes, and pages
   const { data: issue, error: fetchError } = await supabase
     .from('issues')

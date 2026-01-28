@@ -47,7 +47,11 @@ async function sendApprovalNotification(userEmail: string, userName: string | nu
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const nextParam = searchParams.get('next') ?? '/dashboard'
+
+  // Validate next parameter to prevent open redirect attacks
+  const isValidNext = nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.includes('://')
+  const next = isValidNext ? nextParam : '/dashboard'
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=no_code`)

@@ -39,18 +39,21 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // If user is logged in, check if they're approved
-  if (user) {
-    const { data: allowedUser } = await supabase
-      .from('allowed_users')
-      .select('email')
-      .eq('email', user.email)
-      .single()
+  // If user is NOT logged in and trying to access protected route, redirect to login
+  if (!user) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
 
-    if (!allowedUser) {
-      // User is not approved - redirect to pending page
-      return NextResponse.redirect(new URL('/pending-approval', request.url))
-    }
+  // If user is logged in, check if they're approved
+  const { data: allowedUser } = await supabase
+    .from('allowed_users')
+    .select('email')
+    .eq('email', user.email)
+    .single()
+
+  if (!allowedUser) {
+    // User is not approved - redirect to pending page
+    return NextResponse.redirect(new URL('/pending-approval', request.url))
   }
 
   return response
