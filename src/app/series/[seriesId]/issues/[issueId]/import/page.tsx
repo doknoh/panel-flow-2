@@ -14,7 +14,7 @@ export default async function ImportPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch issue and series info (including full acts/scenes structure for targeted import)
+  // Fetch issue and series info
   const { data: issueData, error } = await supabase
     .from('issues')
     .select(`
@@ -26,30 +26,43 @@ export default async function ImportPage({
         title,
         characters (id, name),
         locations (id, name)
-      ),
-      acts (
-        id,
-        name,
-        sort_order,
-        scenes (
-          id,
-          title,
-          sort_order,
-          pages (id)
-        )
       )
     `)
     .eq('id', issueId)
     .single()
 
-  if (error || !issueData) {
+  if (error) {
+    console.error('Import page query error:', error)
     notFound()
   }
+
+  if (!issueData) {
+    console.error('Import page: No issue data found for issueId:', issueId)
+    notFound()
+  }
+
+  // Fetch acts/scenes structure separately (more reliable for nested relations)
+  const { data: actsData } = await supabase
+    .from('acts')
+    .select(`
+      id,
+      name,
+      sort_order,
+      scenes (
+        id,
+        title,
+        sort_order,
+        pages (id)
+      )
+    `)
+    .eq('issue_id', issueId)
+    .order('sort_order')
 
   // Normalize the series data (Supabase returns it as an object, not array)
   const issue = {
     ...issueData,
     series: Array.isArray(issueData.series) ? issueData.series[0] : issueData.series,
+    acts: actsData || [],
   }
 
   return (
