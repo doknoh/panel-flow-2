@@ -500,6 +500,8 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set())
   const [lastSelectedPageId, setLastSelectedPageId] = useState<string | null>(null)
   const [justMovedPageIds, setJustMovedPageIds] = useState<Set<string>>(new Set())
+  // Local page order for instant drag-and-drop updates (array of page IDs)
+  const [localPageOrder, setLocalPageOrder] = useState<string[] | null>(null)
   const { showToast } = useToast()
   const router = useRouter()
 
@@ -512,8 +514,8 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
     })
   )
 
-  // Flatten all pages with their context
-  const flatPages = useMemo<FlatPage[]>(() => {
+  // Compute base flatPages from issue structure (used as source of truth for page data)
+  const baseFlatPages = useMemo<FlatPage[]>(() => {
     const pages: FlatPage[] = []
     const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
 
@@ -533,17 +535,38 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       }
     }
 
-    // Set orientations based on position
-    for (let i = 0; i < pages.length; i++) {
-      if (i === 0) {
-        pages[i].orientation = 'right'
-      } else {
-        pages[i].orientation = i % 2 === 1 ? 'left' : 'right'
-      }
-    }
-
     return pages
   }, [issue])
+
+  // Create a map for quick page lookup
+  const pageMap = useMemo(() => {
+    const map = new Map<string, FlatPage>()
+    for (const fp of baseFlatPages) {
+      map.set(fp.page.id, fp)
+    }
+    return map
+  }, [baseFlatPages])
+
+  // Final flatPages: use localPageOrder if set, otherwise use baseFlatPages order
+  const flatPages = useMemo<FlatPage[]>(() => {
+    let pages: FlatPage[]
+
+    if (localPageOrder) {
+      // Use local order for instant updates
+      pages = localPageOrder
+        .map(id => pageMap.get(id))
+        .filter((fp): fp is FlatPage => fp !== undefined)
+    } else {
+      pages = baseFlatPages
+    }
+
+    // Set orientations and global page numbers based on position
+    return pages.map((fp, i) => ({
+      ...fp,
+      globalPageNumber: i + 1,
+      orientation: i === 0 ? 'right' : (i % 2 === 1 ? 'left' : 'right'),
+    }))
+  }, [localPageOrder, baseFlatPages, pageMap])
 
   const plotlines = issue.plotlines || []
 
@@ -671,6 +694,11 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
 
     if (updates.length === 0) return
 
+    // INSTANT OPTIMISTIC UPDATE: Update local page order immediately
+    // This directly controls the rendering order, bypassing the nested structure
+    const newPageOrder = newPages.map(fp => fp.page.id)
+    setLocalPageOrder(newPageOrder)
+
     // Mark moved pages for visual highlight
     setJustMovedPageIds(new Set(pagesToMove))
 
@@ -679,32 +707,6 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
 
     // Show brief feedback
     showToast(`${pagesToMove.length > 1 ? pagesToMove.length + ' pages' : 'Page'} moved`, 'success')
-
-    // OPTIMISTIC UPDATE: Update local state immediately for instant UI feedback
-    setIssue((prevIssue) => {
-      // Create a map of page id -> new sort_order
-      const sortOrderMap = new Map<string, number>()
-      for (const update of updates) {
-        sortOrderMap.set(update.id, update.sort_order)
-      }
-
-      // Update the issue state with new sort orders
-      return {
-        ...prevIssue,
-        acts: prevIssue.acts.map((act) => ({
-          ...act,
-          scenes: act.scenes.map((scene) => ({
-            ...scene,
-            pages: scene.pages.map((page) => {
-              const newSortOrder = sortOrderMap.get(page.id)
-              return newSortOrder !== undefined
-                ? { ...page, sort_order: newSortOrder }
-                : page
-            }),
-          })),
-        })),
-      }
-    })
 
     // Batch database updates in the background
     const supabase = createClient()
@@ -725,7 +727,8 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       showToast('Failed to save reorder - please refresh', 'error')
       console.error('Reorder error:', error)
       setJustMovedPageIds(new Set())
-      // On error, refresh to get the correct state from the database
+      // On error, reset local page order to revert to server state
+      setLocalPageOrder(null)
       router.refresh()
     }
   }, [flatPages, selectedPageIds, showToast, clearSelection, router])
