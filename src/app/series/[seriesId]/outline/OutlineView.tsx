@@ -179,7 +179,7 @@ export default function OutlineView({ series }: OutlineViewProps) {
     const summaryParts: string[] = []
 
     for (const act of sortedActs) {
-      const actTitle = act.title || `Act ${act.number}`
+      const actTitle = act.name || `Act ${act.number}`
       const sceneDescriptions: string[] = []
 
       const sortedScenes = [...(act.scenes || [])].sort((a, b) => a.sort_order - b.sort_order)
@@ -214,7 +214,7 @@ export default function OutlineView({ series }: OutlineViewProps) {
       const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
 
       for (const act of sortedActs) {
-        scriptContent.push(`\n--- ${act.title || `ACT ${act.number}`} ---\n`)
+        scriptContent.push(`\n--- ${act.name || `ACT ${act.number}`} ---\n`)
 
         const sortedScenes = [...(act.scenes || [])].sort((a, b) => a.sort_order - b.sort_order)
 
@@ -305,7 +305,7 @@ export default function OutlineView({ series }: OutlineViewProps) {
         const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
 
         for (const act of sortedActs) {
-          scriptContent.push(`\n--- ${act.title || `ACT ${act.number}`} ---\n`)
+          scriptContent.push(`\n--- ${act.name || `ACT ${act.number}`} ---\n`)
           const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
           for (const scene of sortedScenes) {
@@ -363,8 +363,8 @@ Return this exact JSON structure:
             proposedThemes: parsed.themes || '',
             acts: sortedActs.map((act, idx) => ({
               actNumber: act.number,
-              currentTitle: act.title,
-              proposedTitle: parsed.acts?.[idx]?.title || act.title || `Act ${act.number}`,
+              currentTitle: act.name,
+              proposedTitle: parsed.acts?.[idx]?.title || act.name || `Act ${act.number}`,
               currentBeatSummary: act.beat_summary,
               proposedBeatSummary: parsed.acts?.[idx]?.beatSummary || '',
             })),
@@ -812,7 +812,7 @@ Return this exact JSON structure:
                             <div key={act.id} className="pl-4 border-l-2 border-[var(--border)]">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-sm">
-                                  {act.title || `Act ${act.number}`}
+                                  {act.name || `Act ${act.number}`}
                                 </span>
                                 <span className="text-xs text-[var(--text-secondary)]">
                                   ({actPages} pages, {sortedScenes.length} scenes)

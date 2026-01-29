@@ -409,7 +409,7 @@ ${pageContent}`,
           .insert({
             issue_id: issue.id,
             number: 1,
-            title: 'Act 1',
+            name: 'Act 1',
             sort_order: 1,
           })
           .select()

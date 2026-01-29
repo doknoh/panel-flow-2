@@ -78,7 +78,7 @@ export function exportIssueToTxt(issue: Issue) {
 
   for (const act of sortedActs) {
     // Act header
-    lines.push((act.title || `ACT ${act.number}`).toUpperCase())
+    lines.push((act.name || `ACT ${act.number}`).toUpperCase())
     lines.push('-'.repeat(40))
     lines.push('')
 

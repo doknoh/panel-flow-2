@@ -147,7 +147,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     setTimeout(() => editInputRef.current?.select(), 0)
   }
 
-  // Save act title
+  // Save act title (database column is 'name')
   const saveActTitle = async (actId: string) => {
     const trimmedTitle = editingTitle.trim()
     if (!trimmedTitle) {
@@ -155,22 +155,28 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       return
     }
 
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('acts')
-      .update({ title: trimmedTitle })
-      .eq('id', actId)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('acts')
+        .update({ name: trimmedTitle })
+        .eq('id', actId)
 
-    if (error) {
-      showToast(`Failed to rename act: ${error.message}`, 'error')
-    } else {
-      // Optimistic update - update the act title in local state immediately
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) =>
-          a.id === actId ? { ...a, title: trimmedTitle } : a
-        ),
-      }))
+      if (error) {
+        console.error('Act title save error:', error)
+        showToast(`Failed to rename act: ${error.message}`, 'error')
+      } else {
+        // Optimistic update - update the act name in local state immediately
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) =>
+            a.id === actId ? { ...a, name: trimmedTitle } : a
+          ),
+        }))
+      }
+    } catch (err) {
+      console.error('Unexpected error saving act title:', err)
+      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
     setEditingActId(null)
   }
@@ -183,25 +189,31 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       return
     }
 
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('scenes')
-      .update({ title: trimmedTitle })
-      .eq('id', sceneId)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('scenes')
+        .update({ title: trimmedTitle })
+        .eq('id', sceneId)
 
-    if (error) {
-      showToast(`Failed to rename scene: ${error.message}`, 'error')
-    } else {
-      // Optimistic update - update the scene title in local state immediately
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) => ({
-          ...a,
-          scenes: (a.scenes || []).map((s: any) =>
-            s.id === sceneId ? { ...s, title: trimmedTitle } : s
-          ),
-        })),
-      }))
+      if (error) {
+        console.error('Scene title save error:', error)
+        showToast(`Failed to rename scene: ${error.message}`, 'error')
+      } else {
+        // Optimistic update - update the scene title in local state immediately
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) => ({
+            ...a,
+            scenes: (a.scenes || []).map((s: any) =>
+              s.id === sceneId ? { ...s, title: trimmedTitle } : s
+            ),
+          })),
+        }))
+      }
+    } catch (err) {
+      console.error('Unexpected error saving scene title:', err)
+      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
     setEditingSceneId(null)
   }
@@ -221,28 +233,34 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       return
     }
 
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('pages')
-      .update({ title: trimmedTitle })
-      .eq('id', pageId)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('pages')
+        .update({ title: trimmedTitle })
+        .eq('id', pageId)
 
-    if (error) {
-      showToast(`Failed to rename page: ${error.message}`, 'error')
-    } else {
-      // Optimistic update - update the page title in local state immediately
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) => ({
-          ...a,
-          scenes: (a.scenes || []).map((s: any) => ({
-            ...s,
-            pages: (s.pages || []).map((p: any) =>
-              p.id === pageId ? { ...p, title: trimmedTitle } : p
-            ),
+      if (error) {
+        console.error('Page title save error:', error)
+        showToast(`Failed to rename page: ${error.message}`, 'error')
+      } else {
+        // Optimistic update - update the page title in local state immediately
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) => ({
+            ...a,
+            scenes: (a.scenes || []).map((s: any) => ({
+              ...s,
+              pages: (s.pages || []).map((p: any) =>
+                p.id === pageId ? { ...p, title: trimmedTitle } : p
+              ),
+            })),
           })),
-        })),
-      }))
+        }))
+      }
+    } catch (err) {
+      console.error('Unexpected error saving page title:', err)
+      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
     setEditingPageId(null)
   }
@@ -256,26 +274,33 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
   // Save scene summary
   const saveSceneSummary = async (sceneId: string) => {
-    const supabase = createClient()
-    const trimmedSummary = editingSummary.trim() || null
-    const { error } = await supabase
-      .from('scenes')
-      .update({ scene_summary: trimmedSummary })
-      .eq('id', sceneId)
+    try {
+      const supabase = createClient()
+      const trimmedSummary = editingSummary.trim() || null
+      const { error } = await supabase
+        .from('scenes')
+        .update({ scene_summary: trimmedSummary })
+        .eq('id', sceneId)
 
-    if (error) {
-      showToast(`Failed to save summary: ${error.message}`, 'error')
-    } else {
-      // Optimistic update
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) => ({
-          ...a,
-          scenes: (a.scenes || []).map((s: any) =>
-            s.id === sceneId ? { ...s, scene_summary: trimmedSummary } : s
-          ),
-        })),
-      }))
+      if (error) {
+        console.error('Scene summary save error:', error)
+        showToast(`Failed to save summary: ${error.message}`, 'error')
+      } else {
+        // Optimistic update
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) => ({
+            ...a,
+            scenes: (a.scenes || []).map((s: any) =>
+              s.id === sceneId ? { ...s, scene_summary: trimmedSummary } : s
+            ),
+          })),
+        }))
+        showToast('Summary saved', 'success')
+      }
+    } catch (err) {
+      console.error('Unexpected error saving summary:', err)
+      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
     setEditingSceneSummaryId(null)
   }
@@ -289,23 +314,30 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
   // Save act beat summary
   const saveActBeatSummary = async (actId: string) => {
-    const supabase = createClient()
-    const trimmedSummary = editingBeatSummary.trim() || null
-    const { error } = await supabase
-      .from('acts')
-      .update({ beat_summary: trimmedSummary })
-      .eq('id', actId)
+    try {
+      const supabase = createClient()
+      const trimmedSummary = editingBeatSummary.trim() || null
+      const { error } = await supabase
+        .from('acts')
+        .update({ beat_summary: trimmedSummary })
+        .eq('id', actId)
 
-    if (error) {
-      showToast(`Failed to save beat summary: ${error.message}`, 'error')
-    } else {
-      // Optimistic update
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) =>
-          a.id === actId ? { ...a, beat_summary: trimmedSummary } : a
-        ),
-      }))
+      if (error) {
+        console.error('Act beat summary save error:', error)
+        showToast(`Failed to save beat summary: ${error.message}`, 'error')
+      } else {
+        // Optimistic update
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) =>
+            a.id === actId ? { ...a, beat_summary: trimmedSummary } : a
+          ),
+        }))
+        showToast('Beat summary saved', 'success')
+      }
+    } catch (err) {
+      console.error('Unexpected error saving beat summary:', err)
+      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
     setEditingActBeatSummaryId(null)
   }
@@ -319,23 +351,30 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
   // Save act intention
   const saveActIntention = async (actId: string) => {
-    const supabase = createClient()
-    const trimmedIntention = editingActIntention.trim() || null
-    const { error } = await supabase
-      .from('acts')
-      .update({ intention: trimmedIntention })
-      .eq('id', actId)
+    try {
+      const supabase = createClient()
+      const trimmedIntention = editingActIntention.trim() || null
+      const { error } = await supabase
+        .from('acts')
+        .update({ intention: trimmedIntention })
+        .eq('id', actId)
 
-    if (error) {
-      showToast(`Failed to save intention: ${error.message}`, 'error')
-    } else {
-      // Optimistic update
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) =>
-          a.id === actId ? { ...a, intention: trimmedIntention } : a
-        ),
-      }))
+      if (error) {
+        console.error('Act intention save error:', error)
+        showToast(`Failed to save intention: ${error.message}`, 'error')
+      } else {
+        // Optimistic update
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) =>
+            a.id === actId ? { ...a, intention: trimmedIntention } : a
+          ),
+        }))
+        showToast('Intention saved', 'success')
+      }
+    } catch (err) {
+      console.error('Unexpected error saving act intention:', err)
+      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
     setEditingActIntentionId(null)
   }
@@ -349,26 +388,33 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
   // Save scene intention
   const saveSceneIntention = async (sceneId: string) => {
-    const supabase = createClient()
-    const trimmedIntention = editingSceneIntention.trim() || null
-    const { error } = await supabase
-      .from('scenes')
-      .update({ intention: trimmedIntention })
-      .eq('id', sceneId)
+    try {
+      const supabase = createClient()
+      const trimmedIntention = editingSceneIntention.trim() || null
+      const { error } = await supabase
+        .from('scenes')
+        .update({ intention: trimmedIntention })
+        .eq('id', sceneId)
 
-    if (error) {
-      showToast(`Failed to save intention: ${error.message}`, 'error')
-    } else {
-      // Optimistic update
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) => ({
-          ...a,
-          scenes: (a.scenes || []).map((s: any) =>
-            s.id === sceneId ? { ...s, intention: trimmedIntention } : s
-          ),
-        })),
-      }))
+      if (error) {
+        console.error('Scene intention save error:', error)
+        showToast(`Failed to save intention: ${error.message}`, 'error')
+      } else {
+        // Optimistic update
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) => ({
+            ...a,
+            scenes: (a.scenes || []).map((s: any) =>
+              s.id === sceneId ? { ...s, intention: trimmedIntention } : s
+            ),
+          })),
+        }))
+        showToast('Intention saved', 'success')
+      }
+    } catch (err) {
+      console.error('Unexpected error saving scene intention:', err)
+      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
     setEditingSceneIntentionId(null)
   }
@@ -411,7 +457,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const { data: newAct, error } = await supabase.from('acts').insert({
       issue_id: issue.id,
       number: actNumber,
-      title: `Act ${actNumber}`,
+      name: `Act ${actNumber}`,
       sort_order: actNumber,
     }).select().single()
 
@@ -784,7 +830,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   const allScenes = issue.acts?.flatMap((act: any) =>
     (act.scenes || []).map((scene: any) => ({
       ...scene,
-      actTitle: act.title || `Act ${act.number}`,
+      actTitle: act.name || `Act ${act.number}`,
     }))
   ) || []
 
@@ -844,7 +890,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             <div key={act.id}>
               <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] cursor-pointer group">
                 <span className="text-[var(--text-muted)] text-xs">▶</span>
-                <span className="font-medium text-sm flex-1">{act.title || `Act ${act.number}`}</span>
+                <span className="font-medium text-sm flex-1">{act.name || `Act ${act.number}`}</span>
               </div>
             </div>
           ))}
@@ -884,16 +930,16 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                           className="font-medium text-sm flex-1 cursor-text"
                           onDoubleClick={(e) => {
                             e.stopPropagation()
-                            startEditingAct(act.id, act.title || `Act ${act.number}`)
+                            startEditingAct(act.id, act.name || `Act ${act.number}`)
                           }}
                         >
-                          {act.title || `Act ${act.number}`}
+                          {act.name || `Act ${act.number}`}
                         </span>
                       )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          startEditingAct(act.id, act.title || `Act ${act.number}`)
+                          startEditingAct(act.id, act.name || `Act ${act.number}`)
                         }}
                         className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1"
                         title="Rename act"
@@ -908,7 +954,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                         +
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); deleteAct(act.id, act.title || `Act ${act.number}`) }}
+                        onClick={(e) => { e.stopPropagation(); deleteAct(act.id, act.name || `Act ${act.number}`) }}
                         className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-red-400 px-1"
                         title="Delete act"
                       >

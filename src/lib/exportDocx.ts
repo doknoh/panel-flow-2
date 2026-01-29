@@ -133,7 +133,7 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
       new Paragraph({
         children: [
           new TextRun({
-            text: act.title || `ACT ${act.number}`,
+            text: act.name || `ACT ${act.number}`,
             bold: true,
             size: 28,
             allCaps: true,

@@ -122,7 +122,7 @@ export function exportIssueToPdf(issue: Issue) {
 
   for (const act of sortedActs) {
     // Act header
-    addText(act.title || `ACT ${act.number}`, 16, true)
+    addText(act.name || `ACT ${act.number}`, 16, true)
     addSpace(12)
 
     // Sort scenes

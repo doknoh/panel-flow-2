@@ -88,7 +88,7 @@ function parseAISuggestions(response: string, context: PageContext | null): AISu
         suggestions.push({
           type: 'act_intention',
           targetId: context.act.id,
-          targetLabel: context.act.title || `Act ${context.act.sort_order + 1}`,
+          targetLabel: context.act.name || `Act ${context.act.sort_order + 1}`,
           content: trimmedContent,
         })
         break
@@ -120,7 +120,7 @@ function parseAISuggestions(response: string, context: PageContext | null): AISu
         suggestions.push({
           type: 'act_beat',
           targetId: context.act.id,
-          targetLabel: context.act.title || `Act ${context.act.sort_order + 1}`,
+          targetLabel: context.act.name || `Act ${context.act.sort_order + 1}`,
           content: trimmedContent,
         })
         break
@@ -427,7 +427,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
     for (const act of sortedActs) {
       parts.push(`\n${'─'.repeat(40)}`)
-      parts.push(`ACT: ${act.title || `Act ${act.sort_order + 1}`}`)
+      parts.push(`ACT: ${act.name || `Act ${act.sort_order + 1}`}`)
       if (act.intention) parts.push(`Intention: ${act.intention}`)
       if (act.beat_summary) parts.push(`Beat Summary: ${act.beat_summary}`)
       parts.push(`${'─'.repeat(40)}`)
@@ -479,7 +479,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     if (selectedPageContext) {
       const { act, scene, page } = selectedPageContext
       parts.push(`\n${'='.repeat(50)}`)
-      parts.push(`CURRENTLY VIEWING: ${act.title || `Act ${act.sort_order + 1}`} › ${scene.title || scene.name || 'Scene'} › Page ${page.page_number}`)
+      parts.push(`CURRENTLY VIEWING: ${act.name || `Act ${act.sort_order + 1}`} › ${scene.title || scene.name || 'Scene'} › Page ${page.page_number}`)
       parts.push(`${'='.repeat(50)}`)
     }
 
@@ -1235,7 +1235,7 @@ DRAFT MODE:
                 <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] rounded px-3 py-2">
                   <span className="text-[var(--text-secondary)]">Working on:</span>{' '}
                   <span className="text-[var(--text-secondary)]">
-                    {selectedPageContext.act.title || `Act ${selectedPageContext.act.sort_order + 1}`}
+                    {selectedPageContext.act.name || `Act ${selectedPageContext.act.sort_order + 1}`}
                   </span>
                   {' › '}
                   <span className="text-[var(--text-secondary)]">
