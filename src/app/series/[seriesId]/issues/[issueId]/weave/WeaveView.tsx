@@ -486,7 +486,9 @@ function InsideCover() {
   )
 }
 
-export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
+export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewProps) {
+  // Local state for optimistic updates
+  const [issue, setIssue] = useState<Issue>(initialIssue)
   const [editingPageId, setEditingPageId] = useState<string | null>(null)
   const [editingField, setEditingField] = useState<'story_beat' | 'time_period' | 'visual_motif' | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -669,7 +671,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
 
     if (updates.length === 0) return
 
-    // Mark moved pages for visual highlight (persists after refresh)
+    // Mark moved pages for visual highlight
     setJustMovedPageIds(new Set(pagesToMove))
 
     // Clear selection
@@ -677,6 +679,32 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
 
     // Show brief feedback
     showToast(`${pagesToMove.length > 1 ? pagesToMove.length + ' pages' : 'Page'} moved`, 'success')
+
+    // OPTIMISTIC UPDATE: Update local state immediately for instant UI feedback
+    setIssue((prevIssue) => {
+      // Create a map of page id -> new sort_order
+      const sortOrderMap = new Map<string, number>()
+      for (const update of updates) {
+        sortOrderMap.set(update.id, update.sort_order)
+      }
+
+      // Update the issue state with new sort orders
+      return {
+        ...prevIssue,
+        acts: prevIssue.acts.map((act) => ({
+          ...act,
+          scenes: act.scenes.map((scene) => ({
+            ...scene,
+            pages: scene.pages.map((page) => {
+              const newSortOrder = sortOrderMap.get(page.id)
+              return newSortOrder !== undefined
+                ? { ...page, sort_order: newSortOrder }
+                : page
+            }),
+          })),
+        })),
+      }
+    })
 
     // Batch database updates in the background
     const supabase = createClient()
@@ -688,7 +716,6 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
           supabase.from('pages').update({ sort_order }).eq('id', id)
         )
       )
-      router.refresh()
 
       // Clear the "just moved" highlight after a delay
       setTimeout(() => {
@@ -698,8 +725,10 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
       showToast('Failed to save reorder - please refresh', 'error')
       console.error('Reorder error:', error)
       setJustMovedPageIds(new Set())
+      // On error, refresh to get the correct state from the database
+      router.refresh()
     }
-  }, [flatPages, selectedPageIds, router, showToast, clearSelection])
+  }, [flatPages, selectedPageIds, showToast, clearSelection, router])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActivePageId(event.active.id as string)
@@ -715,8 +744,20 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     if (error) {
       showToast(`Failed to save ${field}`, 'error')
     } else {
+      // Optimistic update - update local state immediately
+      setIssue((prevIssue) => ({
+        ...prevIssue,
+        acts: prevIssue.acts.map((act) => ({
+          ...act,
+          scenes: act.scenes.map((scene) => ({
+            ...scene,
+            pages: scene.pages.map((page) =>
+              page.id === pageId ? { ...page, [field]: value || null } : page
+            ),
+          })),
+        })),
+      }))
       showToast('Saved', 'success')
-      router.refresh()
     }
     setEditingPageId(null)
     setEditingField(null)
@@ -732,7 +773,20 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     if (error) {
       showToast('Failed to assign plotline', 'error')
     } else {
-      router.refresh()
+      // Optimistic update - update local state immediately
+      const plotline = plotlineId ? issue.plotlines.find(p => p.id === plotlineId) || null : null
+      setIssue((prevIssue) => ({
+        ...prevIssue,
+        acts: prevIssue.acts.map((act) => ({
+          ...act,
+          scenes: act.scenes.map((scene) => ({
+            ...scene,
+            pages: scene.pages.map((page) =>
+              page.id === pageId ? { ...page, plotline_id: plotlineId, plotline } : page
+            ),
+          })),
+        })),
+      }))
     }
   }
 
@@ -742,7 +796,7 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     const supabase = createClient()
     const nextColor = PLOTLINE_COLORS[plotlines.length % PLOTLINE_COLORS.length]
 
-    const { error } = await supabase
+    const { data: newPlotline, error } = await supabase
       .from('plotlines')
       .insert({
         issue_id: issue.id,
@@ -750,13 +804,19 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
         color: nextColor,
         sort_order: plotlines.length,
       })
+      .select()
+      .single()
 
     if (error) {
       showToast('Failed to create plotline', 'error')
-    } else {
+    } else if (newPlotline) {
+      // Optimistic update - add the new plotline to local state
+      setIssue((prevIssue) => ({
+        ...prevIssue,
+        plotlines: [...prevIssue.plotlines, newPlotline],
+      }))
       showToast('Plotline created', 'success')
       setNewPlotlineName('')
-      router.refresh()
     }
   }
 
@@ -770,8 +830,22 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     if (error) {
       showToast('Failed to delete plotline', 'error')
     } else {
+      // Optimistic update - remove the plotline from local state
+      setIssue((prevIssue) => ({
+        ...prevIssue,
+        plotlines: prevIssue.plotlines.filter(p => p.id !== plotlineId),
+        // Also clear plotline_id from any pages that had it
+        acts: prevIssue.acts.map((act) => ({
+          ...act,
+          scenes: act.scenes.map((scene) => ({
+            ...scene,
+            pages: scene.pages.map((page) =>
+              page.plotline_id === plotlineId ? { ...page, plotline_id: null, plotline: null } : page
+            ),
+          })),
+        })),
+      }))
       showToast('Plotline deleted', 'success')
-      router.refresh()
     }
   }
 
@@ -785,8 +859,26 @@ export default function WeaveView({ issue, seriesId }: WeaveViewProps) {
     if (error) {
       showToast('Failed to update color', 'error')
     } else {
+      // Optimistic update - update the plotline color in local state
+      setIssue((prevIssue) => ({
+        ...prevIssue,
+        plotlines: prevIssue.plotlines.map(p =>
+          p.id === plotlineId ? { ...p, color } : p
+        ),
+        // Also update the color for pages that reference this plotline
+        acts: prevIssue.acts.map((act) => ({
+          ...act,
+          scenes: act.scenes.map((scene) => ({
+            ...scene,
+            pages: scene.pages.map((page) =>
+              page.plotline_id === plotlineId && page.plotline
+                ? { ...page, plotline: { ...page.plotline, color } }
+                : page
+            ),
+          })),
+        })),
+      }))
       setEditingPlotlineId(null)
-      router.refresh()
     }
   }
 
