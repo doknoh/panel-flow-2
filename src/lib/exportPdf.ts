@@ -39,7 +39,7 @@ interface Scene {
 }
 
 interface Act {
-  title: string | null
+  name: string | null
   number: number
   scenes: Scene[]
   sort_order: number
