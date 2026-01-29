@@ -639,7 +639,8 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
 
   // Handle drag end - reorder pages (including multi-select)
   // Uses optimistic UI update + batched database writes for responsiveness
-  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+  // IMPORTANT: This is NOT async to ensure state updates happen synchronously
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     setActivePageId(null)
 
@@ -708,29 +709,30 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
     // Show brief feedback
     showToast(`${pagesToMove.length > 1 ? pagesToMove.length + ' pages' : 'Page'} moved`, 'success')
 
-    // Batch database updates in the background
+    // Fire-and-forget database update (truly non-blocking)
+    // Using an IIFE to keep the main function synchronous
     const supabase = createClient()
-
-    // Use Promise.all for parallel updates (much faster than sequential)
-    try {
-      await Promise.all(
-        updates.map(({ id, sort_order }) =>
-          supabase.from('pages').update({ sort_order }).eq('id', id)
+    void (async () => {
+      try {
+        await Promise.all(
+          updates.map(({ id, sort_order }) =>
+            supabase.from('pages').update({ sort_order }).eq('id', id)
+          )
         )
-      )
 
-      // Clear the "just moved" highlight after a delay
-      setTimeout(() => {
+        // Clear the "just moved" highlight after a delay
+        setTimeout(() => {
+          setJustMovedPageIds(new Set())
+        }, 2000)
+      } catch (error) {
+        showToast('Failed to save reorder - please refresh', 'error')
+        console.error('Reorder error:', error)
         setJustMovedPageIds(new Set())
-      }, 2000)
-    } catch (error) {
-      showToast('Failed to save reorder - please refresh', 'error')
-      console.error('Reorder error:', error)
-      setJustMovedPageIds(new Set())
-      // On error, reset local page order to revert to server state
-      setLocalPageOrder(null)
-      router.refresh()
-    }
+        // On error, reset local page order to revert to server state
+        setLocalPageOrder(null)
+        router.refresh()
+      }
+    })()
   }, [flatPages, selectedPageIds, showToast, clearSelection, router])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
