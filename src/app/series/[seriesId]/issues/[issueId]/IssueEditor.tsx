@@ -176,7 +176,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       supabase
         .from('plotlines')
         .select('*')
-        .eq('series_id', initialIssue.series_id)
+        .eq('series_id', initialIssue.series.id)
         .order('sort_order')
     ])
 
