@@ -75,13 +75,23 @@ export default function PageEditor({ page, pageContext, characters, locations, o
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const lastPageIdRef = useRef<string | null>(null)
+  const optimisticIdsRef = useRef<Set<string>>(new Set())
   const { showToast } = useToast()
   const { isOnline, queueChange, pendingChanges: offlinePending } = useOffline()
   const { recordAction, startTextEdit, endTextEdit } = useUndo()
 
+  // Sync panels from props ONLY when page changes - local state is authoritative otherwise
   useEffect(() => {
-    const sortedPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
-    setPanels(sortedPanels)
+    // Only sync from props when navigating to a different page
+    if (lastPageIdRef.current !== page.id) {
+      lastPageIdRef.current = page.id
+      optimisticIdsRef.current.clear()
+      const serverPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
+      setPanels(serverPanels)
+    }
+    // Don't overwrite local state if page ID hasn't changed -
+    // local state contains optimistic updates (dialogues, captions, etc.)
   }, [page])
 
   // Save all pending changes - defined before scheduleAutoSave to avoid circular dependency
@@ -229,6 +239,25 @@ export default function PageEditor({ page, pageContext, characters, locations, o
     const supabase = createClient()
     const panelNumber = panels.length + 1
 
+    // Generate a temporary ID for optimistic update
+    const tempId = `temp-${Date.now()}`
+
+    // Optimistically add the panel immediately
+    const optimisticPanel: Panel = {
+      id: tempId,
+      panel_number: panelNumber,
+      visual_description: '',
+      shot_type: null,
+      notes: null,
+      dialogue_blocks: [],
+      captions: [],
+      sound_effects: [],
+    }
+
+    // Track this as an optimistic panel
+    optimisticIdsRef.current.add(tempId)
+    setPanels(prev => [...prev, optimisticPanel])
+
     const { data, error } = await supabase
       .from('panels')
       .insert({
@@ -243,12 +272,20 @@ export default function PageEditor({ page, pageContext, characters, locations, o
     if (error) {
       console.error('Error creating panel:', error)
       showToast('Failed to create panel: ' + error.message, 'error')
+      // Rollback optimistic update
+      optimisticIdsRef.current.delete(tempId)
+      setPanels(prev => prev.filter(p => p.id !== tempId))
       return
     }
 
     if (data) {
-      onUpdate()
+      // Replace temp panel with real one and track new ID as optimistic until server confirms
+      optimisticIdsRef.current.delete(tempId)
+      optimisticIdsRef.current.add(data.id)
+      setPanels(prev => prev.map(p => p.id === tempId ? { ...optimisticPanel, id: data.id } : p))
       setEditingPanel(data.id)
+      // Trigger background refresh for data consistency
+      onUpdate()
     }
   }
 
@@ -336,6 +373,22 @@ export default function PageEditor({ page, pageContext, characters, locations, o
     const supabase = createClient()
     const panel = panels.find(p => p.id === panelId)
     const sortOrder = (panel?.dialogue_blocks?.length || 0) + 1
+    const tempId = `temp-dialogue-${Date.now()}`
+
+    // Optimistically add the dialogue immediately
+    const optimisticDialogue: DialogueBlock = {
+      id: tempId,
+      character_id: null,
+      dialogue_type: 'dialogue',
+      text: '',
+      sort_order: sortOrder,
+      modifier: null,
+    }
+    setPanels(prev => prev.map(p =>
+      p.id === panelId
+        ? { ...p, dialogue_blocks: [...(p.dialogue_blocks || []), optimisticDialogue] }
+        : p
+    ))
 
     const { data, error } = await supabase
       .from('dialogue_blocks')
@@ -351,8 +404,19 @@ export default function PageEditor({ page, pageContext, characters, locations, o
     if (error) {
       console.error('Error adding dialogue:', error)
       showToast('Failed to add dialogue: ' + error.message, 'error')
+      // Rollback
+      setPanels(prev => prev.map(p =>
+        p.id === panelId
+          ? { ...p, dialogue_blocks: (p.dialogue_blocks || []).filter(d => d.id !== tempId) }
+          : p
+      ))
     } else if (data) {
-      // Record undo action
+      // Replace temp with real ID
+      setPanels(prev => prev.map(p =>
+        p.id === panelId
+          ? { ...p, dialogue_blocks: (p.dialogue_blocks || []).map(d => d.id === tempId ? { ...d, id: data.id } : d) }
+          : p
+      ))
       recordAction({
         type: 'dialogue_add',
         dialogueId: data.id,
@@ -364,7 +428,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
         },
         description: 'Add dialogue',
       })
-      onUpdate()
+      // Don't call onUpdate() - local state is already correct and refresh would overwrite it
     }
   }
 
@@ -393,27 +457,41 @@ export default function PageEditor({ page, pageContext, characters, locations, o
       setSaveStatus('unsaved')
     } else {
       setSaveStatus('saved')
-      onUpdate()
+      // Don't call onUpdate() - avoid overwriting local state
     }
   }
 
   const deleteDialogue = async (dialogueId: string, panelId: string, dialogueData?: any) => {
     const supabase = createClient()
 
-    // Get the dialogue data for undo if not provided
-    let dataForUndo = dialogueData
-    if (!dataForUndo) {
-      const { data } = await supabase
-        .from('dialogue_blocks')
-        .select('*')
-        .eq('id', dialogueId)
-        .single()
-      dataForUndo = data
-    }
+    // Get the dialogue data for undo from local state
+    const panel = panels.find(p => p.id === panelId)
+    const localDialogue = panel?.dialogue_blocks?.find(d => d.id === dialogueId)
+    const dataForUndo = dialogueData || localDialogue
+
+    // Optimistically remove the dialogue immediately
+    setPanels(prev => prev.map(p =>
+      p.id === panelId
+        ? { ...p, dialogue_blocks: (p.dialogue_blocks || []).filter(d => d.id !== dialogueId) }
+        : p
+    ))
 
     const { error } = await supabase.from('dialogue_blocks').delete().eq('id', dialogueId)
 
-    if (!error && dataForUndo) {
+    if (error) {
+      // Rollback: restore the dialogue
+      if (dataForUndo) {
+        setPanels(prev => prev.map(p =>
+          p.id === panelId
+            ? { ...p, dialogue_blocks: [...(p.dialogue_blocks || []), dataForUndo].sort((a, b) => a.sort_order - b.sort_order) }
+            : p
+        ))
+      }
+      showToast('Failed to delete dialogue: ' + error.message, 'error')
+      return
+    }
+
+    if (dataForUndo) {
       recordAction({
         type: 'dialogue_delete',
         dialogueId,
@@ -428,14 +506,27 @@ export default function PageEditor({ page, pageContext, characters, locations, o
         description: 'Delete dialogue',
       })
     }
-
-    onUpdate()
+    // Don't call onUpdate() - local state is already correct
   }
 
   const addCaption = async (panelId: string) => {
     const supabase = createClient()
     const panel = panels.find(p => p.id === panelId)
     const sortOrder = (panel?.captions?.length || 0) + 1
+    const tempId = `temp-caption-${Date.now()}`
+
+    // Optimistically add the caption immediately
+    const optimisticCaption: Caption = {
+      id: tempId,
+      caption_type: 'narrative',
+      text: '',
+      sort_order: sortOrder,
+    }
+    setPanels(prev => prev.map(p =>
+      p.id === panelId
+        ? { ...p, captions: [...(p.captions || []), optimisticCaption] }
+        : p
+    ))
 
     const { data, error } = await supabase
       .from('captions')
@@ -451,7 +542,19 @@ export default function PageEditor({ page, pageContext, characters, locations, o
     if (error) {
       console.error('Error adding caption:', error)
       showToast('Failed to add caption: ' + error.message, 'error')
+      // Rollback
+      setPanels(prev => prev.map(p =>
+        p.id === panelId
+          ? { ...p, captions: (p.captions || []).filter(c => c.id !== tempId) }
+          : p
+      ))
     } else if (data) {
+      // Replace temp with real ID
+      setPanels(prev => prev.map(p =>
+        p.id === panelId
+          ? { ...p, captions: (p.captions || []).map(c => c.id === tempId ? { ...c, id: data.id } : c) }
+          : p
+      ))
       recordAction({
         type: 'caption_add',
         captionId: data.id,
@@ -463,7 +566,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
         },
         description: 'Add caption',
       })
-      onUpdate()
+      // Don't call onUpdate() - local state is already correct
     }
   }
 
@@ -491,43 +594,72 @@ export default function PageEditor({ page, pageContext, characters, locations, o
       setSaveStatus('unsaved')
     } else {
       setSaveStatus('saved')
-      onUpdate()
+      // Don't call onUpdate() - avoid overwriting local state
     }
   }
 
   const deleteCaption = async (captionId: string, panelId: string) => {
     const supabase = createClient()
 
-    // Get the caption data for undo
-    const { data: captionData } = await supabase
-      .from('captions')
-      .select('*')
-      .eq('id', captionId)
-      .single()
+    // Get the caption data for undo from local state
+    const panel = panels.find(p => p.id === panelId)
+    const localCaption = panel?.captions?.find(c => c.id === captionId)
+
+    // Optimistically remove the caption immediately
+    setPanels(prev => prev.map(p =>
+      p.id === panelId
+        ? { ...p, captions: (p.captions || []).filter(c => c.id !== captionId) }
+        : p
+    ))
 
     const { error } = await supabase.from('captions').delete().eq('id', captionId)
 
-    if (!error && captionData) {
+    if (error) {
+      // Rollback: restore the caption
+      if (localCaption) {
+        setPanels(prev => prev.map(p =>
+          p.id === panelId
+            ? { ...p, captions: [...(p.captions || []), localCaption].sort((a, b) => a.sort_order - b.sort_order) }
+            : p
+        ))
+      }
+      showToast('Failed to delete caption: ' + error.message, 'error')
+      return
+    }
+
+    if (localCaption) {
       recordAction({
         type: 'caption_delete',
         captionId,
         panelId,
         data: {
-          caption_type: captionData.caption_type,
-          text: captionData.text,
-          sort_order: captionData.sort_order,
+          caption_type: localCaption.caption_type,
+          text: localCaption.text,
+          sort_order: localCaption.sort_order,
         },
         description: 'Delete caption',
       })
     }
-
-    onUpdate()
+    // Don't call onUpdate() - local state is already correct
   }
 
   const addSoundEffect = async (panelId: string) => {
     const supabase = createClient()
     const panel = panels.find(p => p.id === panelId)
     const sortOrder = (panel?.sound_effects?.length || 0) + 1
+    const tempId = `temp-sfx-${Date.now()}`
+
+    // Optimistically add the sound effect immediately
+    const optimisticSfx: SoundEffect = {
+      id: tempId,
+      text: '',
+      sort_order: sortOrder,
+    }
+    setPanels(prev => prev.map(p =>
+      p.id === panelId
+        ? { ...p, sound_effects: [...(p.sound_effects || []), optimisticSfx] }
+        : p
+    ))
 
     const { data, error } = await supabase
       .from('sound_effects')
@@ -542,7 +674,19 @@ export default function PageEditor({ page, pageContext, characters, locations, o
     if (error) {
       console.error('Error adding sound effect:', error)
       showToast('Failed to add sound effect: ' + error.message, 'error')
+      // Rollback
+      setPanels(prev => prev.map(p =>
+        p.id === panelId
+          ? { ...p, sound_effects: (p.sound_effects || []).filter(s => s.id !== tempId) }
+          : p
+      ))
     } else if (data) {
+      // Replace temp with real ID
+      setPanels(prev => prev.map(p =>
+        p.id === panelId
+          ? { ...p, sound_effects: (p.sound_effects || []).map(s => s.id === tempId ? { ...s, id: data.id } : s) }
+          : p
+      ))
       recordAction({
         type: 'sfx_add',
         sfxId: data.id,
@@ -553,7 +697,7 @@ export default function PageEditor({ page, pageContext, characters, locations, o
         },
         description: 'Add sound effect',
       })
-      onUpdate()
+      // Don't call onUpdate() - local state is already correct
     }
   }
 
@@ -580,36 +724,52 @@ export default function PageEditor({ page, pageContext, characters, locations, o
       setSaveStatus('unsaved')
     } else {
       setSaveStatus('saved')
-      onUpdate()
+      // Don't call onUpdate() - avoid overwriting local state
     }
   }
 
   const deleteSoundEffect = async (sfxId: string, panelId: string) => {
     const supabase = createClient()
 
-    // Get the sfx data for undo
-    const { data: sfxData } = await supabase
-      .from('sound_effects')
-      .select('*')
-      .eq('id', sfxId)
-      .single()
+    // Get the sfx data for undo from local state
+    const panel = panels.find(p => p.id === panelId)
+    const localSfx = panel?.sound_effects?.find(s => s.id === sfxId)
+
+    // Optimistically remove the sound effect immediately
+    setPanels(prev => prev.map(p =>
+      p.id === panelId
+        ? { ...p, sound_effects: (p.sound_effects || []).filter(s => s.id !== sfxId) }
+        : p
+    ))
 
     const { error } = await supabase.from('sound_effects').delete().eq('id', sfxId)
 
-    if (!error && sfxData) {
+    if (error) {
+      // Rollback: restore the sound effect
+      if (localSfx) {
+        setPanels(prev => prev.map(p =>
+          p.id === panelId
+            ? { ...p, sound_effects: [...(p.sound_effects || []), localSfx].sort((a, b) => a.sort_order - b.sort_order) }
+            : p
+        ))
+      }
+      showToast('Failed to delete sound effect: ' + error.message, 'error')
+      return
+    }
+
+    if (localSfx) {
       recordAction({
         type: 'sfx_delete',
         sfxId,
         panelId,
         data: {
-          text: sfxData.text,
-          sort_order: sfxData.sort_order,
+          text: localSfx.text,
+          sort_order: localSfx.sort_order,
         },
         description: 'Delete sound effect',
       })
     }
-
-    onUpdate()
+    // Don't call onUpdate() - local state is already correct
   }
 
   const deletePanel = async (panelId: string) => {
@@ -627,11 +787,22 @@ export default function PageEditor({ page, pageContext, characters, locations, o
       if (!confirmed) return
     }
 
-    const supabase = createClient()
+    // Optimistically remove the panel immediately
+    setPanels(prev => prev.filter(p => p.id !== panelId))
 
+    const supabase = createClient()
     const { error } = await supabase.from('panels').delete().eq('id', panelId)
 
-    if (!error && panel) {
+    if (error) {
+      // Rollback: restore the panel
+      if (panel) {
+        setPanels(prev => [...prev, panel].sort((a, b) => a.panel_number - b.panel_number))
+      }
+      showToast('Failed to delete panel: ' + error.message, 'error')
+      return
+    }
+
+    if (panel) {
       recordAction({
         type: 'panel_delete',
         panelId,
@@ -642,13 +813,12 @@ export default function PageEditor({ page, pageContext, characters, locations, o
           shot_type: panel.shot_type,
           notes: panel.notes,
           sort_order: panel.panel_number,
-          // Note: Dialogue/captions/sfx would need to be restored separately
-          // This is a simplified version that restores the panel structure
         },
         description: 'Delete panel',
       })
     }
 
+    // Background refresh for consistency
     onUpdate()
   }
 

@@ -79,7 +79,24 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
     const supabase = createClient()
 
     if (isCreating) {
-      const { error } = await supabase.from('characters').insert({
+      const tempId = `temp-char-${Date.now()}`
+      const newCharacter: Character = {
+        id: tempId,
+        name: trimmedName,
+        role: form.role?.trim() || null,
+        description: form.description?.trim() || null,
+        visual_description: form.visual_description?.trim() || null,
+        personality_traits: form.personality_traits?.trim() || null,
+        background: form.background?.trim() || null,
+      }
+
+      // Optimistic update FIRST
+      setCharacters(prev => [...prev, newCharacter].sort((a, b) => a.name.localeCompare(b.name)))
+      cancelEdit()
+      showToast('Character created', 'success')
+
+      // Then persist to database
+      const { data, error } = await supabase.from('characters').insert({
         series_id: seriesId,
         name: trimmedName,
         role: form.role?.trim() || null,
@@ -87,14 +104,35 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
         visual_description: form.visual_description?.trim() || null,
         personality_traits: form.personality_traits?.trim() || null,
         background: form.background?.trim() || null,
-      })
+      }).select().single()
 
       if (error) {
+        // Rollback on error
+        setCharacters(prev => prev.filter(c => c.id !== tempId))
         showToast('Failed to create character: ' + error.message, 'error')
-        return
+      } else if (data) {
+        // Replace temp ID with real ID
+        setCharacters(prev => prev.map(c => c.id === tempId ? data : c))
       }
-      showToast('Character created', 'success')
     } else if (editingId) {
+      // Store previous value for rollback
+      const previousCharacter = characters.find(c => c.id === editingId)
+      const updatedCharacter: Character = {
+        id: editingId,
+        name: trimmedName,
+        role: form.role?.trim() || null,
+        description: form.description?.trim() || null,
+        visual_description: form.visual_description?.trim() || null,
+        personality_traits: form.personality_traits?.trim() || null,
+        background: form.background?.trim() || null,
+      }
+
+      // Optimistic update FIRST
+      setCharacters(prev => prev.map(c => c.id === editingId ? updatedCharacter : c).sort((a, b) => a.name.localeCompare(b.name)))
+      cancelEdit()
+      showToast('Character updated', 'success')
+
+      // Then persist to database
       const { error } = await supabase.from('characters').update({
         name: trimmedName,
         role: form.role?.trim() || null,
@@ -105,29 +143,36 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
       }).eq('id', editingId)
 
       if (error) {
+        // Rollback on error
+        if (previousCharacter) {
+          setCharacters(prev => prev.map(c => c.id === editingId ? previousCharacter : c))
+        }
         showToast('Failed to update character: ' + error.message, 'error')
-        return
       }
-      showToast('Character updated', 'success')
     }
-
-    cancelEdit()
-    refreshCharacters()
   }
 
   const deleteCharacter = async (id: string) => {
     if (!confirm('Are you sure you want to delete this character?')) return
 
+    // Store for rollback
+    const deletedCharacter = characters.find(c => c.id === id)
+
+    // Optimistic update FIRST
+    setCharacters(prev => prev.filter(c => c.id !== id))
+    showToast('Character deleted', 'success')
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase.from('characters').delete().eq('id', id)
 
     if (error) {
+      // Rollback on error
+      if (deletedCharacter) {
+        setCharacters(prev => [...prev, deletedCharacter].sort((a, b) => a.name.localeCompare(b.name)))
+      }
       showToast('Failed to delete character: ' + error.message, 'error')
-      return
     }
-
-    showToast('Character deleted', 'success')
-    refreshCharacters()
   }
 
   const renderForm = () => (

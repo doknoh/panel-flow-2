@@ -740,6 +740,35 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
   }, [])
 
   const savePageField = async (pageId: string, field: string, value: string) => {
+    // Store previous value for rollback
+    let previousValue: string | null = null
+    for (const act of issue.acts) {
+      for (const scene of act.scenes) {
+        const page = scene.pages.find(p => p.id === pageId)
+        if (page) {
+          previousValue = (page as any)[field] ?? null
+          break
+        }
+      }
+    }
+
+    // Optimistic update FIRST
+    setIssue((prevIssue) => ({
+      ...prevIssue,
+      acts: prevIssue.acts.map((act) => ({
+        ...act,
+        scenes: act.scenes.map((scene) => ({
+          ...scene,
+          pages: scene.pages.map((page) =>
+            page.id === pageId ? { ...page, [field]: value || null } : page
+          ),
+        })),
+      })),
+    }))
+    setEditingPageId(null)
+    setEditingField(null)
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase
       .from('pages')
@@ -747,9 +776,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       .eq('id', pageId)
 
     if (error) {
-      showToast(`Failed to save ${field}`, 'error')
-    } else {
-      // Optimistic update - update local state immediately
+      // Rollback on error
       setIssue((prevIssue) => ({
         ...prevIssue,
         acts: prevIssue.acts.map((act) => ({
@@ -757,18 +784,46 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           scenes: act.scenes.map((scene) => ({
             ...scene,
             pages: scene.pages.map((page) =>
-              page.id === pageId ? { ...page, [field]: value || null } : page
+              page.id === pageId ? { ...page, [field]: previousValue } : page
             ),
           })),
         })),
       }))
-      showToast('Saved', 'success')
+      showToast(`Failed to save ${field}`, 'error')
     }
-    setEditingPageId(null)
-    setEditingField(null)
   }
 
   const assignPlotline = async (pageId: string, plotlineId: string | null) => {
+    // Store previous value for rollback
+    let previousPlotlineId: string | null = null
+    let previousPlotline: Plotline | null = null
+    for (const act of issue.acts) {
+      for (const scene of act.scenes) {
+        const page = scene.pages.find(p => p.id === pageId)
+        if (page) {
+          previousPlotlineId = page.plotline_id
+          previousPlotline = page.plotline
+          break
+        }
+      }
+    }
+
+    // Optimistic update FIRST
+    const plotline = plotlineId ? issue.plotlines.find(p => p.id === plotlineId) || null : null
+    setIssue((prevIssue) => ({
+      ...prevIssue,
+      acts: prevIssue.acts.map((act) => ({
+        ...act,
+        scenes: act.scenes.map((scene) => ({
+          ...scene,
+          pages: scene.pages.map((page) =>
+            page.id === pageId ? { ...page, plotline_id: plotlineId, plotline } : page
+          ),
+        })),
+      })),
+    }))
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase
       .from('pages')
@@ -776,10 +831,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       .eq('id', pageId)
 
     if (error) {
-      showToast('Failed to assign plotline', 'error')
-    } else {
-      // Optimistic update - update local state immediately
-      const plotline = plotlineId ? issue.plotlines.find(p => p.id === plotlineId) || null : null
+      // Rollback on error
       setIssue((prevIssue) => ({
         ...prevIssue,
         acts: prevIssue.acts.map((act) => ({
@@ -787,25 +839,44 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           scenes: act.scenes.map((scene) => ({
             ...scene,
             pages: scene.pages.map((page) =>
-              page.id === pageId ? { ...page, plotline_id: plotlineId, plotline } : page
+              page.id === pageId ? { ...page, plotline_id: previousPlotlineId, plotline: previousPlotline } : page
             ),
           })),
         })),
       }))
+      showToast('Failed to assign plotline', 'error')
     }
   }
 
   const createPlotline = async () => {
     if (!newPlotlineName.trim()) return
 
-    const supabase = createClient()
     const nextColor = PLOTLINE_COLORS[plotlines.length % PLOTLINE_COLORS.length]
+    const tempId = `temp-plotline-${Date.now()}`
+    const name = newPlotlineName.trim()
 
+    // Optimistic update FIRST - add with temp ID
+    const optimisticPlotline: Plotline = {
+      id: tempId,
+      name,
+      color: nextColor,
+      description: null,
+      sort_order: plotlines.length,
+    }
+    setIssue((prevIssue) => ({
+      ...prevIssue,
+      plotlines: [...prevIssue.plotlines, optimisticPlotline],
+    }))
+    setNewPlotlineName('')
+    showToast('Plotline created', 'success')
+
+    // Then persist to database
+    const supabase = createClient()
     const { data: newPlotline, error } = await supabase
       .from('plotlines')
       .insert({
         issue_id: issue.id,
-        name: newPlotlineName.trim(),
+        name,
         color: nextColor,
         sort_order: plotlines.length,
       })
@@ -813,19 +884,55 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       .single()
 
     if (error) {
-      showToast('Failed to create plotline', 'error')
-    } else if (newPlotline) {
-      // Optimistic update - add the new plotline to local state
+      // Rollback on error
       setIssue((prevIssue) => ({
         ...prevIssue,
-        plotlines: [...prevIssue.plotlines, newPlotline],
+        plotlines: prevIssue.plotlines.filter(p => p.id !== tempId),
       }))
-      showToast('Plotline created', 'success')
-      setNewPlotlineName('')
+      showToast('Failed to create plotline', 'error')
+    } else if (newPlotline) {
+      // Replace temp ID with real ID
+      setIssue((prevIssue) => ({
+        ...prevIssue,
+        plotlines: prevIssue.plotlines.map(p =>
+          p.id === tempId ? { ...p, id: newPlotline.id } : p
+        ),
+      }))
     }
   }
 
   const deletePlotline = async (plotlineId: string) => {
+    // Store for rollback
+    const deletedPlotline = issue.plotlines.find(p => p.id === plotlineId)
+    const pagesWithPlotline: string[] = []
+    for (const act of issue.acts) {
+      for (const scene of act.scenes) {
+        for (const page of scene.pages) {
+          if (page.plotline_id === plotlineId) {
+            pagesWithPlotline.push(page.id)
+          }
+        }
+      }
+    }
+
+    // Optimistic update FIRST
+    setIssue((prevIssue) => ({
+      ...prevIssue,
+      plotlines: prevIssue.plotlines.filter(p => p.id !== plotlineId),
+      // Also clear plotline_id from any pages that had it
+      acts: prevIssue.acts.map((act) => ({
+        ...act,
+        scenes: act.scenes.map((scene) => ({
+          ...scene,
+          pages: scene.pages.map((page) =>
+            page.plotline_id === plotlineId ? { ...page, plotline_id: null, plotline: null } : page
+          ),
+        })),
+      })),
+    }))
+    showToast('Plotline deleted', 'success')
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase
       .from('plotlines')
@@ -833,28 +940,54 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       .eq('id', plotlineId)
 
     if (error) {
-      showToast('Failed to delete plotline', 'error')
-    } else {
-      // Optimistic update - remove the plotline from local state
-      setIssue((prevIssue) => ({
-        ...prevIssue,
-        plotlines: prevIssue.plotlines.filter(p => p.id !== plotlineId),
-        // Also clear plotline_id from any pages that had it
-        acts: prevIssue.acts.map((act) => ({
-          ...act,
-          scenes: act.scenes.map((scene) => ({
-            ...scene,
-            pages: scene.pages.map((page) =>
-              page.plotline_id === plotlineId ? { ...page, plotline_id: null, plotline: null } : page
-            ),
+      // Rollback on error - restore plotline and page associations
+      if (deletedPlotline) {
+        setIssue((prevIssue) => ({
+          ...prevIssue,
+          plotlines: [...prevIssue.plotlines, deletedPlotline],
+          acts: prevIssue.acts.map((act) => ({
+            ...act,
+            scenes: act.scenes.map((scene) => ({
+              ...scene,
+              pages: scene.pages.map((page) =>
+                pagesWithPlotline.includes(page.id)
+                  ? { ...page, plotline_id: plotlineId, plotline: deletedPlotline }
+                  : page
+              ),
+            })),
           })),
-        })),
-      }))
-      showToast('Plotline deleted', 'success')
+        }))
+      }
+      showToast('Failed to delete plotline', 'error')
     }
   }
 
   const updatePlotlineColor = async (plotlineId: string, color: string) => {
+    // Store previous color for rollback
+    const previousColor = issue.plotlines.find(p => p.id === plotlineId)?.color
+
+    // Optimistic update FIRST
+    setIssue((prevIssue) => ({
+      ...prevIssue,
+      plotlines: prevIssue.plotlines.map(p =>
+        p.id === plotlineId ? { ...p, color } : p
+      ),
+      // Also update the color for pages that reference this plotline
+      acts: prevIssue.acts.map((act) => ({
+        ...act,
+        scenes: act.scenes.map((scene) => ({
+          ...scene,
+          pages: scene.pages.map((page) =>
+            page.plotline_id === plotlineId && page.plotline
+              ? { ...page, plotline: { ...page.plotline, color } }
+              : page
+          ),
+        })),
+      })),
+    }))
+    setEditingPlotlineId(null)
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase
       .from('plotlines')
@@ -862,28 +995,27 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       .eq('id', plotlineId)
 
     if (error) {
-      showToast('Failed to update color', 'error')
-    } else {
-      // Optimistic update - update the plotline color in local state
-      setIssue((prevIssue) => ({
-        ...prevIssue,
-        plotlines: prevIssue.plotlines.map(p =>
-          p.id === plotlineId ? { ...p, color } : p
-        ),
-        // Also update the color for pages that reference this plotline
-        acts: prevIssue.acts.map((act) => ({
-          ...act,
-          scenes: act.scenes.map((scene) => ({
-            ...scene,
-            pages: scene.pages.map((page) =>
-              page.plotline_id === plotlineId && page.plotline
-                ? { ...page, plotline: { ...page.plotline, color } }
-                : page
-            ),
+      // Rollback on error
+      if (previousColor) {
+        setIssue((prevIssue) => ({
+          ...prevIssue,
+          plotlines: prevIssue.plotlines.map(p =>
+            p.id === plotlineId ? { ...p, color: previousColor } : p
+          ),
+          acts: prevIssue.acts.map((act) => ({
+            ...act,
+            scenes: act.scenes.map((scene) => ({
+              ...scene,
+              pages: scene.pages.map((page) =>
+                page.plotline_id === plotlineId && page.plotline
+                  ? { ...page, plotline: { ...page.plotline, color: previousColor } }
+                  : page
+              ),
+            })),
           })),
-        })),
-      }))
-      setEditingPlotlineId(null)
+        }))
+      }
+      showToast('Failed to update color', 'error')
     }
   }
 

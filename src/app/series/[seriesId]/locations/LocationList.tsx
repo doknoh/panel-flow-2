@@ -73,20 +73,54 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
     const supabase = createClient()
 
     if (isCreating) {
-      const { error } = await supabase.from('locations').insert({
+      const tempId = `temp-loc-${Date.now()}`
+      const newLocation: Location = {
+        id: tempId,
+        name: trimmedName,
+        description: form.description?.trim() || null,
+        visual_description: form.visual_description?.trim() || null,
+        significance: form.significance?.trim() || null,
+      }
+
+      // Optimistic update FIRST
+      setLocations(prev => [...prev, newLocation].sort((a, b) => a.name.localeCompare(b.name)))
+      cancelEdit()
+      showToast('Location created', 'success')
+
+      // Then persist to database
+      const { data, error } = await supabase.from('locations').insert({
         series_id: seriesId,
         name: trimmedName,
         description: form.description?.trim() || null,
         visual_description: form.visual_description?.trim() || null,
         significance: form.significance?.trim() || null,
-      })
+      }).select().single()
 
       if (error) {
+        // Rollback on error
+        setLocations(prev => prev.filter(l => l.id !== tempId))
         showToast('Failed to create location: ' + error.message, 'error')
-        return
+      } else if (data) {
+        // Replace temp ID with real ID
+        setLocations(prev => prev.map(l => l.id === tempId ? data : l))
       }
-      showToast('Location created', 'success')
     } else if (editingId) {
+      // Store previous value for rollback
+      const previousLocation = locations.find(l => l.id === editingId)
+      const updatedLocation: Location = {
+        id: editingId,
+        name: trimmedName,
+        description: form.description?.trim() || null,
+        visual_description: form.visual_description?.trim() || null,
+        significance: form.significance?.trim() || null,
+      }
+
+      // Optimistic update FIRST
+      setLocations(prev => prev.map(l => l.id === editingId ? updatedLocation : l).sort((a, b) => a.name.localeCompare(b.name)))
+      cancelEdit()
+      showToast('Location updated', 'success')
+
+      // Then persist to database
       const { error } = await supabase.from('locations').update({
         name: trimmedName,
         description: form.description?.trim() || null,
@@ -95,29 +129,36 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
       }).eq('id', editingId)
 
       if (error) {
+        // Rollback on error
+        if (previousLocation) {
+          setLocations(prev => prev.map(l => l.id === editingId ? previousLocation : l))
+        }
         showToast('Failed to update location: ' + error.message, 'error')
-        return
       }
-      showToast('Location updated', 'success')
     }
-
-    cancelEdit()
-    refreshLocations()
   }
 
   const deleteLocation = async (id: string) => {
     if (!confirm('Are you sure you want to delete this location?')) return
 
+    // Store for rollback
+    const deletedLocation = locations.find(l => l.id === id)
+
+    // Optimistic update FIRST
+    setLocations(prev => prev.filter(l => l.id !== id))
+    showToast('Location deleted', 'success')
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase.from('locations').delete().eq('id', id)
 
     if (error) {
+      // Rollback on error
+      if (deletedLocation) {
+        setLocations(prev => [...prev, deletedLocation].sort((a, b) => a.name.localeCompare(b.name)))
+      }
       showToast('Failed to delete location: ' + error.message, 'error')
-      return
     }
-
-    showToast('Location deleted', 'success')
-    refreshLocations()
   }
 
   const renderForm = () => (

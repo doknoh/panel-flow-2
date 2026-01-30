@@ -113,6 +113,14 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       return
     }
 
+    const previousTitle = issue.title
+
+    // Optimistic update FIRST
+    setIssue(prev => ({ ...prev, title: trimmedTitle || null }))
+    setIsEditingTitle(false)
+    showToast('Title updated', 'success')
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase
       .from('issues')
@@ -120,13 +128,11 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       .eq('id', issue.id)
 
     if (error) {
+      // Rollback on error
+      setIssue(prev => ({ ...prev, title: previousTitle }))
+      setEditedTitle(previousTitle || '')
       showToast('Failed to save title', 'error')
-      setEditedTitle(issue.title || '')
-    } else {
-      setIssue(prev => ({ ...prev, title: trimmedTitle || null }))
-      showToast('Title updated', 'success')
     }
-    setIsEditingTitle(false)
   }
 
   const refreshIssue = useCallback(async () => {

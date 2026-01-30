@@ -100,20 +100,54 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
     const supabase = createClient()
 
     if (isCreating) {
-      const { error } = await supabase.from('plotlines').insert({
+      const tempId = `temp-plotline-${Date.now()}`
+      const newPlotline: Plotline = {
+        id: tempId,
+        name: trimmedName,
+        color: form.color || '#3b82f6',
+        description: form.description?.trim() || null,
+        sort_order: plotlines.length,
+      }
+
+      // Optimistic update FIRST
+      setPlotlines(prev => [...prev, newPlotline])
+      cancelEdit()
+      showToast('Plotline created', 'success')
+
+      // Then persist to database
+      const { data, error } = await supabase.from('plotlines').insert({
         series_id: seriesId,
         name: trimmedName,
         color: form.color,
         description: form.description?.trim() || null,
         sort_order: plotlines.length,
-      })
+      }).select().single()
 
       if (error) {
+        // Rollback on error
+        setPlotlines(prev => prev.filter(p => p.id !== tempId))
         showToast('Failed to create plotline: ' + error.message, 'error')
-        return
+      } else if (data) {
+        // Replace temp ID with real ID
+        setPlotlines(prev => prev.map(p => p.id === tempId ? data : p))
       }
-      showToast('Plotline created', 'success')
     } else if (editingId) {
+      // Store previous value for rollback
+      const previousPlotline = plotlines.find(p => p.id === editingId)
+      const updatedPlotline: Plotline = {
+        id: editingId,
+        name: trimmedName,
+        color: form.color || previousPlotline?.color || '#3b82f6',
+        description: form.description?.trim() || null,
+        sort_order: previousPlotline?.sort_order || 0,
+      }
+
+      // Optimistic update FIRST
+      setPlotlines(prev => prev.map(p => p.id === editingId ? updatedPlotline : p))
+      cancelEdit()
+      showToast('Plotline updated', 'success')
+
+      // Then persist to database
       const { error } = await supabase.from('plotlines').update({
         name: trimmedName,
         color: form.color,
@@ -121,29 +155,36 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
       }).eq('id', editingId)
 
       if (error) {
+        // Rollback on error
+        if (previousPlotline) {
+          setPlotlines(prev => prev.map(p => p.id === editingId ? previousPlotline : p))
+        }
         showToast('Failed to update plotline: ' + error.message, 'error')
-        return
       }
-      showToast('Plotline updated', 'success')
     }
-
-    cancelEdit()
-    refreshPlotlines()
   }
 
   const deletePlotline = async (id: string) => {
     if (!confirm('Are you sure you want to delete this plotline? Scenes assigned to it will be unassigned.')) return
 
+    // Store for rollback
+    const deletedPlotline = plotlines.find(p => p.id === id)
+
+    // Optimistic update FIRST
+    setPlotlines(prev => prev.filter(p => p.id !== id))
+    showToast('Plotline deleted', 'success')
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase.from('plotlines').delete().eq('id', id)
 
     if (error) {
+      // Rollback on error
+      if (deletedPlotline) {
+        setPlotlines(prev => [...prev, deletedPlotline].sort((a, b) => a.sort_order - b.sort_order))
+      }
       showToast('Failed to delete plotline: ' + error.message, 'error')
-      return
     }
-
-    showToast('Plotline deleted', 'success')
-    refreshPlotlines()
   }
 
   const renderForm = () => (

@@ -104,6 +104,13 @@ export default function OutlineView({ series }: OutlineViewProps) {
 
   // Save series outline notes
   const saveSeriesNotes = async () => {
+    const previousNotes = series.outline_notes
+
+    // Optimistic update FIRST - close editing and show success
+    setEditingSeriesNotes(false)
+    showToast('Notes saved', 'success')
+
+    // Then persist to database
     const supabase = createClient()
     const { error } = await supabase
       .from('series')
@@ -111,10 +118,10 @@ export default function OutlineView({ series }: OutlineViewProps) {
       .eq('id', series.id)
 
     if (error) {
+      // Rollback on error - reopen editing
+      setEditingSeriesNotes(true)
+      setSeriesNotes(previousNotes || '')
       showToast('Failed to save notes', 'error')
-    } else {
-      showToast('Notes saved', 'success')
-      setEditingSeriesNotes(false)
     }
   }
 

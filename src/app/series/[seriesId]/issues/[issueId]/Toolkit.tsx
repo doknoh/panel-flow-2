@@ -197,6 +197,8 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     outline_notes: issue.outline_notes || '',
   })
   const [saving, setSaving] = useState(false)
+  // Local state for optimistic status updates
+  const [localStatus, setLocalStatus] = useState(issue.status)
   const { showToast } = useToast()
 
   // Continuity alerts state
@@ -218,6 +220,11 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
+
+  // Sync local status with prop when it changes from outside
+  useEffect(() => {
+    setLocalStatus(issue.status)
+  }, [issue.status])
 
   // Run passive continuity checks on the issue
   const continuityAlerts = useMemo<ContinuityAlert[]>(() => {
@@ -356,8 +363,12 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
   const saveContext = async () => {
     setSaving(true)
-    const supabase = createClient()
 
+    // Optimistic update - close form and show success immediately
+    setIsEditingContext(false)
+    showToast('Context saved', 'success')
+
+    const supabase = createClient()
     const { error } = await supabase
       .from('issues')
       .update({
@@ -374,12 +385,12 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       })
       .eq('id', issue.id)
 
-    if (!error) {
-      setIsEditingContext(false)
-      showToast('Context saved', 'success')
-      onRefresh?.()
-    } else {
+    if (error) {
+      // Rollback - reopen form and show error
+      setIsEditingContext(true)
       showToast('Failed to save context', 'error')
+    } else {
+      onRefresh?.()
     }
     setSaving(false)
   }
@@ -1044,14 +1055,28 @@ DRAFT MODE:
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
               <h3 className="font-semibold text-sm mb-3">Status</h3>
               <select
-                value={issue.status}
+                value={localStatus}
                 onChange={async (e) => {
+                  const newStatus = e.target.value
+                  const previousStatus = localStatus
+
+                  // Optimistic update FIRST
+                  setLocalStatus(newStatus)
+
+                  // Then persist to database
                   const supabase = createClient()
-                  await supabase
+                  const { error } = await supabase
                     .from('issues')
-                    .update({ status: e.target.value })
+                    .update({ status: newStatus })
                     .eq('id', issue.id)
-                  onRefresh?.()
+
+                  if (error) {
+                    // Rollback on error
+                    setLocalStatus(previousStatus)
+                    showToast('Failed to update status', 'error')
+                  } else {
+                    onRefresh?.()
+                  }
                 }}
                 className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
               >
