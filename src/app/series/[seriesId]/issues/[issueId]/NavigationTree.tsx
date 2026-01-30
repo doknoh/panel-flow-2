@@ -451,9 +451,26 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   }
 
   const addAct = async () => {
-    const supabase = createClient()
     const actNumber = (issue.acts?.length || 0) + 1
+    const tempId = `temp-act-${Date.now()}`
 
+    // Optimistic update FIRST - add immediately with temp ID
+    const optimisticAct = {
+      id: tempId,
+      issue_id: issue.id,
+      number: actNumber,
+      name: `Act ${actNumber}`,
+      sort_order: actNumber,
+      scenes: [],
+    }
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: [...(prev.acts || []), optimisticAct],
+    }))
+    setExpandedActs(new Set([...expandedActs, tempId]))
+
+    // Then persist to database
+    const supabase = createClient()
     const { data: newAct, error } = await supabase.from('acts').insert({
       issue_id: issue.id,
       number: actNumber,
@@ -462,15 +479,24 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }).select().single()
 
     if (error) {
-      showToast(`Failed to create act: ${error.message}`, 'error')
-    } else if (newAct) {
-      // Optimistic update - add the new act to local state immediately
+      // Rollback on error
       setIssue((prev: any) => ({
         ...prev,
-        acts: [...(prev.acts || []), { ...newAct, scenes: [] }],
+        acts: prev.acts.filter((a: any) => a.id !== tempId),
       }))
-      setExpandedActs(new Set([...expandedActs, newAct.id]))
-      showToast('Act created', 'success')
+      showToast(`Failed to create act: ${error.message}`, 'error')
+    } else if (newAct) {
+      // Replace temp ID with real ID
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => a.id === tempId ? { ...a, id: newAct.id } : a),
+      }))
+      setExpandedActs(prev => {
+        const next = new Set(prev)
+        next.delete(tempId)
+        next.add(newAct.id)
+        return next
+      })
     }
   }
 
@@ -483,17 +509,23 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     )
     if (!confirmed) return
 
+    // Optimistic delete FIRST
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: prev.acts.filter((a: any) => a.id !== actId),
+    }))
+
     const supabase = createClient()
     const { error } = await supabase.from('acts').delete().eq('id', actId)
     if (error) {
+      // Rollback on error
+      if (act) {
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: [...prev.acts, act].sort((a: any, b: any) => a.sort_order - b.sort_order),
+        }))
+      }
       showToast(`Failed to delete act: ${error.message}`, 'error')
-    } else {
-      // Optimistic update - remove the act from local state immediately
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.filter((a: any) => a.id !== actId),
-      }))
-      showToast('Act deleted', 'success')
     }
   }
 
@@ -503,20 +535,42 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     )
     if (!confirmed) return
 
+    // Find the scene for potential rollback
+    let deletedScene: any = null
+    let parentActId: string | null = null
+    for (const act of issue.acts || []) {
+      const scene = (act.scenes || []).find((s: any) => s.id === sceneId)
+      if (scene) {
+        deletedScene = scene
+        parentActId = act.id
+        break
+      }
+    }
+
+    // Optimistic delete FIRST
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: prev.acts.map((a: any) => ({
+        ...a,
+        scenes: (a.scenes || []).filter((s: any) => s.id !== sceneId),
+      })),
+    }))
+
     const supabase = createClient()
     const { error } = await supabase.from('scenes').delete().eq('id', sceneId)
     if (error) {
+      // Rollback on error
+      if (deletedScene && parentActId) {
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) =>
+            a.id === parentActId
+              ? { ...a, scenes: [...(a.scenes || []), deletedScene].sort((x: any, y: any) => x.sort_order - y.sort_order) }
+              : a
+          ),
+        }))
+      }
       showToast(`Failed to delete scene: ${error.message}`, 'error')
-    } else {
-      // Optimistic update - remove the scene from local state immediately
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) => ({
-          ...a,
-          scenes: (a.scenes || []).filter((s: any) => s.id !== sceneId),
-        })),
-      }))
-      showToast('Scene deleted', 'success')
     }
   }
 
@@ -524,34 +578,82 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const confirmed = window.confirm(`Delete Page ${pageNumber}?\n\nThis will permanently delete all panels on this page.`)
     if (!confirmed) return
 
+    // Find the page for potential rollback
+    let deletedPage: any = null
+    let parentSceneId: string | null = null
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        const page = (scene.pages || []).find((p: any) => p.id === pageId)
+        if (page) {
+          deletedPage = page
+          parentSceneId = scene.id
+          break
+        }
+      }
+      if (deletedPage) break
+    }
+
+    // Optimistic delete FIRST
+    if (selectedPageId === pageId) {
+      onSelectPage('')
+    }
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: prev.acts.map((a: any) => ({
+        ...a,
+        scenes: (a.scenes || []).map((s: any) => ({
+          ...s,
+          pages: (s.pages || []).filter((p: any) => p.id !== pageId),
+        })),
+      })),
+    }))
+
     const supabase = createClient()
     const { error } = await supabase.from('pages').delete().eq('id', pageId)
     if (error) {
-      showToast(`Failed to delete page: ${error.message}`, 'error')
-    } else {
-      if (selectedPageId === pageId) {
-        onSelectPage('')
-      }
-      // Optimistic update - remove the page from local state immediately
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) => ({
-          ...a,
-          scenes: (a.scenes || []).map((s: any) => ({
-            ...s,
-            pages: (s.pages || []).filter((p: any) => p.id !== pageId),
+      // Rollback on error
+      if (deletedPage && parentSceneId) {
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) => ({
+            ...a,
+            scenes: (a.scenes || []).map((s: any) =>
+              s.id === parentSceneId
+                ? { ...s, pages: [...(s.pages || []), deletedPage].sort((x: any, y: any) => x.sort_order - y.sort_order) }
+                : s
+            ),
           })),
-        })),
-      }))
-      showToast('Page deleted', 'success')
+        }))
+      }
+      showToast(`Failed to delete page: ${error.message}`, 'error')
     }
   }
 
   const addScene = async (actId: string) => {
-    const supabase = createClient()
     const act = issue.acts?.find((a: any) => a.id === actId)
     const sceneCount = act?.scenes?.length || 0
+    const tempId = `temp-scene-${Date.now()}`
 
+    // Optimistic update FIRST
+    const optimisticScene = {
+      id: tempId,
+      act_id: actId,
+      title: `Scene ${sceneCount + 1}`,
+      sort_order: sceneCount + 1,
+      pages: [],
+    }
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: prev.acts.map((a: any) =>
+        a.id === actId
+          ? { ...a, scenes: [...(a.scenes || []), optimisticScene] }
+          : a
+      ),
+    }))
+    setExpandedActs(new Set([...expandedActs, actId]))
+
+    // Then persist to database
+    const supabase = createClient()
     const { data: newScene, error } = await supabase.from('scenes').insert({
       act_id: actId,
       title: `Scene ${sceneCount + 1}`,
@@ -559,25 +661,30 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }).select().single()
 
     if (error) {
-      showToast(`Failed to create scene: ${error.message}`, 'error')
-    } else if (newScene) {
-      // Optimistic update - add the new scene to local state immediately
+      // Rollback on error
       setIssue((prev: any) => ({
         ...prev,
         acts: prev.acts.map((a: any) =>
           a.id === actId
-            ? { ...a, scenes: [...(a.scenes || []), { ...newScene, pages: [] }] }
+            ? { ...a, scenes: (a.scenes || []).filter((s: any) => s.id !== tempId) }
             : a
         ),
       }))
-      setExpandedActs(new Set([...expandedActs, actId]))
-      showToast('Scene created', 'success')
+      showToast(`Failed to create scene: ${error.message}`, 'error')
+    } else if (newScene) {
+      // Replace temp ID with real ID
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) =>
+          a.id === actId
+            ? { ...a, scenes: (a.scenes || []).map((s: any) => s.id === tempId ? { ...s, id: newScene.id } : s) }
+            : a
+        ),
+      }))
     }
   }
 
   const addPage = async (sceneId: string) => {
-    const supabase = createClient()
-
     const allPages = issue.acts?.flatMap((a: any) =>
       a.scenes?.flatMap((s: any) => s.pages || []) || []
     ) || []
@@ -585,7 +692,33 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     const scene = issue.acts?.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === sceneId)
     const pagesInScene = scene?.pages?.length || 0
+    const tempId = `temp-page-${Date.now()}`
 
+    // Optimistic update FIRST
+    const optimisticPage = {
+      id: tempId,
+      scene_id: sceneId,
+      page_number: pageNumber,
+      sort_order: pagesInScene + 1,
+      title: `Page ${pageNumber}`,
+      panels: [],
+    }
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: prev.acts.map((a: any) => ({
+        ...a,
+        scenes: (a.scenes || []).map((s: any) =>
+          s.id === sceneId
+            ? { ...s, pages: [...(s.pages || []), optimisticPage] }
+            : s
+        ),
+      })),
+    }))
+    setExpandedScenes(new Set([...expandedScenes, sceneId]))
+    onSelectPage(tempId)
+
+    // Then persist to database
+    const supabase = createClient()
     const { data: newPage, error } = await supabase.from('pages').insert({
       scene_id: sceneId,
       page_number: pageNumber,
@@ -594,23 +727,34 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }).select().single()
 
     if (error) {
-      showToast(`Failed to create page: ${error.message}`, 'error')
-    } else if (newPage) {
-      // Optimistic update - add the new page to local state immediately
+      // Rollback on error
       setIssue((prev: any) => ({
         ...prev,
         acts: prev.acts.map((a: any) => ({
           ...a,
           scenes: (a.scenes || []).map((s: any) =>
             s.id === sceneId
-              ? { ...s, pages: [...(s.pages || []), { ...newPage, panels: [] }] }
+              ? { ...s, pages: (s.pages || []).filter((p: any) => p.id !== tempId) }
               : s
           ),
         })),
       }))
-      setExpandedScenes(new Set([...expandedScenes, sceneId]))
+      onSelectPage('')
+      showToast(`Failed to create page: ${error.message}`, 'error')
+    } else if (newPage) {
+      // Replace temp ID with real ID
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) =>
+            s.id === sceneId
+              ? { ...s, pages: (s.pages || []).map((p: any) => p.id === tempId ? { ...p, id: newPage.id } : p) }
+              : s
+          ),
+        })),
+      }))
       onSelectPage(newPage.id)
-      showToast('Page created', 'success')
     }
   }
 

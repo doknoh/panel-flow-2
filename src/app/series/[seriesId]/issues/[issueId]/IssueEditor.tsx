@@ -142,36 +142,50 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     // Add a small delay to ensure DB transaction is committed
     await new Promise(resolve => setTimeout(resolve, 150))
 
-    const { data, error } = await supabase
-      .from('issues')
-      .select(`
-        *,
-        series:series_id (
-          id,
-          title,
-          characters (*),
-          locations (*),
-          plotlines (*)
-        ),
-        acts (
+    // Fetch issue data and plotlines separately to avoid PostgREST relationship issues
+    const [issueResult, plotlinesResult] = await Promise.all([
+      supabase
+        .from('issues')
+        .select(`
           *,
-          scenes (
+          series:series_id (
+            id,
+            title,
+            characters (*),
+            locations (*)
+          ),
+          acts (
             *,
-            plotline:plotline_id (*),
-            pages (
+            scenes (
               *,
-              panels (
+              plotline:plotline_id (*),
+              pages (
                 *,
-                dialogue_blocks (*),
-                captions (*),
-                sound_effects (*)
+                panels (
+                  *,
+                  dialogue_blocks (*),
+                  captions (*),
+                  sound_effects (*)
+                )
               )
             )
           )
-        )
-      `)
-      .eq('id', initialIssue.id)
-      .single()
+        `)
+        .eq('id', initialIssue.id)
+        .single(),
+      supabase
+        .from('plotlines')
+        .select('*')
+        .eq('series_id', initialIssue.series_id)
+        .order('sort_order')
+    ])
+
+    const { data, error } = issueResult
+
+    // Merge plotlines into series data if both succeeded
+    if (data && plotlinesResult.data) {
+      data.series.plotlines = plotlinesResult.data
+    }
 
     if (error) {
       console.error('refreshIssue: FAILED to refresh issue:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint)
