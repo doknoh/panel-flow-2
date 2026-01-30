@@ -174,7 +174,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       .single()
 
     if (error) {
-      console.error('refreshIssue: FAILED to refresh issue:', error)
+      console.error('refreshIssue: FAILED to refresh issue:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint)
       return
     }
 
