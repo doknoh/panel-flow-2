@@ -51,11 +51,14 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const nextParam = searchParams.get('next') ?? '/dashboard'
 
+  console.log('[Auth Callback] Starting auth callback...')
+
   // Validate next parameter to prevent open redirect attacks
   const isValidNext = nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.includes('://')
   const next = isValidNext ? nextParam : '/dashboard'
 
   if (!code) {
+    console.log('[Auth Callback] No code provided, redirecting to login')
     return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
@@ -73,6 +76,7 @@ export async function GET(request: Request) {
           return cookieStore.getAll()
         },
         setAll(newCookies) {
+          console.log('[Auth Callback] Setting cookies:', newCookies.map(c => c.name))
           newCookies.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options)
             // Also track for the redirect response
@@ -86,27 +90,38 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
-    console.error('Exchange error:', error)
+    console.error('[Auth Callback] Exchange error:', error)
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
   }
+
+  console.log('[Auth Callback] Session exchanged successfully')
 
   // Check if user is in allowed_users table
   const { data: { user } } = await supabase.auth.getUser()
 
+  console.log('[Auth Callback] User:', user?.email || 'no user')
+
   let redirectUrl = `${origin}${next}`
 
   if (user) {
-    const { data: allowedUser } = await supabase
+    const { data: allowedUser, error: allowedError } = await supabase
       .from('allowed_users')
       .select('email')
       .eq('email', user.email)
       .single()
 
+    console.log('[Auth Callback] Allowed user check:', { allowedUser, allowedError: allowedError?.message })
+
     if (!allowedUser) {
       // User is not approved - send notification and redirect to pending page
+      console.log('[Auth Callback] User NOT in allowed_users, sending notification and redirecting to pending-approval')
       await sendApprovalNotification(user.email || 'unknown', user.user_metadata?.full_name || null)
       redirectUrl = `${origin}/pending-approval`
+    } else {
+      console.log('[Auth Callback] User IS allowed, redirecting to:', next)
     }
+  } else {
+    console.log('[Auth Callback] No user found after exchange, this should not happen')
   }
 
   // Create redirect response and set all cookies on it
@@ -114,9 +129,19 @@ export async function GET(request: Request) {
 
   // CRITICAL: Copy session cookies to the redirect response
   // Without this, the session won't persist after the redirect
+  console.log('[Auth Callback] Setting', cookiesToSet.length, 'cookies on redirect response')
   cookiesToSet.forEach(({ name, value, options }) => {
-    response.cookies.set(name, value, options)
+    // Map Supabase cookie options to Next.js compatible options
+    response.cookies.set(name, value, {
+      path: options?.path,
+      domain: options?.domain,
+      maxAge: options?.maxAge,
+      httpOnly: options?.httpOnly,
+      secure: options?.secure,
+      sameSite: options?.sameSite as 'strict' | 'lax' | 'none' | undefined,
+    })
   })
 
+  console.log('[Auth Callback] Redirecting to:', redirectUrl)
   return response
 }
