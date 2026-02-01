@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 // Send email notification for new users needing approval
 async function sendApprovalNotification(userEmail: string, userName: string | null) {
@@ -8,6 +8,7 @@ async function sendApprovalNotification(userEmail: string, userName: string | nu
   const resendApiKey = process.env.RESEND_API_KEY
   if (!resendApiKey) {
     console.log('RESEND_API_KEY not configured, skipping email notification')
+    console.log('To enable notifications, add RESEND_API_KEY to your Vercel environment variables')
     return
   }
 
@@ -30,6 +31,7 @@ async function sendApprovalNotification(userEmail: string, userName: string | nu
             <li><strong>Name:</strong> ${userName || 'Not provided'}</li>
           </ul>
           <p>To approve this user, add their email to the allowed_users table in your Supabase dashboard.</p>
+          <p><a href="https://supabase.com/dashboard">Go to Supabase Dashboard</a></p>
         `,
       }),
     })
@@ -59,6 +61,9 @@ export async function GET(request: Request) {
 
   const cookieStore = await cookies()
 
+  // Track cookies that need to be set on the response
+  const cookiesToSet: { name: string; value: string; options: CookieOptions }[] = []
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -67,9 +72,11 @@ export async function GET(request: Request) {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
+        setAll(newCookies) {
+          newCookies.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options)
+            // Also track for the redirect response
+            cookiesToSet.push({ name, value, options })
           })
         },
       },
@@ -86,6 +93,8 @@ export async function GET(request: Request) {
   // Check if user is in allowed_users table
   const { data: { user } } = await supabase.auth.getUser()
 
+  let redirectUrl = `${origin}${next}`
+
   if (user) {
     const { data: allowedUser } = await supabase
       .from('allowed_users')
@@ -96,9 +105,18 @@ export async function GET(request: Request) {
     if (!allowedUser) {
       // User is not approved - send notification and redirect to pending page
       await sendApprovalNotification(user.email || 'unknown', user.user_metadata?.full_name || null)
-      return NextResponse.redirect(`${origin}/pending-approval`)
+      redirectUrl = `${origin}/pending-approval`
     }
   }
 
-  return NextResponse.redirect(`${origin}${next}`)
+  // Create redirect response and set all cookies on it
+  const response = NextResponse.redirect(redirectUrl)
+
+  // CRITICAL: Copy session cookies to the redirect response
+  // Without this, the session won't persist after the redirect
+  cookiesToSet.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options)
+  })
+
+  return response
 }
