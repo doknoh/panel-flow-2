@@ -201,6 +201,25 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   const [localStatus, setLocalStatus] = useState(issue.status)
   const { showToast } = useToast()
 
+  // Character and Location detail panel state
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
+  const [localCharacters, setLocalCharacters] = useState(issue.series.characters)
+  const [localLocations, setLocalLocations] = useState(issue.series.locations)
+  const [characterSaving, setCharacterSaving] = useState(false)
+  const [locationSaving, setLocationSaving] = useState(false)
+  const characterSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const locationSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Sync local characters/locations when props change
+  useEffect(() => {
+    setLocalCharacters(issue.series.characters)
+  }, [issue.series.characters])
+
+  useEffect(() => {
+    setLocalLocations(issue.series.locations)
+  }, [issue.series.locations])
+
   // Continuity alerts state
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => {
     if (typeof window !== 'undefined') {
@@ -393,6 +412,133 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       onRefresh?.()
     }
     setSaving(false)
+  }
+
+  // Character detail panel functions
+  const selectedCharacter = localCharacters.find((c: any) => c.id === selectedCharacterId)
+  const selectedLocation = localLocations.find((l: any) => l.id === selectedLocationId)
+
+  const updateCharacterField = (field: string, value: string) => {
+    if (!selectedCharacterId) return
+
+    // Optimistic update
+    setLocalCharacters((prev: any[]) => prev.map((c: any) =>
+      c.id === selectedCharacterId ? { ...c, [field]: value } : c
+    ))
+
+    // Debounced save
+    if (characterSaveTimerRef.current) {
+      clearTimeout(characterSaveTimerRef.current)
+    }
+    characterSaveTimerRef.current = setTimeout(() => {
+      saveCharacter(selectedCharacterId, field, value)
+    }, 1000)
+  }
+
+  const saveCharacter = async (characterId: string, field: string, value: string) => {
+    setCharacterSaving(true)
+    const supabase = createClient()
+
+    const { error } = await supabase
+      .from('characters')
+      .update({ [field]: value || null })
+      .eq('id', characterId)
+
+    if (error) {
+      showToast('Failed to save character', 'error')
+    }
+    setCharacterSaving(false)
+  }
+
+  const deleteCharacter = async (characterId: string) => {
+    const supabase = createClient()
+
+    // Count dialogues assigned to this character
+    const { count } = await supabase
+      .from('dialogue_blocks')
+      .select('*', { count: 'exact', head: true })
+      .eq('character_id', characterId)
+
+    const dialogueCount = count || 0
+    const confirmMessage = dialogueCount > 0
+      ? `This character has ${dialogueCount} dialogue${dialogueCount > 1 ? 's' : ''} assigned. Delete anyway? (Dialogues will become unassigned)`
+      : 'Delete this character?'
+
+    if (!confirm(confirmMessage)) return
+
+    // Optimistic update
+    setLocalCharacters((prev: any[]) => prev.filter((c: any) => c.id !== characterId))
+    setSelectedCharacterId(null)
+    showToast('Character deleted', 'success')
+
+    const { error } = await supabase
+      .from('characters')
+      .delete()
+      .eq('id', characterId)
+
+    if (error) {
+      // Rollback
+      setLocalCharacters(issue.series.characters)
+      showToast('Failed to delete character', 'error')
+    } else {
+      onRefresh?.()
+    }
+  }
+
+  // Location detail panel functions
+  const updateLocationField = (field: string, value: string) => {
+    if (!selectedLocationId) return
+
+    // Optimistic update
+    setLocalLocations((prev: any[]) => prev.map((l: any) =>
+      l.id === selectedLocationId ? { ...l, [field]: value } : l
+    ))
+
+    // Debounced save
+    if (locationSaveTimerRef.current) {
+      clearTimeout(locationSaveTimerRef.current)
+    }
+    locationSaveTimerRef.current = setTimeout(() => {
+      saveLocation(selectedLocationId, field, value)
+    }, 1000)
+  }
+
+  const saveLocation = async (locationId: string, field: string, value: string) => {
+    setLocationSaving(true)
+    const supabase = createClient()
+
+    const { error } = await supabase
+      .from('locations')
+      .update({ [field]: value || null })
+      .eq('id', locationId)
+
+    if (error) {
+      showToast('Failed to save location', 'error')
+    }
+    setLocationSaving(false)
+  }
+
+  const deleteLocation = async (locationId: string) => {
+    if (!confirm('Delete this location?')) return
+
+    // Optimistic update
+    setLocalLocations((prev: any[]) => prev.filter((l: any) => l.id !== locationId))
+    setSelectedLocationId(null)
+    showToast('Location deleted', 'success')
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('locations')
+      .delete()
+      .eq('id', locationId)
+
+    if (error) {
+      // Rollback
+      setLocalLocations(issue.series.locations)
+      showToast('Failed to delete location', 'error')
+    } else {
+      onRefresh?.()
+    }
   }
 
   // Build comprehensive context for AI - includes full script content
@@ -1091,59 +1237,239 @@ DRAFT MODE:
 
         {/* Characters Tab */}
         {activeTab === 'characters' && (
-          <div className="space-y-2 overflow-y-auto">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Series Characters</h3>
-            </div>
-            {issue.series.characters.length === 0 ? (
-              <p className="text-[var(--text-muted)] text-sm text-center py-4">
-                No characters defined yet. Add characters from the series page.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {issue.series.characters.map((char: any) => (
-                  <div
-                    key={char.id}
-                    className="bg-[var(--bg-tertiary)] rounded p-3"
-                  >
-                    <div className="font-medium text-sm">{char.name}</div>
-                    {char.role && (
-                      <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
-                    )}
-                    {char.description && (
-                      <p className="text-xs text-[var(--text-muted)] mt-1 line-clamp-2">{char.description}</p>
-                    )}
+          <div className="space-y-2 overflow-y-auto flex-1">
+            {selectedCharacter ? (
+              /* Character Detail View */
+              <div className="space-y-3">
+                <button
+                  onClick={() => setSelectedCharacterId(null)}
+                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  <span>←</span> Back to list
+                </button>
+
+                <div className="space-y-3">
+                  {/* Name */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={selectedCharacter.name || ''}
+                      onChange={(e) => updateCharacterField('name', e.target.value)}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
+                    />
                   </div>
-                ))}
+
+                  {/* Role */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Role</label>
+                    <input
+                      type="text"
+                      value={selectedCharacter.role || ''}
+                      onChange={(e) => updateCharacterField('role', e.target.value)}
+                      placeholder="e.g., Protagonist, Antagonist, Supporting"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Description</label>
+                    <textarea
+                      value={selectedCharacter.description || ''}
+                      onChange={(e) => updateCharacterField('description', e.target.value)}
+                      placeholder="Brief character description..."
+                      rows={2}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Visual Description */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Visual Description</label>
+                    <textarea
+                      value={selectedCharacter.visual_description || ''}
+                      onChange={(e) => updateCharacterField('visual_description', e.target.value)}
+                      placeholder="Physical appearance, clothing, distinguishing features..."
+                      rows={3}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Personality Traits */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Personality Traits</label>
+                    <textarea
+                      value={selectedCharacter.personality_traits || ''}
+                      onChange={(e) => updateCharacterField('personality_traits', e.target.value)}
+                      placeholder="Key personality characteristics..."
+                      rows={2}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Background */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Background</label>
+                    <textarea
+                      value={selectedCharacter.background || ''}
+                      onChange={(e) => updateCharacterField('background', e.target.value)}
+                      placeholder="Character history and backstory..."
+                      rows={3}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Save indicator */}
+                  <div className="text-xs text-[var(--text-muted)] text-right">
+                    {characterSaving ? 'Saving...' : 'Auto-saves'}
+                  </div>
+
+                  {/* Delete button */}
+                  <button
+                    onClick={() => deleteCharacter(selectedCharacter.id)}
+                    className="w-full mt-4 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                  >
+                    Delete Character
+                  </button>
+                </div>
               </div>
+            ) : (
+              /* Character List View */
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Series Characters</h3>
+                </div>
+                {localCharacters.length === 0 ? (
+                  <p className="text-[var(--text-muted)] text-sm text-center py-4">
+                    No characters defined yet. Add characters from the series page.
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    {localCharacters.map((char: any) => (
+                      <button
+                        key={char.id}
+                        onClick={() => setSelectedCharacterId(char.id)}
+                        className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-sm">{char.name}</div>
+                          <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                        </div>
+                        {char.role && (
+                          <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
 
         {/* Locations Tab */}
         {activeTab === 'locations' && (
-          <div className="space-y-2 overflow-y-auto">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Series Locations</h3>
-            </div>
-            {issue.series.locations.length === 0 ? (
-              <p className="text-[var(--text-muted)] text-sm text-center py-4">
-                No locations defined yet. Add locations from the series page.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {issue.series.locations.map((loc: any) => (
-                  <div
-                    key={loc.id}
-                    className="bg-[var(--bg-tertiary)] rounded p-3"
-                  >
-                    <div className="font-medium text-sm">{loc.name}</div>
-                    {loc.description && (
-                      <p className="text-xs text-[var(--text-muted)] mt-1 line-clamp-2">{loc.description}</p>
-                    )}
+          <div className="space-y-2 overflow-y-auto flex-1">
+            {selectedLocation ? (
+              /* Location Detail View */
+              <div className="space-y-3">
+                <button
+                  onClick={() => setSelectedLocationId(null)}
+                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  <span>←</span> Back to list
+                </button>
+
+                <div className="space-y-3">
+                  {/* Name */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={selectedLocation.name || ''}
+                      onChange={(e) => updateLocationField('name', e.target.value)}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
+                    />
                   </div>
-                ))}
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Description</label>
+                    <textarea
+                      value={selectedLocation.description || ''}
+                      onChange={(e) => updateLocationField('description', e.target.value)}
+                      placeholder="What is this place? What happens here?"
+                      rows={3}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Visual Description */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Visual Description</label>
+                    <textarea
+                      value={selectedLocation.visual_description || ''}
+                      onChange={(e) => updateLocationField('visual_description', e.target.value)}
+                      placeholder="How does this place look? Key visual elements..."
+                      rows={3}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Mood/Atmosphere */}
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Mood / Atmosphere</label>
+                    <textarea
+                      value={selectedLocation.mood || ''}
+                      onChange={(e) => updateLocationField('mood', e.target.value)}
+                      placeholder="What's the feeling of this place?"
+                      rows={2}
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Save indicator */}
+                  <div className="text-xs text-[var(--text-muted)] text-right">
+                    {locationSaving ? 'Saving...' : 'Auto-saves'}
+                  </div>
+
+                  {/* Delete button */}
+                  <button
+                    onClick={() => deleteLocation(selectedLocation.id)}
+                    className="w-full mt-4 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                  >
+                    Delete Location
+                  </button>
+                </div>
               </div>
+            ) : (
+              /* Location List View */
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Series Locations</h3>
+                </div>
+                {localLocations.length === 0 ? (
+                  <p className="text-[var(--text-muted)] text-sm text-center py-4">
+                    No locations defined yet. Add locations from the series page.
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    {localLocations.map((loc: any) => (
+                      <button
+                        key={loc.id}
+                        onClick={() => setSelectedLocationId(loc.id)}
+                        className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-sm">{loc.name}</div>
+                          <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
