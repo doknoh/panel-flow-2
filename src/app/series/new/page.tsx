@@ -143,7 +143,7 @@ export default function NewSeriesPage() {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--color-primary)]"
-              placeholder="e.g., The Marshall Mathers GN"
+              placeholder="e.g., Spider-Man: Year One"
             />
           </div>
 
@@ -173,7 +173,7 @@ export default function NewSeriesPage() {
                   value={formData.central_theme}
                   onChange={(e) => setFormData({ ...formData, central_theme: e.target.value })}
                   className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--color-primary)]"
-                  placeholder="e.g., The cost of creative genius"
+                  placeholder="e.g., With great power comes great responsibility"
                 />
               </div>
             </>
