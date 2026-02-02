@@ -99,6 +99,14 @@ export default function GuidedMode({
     inputRef.current?.focus()
   }, [session])
 
+  // Auto-generate initial message for new sessions with no messages
+  useEffect(() => {
+    if (session && messages.length === 0 && !isLoading) {
+      generateInitialMessage(session.id, session.session_type, session.focus_area || undefined)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount
+
   // Start a new session
   const startNewSession = async (sessionType: string = 'general') => {
     const supabase = createClient()
@@ -153,7 +161,7 @@ export default function GuidedMode({
   }
 
   // Generate the initial AI message
-  const generateInitialMessage = async (sessionId: string, sessionType: string) => {
+  const generateInitialMessage = async (sessionId: string, sessionType: string, focusArea?: string) => {
     setIsLoading(true)
 
     try {
@@ -170,6 +178,7 @@ export default function GuidedMode({
           writerInsights,
           isInitial: true,
           sessionType,
+          focusArea,
         }),
       })
 
@@ -289,14 +298,31 @@ export default function GuidedMode({
     const { type, table, id, data } = pendingExtraction
 
     try {
-      const { error } = await supabase
-        .from(table)
-        .update(data)
-        .eq('id', id)
+      // Handle series_metadata extraction specially
+      if (type === 'series_metadata' && table === 'series') {
+        const updateData: any = {}
+        if (data.logline) updateData.logline = data.logline
+        if (data.central_theme) updateData.central_theme = data.central_theme
 
-      if (error) throw error
+        const { error } = await supabase
+          .from('series')
+          .update(updateData)
+          .eq('id', id)
 
-      showToast(`${type} saved successfully`, 'success')
+        if (error) throw error
+
+        showToast('Series concept saved successfully!', 'success')
+      } else {
+        const { error } = await supabase
+          .from(table)
+          .update(data)
+          .eq('id', id)
+
+        if (error) throw error
+
+        showToast(`${type} saved successfully`, 'success')
+      }
+
       setPendingExtraction(null)
       router.refresh()
     } catch (error) {

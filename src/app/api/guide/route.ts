@@ -132,7 +132,33 @@ function buildProjectContext(data: any): string {
 
 // Build initial message based on session type and context
 function buildInitialPrompt(data: any): string {
-  const { sessionType, analysis, series, issue } = data
+  const { sessionType, focusArea, analysis, series, issue } = data
+
+  // Special case: series_concept focus for new series
+  if (focusArea === 'series_concept') {
+    return `You're starting a new guided session with a writer who just created a new series called "${series.title}".
+
+This is a SERIES CONCEPT session. The writer is at the very beginning - they have a title but haven't developed the logline or central theme yet. Your job is to help them discover and articulate:
+
+1. What this story is REALLY about (the core concept/logline)
+2. What theme or idea they want to explore (the central theme)
+
+Start by welcoming them and expressing genuine curiosity about their idea. Then ask your first question - something that gets at the heart of what excites them about this story.
+
+Good opening questions might be:
+- "What's the image or moment that first made you want to tell this story?"
+- "When you imagine this finished, what do you hope readers feel?"
+- "Who's at the center of this, and what's their biggest problem?"
+
+Remember: You're helping them DISCOVER their story through conversation. The logline and theme should emerge naturally from what they tell you. Don't ask for a logline directly - help them find it.
+
+When they articulate something that sounds like a strong logline or theme, you can offer to save it:
+[EXTRACT:series_metadata:series:${series.id}]
+{logline: "their logline here", central_theme: "their theme here"}
+[/EXTRACT]
+
+Introduce yourself briefly (you're their editor), and ask your first Socratic question. ONE question at a time, and make it feel like a conversation, not an interview.`
+  }
 
   let prompt = `You're starting a new guided session with a writer working on "${series.title}".`
 
