@@ -20,7 +20,7 @@ async function sendApprovalNotification(userEmail: string, userName: string | nu
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Panel Flow <noreply@resend.dev>',
+        from: 'Panel Flow <onboarding@resend.dev>',
         to: 'doknoh@gmail.com',
         subject: 'New User Awaiting Approval - Panel Flow',
         html: `
