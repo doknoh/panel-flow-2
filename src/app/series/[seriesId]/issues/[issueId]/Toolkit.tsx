@@ -1,9 +1,22 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { postJsonWithRetry, FetchError } from '@/lib/fetch-with-retry'
 import { useToast } from '@/contexts/ToastContext'
+import { getImageUrl } from '@/lib/supabase/storage'
+
+// Image attachment type for visuals tab
+interface VisualImage {
+  id: string
+  storage_path: string
+  filename: string
+  caption: string | null
+  is_primary: boolean
+  url: string
+  entityName: string
+  entityType: 'character' | 'location'
+}
 
 interface ContinuityAlert {
   id: string
@@ -182,7 +195,7 @@ function parseAISuggestions(response: string, context: PageContext | null): AISu
 }
 
 export default function Toolkit({ issue, selectedPageContext, onRefresh }: ToolkitProps) {
-  const [activeTab, setActiveTab] = useState<'context' | 'characters' | 'locations' | 'alerts' | 'ai'>('ai')
+  const [activeTab, setActiveTab] = useState<'context' | 'characters' | 'locations' | 'visuals' | 'alerts' | 'ai'>('ai')
   const [isEditingContext, setIsEditingContext] = useState(false)
   const [contextForm, setContextForm] = useState({
     title: issue.title || '',
@@ -219,6 +232,86 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   useEffect(() => {
     setLocalLocations(issue.series.locations)
   }, [issue.series.locations])
+
+  // Visuals tab state
+  const [visuals, setVisuals] = useState<VisualImage[]>([])
+  const [visualsLoading, setVisualsLoading] = useState(false)
+  const [selectedVisual, setSelectedVisual] = useState<VisualImage | null>(null)
+  const [visualsFilter, setVisualsFilter] = useState<'all' | 'characters' | 'locations'>('all')
+
+  // Fetch visuals for all characters and locations
+  const fetchVisuals = useCallback(async () => {
+    setVisualsLoading(true)
+    const supabase = createClient()
+
+    // Get character IDs
+    const characterIds = issue.series.characters.map((c: any) => c.id)
+    const locationIds = issue.series.locations.map((l: any) => l.id)
+
+    const allImages: VisualImage[] = []
+
+    // Fetch character images
+    if (characterIds.length > 0) {
+      const { data: charImages } = await supabase
+        .from('image_attachments')
+        .select('*')
+        .eq('entity_type', 'character')
+        .in('entity_id', characterIds)
+        .order('is_primary', { ascending: false })
+        .order('sort_order', { ascending: true })
+
+      if (charImages) {
+        for (const img of charImages) {
+          const character = issue.series.characters.find((c: any) => c.id === img.entity_id)
+          allImages.push({
+            ...img,
+            url: getImageUrl(img.storage_path),
+            entityName: character?.name || 'Unknown',
+            entityType: 'character',
+          })
+        }
+      }
+    }
+
+    // Fetch location images
+    if (locationIds.length > 0) {
+      const { data: locImages } = await supabase
+        .from('image_attachments')
+        .select('*')
+        .eq('entity_type', 'location')
+        .in('entity_id', locationIds)
+        .order('is_primary', { ascending: false })
+        .order('sort_order', { ascending: true })
+
+      if (locImages) {
+        for (const img of locImages) {
+          const location = issue.series.locations.find((l: any) => l.id === img.entity_id)
+          allImages.push({
+            ...img,
+            url: getImageUrl(img.storage_path),
+            entityName: location?.name || 'Unknown',
+            entityType: 'location',
+          })
+        }
+      }
+    }
+
+    setVisuals(allImages)
+    setVisualsLoading(false)
+  }, [issue.series.characters, issue.series.locations])
+
+  // Fetch visuals when tab is opened
+  useEffect(() => {
+    if (activeTab === 'visuals' && visuals.length === 0 && !visualsLoading) {
+      fetchVisuals()
+    }
+  }, [activeTab, visuals.length, visualsLoading, fetchVisuals])
+
+  // Filter visuals based on selection
+  const filteredVisuals = useMemo(() => {
+    if (visualsFilter === 'all') return visuals
+    return visuals.filter(v => v.entityType === (visualsFilter === 'characters' ? 'character' : 'location'))
+  }, [visuals, visualsFilter])
 
   // Continuity alerts state
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => {
@@ -958,6 +1051,16 @@ DRAFT MODE:
           Locs
         </button>
         <button
+          onClick={() => setActiveTab('visuals')}
+          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
+            activeTab === 'visuals'
+              ? 'bg-emerald-600 text-white'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          Pics
+        </button>
+        <button
           onClick={() => setActiveTab('alerts')}
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors relative ${
             activeTab === 'alerts'
@@ -1470,6 +1573,138 @@ DRAFT MODE:
                   </div>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {/* Visuals Tab */}
+        {activeTab === 'visuals' && (
+          <div className="flex flex-col h-full overflow-hidden">
+            {/* Filter buttons */}
+            <div className="flex gap-1 mb-3 bg-[var(--bg-secondary)] rounded p-1 shrink-0">
+              <button
+                onClick={() => setVisualsFilter('all')}
+                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                  visualsFilter === 'all'
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setVisualsFilter('characters')}
+                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                  visualsFilter === 'characters'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                Characters
+              </button>
+              <button
+                onClick={() => setVisualsFilter('locations')}
+                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                  visualsFilter === 'locations'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                Locations
+              </button>
+            </div>
+
+            {/* Image grid or detail view */}
+            {selectedVisual ? (
+              /* Full image view */
+              <div className="flex flex-col h-full">
+                <button
+                  onClick={() => setSelectedVisual(null)}
+                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2 shrink-0"
+                >
+                  <span>←</span> Back to gallery
+                </button>
+                <div className="flex-1 overflow-hidden rounded-lg">
+                  <img
+                    src={selectedVisual.url}
+                    alt={selectedVisual.entityName}
+                    className="w-full h-full object-contain bg-black/20 rounded-lg"
+                  />
+                </div>
+                <div className="mt-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      selectedVisual.entityType === 'character'
+                        ? 'bg-blue-900/50 text-blue-300'
+                        : 'bg-purple-900/50 text-purple-300'
+                    }`}>
+                      {selectedVisual.entityType}
+                    </span>
+                    <span className="font-medium text-sm">{selectedVisual.entityName}</span>
+                    {selectedVisual.is_primary && (
+                      <span className="text-xs text-emerald-400">★ Primary</span>
+                    )}
+                  </div>
+                  {selectedVisual.caption && (
+                    <p className="text-xs text-[var(--text-secondary)] mt-1">{selectedVisual.caption}</p>
+                  )}
+                </div>
+              </div>
+            ) : visualsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : filteredVisuals.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3 opacity-30">🖼️</div>
+                <p className="text-[var(--text-secondary)] text-sm">
+                  {visuals.length === 0
+                    ? 'No reference images yet'
+                    : `No ${visualsFilter} images`}
+                </p>
+                <p className="text-[var(--text-muted)] text-xs mt-1">
+                  Add images from the Characters or Locations pages
+                </p>
+                <button
+                  onClick={fetchVisuals}
+                  className="mt-3 text-xs text-emerald-400 hover:text-emerald-300"
+                >
+                  Refresh
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto">
+                <div className="grid grid-cols-3 gap-2">
+                  {filteredVisuals.map((visual) => (
+                    <button
+                      key={visual.id}
+                      onClick={() => setSelectedVisual(visual)}
+                      className="relative aspect-square rounded-lg overflow-hidden group border-2 border-transparent hover:border-emerald-500/50 transition-all"
+                    >
+                      <img
+                        src={visual.url}
+                        alt={visual.entityName}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute bottom-0 left-0 right-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className={`text-[10px] px-1 py-0.5 rounded inline-block ${
+                          visual.entityType === 'character'
+                            ? 'bg-blue-600'
+                            : 'bg-purple-600'
+                        }`}>
+                          {visual.entityName}
+                        </div>
+                      </div>
+                      {visual.is_primary && (
+                        <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-[10px]">
+                          ★
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}

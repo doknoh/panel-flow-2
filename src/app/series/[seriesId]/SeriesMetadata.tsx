@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import ImageUploader from '@/components/ImageUploader'
+import { useEntityImages, getPrimaryImage } from '@/hooks/useEntityImages'
 
 interface SeriesMetadataProps {
   seriesId: string
@@ -27,6 +29,10 @@ export default function SeriesMetadata({
   const [isSaving, setIsSaving] = useState(false)
   const { showToast } = useToast()
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Image management for series cover/reference images
+  const { images, setImages, loading: imagesLoading } = useEntityImages('series', seriesId)
+  const primaryImage = getPrimaryImage(images)
 
   const saveField = useCallback(async (field: string, value: string) => {
     setIsSaving(true)
@@ -57,16 +63,29 @@ export default function SeriesMetadata({
 
   return (
     <div className="mb-8">
-      {/* Always visible summary */}
-      <div className="space-y-2">
-        {logline && (
-          <p className="text-[var(--text-secondary)] text-lg">{logline}</p>
+      {/* Always visible summary with optional cover image */}
+      <div className="flex gap-6">
+        {/* Cover image thumbnail if available */}
+        {primaryImage && (
+          <div className="shrink-0">
+            <img
+              src={primaryImage.url}
+              alt="Series cover"
+              className="w-24 h-32 object-cover rounded-lg border border-[var(--border)] shadow-lg"
+            />
+          </div>
         )}
-        {theme && (
-          <p className="text-[var(--text-secondary)]">
-            <span className="font-medium">Theme:</span> {theme}
-          </p>
-        )}
+
+        <div className="flex-1 space-y-2">
+          {logline && (
+            <p className="text-[var(--text-secondary)] text-lg">{logline}</p>
+          )}
+          {theme && (
+            <p className="text-[var(--text-secondary)]">
+              <span className="font-medium">Theme:</span> {theme}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Expand/Collapse toggle */}
@@ -133,6 +152,27 @@ export default function SeriesMetadata({
               className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none"
               rows={3}
             />
+          </div>
+
+          {/* Series Cover / Reference Images */}
+          <div>
+            <label className="block text-sm text-[var(--text-secondary)] mb-2">
+              Series Images
+              <span className="text-[var(--text-muted)] font-normal ml-2">
+                (cover art, style references, mood boards)
+              </span>
+            </label>
+            {imagesLoading ? (
+              <div className="text-center py-4 text-[var(--text-muted)]">Loading images...</div>
+            ) : (
+              <ImageUploader
+                entityType="series"
+                entityId={seriesId}
+                existingImages={images}
+                onImagesChange={setImages}
+                maxImages={10}
+              />
+            )}
           </div>
         </div>
       )}

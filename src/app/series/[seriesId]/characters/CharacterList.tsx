@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import ImageUploader from '@/components/ImageUploader'
+import { useEntityImages } from '@/hooks/useEntityImages'
 
 interface Character {
   id: string
@@ -25,6 +27,12 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
   const [isCreating, setIsCreating] = useState(false)
   const [form, setForm] = useState<Partial<Character>>({})
   const { showToast } = useToast()
+
+  // Image management for the character being edited
+  const { images, setImages, loading: imagesLoading } = useEntityImages(
+    'character',
+    editingId
+  )
 
   const refreshCharacters = async () => {
     const supabase = createClient()
@@ -250,6 +258,30 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
             placeholder="Character history and backstory"
           />
         </div>
+
+        {/* Reference Images */}
+        {!isCreating && editingId && (
+          <div>
+            <label className="block text-sm text-[var(--text-secondary)] mb-2">Reference Images</label>
+            {imagesLoading ? (
+              <div className="text-center py-4 text-[var(--text-muted)]">Loading images...</div>
+            ) : (
+              <ImageUploader
+                entityType="character"
+                entityId={editingId}
+                existingImages={images}
+                onImagesChange={setImages}
+                maxImages={10}
+              />
+            )}
+          </div>
+        )}
+
+        {isCreating && (
+          <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 text-sm text-[var(--text-secondary)]">
+            <p>💡 Save the character first, then you can add reference images.</p>
+          </div>
+        )}
 
         <div className="flex gap-2">
           <button

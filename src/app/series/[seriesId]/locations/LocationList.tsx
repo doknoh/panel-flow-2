@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import ImageUploader, { ImageAttachment } from '@/components/ImageUploader'
+import { useEntityImages } from '@/hooks/useEntityImages'
 
 interface Location {
   id: string
@@ -23,6 +25,12 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
   const [isCreating, setIsCreating] = useState(false)
   const [form, setForm] = useState<Partial<Location>>({})
   const { showToast } = useToast()
+
+  // Image management for the location being edited
+  const { images, setImages, loading: imagesLoading } = useEntityImages(
+    'location',
+    editingId
+  )
 
   const refreshLocations = async () => {
     const supabase = createClient()
@@ -208,6 +216,30 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
             placeholder="Why is this location important to the story?"
           />
         </div>
+
+        {/* Reference Images */}
+        {!isCreating && editingId && (
+          <div>
+            <label className="block text-sm text-[var(--text-secondary)] mb-2">Reference Images</label>
+            {imagesLoading ? (
+              <div className="text-center py-4 text-[var(--text-muted)]">Loading images...</div>
+            ) : (
+              <ImageUploader
+                entityType="location"
+                entityId={editingId}
+                existingImages={images}
+                onImagesChange={setImages}
+                maxImages={10}
+              />
+            )}
+          </div>
+        )}
+
+        {isCreating && (
+          <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 text-sm text-[var(--text-secondary)]">
+            <p>💡 Save the location first, then you can add reference images.</p>
+          </div>
+        )}
 
         <div className="flex gap-2">
           <button
