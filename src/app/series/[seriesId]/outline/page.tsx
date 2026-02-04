@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import OutlineView from './OutlineView'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import OutlinePageClient from './OutlinePageClient'
 
 export default async function OutlinePage({ params }: { params: Promise<{ seriesId: string }> }) {
   const { seriesId } = await params
@@ -16,7 +16,10 @@ export default async function OutlinePage({ params }: { params: Promise<{ series
     .from('series')
     .select(`
       *,
-      plotlines (*),
+      plotlines (
+        *,
+        plotline_issue_assignments (*)
+      ),
       issues (
         *,
         acts (
@@ -51,7 +54,7 @@ export default async function OutlinePage({ params }: { params: Promise<{ series
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <header className="border-b border-[var(--border)] px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href={`/series/${seriesId}`} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
               ← {series.title}
@@ -63,8 +66,8 @@ export default async function OutlinePage({ params }: { params: Promise<{ series
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        <OutlineView series={series} />
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        <OutlinePageClient series={series} />
       </main>
     </div>
   )

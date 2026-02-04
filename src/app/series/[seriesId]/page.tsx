@@ -123,11 +123,11 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             </Link>
             <Link
               href={`/series/${seriesId}/outline`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-gradient-to-br from-indigo-900/50 to-[var(--bg-secondary)] border border-indigo-700/50 rounded-lg p-4 hover:border-indigo-600 hover:from-indigo-900/70 transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📋</div>
-              <h3 className="font-medium mb-1">Series Outline</h3>
-              <p className="text-[var(--text-muted)] text-sm">Plan structure with AI summaries</p>
+              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">📋</div>
+              <h3 className="font-medium mb-1 text-indigo-200">Series Outline</h3>
+              <p className="text-indigo-300/70 text-sm">Timeline view & plotline tracking</p>
             </Link>
             <Link
               href={`/series/${seriesId}/analytics`}
