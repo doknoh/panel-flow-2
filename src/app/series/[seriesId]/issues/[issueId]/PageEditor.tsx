@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useOffline } from '@/contexts/OfflineContext'
 import { useUndo } from '@/contexts/UndoContext'
+import PageTypeSelector from './PageTypeSelector'
 
 interface Character {
   id: string
@@ -49,9 +50,20 @@ interface Panel {
   sound_effects: SoundEffect[]
 }
 
+type PageType = 'SINGLE' | 'SPLASH' | 'SPREAD_LEFT' | 'SPREAD_RIGHT'
+
+interface PageForLinking {
+  id: string
+  page_number: number
+  page_type: PageType
+  linked_page_id: string | null
+}
+
 interface Page {
   id: string
   page_number: number
+  page_type?: PageType
+  linked_page_id?: string | null
   panels: Panel[]
 }
 
@@ -66,11 +78,12 @@ interface PageEditorProps {
   pageContext?: PageContext | null
   characters: Character[]
   locations: Location[]
+  scenePages?: PageForLinking[]
   onUpdate: () => void
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
 }
 
-export default function PageEditor({ page, pageContext, characters, locations, onUpdate, setSaveStatus }: PageEditorProps) {
+export default function PageEditor({ page, pageContext, characters, locations, scenePages = [], onUpdate, setSaveStatus }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
@@ -833,7 +846,16 @@ export default function PageEditor({ page, pageContext, characters, locations, o
         </div>
       )}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold">Page {page.page_number}</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold">Page {page.page_number}</h2>
+          <PageTypeSelector
+            pageId={page.id}
+            currentType={page.page_type || 'SINGLE'}
+            currentLinkedPageId={page.linked_page_id || null}
+            scenePages={scenePages}
+            onUpdate={onUpdate}
+          />
+        </div>
         <div className="flex items-center gap-3">
           <div className="text-xs text-[var(--text-muted)] space-x-3">
             <span>⌘S save</span>

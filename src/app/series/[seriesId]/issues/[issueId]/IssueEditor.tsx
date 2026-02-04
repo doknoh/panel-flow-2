@@ -430,6 +430,24 @@ function IssueEditorContent({
     return pages
   }, [issue.acts])
 
+  // Get scene pages for the current page (used for spread linking)
+  const currentScenePages = React.useMemo(() => {
+    if (!selectedPageContext?.scene?.id) return []
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        if (scene.id === selectedPageContext.scene.id) {
+          return (scene.pages || []).map((p: any) => ({
+            id: p.id,
+            page_number: p.page_number,
+            page_type: p.page_type || 'SINGLE',
+            linked_page_id: p.linked_page_id || null,
+          }))
+        }
+      }
+    }
+    return []
+  }, [issue.acts, selectedPageContext?.scene?.id])
+
   // Navigation helpers
   const navigateToPage = useCallback((direction: 'prev' | 'next') => {
     if (!selectedPageId || allPages.length === 0) return
@@ -785,6 +803,7 @@ function IssueEditorContent({
                     pageContext={selectedPageContext}
                     characters={issue.series.characters}
                     locations={issue.series.locations}
+                    scenePages={currentScenePages}
                     onUpdate={refreshIssue}
                     setSaveStatus={setSaveStatus}
                   />
@@ -851,6 +870,7 @@ function IssueEditorContent({
                   pageContext={selectedPageContext}
                   characters={issue.series.characters}
                   locations={issue.series.locations}
+                  scenePages={currentScenePages}
                   onUpdate={refreshIssue}
                   setSaveStatus={setSaveStatus}
                 />

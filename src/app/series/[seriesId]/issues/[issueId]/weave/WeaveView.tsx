@@ -55,6 +55,8 @@ interface Panel {
   captions: Caption[]
 }
 
+type PageType = 'SINGLE' | 'SPLASH' | 'SPREAD_LEFT' | 'SPREAD_RIGHT'
+
 interface Page {
   id: string
   page_number: number
@@ -65,6 +67,8 @@ interface Page {
   time_period: string | null
   plotline_id: string | null
   plotline: Plotline | null
+  page_type?: PageType
+  linked_page_id?: string | null
   panels?: Panel[]
 }
 
@@ -111,6 +115,8 @@ interface FlatPage {
   act: Act
   globalPageNumber: number
   orientation: 'left' | 'right'
+  isSpread?: boolean
+  spreadPartner?: FlatPage
 }
 
 // Default plotline colors - vibrant and distinct
@@ -1045,20 +1051,120 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
   }
 
   // Group pages into visual spreads (for display only, drag is per-page)
-  const spreads: { left: FlatPage | null; right: FlatPage | null; isFirst: boolean }[] = []
+  // Enhanced to handle linked spreads and splash pages
+  interface SpreadGroup {
+    left: FlatPage | null
+    right: FlatPage | null
+    isFirst: boolean
+    isLinkedSpread: boolean // True if left and right are linked SPREAD_LEFT/SPREAD_RIGHT
+    isSplash: boolean // True if this is a single splash page taking full spread
+  }
+
+  const spreads: SpreadGroup[] = []
+  const processedIds = new Set<string>()
 
   // First spread: inside cover + page 1
   if (flatPages.length >= 1) {
-    spreads.push({ left: null, right: flatPages[0], isFirst: true })
+    const firstPage = flatPages[0]
+    const isSplash = firstPage.page.page_type === 'SPLASH'
+    spreads.push({
+      left: null,
+      right: firstPage,
+      isFirst: true,
+      isLinkedSpread: false,
+      isSplash,
+    })
+    processedIds.add(firstPage.page.id)
   }
 
-  // Remaining spreads
-  for (let i = 1; i < flatPages.length; i += 2) {
-    spreads.push({
-      left: flatPages[i] || null,
-      right: flatPages[i + 1] || null,
-      isFirst: false,
-    })
+  // Process remaining pages
+  let i = 1
+  while (i < flatPages.length) {
+    const currentPage = flatPages[i]
+
+    // Skip if already processed (part of a linked spread)
+    if (processedIds.has(currentPage.page.id)) {
+      i++
+      continue
+    }
+
+    const pageType = currentPage.page.page_type || 'SINGLE'
+
+    // Check if this is a linked spread
+    if (pageType === 'SPREAD_LEFT' && currentPage.page.linked_page_id) {
+      // Find the linked SPREAD_RIGHT page
+      const linkedPage = flatPages.find(fp => fp.page.id === currentPage.page.linked_page_id)
+      if (linkedPage && linkedPage.page.page_type === 'SPREAD_RIGHT') {
+        spreads.push({
+          left: currentPage,
+          right: linkedPage,
+          isFirst: false,
+          isLinkedSpread: true,
+          isSplash: false,
+        })
+        processedIds.add(currentPage.page.id)
+        processedIds.add(linkedPage.page.id)
+        i++
+        continue
+      }
+    }
+
+    // Check if this is a SPREAD_RIGHT that's linked (its partner is SPREAD_LEFT)
+    if (pageType === 'SPREAD_RIGHT' && currentPage.page.linked_page_id) {
+      // Find the linked SPREAD_LEFT page
+      const linkedPage = flatPages.find(fp => fp.page.id === currentPage.page.linked_page_id)
+      if (linkedPage && linkedPage.page.page_type === 'SPREAD_LEFT') {
+        // This pair will be added when we encounter the SPREAD_LEFT, so skip
+        i++
+        continue
+      }
+    }
+
+    // Check if this is a splash page (takes full spread width)
+    if (pageType === 'SPLASH') {
+      spreads.push({
+        left: currentPage,
+        right: null,
+        isFirst: false,
+        isLinkedSpread: false,
+        isSplash: true,
+      })
+      processedIds.add(currentPage.page.id)
+      i++
+      continue
+    }
+
+    // Regular page pairing
+    const nextPage = flatPages[i + 1]
+
+    // Don't pair with a page that's part of a linked spread or splash
+    const nextPageType = nextPage?.page.page_type || 'SINGLE'
+    const nextIsLinked = nextPage?.page.linked_page_id != null
+    const nextIsSplash = nextPageType === 'SPLASH'
+
+    if (nextPage && !processedIds.has(nextPage.page.id) && !nextIsLinked && !nextIsSplash) {
+      spreads.push({
+        left: currentPage,
+        right: nextPage,
+        isFirst: false,
+        isLinkedSpread: false,
+        isSplash: false,
+      })
+      processedIds.add(currentPage.page.id)
+      processedIds.add(nextPage.page.id)
+      i += 2
+    } else {
+      // Single page on left with empty right
+      spreads.push({
+        left: currentPage,
+        right: null,
+        isFirst: false,
+        isLinkedSpread: false,
+        isSplash: false,
+      })
+      processedIds.add(currentPage.page.id)
+      i++
+    }
   }
 
   return (
@@ -1068,6 +1174,16 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
         <div className="flex items-center gap-4">
           <span className="text-sm text-[var(--text-secondary)] font-medium">
             {flatPages.length} pages • {spreads.length} spreads
+            {spreads.filter(s => s.isLinkedSpread).length > 0 && (
+              <span className="text-blue-400 ml-2">
+                ({spreads.filter(s => s.isLinkedSpread).length} linked)
+              </span>
+            )}
+            {spreads.filter(s => s.isSplash).length > 0 && (
+              <span className="text-purple-400 ml-2">
+                ({spreads.filter(s => s.isSplash).length} splash)
+              </span>
+            )}
           </span>
           {selectedCount > 0 && (
             <div className="flex items-center gap-2">
@@ -1200,67 +1316,174 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           <div className="py-4 space-y-8">
             {spreads.map((spread, spreadIdx) => (
               <div key={spreadIdx} className="flex items-center justify-center gap-1">
-                {/* Left side */}
-                {spread.isFirst ? (
-                  <InsideCover />
-                ) : spread.left ? (
-                  <SortablePage
-                    fp={spread.left}
-                    pageIndex={flatPages.findIndex(fp => fp.page.id === spread.left!.page.id)}
-                    isFirstPage={false}
-                    isSelected={selectedPageIds.has(spread.left.page.id)}
-                    isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.left.page.id)}
-                    selectionCount={selectedCount}
-                    isJustMoved={justMovedPageIds.has(spread.left.page.id)}
-                    onSelect={handleSelectPage}
-                    onSelectScene={handleSelectScene}
-                    onAssignPlotline={assignPlotline}
-                    plotlines={plotlines}
-                    editingPageId={editingPageId}
-                    editingField={editingField}
-                    editValue={editValue}
-                    setEditValue={setEditValue}
-                    savePageField={savePageField}
-                    setEditingPageId={setEditingPageId}
-                    setEditingField={setEditingField}
-                    seriesId={seriesId}
-                    issueId={issue.id}
-                  />
+                {/* Linked Spread - show as connected unit */}
+                {spread.isLinkedSpread && spread.left && spread.right ? (
+                  <div className="relative">
+                    {/* Spread indicator badge */}
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 px-3 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center gap-1">
+                      <span>◧◨</span>
+                      <span>SPREAD</span>
+                    </div>
+                    <div className="flex items-stretch ring-2 ring-blue-500/50 rounded-lg overflow-hidden">
+                      {/* Left page */}
+                      <SortablePage
+                        fp={spread.left}
+                        pageIndex={flatPages.findIndex(fp => fp.page.id === spread.left!.page.id)}
+                        isFirstPage={false}
+                        isSelected={selectedPageIds.has(spread.left.page.id)}
+                        isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.left.page.id)}
+                        selectionCount={selectedCount}
+                        isJustMoved={justMovedPageIds.has(spread.left.page.id)}
+                        onSelect={handleSelectPage}
+                        onSelectScene={handleSelectScene}
+                        onAssignPlotline={assignPlotline}
+                        plotlines={plotlines}
+                        editingPageId={editingPageId}
+                        editingField={editingField}
+                        editValue={editValue}
+                        setEditValue={setEditValue}
+                        savePageField={savePageField}
+                        setEditingPageId={setEditingPageId}
+                        setEditingField={setEditingField}
+                        seriesId={seriesId}
+                        issueId={issue.id}
+                      />
+                      {/* Minimal spine for linked spread */}
+                      <div className="w-1 bg-blue-500/30 flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
+                        <div className="w-px h-[90%] bg-blue-500/50" />
+                      </div>
+                      {/* Right page */}
+                      <SortablePage
+                        fp={spread.right}
+                        pageIndex={flatPages.findIndex(fp => fp.page.id === spread.right!.page.id)}
+                        isFirstPage={false}
+                        isSelected={selectedPageIds.has(spread.right.page.id)}
+                        isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.right.page.id)}
+                        selectionCount={selectedCount}
+                        isJustMoved={justMovedPageIds.has(spread.right.page.id)}
+                        onSelect={handleSelectPage}
+                        onSelectScene={handleSelectScene}
+                        onAssignPlotline={assignPlotline}
+                        plotlines={plotlines}
+                        editingPageId={editingPageId}
+                        editingField={editingField}
+                        editValue={editValue}
+                        setEditValue={setEditValue}
+                        savePageField={savePageField}
+                        setEditingPageId={setEditingPageId}
+                        setEditingField={setEditingField}
+                        seriesId={seriesId}
+                        issueId={issue.id}
+                      />
+                    </div>
+                  </div>
+                ) : spread.isSplash && spread.left ? (
+                  /* Splash Page - show as full-width single page */
+                  <div className="relative">
+                    {/* Splash indicator badge */}
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 px-3 py-0.5 bg-purple-600 text-white text-[10px] font-bold rounded-full flex items-center gap-1">
+                      <span>◼</span>
+                      <span>SPLASH</span>
+                    </div>
+                    <div className="flex items-center justify-center ring-2 ring-purple-500/50 rounded-lg overflow-hidden">
+                      <SortablePage
+                        fp={spread.left}
+                        pageIndex={flatPages.findIndex(fp => fp.page.id === spread.left!.page.id)}
+                        isFirstPage={false}
+                        isSelected={selectedPageIds.has(spread.left.page.id)}
+                        isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.left.page.id)}
+                        selectionCount={selectedCount}
+                        isJustMoved={justMovedPageIds.has(spread.left.page.id)}
+                        onSelect={handleSelectPage}
+                        onSelectScene={handleSelectScene}
+                        onAssignPlotline={assignPlotline}
+                        plotlines={plotlines}
+                        editingPageId={editingPageId}
+                        editingField={editingField}
+                        editValue={editValue}
+                        setEditValue={setEditValue}
+                        savePageField={savePageField}
+                        setEditingPageId={setEditingPageId}
+                        setEditingField={setEditingField}
+                        seriesId={seriesId}
+                        issueId={issue.id}
+                      />
+                      {/* Spine placeholder for visual balance */}
+                      <div className="w-2 bg-[var(--bg-tertiary)] flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
+                        <div className="w-px h-[90%] bg-[var(--bg-tertiary)]" />
+                      </div>
+                      {/* Empty right side for splash */}
+                      <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-purple-900/10 border-2 border-dashed border-purple-500/30 flex items-center justify-center">
+                        <span className="text-purple-500/50 text-xs font-medium">Full page extends</span>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
-                  <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-[var(--bg-secondary)]/30" />
-                )}
+                  /* Regular spread layout */
+                  <>
+                    {/* Left side */}
+                    {spread.isFirst ? (
+                      <InsideCover />
+                    ) : spread.left ? (
+                      <SortablePage
+                        fp={spread.left}
+                        pageIndex={flatPages.findIndex(fp => fp.page.id === spread.left!.page.id)}
+                        isFirstPage={false}
+                        isSelected={selectedPageIds.has(spread.left.page.id)}
+                        isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.left.page.id)}
+                        selectionCount={selectedCount}
+                        isJustMoved={justMovedPageIds.has(spread.left.page.id)}
+                        onSelect={handleSelectPage}
+                        onSelectScene={handleSelectScene}
+                        onAssignPlotline={assignPlotline}
+                        plotlines={plotlines}
+                        editingPageId={editingPageId}
+                        editingField={editingField}
+                        editValue={editValue}
+                        setEditValue={setEditValue}
+                        savePageField={savePageField}
+                        setEditingPageId={setEditingPageId}
+                        setEditingField={setEditingField}
+                        seriesId={seriesId}
+                        issueId={issue.id}
+                      />
+                    ) : (
+                      <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-[var(--bg-secondary)]/30" />
+                    )}
 
-                {/* Spine */}
-                <div className="w-2 bg-[var(--bg-tertiary)] flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
-                  <div className="w-px h-[90%] bg-[var(--bg-tertiary)]" />
-                </div>
+                    {/* Spine */}
+                    <div className="w-2 bg-[var(--bg-tertiary)] flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
+                      <div className="w-px h-[90%] bg-[var(--bg-tertiary)]" />
+                    </div>
 
-                {/* Right side */}
-                {spread.right ? (
-                  <SortablePage
-                    fp={spread.right}
-                    pageIndex={flatPages.findIndex(fp => fp.page.id === spread.right!.page.id)}
-                    isFirstPage={spread.isFirst}
-                    isSelected={selectedPageIds.has(spread.right.page.id)}
-                    isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.right.page.id)}
-                    selectionCount={selectedCount}
-                    isJustMoved={justMovedPageIds.has(spread.right.page.id)}
-                    onSelect={handleSelectPage}
-                    onSelectScene={handleSelectScene}
-                    onAssignPlotline={assignPlotline}
-                    plotlines={plotlines}
-                    editingPageId={editingPageId}
-                    editingField={editingField}
-                    editValue={editValue}
-                    setEditValue={setEditValue}
-                    savePageField={savePageField}
-                    setEditingPageId={setEditingPageId}
-                    setEditingField={setEditingField}
-                    seriesId={seriesId}
-                    issueId={issue.id}
-                  />
-                ) : (
-                  <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-[var(--bg-secondary)]/30" />
+                    {/* Right side */}
+                    {spread.right ? (
+                      <SortablePage
+                        fp={spread.right}
+                        pageIndex={flatPages.findIndex(fp => fp.page.id === spread.right!.page.id)}
+                        isFirstPage={spread.isFirst}
+                        isSelected={selectedPageIds.has(spread.right.page.id)}
+                        isPartOfSelection={selectedCount > 0 && selectedPageIds.has(spread.right.page.id)}
+                        selectionCount={selectedCount}
+                        isJustMoved={justMovedPageIds.has(spread.right.page.id)}
+                        onSelect={handleSelectPage}
+                        onSelectScene={handleSelectScene}
+                        onAssignPlotline={assignPlotline}
+                        plotlines={plotlines}
+                        editingPageId={editingPageId}
+                        editingField={editingField}
+                        editValue={editValue}
+                        setEditValue={setEditValue}
+                        savePageField={savePageField}
+                        setEditingPageId={setEditingPageId}
+                        setEditingField={setEditingField}
+                        seriesId={seriesId}
+                        issueId={issue.id}
+                      />
+                    ) : (
+                      <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-[var(--bg-secondary)]/30" />
+                    )}
+                  </>
                 )}
               </div>
             ))}
@@ -1328,6 +1551,8 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           <p>• <strong className="text-[var(--text-secondary)]">L/R orientation auto-updates</strong> based on position</p>
           <p>• <strong className="text-[var(--text-secondary)]">Click any page</strong> to add a story beat</p>
           <p>• <strong className="text-[var(--text-secondary)]">Assign plotlines</strong> via the dropdown</p>
+          <p className="pt-2 border-t border-[var(--border)] mt-2">• <strong className="text-blue-400">Linked Spreads</strong> are shown with a blue border and "SPREAD" badge — set page type in the editor</p>
+          <p>• <strong className="text-purple-400">Splash Pages</strong> are shown with a purple border — full-page single panels</p>
         </div>
       </details>
     </div>
