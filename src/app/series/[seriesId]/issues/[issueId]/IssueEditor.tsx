@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import NavigationTree from './NavigationTree'
 import PageEditor from './PageEditor'
+import PreviousPageContext, { findPreviousPage } from './PreviousPageContext'
 import Toolkit from './Toolkit'
 import FindReplaceModal from './FindReplaceModal'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
+import JumpToPageModal from './JumpToPageModal'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
 import { exportIssueToPdf } from '@/lib/exportPdf'
@@ -82,6 +84,11 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   })()
 
   const selectedPage = selectedPageContext?.page
+
+  // Find the previous page for context
+  const previousPageData = selectedPageId
+    ? findPreviousPage(issue.acts, selectedPageId)
+    : null
 
   // Auto-select first page if none selected
   useEffect(() => {
@@ -324,6 +331,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         setSelectedPageId={setSelectedPageId}
         selectedPage={selectedPage}
         selectedPageContext={selectedPageContext}
+        previousPageData={previousPageData}
         saveStatus={saveStatus}
         setSaveStatus={setSaveStatus}
         isFindReplaceOpen={isFindReplaceOpen}
@@ -360,6 +368,7 @@ function IssueEditorContent({
   setSelectedPageId,
   selectedPage,
   selectedPageContext,
+  previousPageData,
   saveStatus,
   setSaveStatus,
   isFindReplaceOpen,
@@ -382,6 +391,7 @@ function IssueEditorContent({
   setSelectedPageId: (id: string | null) => void
   selectedPage: any
   selectedPageContext: PageContext | null
+  previousPageData: { page: any; sceneName: string | null } | null
   saveStatus: 'saved' | 'saving' | 'unsaved'
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
   isFindReplaceOpen: boolean
@@ -399,6 +409,84 @@ function IssueEditorContent({
   const { undo, redo, canUndo, canRedo } = useUndo()
   const [mobileView, setMobileView] = useState<MobileView>('editor')
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
+  const [isJumpToPageOpen, setIsJumpToPageOpen] = useState(false)
+
+  // Get all pages in order for navigation
+  const allPages = React.useMemo(() => {
+    const pages: { id: string; pageNumber: number; sceneId: string; actId: string }[] = []
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        for (const page of scene.pages || []) {
+          pages.push({
+            id: page.id,
+            pageNumber: page.page_number,
+            sceneId: scene.id,
+            actId: act.id,
+          })
+        }
+      }
+    }
+    // Sort by act order, scene order, page number
+    return pages
+  }, [issue.acts])
+
+  // Navigation helpers
+  const navigateToPage = useCallback((direction: 'prev' | 'next') => {
+    if (!selectedPageId || allPages.length === 0) return
+
+    const currentIndex = allPages.findIndex(p => p.id === selectedPageId)
+    if (currentIndex === -1) return
+
+    const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1
+    if (newIndex >= 0 && newIndex < allPages.length) {
+      setSelectedPageId(allPages[newIndex].id)
+      showToast(`Page ${allPages[newIndex].pageNumber}`, 'info')
+    }
+  }, [selectedPageId, allPages, setSelectedPageId, showToast])
+
+  const navigateToScene = useCallback((direction: 'prev' | 'next') => {
+    if (!selectedPageId || allPages.length === 0) return
+
+    const currentPage = allPages.find(p => p.id === selectedPageId)
+    if (!currentPage) return
+
+    // Find the first page of the previous/next scene
+    const currentSceneId = currentPage.sceneId
+    let targetSceneFirstPage: typeof allPages[0] | null = null
+
+    if (direction === 'prev') {
+      // Find the last scene before current
+      for (let i = allPages.length - 1; i >= 0; i--) {
+        if (allPages[i].sceneId !== currentSceneId) {
+          // Find the first page of this scene
+          const sceneId = allPages[i].sceneId
+          for (let j = 0; j <= i; j++) {
+            if (allPages[j].sceneId === sceneId) {
+              targetSceneFirstPage = allPages[j]
+              break
+            }
+          }
+          break
+        }
+      }
+    } else {
+      // Find the first page after current scene ends
+      let passedCurrentScene = false
+      for (const page of allPages) {
+        if (page.sceneId === currentSceneId) {
+          passedCurrentScene = true
+        } else if (passedCurrentScene) {
+          targetSceneFirstPage = page
+          break
+        }
+      }
+    }
+
+    if (targetSceneFirstPage) {
+      setSelectedPageId(targetSceneFirstPage.id)
+      showToast(`Scene changed`, 'info')
+    }
+  }, [selectedPageId, allPages, setSelectedPageId, showToast])
 
   // Keyboard shortcuts including undo/redo
   useEffect(() => {
@@ -451,11 +539,47 @@ function IssueEditorContent({
           return
         }
       }
+
+      // Navigation shortcuts
+      // Cmd/Ctrl + Arrow Up = Previous page
+      if (isMod && e.key === 'ArrowUp' && !e.shiftKey) {
+        e.preventDefault()
+        navigateToPage('prev')
+        return
+      }
+
+      // Cmd/Ctrl + Arrow Down = Next page
+      if (isMod && e.key === 'ArrowDown' && !e.shiftKey) {
+        e.preventDefault()
+        navigateToPage('next')
+        return
+      }
+
+      // Cmd/Ctrl + Shift + Arrow Up = Previous scene
+      if (isMod && e.key === 'ArrowUp' && e.shiftKey) {
+        e.preventDefault()
+        navigateToScene('prev')
+        return
+      }
+
+      // Cmd/Ctrl + Shift + Arrow Down = Next scene
+      if (isMod && e.key === 'ArrowDown' && e.shiftKey) {
+        e.preventDefault()
+        navigateToScene('next')
+        return
+      }
+
+      // Cmd/Ctrl + J = Jump to page
+      if (isMod && e.key === 'j') {
+        e.preventDefault()
+        setIsJumpToPageOpen(true)
+        return
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen])
+  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene])
 
   return (
     <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -648,14 +772,24 @@ function IssueEditorContent({
           }
           centerPanel={
             selectedPage ? (
-              <PageEditor
-                page={selectedPage}
-                pageContext={selectedPageContext}
-                characters={issue.series.characters}
-                locations={issue.series.locations}
-                onUpdate={refreshIssue}
-                setSaveStatus={setSaveStatus}
-              />
+              <div className="flex flex-col h-full">
+                {/* Previous page context */}
+                <PreviousPageContext
+                  previousPage={previousPageData?.page || null}
+                  sceneName={previousPageData?.sceneName}
+                />
+                {/* Current page editor */}
+                <div className="flex-1 overflow-y-auto">
+                  <PageEditor
+                    page={selectedPage}
+                    pageContext={selectedPageContext}
+                    characters={issue.series.characters}
+                    locations={issue.series.locations}
+                    onUpdate={refreshIssue}
+                    setSaveStatus={setSaveStatus}
+                  />
+                </div>
+              </div>
             ) : (
               <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
                 <div className="text-center p-8 max-w-md">
@@ -702,16 +836,26 @@ function IssueEditorContent({
         </div>
 
         {/* Center: Page/Panel Editor */}
-        <div className={`flex-1 overflow-y-auto ${mobileView === 'editor' ? 'block' : 'hidden'}`}>
+        <div className={`flex-1 overflow-hidden flex flex-col ${mobileView === 'editor' ? 'block' : 'hidden'}`}>
           {selectedPage ? (
-            <PageEditor
-              page={selectedPage}
-              pageContext={selectedPageContext}
-              characters={issue.series.characters}
-              locations={issue.series.locations}
-              onUpdate={refreshIssue}
-              setSaveStatus={setSaveStatus}
-            />
+            <>
+              {/* Previous page context */}
+              <PreviousPageContext
+                previousPage={previousPageData?.page || null}
+                sceneName={previousPageData?.sceneName}
+              />
+              {/* Current page editor */}
+              <div className="flex-1 overflow-y-auto">
+                <PageEditor
+                  page={selectedPage}
+                  pageContext={selectedPageContext}
+                  characters={issue.series.characters}
+                  locations={issue.series.locations}
+                  onUpdate={refreshIssue}
+                  setSaveStatus={setSaveStatus}
+                />
+              </div>
+            </>
           ) : (
             <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
               <div className="text-center p-8 max-w-md">
@@ -761,6 +905,32 @@ function IssueEditorContent({
       <KeyboardShortcutsModal
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
+      />
+
+      {/* Jump to Page Modal */}
+      <JumpToPageModal
+        isOpen={isJumpToPageOpen}
+        onClose={() => setIsJumpToPageOpen(false)}
+        pages={(() => {
+          const pages: { id: string; pageNumber: number; sceneName: string; actName: string }[] = []
+          for (const act of issue.acts || []) {
+            const actName = act.name || `Act ${act.sort_order + 1}`
+            for (const scene of act.scenes || []) {
+              const sceneName = scene.name || scene.title || `Scene ${scene.sort_order + 1}`
+              for (const page of scene.pages || []) {
+                pages.push({
+                  id: page.id,
+                  pageNumber: page.page_number,
+                  sceneName,
+                  actName,
+                })
+              }
+            }
+          }
+          return pages
+        })()}
+        onSelectPage={(pageId) => setSelectedPageId(pageId)}
+        currentPageId={selectedPageId}
       />
     </div>
   )

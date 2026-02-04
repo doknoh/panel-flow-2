@@ -8,6 +8,13 @@ interface KeyboardShortcutsModalProps {
 }
 
 const shortcuts = [
+  { category: 'Navigation', items: [
+    { keys: ['⌘', '↑'], description: 'Previous page' },
+    { keys: ['⌘', '↓'], description: 'Next page' },
+    { keys: ['⌘', '⇧', '↑'], description: 'Previous scene' },
+    { keys: ['⌘', '⇧', '↓'], description: 'Next scene' },
+    { keys: ['⌘', 'J'], description: 'Jump to page...' },
+  ]},
   { category: 'General', items: [
     { keys: ['⌘', 'S'], description: 'Save (confirms auto-save status)' },
     { keys: ['⌘', 'Z'], description: 'Undo' },
@@ -19,6 +26,7 @@ const shortcuts = [
     { keys: ['⌘', '↵'], description: 'Add new panel' },
     { keys: ['⌘', 'D'], description: 'Add dialogue to last panel' },
     { keys: ['⌘', '⇧', 'D'], description: 'Add sound effect to last panel' },
+    { keys: ['⌘', 'P'], description: 'Add new page' },
   ]},
   { category: 'Find & Replace', items: [
     { keys: ['↵'], description: 'Find next' },
