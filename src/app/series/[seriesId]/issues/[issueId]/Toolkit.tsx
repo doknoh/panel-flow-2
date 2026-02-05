@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { postJsonWithRetry, FetchError } from '@/lib/fetch-with-retry'
 import { useToast } from '@/contexts/ToastContext'
 import { getImageUrl } from '@/lib/supabase/storage'
+import PacingAnalyst from '@/components/PacingAnalyst'
+import type { PageData } from '@/lib/pacing'
 
 // Image attachment type for visuals tab
 interface VisualImage {
@@ -195,7 +197,7 @@ function parseAISuggestions(response: string, context: PageContext | null): AISu
 }
 
 export default function Toolkit({ issue, selectedPageContext, onRefresh }: ToolkitProps) {
-  const [activeTab, setActiveTab] = useState<'context' | 'characters' | 'locations' | 'visuals' | 'alerts' | 'ai'>('ai')
+  const [activeTab, setActiveTab] = useState<'context' | 'characters' | 'locations' | 'visuals' | 'alerts' | 'pacing' | 'ai'>('ai')
   const [isEditingContext, setIsEditingContext] = useState(false)
   const [contextForm, setContextForm] = useState({
     title: issue.title || '',
@@ -1122,6 +1124,16 @@ DRAFT MODE:
           )}
         </button>
         <button
+          onClick={() => setActiveTab('pacing')}
+          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
+            activeTab === 'pacing'
+              ? 'bg-purple-600 text-white'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          Pace
+        </button>
+        <button
           onClick={() => setActiveTab('ai')}
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
             activeTab === 'ai'
@@ -1874,6 +1886,29 @@ DRAFT MODE:
                 Run full continuity check →
               </a>
             </div>
+          </div>
+        )}
+
+        {/* Pacing Analysis Tab */}
+        {activeTab === 'pacing' && (
+          <div className="overflow-y-auto">
+            <PacingAnalyst
+              pages={
+                issue.acts?.flatMap((act: any) =>
+                  act.scenes?.flatMap((scene: any) =>
+                    scene.pages?.map((page: any) => ({
+                      id: page.id,
+                      page_number: page.page_number,
+                      panels: page.panels || [],
+                    })) || []
+                  ) || []
+                ) || []
+              }
+              onPageClick={(pageId) => {
+                // Find the page and trigger navigation if callback provided
+                console.log('Navigate to page:', pageId)
+              }}
+            />
           </div>
         )}
 

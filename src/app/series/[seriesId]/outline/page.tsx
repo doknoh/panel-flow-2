@@ -26,7 +26,7 @@ export default async function OutlinePage({ params }: { params: Promise<{ series
           *,
           scenes (
             *,
-            plotline:plotline_id (*),
+            plotline_id,
             pages (
               *,
               panels (
@@ -42,8 +42,27 @@ export default async function OutlinePage({ params }: { params: Promise<{ series
     .eq('id', seriesId)
     .single()
 
-  if (error || !series) {
+  if (error) {
+    console.error('Outline page error:', error)
     notFound()
+  }
+
+  if (!series) {
+    notFound()
+  }
+
+  // Fetch plotlines separately and attach to scenes
+  const plotlineMap = new Map(series.plotlines?.map((p: { id: string }) => [p.id, p]) || [])
+  if (series.issues) {
+    for (const issue of series.issues) {
+      for (const act of issue.acts || []) {
+        for (const scene of act.scenes || []) {
+          if (scene.plotline_id && plotlineMap.has(scene.plotline_id)) {
+            scene.plotline = plotlineMap.get(scene.plotline_id)
+          }
+        }
+      }
+    }
   }
 
   // Sort issues by number
