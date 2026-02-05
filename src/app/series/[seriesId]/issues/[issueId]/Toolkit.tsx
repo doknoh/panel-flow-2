@@ -233,6 +233,52 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     setLocalLocations(issue.series.locations)
   }, [issue.series.locations])
 
+  // Compute characters/locations in current scene for contextual filtering
+  const sceneCharacterIds = useMemo(() => {
+    if (!selectedPageContext?.scene?.id) return new Set<string>()
+
+    const characterIds = new Set<string>()
+
+    // Find all pages in the current scene
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        if (scene.id === selectedPageContext.scene.id) {
+          // Get all character IDs from dialogue blocks in this scene
+          for (const page of scene.pages || []) {
+            for (const panel of page.panels || []) {
+              for (const dialogue of panel.dialogue_blocks || []) {
+                if (dialogue.character_id) {
+                  characterIds.add(dialogue.character_id)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return characterIds
+  }, [issue.acts, selectedPageContext?.scene?.id])
+
+  // Split characters into "in scene" and "other" groups
+  const { sceneCharacters, otherCharacters } = useMemo(() => {
+    const inScene: any[] = []
+    const other: any[] = []
+
+    for (const char of localCharacters) {
+      if (sceneCharacterIds.has(char.id)) {
+        inScene.push(char)
+      } else {
+        other.push(char)
+      }
+    }
+
+    return { sceneCharacters: inScene, otherCharacters: other }
+  }, [localCharacters, sceneCharacterIds])
+
+  // For locations, we could add scene-location associations later
+  // For now, show all locations but could be filtered similarly
+
   // Visuals tab state
   const [visuals, setVisuals] = useState<VisualImage[]>([])
   const [visualsLoading, setVisualsLoading] = useState(false)
@@ -1438,32 +1484,76 @@ DRAFT MODE:
                 </div>
               </div>
             ) : (
-              /* Character List View */
+              /* Character List View - Grouped by scene context */
               <>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Series Characters</h3>
-                </div>
                 {localCharacters.length === 0 ? (
                   <p className="text-[var(--text-muted)] text-sm text-center py-4">
                     No characters defined yet. Add characters from the series page.
                   </p>
                 ) : (
-                  <div className="space-y-1">
-                    {localCharacters.map((char: any) => (
-                      <button
-                        key={char.id}
-                        onClick={() => setSelectedCharacterId(char.id)}
-                        className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium text-sm">{char.name}</div>
-                          <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                  <div className="space-y-4">
+                    {/* Characters in current scene */}
+                    {sceneCharacters.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-xs text-emerald-400 uppercase tracking-wide">In This Scene</h3>
+                          <span className="text-xs text-emerald-400/60">({sceneCharacters.length})</span>
                         </div>
-                        {char.role && (
-                          <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
-                        )}
-                      </button>
-                    ))}
+                        <div className="space-y-1">
+                          {sceneCharacters.map((char: any) => (
+                            <button
+                              key={char.id}
+                              onClick={() => setSelectedCharacterId(char.id)}
+                              className="w-full text-left bg-emerald-900/20 hover:bg-emerald-900/30 border border-emerald-700/30 rounded p-3 transition-colors group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-sm text-emerald-100">{char.name}</div>
+                                <span className="text-emerald-400/50 group-hover:text-emerald-400 transition-colors">→</span>
+                              </div>
+                              {char.role && (
+                                <div className="text-xs text-emerald-300/70">{char.role}</div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Other characters */}
+                    {otherCharacters.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-xs text-[var(--text-muted)] uppercase tracking-wide">
+                            {sceneCharacters.length > 0 ? 'Other Characters' : 'All Characters'}
+                          </h3>
+                          <span className="text-xs text-[var(--text-muted)]">({otherCharacters.length})</span>
+                        </div>
+                        <div className="space-y-1">
+                          {otherCharacters.map((char: any) => (
+                            <button
+                              key={char.id}
+                              onClick={() => setSelectedCharacterId(char.id)}
+                              className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-sm">{char.name}</div>
+                                <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                              </div>
+                              {char.role && (
+                                <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty state when no page selected */}
+                    {sceneCharacters.length === 0 && selectedPageContext && (
+                      <p className="text-xs text-[var(--text-muted)] italic text-center py-2">
+                        No characters have dialogue in this scene yet
+                      </p>
+                    )}
                   </div>
                 )}
               </>
