@@ -5,6 +5,8 @@ import IssueGrid from './IssueGrid'
 import CreateIssueButton from './CreateIssueButton'
 import SeriesMetadata from './SeriesMetadata'
 import Header from '@/components/ui/Header'
+import ShareButton from './collaboration/ShareButton'
+import CollaboratorAvatars from './collaboration/CollaboratorAvatars'
 
 export default async function SeriesPage({ params }: { params: Promise<{ seriesId: string }> }) {
   const { seriesId } = await params
@@ -66,11 +68,54 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     plotlines: plotlineCount || 0,
   }
 
+  // Check if user is the owner
+  const isOwner = series.user_id === user.id
+
+  // If not owner, get their collaboration role
+  let userRole: 'owner' | 'editor' | 'commenter' | 'viewer' = isOwner ? 'owner' : 'viewer'
+  if (!isOwner) {
+    const { data: collab } = await supabase
+      .from('series_collaborators')
+      .select('role')
+      .eq('series_id', seriesId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (collab) {
+      userRole = collab.role as 'editor' | 'commenter' | 'viewer'
+    }
+  }
+
+  const canEdit = userRole === 'owner' || userRole === 'editor'
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <Header showBackLink title={series.title} />
+      <Header showBackLink title={series.title}>
+        <div className="flex items-center gap-4">
+          <CollaboratorAvatars seriesId={seriesId} />
+          {isOwner && <ShareButton seriesId={seriesId} seriesTitle={series.title} />}
+        </div>
+      </Header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Role badge for collaborators */}
+        {!isOwner && (
+          <div className="mb-4 flex items-center gap-2">
+            <span className={`text-xs px-3 py-1 rounded-full ${
+              userRole === 'editor'
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                : userRole === 'commenter'
+                ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+            }`}>
+              {userRole === 'editor' ? '✏️ Editor Access' : userRole === 'commenter' ? '💬 Commenter Access' : '👁️ View Only'}
+            </span>
+            <span className="text-xs text-[var(--text-muted)]">
+              You're collaborating on this series
+            </span>
+          </div>
+        )}
+
         {/* Series Info */}
         <SeriesMetadata
           seriesId={seriesId}
@@ -78,6 +123,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           initialTheme={series.central_theme}
           initialVisualGrammar={series.visual_grammar}
           initialRules={series.rules}
+          readOnly={!canEdit}
         />
 
         {/* Quick Stats */}
@@ -104,7 +150,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Issues</h2>
-            <CreateIssueButton seriesId={seriesId} issueCount={issues?.length || 0} />
+            {canEdit && <CreateIssueButton seriesId={seriesId} issueCount={issues?.length || 0} />}
           </div>
           <IssueGrid issues={issues || []} seriesId={seriesId} />
         </div>

@@ -12,6 +12,7 @@ interface SeriesMetadataProps {
   initialTheme: string | null
   initialVisualGrammar: string | null
   initialRules: string | null
+  readOnly?: boolean
 }
 
 export default function SeriesMetadata({
@@ -20,6 +21,7 @@ export default function SeriesMetadata({
   initialTheme,
   initialVisualGrammar,
   initialRules,
+  readOnly = false,
 }: SeriesMetadataProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [logline, setLogline] = useState(initialLogline || '')
@@ -93,7 +95,7 @@ export default function SeriesMetadata({
         onClick={() => setIsExpanded(!isExpanded)}
         className="mt-4 text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
       >
-        {isExpanded ? '▼ Hide' : '▶ Edit'} Series Details
+        {isExpanded ? '▼ Hide' : readOnly ? '▶ View' : '▶ Edit'} Series Details
         {isSaving && <span className="text-[var(--text-secondary)] ml-2">(saving...)</span>}
       </button>
 
@@ -104,10 +106,11 @@ export default function SeriesMetadata({
             <label className="block text-sm text-[var(--text-secondary)] mb-1">Logline</label>
             <textarea
               value={logline}
-              onChange={(e) => handleFieldChange('logline', e.target.value, setLogline)}
+              onChange={(e) => !readOnly && handleFieldChange('logline', e.target.value, setLogline)}
               placeholder="One paragraph concept for the series..."
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none"
+              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
               rows={2}
+              readOnly={readOnly}
             />
           </div>
 
@@ -116,9 +119,10 @@ export default function SeriesMetadata({
             <input
               type="text"
               value={theme}
-              onChange={(e) => handleFieldChange('central_theme', e.target.value, setTheme)}
+              onChange={(e) => !readOnly && handleFieldChange('central_theme', e.target.value, setTheme)}
               placeholder="The core thematic exploration..."
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
+              readOnly={readOnly}
             />
           </div>
 
@@ -131,10 +135,11 @@ export default function SeriesMetadata({
             </label>
             <textarea
               value={visualGrammar}
-              onChange={(e) => handleFieldChange('visual_grammar', e.target.value, setVisualGrammar)}
+              onChange={(e) => !readOnly && handleFieldChange('visual_grammar', e.target.value, setVisualGrammar)}
               placeholder="e.g., 9-panel grids for introspection, splash pages for revelations, specific color palettes for each plotline..."
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none"
+              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
               rows={3}
+              readOnly={readOnly}
             />
           </div>
 
@@ -147,10 +152,11 @@ export default function SeriesMetadata({
             </label>
             <textarea
               value={rules}
-              onChange={(e) => handleFieldChange('rules', e.target.value, setRules)}
+              onChange={(e) => !readOnly && handleFieldChange('rules', e.target.value, setRules)}
               placeholder="e.g., Character names always in caps in descriptions, Media Chorus appears as inset panels, neural sequences use blue tint..."
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none"
+              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
               rows={3}
+              readOnly={readOnly}
             />
           </div>
 

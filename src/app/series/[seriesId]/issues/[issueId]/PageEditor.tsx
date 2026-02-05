@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useOffline } from '@/contexts/OfflineContext'
 import { useUndo } from '@/contexts/UndoContext'
 import PageTypeSelector from './PageTypeSelector'
+import CommentButton from '../../collaboration/CommentButton'
 
 interface Character {
   id: string
@@ -855,6 +856,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
             scenePages={scenePages}
             onUpdate={onUpdate}
           />
+          <CommentButton entityType="page" entityId={page.id} />
         </div>
         <div className="flex items-center gap-3">
           <div className="text-xs text-[var(--text-muted)] space-x-3">
@@ -895,7 +897,10 @@ export default function PageEditor({ page, pageContext, characters, locations, s
             <div key={panel.id} className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden">
               {/* Panel Header */}
               <div className="flex items-center justify-between px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border)]">
-                <span className="font-semibold">Panel {panel.panel_number}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold">Panel {panel.panel_number}</span>
+                  <CommentButton entityType="panel" entityId={panel.id} />
+                </div>
                 <div className="flex items-center gap-2">
                   <select
                     value={panel.shot_type || ''}
