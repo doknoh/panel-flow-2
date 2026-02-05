@@ -1899,7 +1899,12 @@ DRAFT MODE:
                     scene.pages?.map((page: any) => ({
                       id: page.id,
                       page_number: page.page_number,
-                      panels: page.panels || [],
+                      panels: (page.panels || []).map((panel: any) => ({
+                        id: panel.id,
+                        dialogue: panel.dialogue_blocks || [],
+                        captions: panel.captions || [],
+                        visual_description: panel.visual_description,
+                      })),
                     })) || []
                   ) || []
                 ) || []
