@@ -7,6 +7,7 @@ import SeriesMetadata from './SeriesMetadata'
 import Header from '@/components/ui/Header'
 import ShareButton from './collaboration/ShareButton'
 import CollaboratorAvatars from './collaboration/CollaboratorAvatars'
+import { Calendar } from 'lucide-react'
 
 export default async function SeriesPage({ params }: { params: Promise<{ seriesId: string }> }) {
   const { seriesId } = await params
@@ -92,6 +93,13 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <Header showBackLink title={series.title}>
         <div className="flex items-center gap-4">
+          <Link
+            href={`/series/${seriesId}/deadlines`}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg transition-colors"
+          >
+            <Calendar className="w-4 h-4" />
+            Deadlines
+          </Link>
           <CollaboratorAvatars seriesId={seriesId} />
           {isOwner && <ShareButton seriesId={seriesId} seriesTitle={series.title} />}
         </div>
