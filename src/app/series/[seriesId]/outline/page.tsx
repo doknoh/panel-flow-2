@@ -4,6 +4,9 @@ import Link from 'next/link'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import OutlinePageClient from './OutlinePageClient'
 
+// Force dynamic to bypass stale cache
+export const dynamic = 'force-dynamic'
+
 export default async function OutlinePage({ params }: { params: Promise<{ seriesId: string }> }) {
   const { seriesId } = await params
   const supabase = await createClient()
