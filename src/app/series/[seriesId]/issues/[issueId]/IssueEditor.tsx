@@ -462,6 +462,81 @@ function IssueEditorContent({
     }
   }, [selectedPageId, allPages, setSelectedPageId, showToast])
 
+  // Add a new page to a scene (for Cmd+P shortcut)
+  const addPageToScene = useCallback(async (sceneId: string) => {
+    const allPagesFlat = issue.acts?.flatMap((a: any) =>
+      a.scenes?.flatMap((s: any) => s.pages || []) || []
+    ) || []
+    const pageNumber = allPagesFlat.length + 1
+
+    const scene = issue.acts?.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === sceneId)
+    const pagesInScene = scene?.pages?.length || 0
+    const tempId = `temp-page-${Date.now()}`
+
+    // Optimistic update
+    const optimisticPage = {
+      id: tempId,
+      scene_id: sceneId,
+      page_number: pageNumber,
+      sort_order: pagesInScene + 1,
+      title: `Page ${pageNumber}`,
+      panels: [],
+    }
+    setIssue((prev: any) => ({
+      ...prev,
+      acts: prev.acts.map((a: any) => ({
+        ...a,
+        scenes: (a.scenes || []).map((s: any) =>
+          s.id === sceneId
+            ? { ...s, pages: [...(s.pages || []), optimisticPage] }
+            : s
+        ),
+      })),
+    }))
+    setSelectedPageId(tempId)
+    showToast(`Page ${pageNumber} created`, 'success')
+
+    // Persist to database
+    const supabase = createClient()
+    const { data: newPage, error } = await supabase.from('pages').insert({
+      scene_id: sceneId,
+      page_number: pageNumber,
+      sort_order: pagesInScene + 1,
+      title: `Page ${pageNumber}`,
+    }).select().single()
+
+    if (error) {
+      // Rollback on error
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) =>
+            s.id === sceneId
+              ? { ...s, pages: (s.pages || []).filter((p: any) => p.id !== tempId) }
+              : s
+          ),
+        })),
+      }))
+      setSelectedPageId(null)
+      showToast(`Failed to create page: ${error.message}`, 'error')
+    } else if (newPage) {
+      // Replace temp ID with real ID
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) =>
+            s.id === sceneId
+              ? { ...s, pages: (s.pages || []).map((p: any) => p.id === tempId ? { ...p, id: newPage.id } : p) }
+              : s
+          ),
+        })),
+      }))
+      setSelectedPageId(newPage.id)
+    }
+  }, [issue.acts, setIssue, setSelectedPageId, showToast])
+
   const navigateToScene = useCallback((direction: 'prev' | 'next') => {
     if (!selectedPageId || allPages.length === 0) return
 
@@ -593,11 +668,22 @@ function IssueEditorContent({
         setIsJumpToPageOpen(true)
         return
       }
+
+      // Cmd/Ctrl + P = Add new page to current scene
+      if (isMod && e.key === 'p') {
+        e.preventDefault()
+        if (selectedPageContext?.scene?.id) {
+          addPageToScene(selectedPageContext.scene.id)
+        } else {
+          showToast('Select a page first to add a new page to its scene', 'warning')
+        }
+        return
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene])
+  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene])
 
   return (
     <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">

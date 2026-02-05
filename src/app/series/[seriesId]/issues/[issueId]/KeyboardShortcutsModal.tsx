@@ -26,7 +26,7 @@ const shortcuts = [
     { keys: ['⌘', '↵'], description: 'Add new panel' },
     { keys: ['⌘', 'D'], description: 'Add dialogue to last panel' },
     { keys: ['⌘', '⇧', 'D'], description: 'Add sound effect to last panel' },
-    { keys: ['⌘', 'P'], description: 'Add new page' },
+    { keys: ['⌘', 'P'], description: 'Add new page to current scene' },
   ]},
   { category: 'Find & Replace', items: [
     { keys: ['↵'], description: 'Find next' },
