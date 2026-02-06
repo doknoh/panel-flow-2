@@ -367,6 +367,12 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
                   )}
                 </div>
                 <div className="flex gap-2 ml-4">
+                  <a
+                    href={`/series/${seriesId}/characters/${character.id}/voice`}
+                    className="text-purple-400 hover:text-purple-300 text-sm"
+                  >
+                    Voice
+                  </a>
                   <button
                     onClick={() => startEdit(character)}
                     className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm"

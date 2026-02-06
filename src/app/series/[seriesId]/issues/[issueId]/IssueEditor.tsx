@@ -10,6 +10,7 @@ import Toolkit from './Toolkit'
 import FindReplaceModal from './FindReplaceModal'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import JumpToPageModal from './JumpToPageModal'
+import ZoomPanel from './ZoomPanel'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
 import { exportIssueToPdf } from '@/lib/exportPdf'
@@ -58,6 +59,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false)
+  const [isZoomPanelOpen, setIsZoomPanelOpen] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState(issue.title || '')
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -336,6 +338,8 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         setSaveStatus={setSaveStatus}
         isFindReplaceOpen={isFindReplaceOpen}
         setIsFindReplaceOpen={setIsFindReplaceOpen}
+        isZoomPanelOpen={isZoomPanelOpen}
+        setIsZoomPanelOpen={setIsZoomPanelOpen}
         refreshIssue={refreshIssue}
         handleNavigateToPanel={handleNavigateToPanel}
         showToast={showToast}
@@ -373,6 +377,8 @@ function IssueEditorContent({
   setSaveStatus,
   isFindReplaceOpen,
   setIsFindReplaceOpen,
+  isZoomPanelOpen,
+  setIsZoomPanelOpen,
   refreshIssue,
   handleNavigateToPanel,
   showToast,
@@ -396,6 +402,8 @@ function IssueEditorContent({
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
   isFindReplaceOpen: boolean
   setIsFindReplaceOpen: (open: boolean) => void
+  isZoomPanelOpen: boolean
+  setIsZoomPanelOpen: (open: boolean) => void
   refreshIssue: () => void
   handleNavigateToPanel: (pageId: string, panelId: string) => void
   showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void
@@ -611,6 +619,13 @@ function IssueEditorContent({
         return
       }
 
+      // Cmd/Ctrl + . for Zoom Panel (Context Ladder)
+      if (isMod && e.key === '.') {
+        e.preventDefault()
+        setIsZoomPanelOpen(!isZoomPanelOpen)
+        return
+      }
+
       // Cmd/Ctrl + S for force save (visual confirmation)
       if (isMod && e.key === 's') {
         e.preventDefault()
@@ -754,6 +769,13 @@ function IssueEditorContent({
             >
               Find
             </button>
+            <button
+              onClick={() => setIsZoomPanelOpen(!isZoomPanelOpen)}
+              className={`text-sm hidden md:flex items-center gap-1 ${isZoomPanelOpen ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              title="Context Ladder (⌘.)"
+            >
+              📍 Zoom
+            </button>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/import`}
               className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
@@ -765,6 +787,18 @@ function IssueEditorContent({
               className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
               Weave
+            </Link>
+            <Link
+              href={`/series/${seriesId}/issues/${issue.id}/scene-analytics`}
+              className="text-sm text-cyan-400 hover:text-cyan-300 hidden lg:block"
+            >
+              Analytics
+            </Link>
+            <Link
+              href={`/series/${seriesId}/issues/${issue.id}/rhythm`}
+              className="text-sm text-pink-400 hover:text-pink-300 hidden lg:block"
+            >
+              Rhythm
             </Link>
             <Link
               href={`/series/${seriesId}/guide?issue=${issue.id}`}
@@ -1038,6 +1072,18 @@ function IssueEditorContent({
         onSelectPage={(pageId) => setSelectedPageId(pageId)}
         currentPageId={selectedPageId}
       />
+
+      {/* Zoom Panel (Context Ladder) */}
+      {isZoomPanelOpen && (
+        <ZoomPanel
+          seriesTitle={issue.series.title}
+          seriesId={seriesId}
+          issue={issue}
+          selectedPageId={selectedPageId}
+          onSelectPage={(pageId) => setSelectedPageId(pageId)}
+          onClose={() => setIsZoomPanelOpen(false)}
+        />
+      )}
     </div>
   )
 }

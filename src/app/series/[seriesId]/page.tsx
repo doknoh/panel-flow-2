@@ -168,6 +168,14 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           <h2 className="text-lg font-semibold mb-4 text-[var(--text-secondary)]">Tools</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Link
+              href={`/series/${seriesId}/canvas`}
+              className="bg-gradient-to-br from-amber-900/50 to-[var(--bg-secondary)] border border-amber-700/50 rounded-lg p-4 hover:border-amber-600 hover:from-amber-900/70 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">💭</div>
+              <h3 className="font-medium mb-1 text-amber-200">Canvas</h3>
+              <p className="text-amber-300/70 text-sm">Brainstorm fuzzy ideas</p>
+            </Link>
+            <Link
               href={`/series/${seriesId}/guide`}
               className="bg-gradient-to-br from-purple-900/50 to-[var(--bg-secondary)] border border-purple-700/50 rounded-lg p-4 hover:border-purple-600 hover:from-purple-900/70 transition-colors group"
             >
@@ -206,6 +214,14 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
               <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🔍</div>
               <h3 className="font-medium mb-1">Continuity Check</h3>
               <p className="text-[var(--text-muted)] text-sm">Detect errors and inconsistencies</p>
+            </Link>
+            <Link
+              href={`/series/${seriesId}/patterns`}
+              className="bg-gradient-to-br from-cyan-900/50 to-[var(--bg-secondary)] border border-cyan-700/50 rounded-lg p-4 hover:border-cyan-600 hover:from-cyan-900/70 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🕸️</div>
+              <h3 className="font-medium mb-1 text-cyan-200">Patterns</h3>
+              <p className="text-cyan-300/70 text-sm">Cross-issue weaving</p>
             </Link>
             <Link
               href={`/series/${seriesId}/notes`}
