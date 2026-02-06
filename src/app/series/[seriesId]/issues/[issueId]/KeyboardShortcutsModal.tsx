@@ -20,6 +20,8 @@ const shortcuts = [
     { keys: ['⌘', 'Z'], description: 'Undo' },
     { keys: ['⌘', '⇧', 'Z'], description: 'Redo' },
     { keys: ['⌘', 'F'], description: 'Find & Replace' },
+    { keys: ['⌘', '.'], description: 'Context Zoom panel' },
+    { keys: ['⌘', '⇧', '↵'], description: 'Zen Mode (distraction-free)' },
     { keys: ['?'], description: 'Show keyboard shortcuts' },
   ]},
   { category: 'Editor', items: [

@@ -11,6 +11,7 @@ import FindReplaceModal from './FindReplaceModal'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import JumpToPageModal from './JumpToPageModal'
 import ZoomPanel from './ZoomPanel'
+import ZenMode from './ZenMode'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
 import { exportIssueToPdf } from '@/lib/exportPdf'
@@ -418,6 +419,7 @@ function IssueEditorContent({
   const [mobileView, setMobileView] = useState<MobileView>('editor')
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isJumpToPageOpen, setIsJumpToPageOpen] = useState(false)
+  const [isZenMode, setIsZenMode] = useState(false)
 
   // Get all pages in order for navigation
   const allPages = React.useMemo(() => {
@@ -603,12 +605,20 @@ function IssueEditorContent({
         return
       }
 
-      // Cmd/Ctrl + Shift + Z for Redo
-      if (isMod && e.key === 'z' && e.shiftKey) {
+      // Cmd/Ctrl + Shift + Z for Redo (only when not in Zen mode)
+      if (isMod && e.key === 'z' && e.shiftKey && !isZenMode) {
         e.preventDefault()
         if (canRedo) {
           redo()
         }
+        return
+      }
+
+      // Cmd/Ctrl + Shift + Z for Zen Mode toggle (when 'Z' is uppercase/shift held)
+      // We use a different key to avoid conflict: Cmd+Shift+Enter for Zen Mode
+      if (isMod && e.shiftKey && e.key === 'Enter') {
+        e.preventDefault()
+        setIsZenMode(!isZenMode)
         return
       }
 
@@ -698,7 +708,7 @@ function IssueEditorContent({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene])
+  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene, isZenMode])
 
   return (
     <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -775,6 +785,13 @@ function IssueEditorContent({
               title="Context Ladder (⌘.)"
             >
               📍 Zoom
+            </button>
+            <button
+              onClick={() => setIsZenMode(true)}
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
+              title="Zen Mode (⌘⇧↵)"
+            >
+              🧘 Zen
             </button>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/import`}
@@ -1082,6 +1099,20 @@ function IssueEditorContent({
           selectedPageId={selectedPageId}
           onSelectPage={(pageId) => setSelectedPageId(pageId)}
           onClose={() => setIsZoomPanelOpen(false)}
+        />
+      )}
+
+      {/* Zen Mode (Distraction-free writing) */}
+      {isZenMode && selectedPage && (
+        <ZenMode
+          page={selectedPage}
+          characters={issue.series.characters}
+          pagePosition={`Page ${selectedPage.page_number} of ${allPages.length}`}
+          onExit={() => setIsZenMode(false)}
+          onSave={refreshIssue}
+          onNavigate={(direction) => {
+            navigateToPage(direction)
+          }}
         />
       )}
     </div>
