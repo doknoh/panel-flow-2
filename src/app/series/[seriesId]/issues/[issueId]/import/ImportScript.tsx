@@ -603,7 +603,7 @@ ${pageContent}`,
         const { data: newChar, error: charError } = await supabase
           .from('characters')
           .insert({
-            series_id: issue.series.id,
+            series_id: seriesId,
             name: speaker.name,
           })
           .select()
@@ -1178,9 +1178,9 @@ ${pageContent}`,
                   className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
                 >
                   <option value="">Select...</option>
-                  {issue.series.characters.length > 0 && (
+                  {(issue.series?.characters?.length || 0) > 0 && (
                     <optgroup label="Existing Characters">
-                      {issue.series.characters.map((char) => (
+                      {(issue.series.characters || []).map((char) => (
                         <option key={char.id} value={char.id}>{char.name}</option>
                       ))}
                     </optgroup>
