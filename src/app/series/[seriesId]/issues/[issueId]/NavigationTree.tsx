@@ -1125,11 +1125,14 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     // Determine valid drop container based on what's being dragged
     if (activeDragItem.type === 'page') {
-      // Pages can drop on other pages (same/different scene) or on scene headers
+      // Pages can drop on other pages, scene headers, or act headers
       if (overType === 'page') {
         const overLocation = findPageLocation(overId)
         setDragOverContainerId(overLocation?.sceneId || null)
       } else if (overType === 'scene') {
+        setDragOverContainerId(overId)
+      } else if (overType === 'act') {
+        // Can drop page on act (will move to first scene or create one)
         setDragOverContainerId(overId)
       } else {
         setDragOverContainerId(null)
@@ -1208,6 +1211,48 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         // Dropping on a scene header - move to that scene (append at end)
         if (sourceLocation.sceneId !== overId) {
           await movePageToScene(activeId, overId)
+        }
+      } else if (overType === 'act') {
+        // Dropping page on an act header
+        const targetAct = (issue.acts || []).find((a: any) => a.id === overId)
+        if (!targetAct) return
+
+        const targetScenes = (targetAct.scenes || []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+
+        if (targetScenes.length > 0) {
+          // Act has scenes - move to the first scene
+          await movePageToScene(activeId, targetScenes[0].id)
+        } else {
+          // Act has no scenes - create one first, then move the page
+          const supabase = createClient()
+          const { data: newScene, error: sceneError } = await supabase
+            .from('scenes')
+            .insert({
+              act_id: overId,
+              title: 'Scene 1',
+              sort_order: 1,
+            })
+            .select()
+            .single()
+
+          if (sceneError || !newScene) {
+            showToast('Failed to create scene for page move', 'error')
+            return
+          }
+
+          // Update local state with the new scene
+          setIssue((prev: any) => ({
+            ...prev,
+            acts: prev.acts.map((a: any) =>
+              a.id === overId
+                ? { ...a, scenes: [...(a.scenes || []), { ...newScene, pages: [] }] }
+                : a
+            ),
+          }))
+
+          // Now move the page to the new scene
+          await movePageToScene(activeId, newScene.id)
+          showToast('Created scene and moved page', 'success')
         }
       }
     }
@@ -1299,7 +1344,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                     {/* Act Header */}
                     <div
                       className={`flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group ${
-                        dragOverContainerId === act.id && activeDragItem?.type === 'scene' ? 'ring-2 ring-blue-400 bg-blue-500/10' : ''
+                        dragOverContainerId === act.id && (activeDragItem?.type === 'scene' || activeDragItem?.type === 'page') ? 'ring-2 ring-blue-400 bg-blue-500/10' : ''
                       }`}
                       onClick={() => !editingActId && toggleAct(act.id)}
                     >
