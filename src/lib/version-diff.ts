@@ -63,7 +63,7 @@ export function computeLineDiff(oldText: string, newText: string): DiffResult {
   let oldLineNum = 1
   let newLineNum = 1
 
-  let stats = { added: 0, removed: 0, modified: 0, unchanged: 0 }
+  const stats = { added: 0, removed: 0, modified: 0, unchanged: 0 }
 
   for (const common of lcs) {
     // Add removed lines (in old but not in common)
