@@ -18,8 +18,8 @@ export default async function RhythmPage({ params }: PageProps) {
     redirect('/auth/login')
   }
 
-  // Fetch issue with full hierarchy
-  const { data: issue, error } = await supabase
+  // Fetch issue basic info first (lighter query)
+  const { data: issueData, error: issueError } = await supabase
     .from('issues')
     .select(`
       id,
@@ -28,42 +28,59 @@ export default async function RhythmPage({ params }: PageProps) {
       series:series_id (
         id,
         title
-      ),
-      acts (
-        id,
-        name,
-        sort_order,
-        scenes (
-          id,
-          name,
-          title,
-          sort_order,
-          pages (
-            id,
-            page_number,
-            page_type,
-            panels (
-              id,
-              visual_description,
-              dialogue_blocks (
-                id,
-                text
-              ),
-              captions (
-                id,
-                text
-              )
-            )
-          )
-        )
       )
     `)
     .eq('id', issueId)
     .single()
 
-  if (error || !issue) {
-    console.error('Error fetching issue:', error)
+  if (issueError || !issueData) {
+    console.error('Error fetching issue:', issueError)
     redirect(`/series/${seriesId}`)
+  }
+
+  // Fetch acts/scenes/pages structure separately (avoids timeout on large issues)
+  const { data: actsData, error: actsError } = await supabase
+    .from('acts')
+    .select(`
+      id,
+      name,
+      sort_order,
+      scenes (
+        id,
+        name,
+        title,
+        sort_order,
+        pages (
+          id,
+          page_number,
+          page_type,
+          panels (
+            id,
+            visual_description,
+            dialogue_blocks (
+              id,
+              text
+            ),
+            captions (
+              id,
+              text
+            )
+          )
+        )
+      )
+    `)
+    .eq('issue_id', issueId)
+    .order('sort_order', { ascending: true })
+
+  if (actsError) {
+    console.error('Acts fetch error:', actsError)
+    // Don't redirect, just provide empty acts - the page can handle this
+  }
+
+  // Combine the data
+  const issue = {
+    ...issueData,
+    acts: actsData || []
   }
 
   // Sort acts and their children
