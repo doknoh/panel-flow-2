@@ -1020,6 +1020,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
     showToast('Page moved successfully', 'success')
     setMovingPageId(null)
+
+    // Refresh to ensure state is fully synced after move
+    await onRefresh()
   }
 
   // Move scene to a different act
@@ -1089,6 +1092,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     // Expand the target act
     setExpandedActs(new Set([...expandedActs, targetActId]))
     showToast('Scene moved successfully', 'success')
+
+    // Refresh to ensure state is fully synced after move
+    await onRefresh()
   }
 
   // Unified drag handlers for cross-container drag-and-drop
