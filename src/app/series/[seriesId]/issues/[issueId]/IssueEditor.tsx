@@ -12,6 +12,7 @@ import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import JumpToPageModal from './JumpToPageModal'
 import ZoomPanel from './ZoomPanel'
 import ZenMode from './ZenMode'
+import QuickNav from './QuickNav'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
 import { exportIssueToPdf } from '@/lib/exportPdf'
@@ -420,6 +421,7 @@ function IssueEditorContent({
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isJumpToPageOpen, setIsJumpToPageOpen] = useState(false)
   const [isZenMode, setIsZenMode] = useState(false)
+  const [isQuickNavOpen, setIsQuickNavOpen] = useState(false)
 
   // Get all pages in order for navigation
   const allPages = React.useMemo(() => {
@@ -691,6 +693,13 @@ function IssueEditorContent({
       if (isMod && e.key === 'j') {
         e.preventDefault()
         setIsJumpToPageOpen(true)
+        return
+      }
+
+      // Cmd/Ctrl + K = Quick navigation palette
+      if (isMod && e.key === 'k') {
+        e.preventDefault()
+        setIsQuickNavOpen(true)
         return
       }
 
@@ -1115,6 +1124,60 @@ function IssueEditorContent({
           }}
         />
       )}
+
+      {/* Quick Navigation Palette */}
+      <QuickNav
+        acts={issue.acts || []}
+        currentSelection={{
+          actId: selectedPageContext?.act?.id || null,
+          sceneId: selectedPageContext?.scene?.id || null,
+          pageId: selectedPageId,
+          panelId: null,
+        }}
+        onNavigate={(type, id) => {
+          if (type === 'page') {
+            setSelectedPageId(id)
+          } else if (type === 'panel') {
+            // Find the page containing this panel and select it
+            for (const act of issue.acts || []) {
+              for (const scene of act.scenes || []) {
+                for (const page of scene.pages || []) {
+                  const panel = (page.panels || []).find((p: any) => p.id === id)
+                  if (panel) {
+                    setSelectedPageId(page.id)
+                    // Trigger scroll to panel (via URL hash or event)
+                    setTimeout(() => {
+                      const panelElement = document.getElementById(`panel-${id}`)
+                      panelElement?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }, 100)
+                    return
+                  }
+                }
+              }
+            }
+          } else if (type === 'scene') {
+            // Select first page of the scene
+            for (const act of issue.acts || []) {
+              for (const scene of act.scenes || []) {
+                if (scene.id === id && scene.pages?.[0]) {
+                  setSelectedPageId(scene.pages[0].id)
+                  return
+                }
+              }
+            }
+          } else if (type === 'act') {
+            // Select first page of the act
+            for (const act of issue.acts || []) {
+              if (act.id === id && act.scenes?.[0]?.pages?.[0]) {
+                setSelectedPageId(act.scenes[0].pages[0].id)
+                return
+              }
+            }
+          }
+        }}
+        isOpen={isQuickNavOpen}
+        onClose={() => setIsQuickNavOpen(false)}
+      />
     </div>
   )
 }

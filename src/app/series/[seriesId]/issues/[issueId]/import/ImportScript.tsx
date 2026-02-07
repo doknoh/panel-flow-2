@@ -22,6 +22,12 @@ import {
   type StructureAnalysis,
   type DetectedAct,
 } from '@/lib/script-structure-detector'
+import {
+  comparePages,
+  generateDiffSummary,
+  type PageDiff,
+} from '@/lib/version-diff'
+import VersionDiff from '@/components/VersionDiff'
 
 interface Character {
   id: string
@@ -33,11 +39,21 @@ interface Location {
   name: string
 }
 
+interface Page {
+  id: string
+  page_number: number
+  panels: Array<{
+    id: string
+    panel_number: number
+    visual_description: string | null
+  }>
+}
+
 interface Scene {
   id: string
   title: string | null
   sort_order: number
-  pages?: { id: string }[]
+  pages?: Page[]
 }
 
 interface Act {
@@ -135,11 +151,140 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   const [isImporting, setIsImporting] = useState(false)
   const [importProgress, setImportProgress] = useState(0)
 
+  // Diff view
+  const [pageDiffs, setPageDiffs] = useState<PageDiff[]>([])
+  const [previewMode, setPreviewMode] = useState<'preview' | 'diff'>('preview')
+
+  // Preview editing
+  const [editingPage, setEditingPage] = useState<number | null>(null)
+  const [editingPanel, setEditingPanel] = useState<{ pageNum: number; panelNum: number } | null>(null)
+
   // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { showToast } = useToast()
   const router = useRouter()
+
+  // Update a panel's visual description
+  const updatePanelDescription = useCallback((pageNum: number, panelNum: number, newDescription: string) => {
+    setParsedPages(prev => prev.map(page => {
+      if (page.number !== pageNum) return page
+      return {
+        ...page,
+        panels: page.panels.map(panel => {
+          if (panel.number !== panelNum) return panel
+          return { ...panel, visualDescription: newDescription }
+        })
+      }
+    }))
+  }, [])
+
+  // Update a dialogue line
+  const updateDialogue = useCallback((pageNum: number, panelNum: number, dialogueIdx: number, updates: Partial<ParsedDialogue>) => {
+    setParsedPages(prev => prev.map(page => {
+      if (page.number !== pageNum) return page
+      return {
+        ...page,
+        panels: page.panels.map(panel => {
+          if (panel.number !== panelNum) return panel
+          return {
+            ...panel,
+            dialogue: panel.dialogue.map((d, idx) => {
+              if (idx !== dialogueIdx) return d
+              return { ...d, ...updates }
+            })
+          }
+        })
+      }
+    }))
+  }, [])
+
+  // Delete a panel
+  const deletePanel = useCallback((pageNum: number, panelNum: number) => {
+    setParsedPages(prev => prev.map(page => {
+      if (page.number !== pageNum) return page
+      return {
+        ...page,
+        panels: page.panels
+          .filter(panel => panel.number !== panelNum)
+          .map((panel, idx) => ({ ...panel, number: idx + 1 })) // Renumber
+      }
+    }))
+    setEditingPanel(null)
+  }, [])
+
+  // Delete a page
+  const deletePage = useCallback((pageNum: number) => {
+    setParsedPages(prev =>
+      prev
+        .filter(page => page.number !== pageNum)
+        .map((page, idx) => ({ ...page, number: idx + 1 })) // Renumber
+    )
+    setEditingPage(null)
+  }, [])
+
+  // Add a new panel to a page
+  const addPanel = useCallback((pageNum: number) => {
+    setParsedPages(prev => prev.map(page => {
+      if (page.number !== pageNum) return page
+      const newPanelNum = page.panels.length + 1
+      return {
+        ...page,
+        panels: [
+          ...page.panels,
+          {
+            number: newPanelNum,
+            visualDescription: '',
+            dialogue: [],
+            captions: [],
+            sfx: [],
+            characters: [],
+          }
+        ]
+      }
+    }))
+  }, [])
+
+  // Compute diff between existing and new content
+  const computeDiff = useCallback(() => {
+    // Get existing pages from issue structure
+    const existingPages: Array<{ pageNumber: number; panels: any[] }> = []
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        for (const page of scene.pages || []) {
+          existingPages.push({
+            pageNumber: page.page_number,
+            panels: page.panels.map(p => ({
+              visual_description: p.visual_description,
+              panelNumber: p.panel_number,
+            }))
+          })
+        }
+      }
+    }
+
+    // Convert parsed pages to same format
+    const newPages = parsedPages.map(p => ({
+      pageNumber: p.number,
+      panels: p.panels.map(panel => ({
+        visual_description: panel.visualDescription,
+        panelNumber: panel.number,
+      }))
+    }))
+
+    // Sort both by page number
+    existingPages.sort((a, b) => a.pageNumber - b.pageNumber)
+    newPages.sort((a, b) => a.pageNumber - b.pageNumber)
+
+    // Compute diff
+    const diffs = comparePages(existingPages, newPages)
+    setPageDiffs(diffs)
+
+    // Show diff view if there's existing content
+    if (existingPages.length > 0) {
+      setPreviewMode('diff')
+    }
+  }, [issue.acts, parsedPages])
 
   // Get all scenes flattened for dropdown
   const allScenes = (issue.acts || [])
@@ -397,6 +542,8 @@ ${pageContent}`,
         setCurrentStep('characters')
         showToast(`Parsed ${parsed.length} pages. Please review ${speakers.length} detected characters.`, 'success')
       } else {
+        // Compute diff for preview
+        setTimeout(computeDiff, 0)
         setCurrentStep('preview')
         showToast(`Successfully parsed ${parsed.length} pages. Ready to import!`, 'success')
       }
@@ -1073,7 +1220,10 @@ ${pageContent}`,
           ← Back
         </button>
         <button
-          onClick={() => setCurrentStep('preview')}
+          onClick={() => {
+            computeDiff()
+            setCurrentStep('preview')
+          }}
           className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
         >
           Continue to Preview →
@@ -1081,6 +1231,11 @@ ${pageContent}`,
       </div>
     </div>
   )
+
+  // Get existing page count
+  const existingPageCount = (issue.acts || []).reduce((total, act) =>
+    total + (act.scenes || []).reduce((sceneTotal, scene) =>
+      sceneTotal + (scene.pages?.length || 0), 0), 0)
 
   // Step 6: Preview
   const renderPreviewStep = () => (
@@ -1090,6 +1245,11 @@ ${pageContent}`,
           <h3 className="font-semibold">Preview ({parsedPages.length} pages)</h3>
           <p className="text-sm text-[var(--text-secondary)]">
             {parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels total
+            {existingPageCount > 0 && (
+              <span className="text-amber-400 ml-2">
+                • Will replace {existingPageCount} existing pages
+              </span>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -1108,48 +1268,178 @@ ${pageContent}`,
         </div>
       </div>
 
-      <div className="space-y-4 max-h-[500px] overflow-y-auto">
-        {parsedPages.map((page) => (
-          <div
-            key={page.number}
-            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden"
-          >
-            <div className="px-4 py-2 bg-[var(--bg-tertiary)]/50 border-b border-[var(--border)] flex items-center justify-between">
-              <span className="font-medium">Page {page.number}</span>
-              <span className="text-sm text-[var(--text-secondary)]">
-                {page.panels.length} panel{page.panels.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="p-4 space-y-3">
-              {page.panels.map((panel) => (
-                <div key={panel.number} className="border-l-2 border-[var(--border)] pl-3">
-                  <div className="text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Panel {panel.number}
-                  </div>
-                  {panel.visualDescription && (
-                    <p className="text-sm mb-2">{panel.visualDescription}</p>
-                  )}
-                  {panel.captions.map((caption, i) => (
-                    <div key={i} className="text-sm text-amber-400 mb-1">
-                      CAP: {caption.text}
-                    </div>
-                  ))}
-                  {panel.dialogue.map((d, i) => (
-                    <div key={i} className="text-sm mb-1">
-                      <span className="font-medium text-blue-400">{d.speaker}:</span> {d.text}
-                    </div>
-                  ))}
-                  {panel.sfx.map((sfx, i) => (
-                    <div key={i} className="text-sm text-green-400 font-bold">
-                      SFX: {sfx}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+      {/* View toggle - only show if there's existing content */}
+      {existingPageCount > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg bg-[var(--bg-tertiary)] p-1">
+            <button
+              onClick={() => setPreviewMode('preview')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                previewMode === 'preview'
+                  ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              Preview
+            </button>
+            <button
+              onClick={() => setPreviewMode('diff')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                previewMode === 'diff'
+                  ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              Changes ({generateDiffSummary(pageDiffs)})
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Diff View */}
+      {previewMode === 'diff' && existingPageCount > 0 ? (
+        <VersionDiff pageDiffs={pageDiffs} compact={false} />
+      ) : (
+        /* Preview View */
+        <div className="space-y-4 max-h-[500px] overflow-y-auto">
+          {parsedPages.map((page) => (
+            <div
+              key={page.number}
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden group"
+            >
+              <div className="px-4 py-2 bg-[var(--bg-tertiary)]/50 border-b border-[var(--border)] flex items-center justify-between">
+                <span className="font-medium">Page {page.number}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[var(--text-secondary)]">
+                    {page.panels.length} panel{page.panels.length !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={() => addPanel(page.number)}
+                    className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded transition-opacity"
+                    title="Add panel"
+                  >
+                    + Panel
+                  </button>
+                  {parsedPages.length > 1 && (
+                    <button
+                      onClick={() => deletePage(page.number)}
+                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded transition-opacity"
+                      title="Delete page"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="p-4 space-y-3">
+                {page.panels.map((panel) => {
+                  const isEditing = editingPanel?.pageNum === page.number && editingPanel?.panelNum === panel.number
+
+                  return (
+                    <div
+                      key={panel.number}
+                      className={`border-l-2 pl-3 group/panel transition-colors ${
+                        isEditing
+                          ? 'border-blue-500 bg-blue-500/5'
+                          : 'border-[var(--border)] hover:border-[var(--border-hover)]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-sm font-medium text-[var(--text-secondary)]">
+                          Panel {panel.number}
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover/panel:opacity-100 transition-opacity">
+                          {isEditing ? (
+                            <button
+                              onClick={() => setEditingPanel(null)}
+                              className="text-xs px-2 py-0.5 bg-green-600 hover:bg-green-700 rounded"
+                            >
+                              Done
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setEditingPanel({ pageNum: page.number, panelNum: panel.number })}
+                              className="text-xs px-2 py-0.5 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]/80 rounded"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {page.panels.length > 1 && (
+                            <button
+                              onClick={() => deletePanel(page.number, panel.number)}
+                              className="text-xs px-2 py-0.5 bg-red-600/50 hover:bg-red-600 rounded"
+                              title="Delete panel"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs text-[var(--text-muted)] mb-1">Visual Description</label>
+                            <textarea
+                              value={panel.visualDescription}
+                              onChange={(e) => updatePanelDescription(page.number, panel.number, e.target.value)}
+                              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500"
+                              rows={3}
+                            />
+                          </div>
+
+                          {panel.dialogue.length > 0 && (
+                            <div>
+                              <label className="block text-xs text-[var(--text-muted)] mb-1">Dialogue</label>
+                              {panel.dialogue.map((d, i) => (
+                                <div key={i} className="flex gap-2 mb-2">
+                                  <input
+                                    value={d.speaker}
+                                    onChange={(e) => updateDialogue(page.number, panel.number, i, { speaker: e.target.value })}
+                                    className="w-32 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+                                    placeholder="Speaker"
+                                  />
+                                  <input
+                                    value={d.text}
+                                    onChange={(e) => updateDialogue(page.number, panel.number, i, { text: e.target.value })}
+                                    className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+                                    placeholder="Dialogue text"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          {panel.visualDescription && (
+                            <p className="text-sm mb-2">{panel.visualDescription}</p>
+                          )}
+                          {panel.captions.map((caption, i) => (
+                            <div key={i} className="text-sm text-amber-400 mb-1">
+                              CAP: {caption.text}
+                            </div>
+                          ))}
+                          {panel.dialogue.map((d, i) => (
+                            <div key={i} className="text-sm mb-1">
+                              <span className="font-medium text-blue-400">{d.speaker}:</span> {d.text}
+                            </div>
+                          ))}
+                          {panel.sfx.map((sfx, i) => (
+                            <div key={i} className="text-sm text-green-400 font-bold">
+                              SFX: {sfx}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 

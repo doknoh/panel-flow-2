@@ -14,6 +14,7 @@ const shortcuts = [
     { keys: ['⌘', '⇧', '↑'], description: 'Previous scene' },
     { keys: ['⌘', '⇧', '↓'], description: 'Next scene' },
     { keys: ['⌘', 'J'], description: 'Jump to page...' },
+    { keys: ['⌘', 'K'], description: 'Quick navigate (search pages, panels, scenes)' },
   ]},
   { category: 'General', items: [
     { keys: ['⌘', 'S'], description: 'Save (confirms auto-save status)' },

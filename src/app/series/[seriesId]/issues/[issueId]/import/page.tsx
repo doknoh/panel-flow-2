@@ -42,6 +42,7 @@ export default async function ImportPage({
   }
 
   // Fetch acts/scenes structure separately (more reliable for nested relations)
+  // Include panels for diff comparison during re-import
   const { data: actsData, error: actsError } = await supabase
     .from('acts')
     .select(`
@@ -52,7 +53,15 @@ export default async function ImportPage({
         id,
         title,
         sort_order,
-        pages (id)
+        pages (
+          id,
+          page_number,
+          panels (
+            id,
+            panel_number,
+            visual_description
+          )
+        )
       )
     `)
     .eq('issue_id', issueId)
