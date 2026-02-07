@@ -651,10 +651,9 @@ ${pageContent}`,
         console.log('[Import] Structure has', structure.acts.length, 'acts')
         for (let actIdx = 0; actIdx < structure.acts.length; actIdx++) {
           const detectedAct = structure.acts[actIdx]
+          // Note: acts table only has issue_id, sort_order (no 'name' or 'number' column)
           const actData = {
             issue_id: issue.id,
-            number: actIdx + 1,
-            name: detectedAct?.name || `Act ${actIdx + 1}`,
             sort_order: actIdx + 1,
           }
           console.log('[Import] Creating act', actIdx + 1, 'with data:', JSON.stringify(actData))

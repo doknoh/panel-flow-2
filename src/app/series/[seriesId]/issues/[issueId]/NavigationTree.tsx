@@ -471,10 +471,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     // Then persist to database
     const supabase = createClient()
+    // Note: acts table only has issue_id and sort_order columns
     const { data: newAct, error } = await supabase.from('acts').insert({
       issue_id: issue.id,
-      number: actNumber,
-      name: `Act ${actNumber}`,
       sort_order: actNumber,
     }).select().single()
 
