@@ -6,12 +6,13 @@ import { useToast } from '@/contexts/ToastContext'
 import {
   DndContext,
   closestCenter,
-  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragOverEvent,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -87,6 +88,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   const [editingPageId, setEditingPageId] = useState<string | null>(null)
   const [editingPageTitle, setEditingPageTitle] = useState('')
   const [movingPageId, setMovingPageId] = useState<string | null>(null)
+  const [activeDragItem, setActiveDragItem] = useState<{
+    id: string
+    type: 'act' | 'scene' | 'page'
+    sourceId: string
+  } | null>(null)
+  const [dragOverContainerId, setDragOverContainerId] = useState<string | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
   const pageInputRef = useRef<HTMLInputElement>(null)
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
@@ -110,6 +117,51 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  // Helper functions for finding item locations in the tree
+  const findPageLocation = (pageId: string): { actId: string; sceneId: string; page: any } | null => {
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        const page = (scene.pages || []).find((p: any) => p.id === pageId)
+        if (page) {
+          return { actId: act.id, sceneId: scene.id, page }
+        }
+      }
+    }
+    return null
+  }
+
+  const findSceneLocation = (sceneId: string): { actId: string; scene: any } | null => {
+    for (const act of issue.acts || []) {
+      const scene = (act.scenes || []).find((s: any) => s.id === sceneId)
+      if (scene) {
+        return { actId: act.id, scene }
+      }
+    }
+    return null
+  }
+
+  const getItemType = (itemId: string): 'act' | 'scene' | 'page' | null => {
+    // Check if it's an act
+    if ((issue.acts || []).some((a: any) => a.id === itemId)) {
+      return 'act'
+    }
+    // Check if it's a scene
+    for (const act of issue.acts || []) {
+      if ((act.scenes || []).some((s: any) => s.id === itemId)) {
+        return 'scene'
+      }
+    }
+    // Check if it's a page
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        if ((scene.pages || []).some((p: any) => p.id === itemId)) {
+          return 'page'
+        }
+      }
+    }
+    return null
+  }
 
   const toggleAct = (actId: string) => {
     const newExpanded = new Set(expandedActs)
@@ -970,6 +1022,197 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     setMovingPageId(null)
   }
 
+  // Move scene to a different act
+  const moveSceneToAct = async (sceneId: string, targetActId: string) => {
+    const supabase = createClient()
+    const sourceLocation = findSceneLocation(sceneId)
+    if (!sourceLocation) {
+      showToast('Scene not found', 'error')
+      return
+    }
+
+    // If same act, do nothing
+    if (sourceLocation.actId === targetActId) return
+
+    // Get target act to calculate new sort_order
+    const targetAct = (issue.acts || []).find((a: any) => a.id === targetActId)
+    if (!targetAct) {
+      showToast('Target act not found', 'error')
+      return
+    }
+
+    // New sort_order is at the end of the target act
+    const newSortOrder = ((targetAct.scenes || []).length || 0) + 1
+
+    const { error } = await supabase
+      .from('scenes')
+      .update({
+        act_id: targetActId,
+        sort_order: newSortOrder,
+      })
+      .eq('id', sceneId)
+
+    if (error) {
+      showToast(`Failed to move scene: ${error.message}`, 'error')
+      return
+    }
+
+    // Optimistic update - move the scene in local state
+    setIssue((prev: any) => {
+      let movedScene: any = null
+      // Remove from source act
+      const updatedActs = prev.acts.map((a: any) => {
+        if (a.id === sourceLocation.actId) {
+          movedScene = (a.scenes || []).find((s: any) => s.id === sceneId)
+          if (movedScene) {
+            movedScene = { ...movedScene, act_id: targetActId, sort_order: newSortOrder }
+          }
+          return { ...a, scenes: (a.scenes || []).filter((s: any) => s.id !== sceneId) }
+        }
+        return a
+      })
+
+      // Add to target act
+      if (movedScene) {
+        return {
+          ...prev,
+          acts: updatedActs.map((a: any) =>
+            a.id === targetActId
+              ? { ...a, scenes: [...(a.scenes || []), movedScene] }
+              : a
+          ),
+        }
+      }
+      return prev
+    })
+
+    // Expand the target act
+    setExpandedActs(new Set([...expandedActs, targetActId]))
+    showToast('Scene moved successfully', 'success')
+  }
+
+  // Unified drag handlers for cross-container drag-and-drop
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event
+    const itemId = active.id as string
+    const itemType = getItemType(itemId)
+
+    if (!itemType) return
+
+    let sourceId = ''
+    if (itemType === 'page') {
+      const loc = findPageLocation(itemId)
+      sourceId = loc?.sceneId || ''
+    } else if (itemType === 'scene') {
+      const loc = findSceneLocation(itemId)
+      sourceId = loc?.actId || ''
+    } else {
+      sourceId = 'root'
+    }
+
+    setActiveDragItem({ id: itemId, type: itemType, sourceId })
+  }
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over, active } = event
+    if (!over || !activeDragItem) {
+      setDragOverContainerId(null)
+      return
+    }
+
+    const overId = over.id as string
+    const overType = getItemType(overId)
+
+    // Determine valid drop container based on what's being dragged
+    if (activeDragItem.type === 'page') {
+      // Pages can drop on other pages (same/different scene) or on scene headers
+      if (overType === 'page') {
+        const overLocation = findPageLocation(overId)
+        setDragOverContainerId(overLocation?.sceneId || null)
+      } else if (overType === 'scene') {
+        setDragOverContainerId(overId)
+      } else {
+        setDragOverContainerId(null)
+      }
+    } else if (activeDragItem.type === 'scene') {
+      // Scenes can drop on other scenes (same/different act) or on act headers
+      if (overType === 'scene') {
+        const overLocation = findSceneLocation(overId)
+        setDragOverContainerId(overLocation?.actId || null)
+      } else if (overType === 'act') {
+        setDragOverContainerId(overId)
+      } else {
+        setDragOverContainerId(null)
+      }
+    } else {
+      setDragOverContainerId(null)
+    }
+  }
+
+  const handleUnifiedDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    const dragItem = activeDragItem
+
+    // Clear drag state
+    setActiveDragItem(null)
+    setDragOverContainerId(null)
+
+    if (!over || !dragItem || active.id === over.id) return
+
+    const activeId = active.id as string
+    const overId = over.id as string
+    const overType = getItemType(overId)
+
+    if (dragItem.type === 'act') {
+      // Reorder acts
+      await handleActDragEnd(event)
+    } else if (dragItem.type === 'scene') {
+      const sourceLocation = findSceneLocation(activeId)
+      if (!sourceLocation) return
+
+      if (overType === 'scene') {
+        // Dropping on another scene
+        const overLocation = findSceneLocation(overId)
+        if (!overLocation) return
+
+        if (sourceLocation.actId === overLocation.actId) {
+          // Same act - reorder scenes
+          await handleSceneDragEnd(sourceLocation.actId, event)
+        } else {
+          // Different act - move scene to that act
+          await moveSceneToAct(activeId, overLocation.actId)
+        }
+      } else if (overType === 'act') {
+        // Dropping on an act header - move to that act
+        if (sourceLocation.actId !== overId) {
+          await moveSceneToAct(activeId, overId)
+        }
+      }
+    } else if (dragItem.type === 'page') {
+      const sourceLocation = findPageLocation(activeId)
+      if (!sourceLocation) return
+
+      if (overType === 'page') {
+        // Dropping on another page
+        const overLocation = findPageLocation(overId)
+        if (!overLocation) return
+
+        if (sourceLocation.sceneId === overLocation.sceneId) {
+          // Same scene - reorder pages
+          await handlePageDragEnd(sourceLocation.sceneId, event)
+        } else {
+          // Different scene - move page to that scene
+          await movePageToScene(activeId, overLocation.sceneId)
+        }
+      } else if (overType === 'scene') {
+        // Dropping on a scene header - move to that scene (append at end)
+        if (sourceLocation.sceneId !== overId) {
+          await movePageToScene(activeId, overId)
+        }
+      }
+    }
+  }
+
   // Get all scenes for the move dropdown
   const allScenes = issue.acts?.flatMap((act: any) =>
     (act.scenes || []).map((scene: any) => ({
@@ -1040,7 +1283,14 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           ))}
         </div>
       ) : (
-        <DndContext id="acts-dnd" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleActDragEnd}>
+        <DndContext
+          id="unified-navigation-dnd"
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleUnifiedDragEnd}
+        >
           <SortableContext items={sortedActs.map(a => a.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-1">
               {sortedActs.map((act: any) => (
@@ -1048,7 +1298,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                   <div>
                     {/* Act Header */}
                     <div
-                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group"
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group ${
+                        dragOverContainerId === act.id && activeDragItem?.type === 'scene' ? 'ring-2 ring-blue-400 bg-blue-500/10' : ''
+                      }`}
                       onClick={() => !editingActId && toggleAct(act.id)}
                     >
                       <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" title="Drag to reorder">
@@ -1213,16 +1465,17 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                     {/* Scenes */}
                     {expandedActs.has(act.id) && (
                       <div className="ml-4">
-                        <DndContext id={`scenes-dnd-${act.id}`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleSceneDragEnd(act.id, e)}>
-                          <SortableContext items={(act.scenes || []).map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
-                            {(act.scenes || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((scene: any) => (
-                              <SortableItem key={scene.id} id={scene.id}>
-                                <div>
-                                  {/* Scene Header */}
-                                  <div
-                                    className="flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group"
-                                    onClick={() => !editingSceneId && toggleScene(scene.id)}
-                                  >
+                        <SortableContext items={(act.scenes || []).map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
+                          {(act.scenes || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((scene: any) => (
+                            <SortableItem key={scene.id} id={scene.id}>
+                              <div>
+                                {/* Scene Header */}
+                                <div
+                                  className={`flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group ${
+                                    dragOverContainerId === scene.id && activeDragItem?.type === 'page' ? 'ring-2 ring-blue-400 bg-blue-500/10' : ''
+                                  }`}
+                                  onClick={() => !editingSceneId && toggleScene(scene.id)}
+                                >
                                     <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity text-xs" title="Drag to reorder">
                                       ⋮⋮
                                     </span>
@@ -1429,8 +1682,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                   {/* Pages */}
                                   {expandedScenes.has(scene.id) && (
                                     <div className="ml-4">
-                                      <DndContext id={`pages-dnd-${scene.id}`} sensors={sensors} collisionDetection={pointerWithin} onDragEnd={(e) => handlePageDragEnd(scene.id, e)}>
-                                        <SortableContext items={(scene.pages || []).map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
+                                      <SortableContext items={(scene.pages || []).map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
                                           {(scene.pages || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((page: any) => (
                                             <SortableItem key={page.id} id={page.id}>
                                               <div>
@@ -1533,14 +1785,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                             </SortableItem>
                                           ))}
                                         </SortableContext>
-                                      </DndContext>
                                     </div>
                                   )}
-                                </div>
-                              </SortableItem>
-                            ))}
-                          </SortableContext>
-                        </DndContext>
+                              </div>
+                            </SortableItem>
+                          ))}
+                        </SortableContext>
                       </div>
                     )}
                   </div>
