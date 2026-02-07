@@ -581,21 +581,29 @@ ${pageContent}`,
     const supabase = createClient()
 
     try {
+      console.log('[Import] Step 1: Deleting existing content...')
       // Delete existing content
-      await supabase
+      const deleteResult = await supabase
         .from('acts')
         .delete()
         .eq('issue_id', issue.id)
+      console.log('[Import] Delete result:', deleteResult)
 
+      console.log('[Import] Step 2: Creating structure...')
       // Create structure based on detection or flat
       const structure = useDetectedStructure && structureAnalysis?.suggestedStructure !== 'flat'
         ? structureAnalysis
         : createFlatStructure(parsedPages.length)
+      console.log('[Import] Structure:', structure)
 
+      console.log('[Import] Step 3: Building character map...')
+      console.log('[Import] issue.series:', issue.series)
+      console.log('[Import] issue.series.characters:', issue.series?.characters)
       // Build character map (handle case where no characters exist yet)
       const characterMap = new Map<string, string>(
-        (issue.series.characters || []).map(c => [c.name.toLowerCase(), c.id])
+        (issue.series?.characters || []).map(c => [c.name.toLowerCase(), c.id])
       )
+      console.log('[Import] Character map built:', characterMap.size, 'entries')
 
       // Create new characters
       const speakersToCreate = detectedSpeakers.filter(s => s.mapping === 'new')
@@ -629,46 +637,60 @@ ${pageContent}`,
         }
       }
 
+      console.log('[Import] Step 4: Creating acts and scenes...')
       // Create acts and scenes from structure
       const actIdMap = new Map<number, string>()
       const sceneIdMap = new Map<string, string>() // "actIdx-sceneIdx" -> sceneId
 
-      if (structure) {
+      if (structure && structure.acts) {
+        console.log('[Import] Structure has', structure.acts.length, 'acts')
         for (let actIdx = 0; actIdx < structure.acts.length; actIdx++) {
           const detectedAct = structure.acts[actIdx]
+          console.log('[Import] Creating act', actIdx + 1, ':', detectedAct?.name)
 
           const { data: newAct, error: actError } = await supabase
             .from('acts')
             .insert({
               issue_id: issue.id,
               number: actIdx + 1,
-              name: detectedAct.name,
+              name: detectedAct?.name || `Act ${actIdx + 1}`,
               sort_order: actIdx + 1,
             })
             .select()
             .single()
 
-          if (actError) throw actError
+          if (actError) {
+            console.error('[Import] Act creation error:', actError)
+            throw actError
+          }
           actIdMap.set(actIdx, newAct.id)
 
           // Create scenes for this act
-          for (let sceneIdx = 0; sceneIdx < detectedAct.scenes.length; sceneIdx++) {
-            const detectedScene = detectedAct.scenes[sceneIdx]
+          const scenes = detectedAct?.scenes || []
+          console.log('[Import] Act', actIdx + 1, 'has', scenes.length, 'scenes')
+          for (let sceneIdx = 0; sceneIdx < scenes.length; sceneIdx++) {
+            const detectedScene = scenes[sceneIdx]
+            console.log('[Import] Creating scene', sceneIdx + 1, ':', detectedScene?.title)
 
             const { data: newScene, error: sceneError } = await supabase
               .from('scenes')
               .insert({
                 act_id: newAct.id,
-                title: detectedScene.title,
+                title: detectedScene?.title || `Scene ${sceneIdx + 1}`,
                 sort_order: sceneIdx + 1,
               })
               .select()
               .single()
 
-            if (sceneError) throw sceneError
+            if (sceneError) {
+              console.error('[Import] Scene creation error:', sceneError)
+              throw sceneError
+            }
             sceneIdMap.set(`${actIdx}-${sceneIdx}`, newScene.id)
           }
         }
+      } else {
+        console.log('[Import] No structure or acts found')
       }
 
       // Default scene for pages without assignment
