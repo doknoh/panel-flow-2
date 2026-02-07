@@ -192,6 +192,14 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
               <p className="text-indigo-300/70 text-sm">Timeline view & plotline tracking</p>
             </Link>
             <Link
+              href={`/series/${seriesId}/weave`}
+              className="bg-gradient-to-br from-rose-900/50 to-[var(--bg-secondary)] border border-rose-700/50 rounded-lg p-4 hover:border-rose-600 hover:from-rose-900/70 transition-colors group"
+            >
+              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🧬</div>
+              <h3 className="font-medium mb-1 text-rose-200">Series Weave</h3>
+              <p className="text-rose-300/70 text-sm">Plotlines across all issues</p>
+            </Link>
+            <Link
               href={`/series/${seriesId}/analytics`}
               className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >

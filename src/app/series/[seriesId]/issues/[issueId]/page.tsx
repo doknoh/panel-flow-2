@@ -21,8 +21,11 @@ export default async function IssuePage({
       series:series_id (
         id,
         title,
+        central_theme,
+        logline,
         characters (*),
-        locations (*)
+        locations (*),
+        plotlines (*)
       ),
       acts (
         *,
