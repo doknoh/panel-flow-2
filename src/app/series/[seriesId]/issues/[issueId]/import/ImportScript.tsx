@@ -583,11 +583,16 @@ ${pageContent}`,
     try {
       console.log('[Import] Step 1: Deleting existing content...')
       // Delete existing content
-      const deleteResult = await supabase
+      const { error: deleteError, count: deleteCount } = await supabase
         .from('acts')
         .delete()
         .eq('issue_id', issue.id)
-      console.log('[Import] Delete result:', deleteResult)
+
+      if (deleteError) {
+        console.error('[Import] Delete error:', deleteError)
+        throw new Error(`Failed to delete existing content: ${deleteError.message}`)
+      }
+      console.log('[Import] Delete completed, removed:', deleteCount, 'acts')
 
       console.log('[Import] Step 2: Creating structure...')
       // Create structure based on detection or flat
@@ -646,21 +651,26 @@ ${pageContent}`,
         console.log('[Import] Structure has', structure.acts.length, 'acts')
         for (let actIdx = 0; actIdx < structure.acts.length; actIdx++) {
           const detectedAct = structure.acts[actIdx]
-          console.log('[Import] Creating act', actIdx + 1, ':', detectedAct?.name)
+          const actData = {
+            issue_id: issue.id,
+            number: actIdx + 1,
+            name: detectedAct?.name || `Act ${actIdx + 1}`,
+            sort_order: actIdx + 1,
+          }
+          console.log('[Import] Creating act', actIdx + 1, 'with data:', JSON.stringify(actData))
 
           const { data: newAct, error: actError } = await supabase
             .from('acts')
-            .insert({
-              issue_id: issue.id,
-              number: actIdx + 1,
-              name: detectedAct?.name || `Act ${actIdx + 1}`,
-              sort_order: actIdx + 1,
-            })
+            .insert(actData)
             .select()
             .single()
 
           if (actError) {
             console.error('[Import] Act creation error:', actError)
+            console.error('[Import] Act error message:', actError.message)
+            console.error('[Import] Act error code:', actError.code)
+            console.error('[Import] Act error hint:', actError.hint)
+            console.error('[Import] Act error details:', actError.details)
             throw new Error(`Failed to create act: ${actError.message}`)
           }
           if (!newAct) {
