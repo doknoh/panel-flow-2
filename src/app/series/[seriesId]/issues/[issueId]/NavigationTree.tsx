@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import {
@@ -752,7 +752,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       scene_id: sceneId,
       page_number: pageNumber,
       sort_order: pagesInScene + 1,
-      title: `Page ${pageNumber}`,
+      title: null, // No default title - will show as just "(position)"
       panels: [],
     }
     setIssue((prev: any) => ({
@@ -775,7 +775,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       scene_id: sceneId,
       page_number: pageNumber,
       sort_order: pagesInScene + 1,
-      title: `Page ${pageNumber}`,
+      // No title - will display as just "(position)"
     }).select().single()
 
     if (error) {
@@ -1297,6 +1297,33 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
   const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
 
+  // Calculate global page position map (page.id -> position number across entire issue)
+  const pagePositionMap = useMemo(() => {
+    const map = new Map<string, number>()
+    let position = 1
+    for (const act of sortedActs) {
+      const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+      for (const scene of sortedScenes) {
+        const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+        for (const page of sortedPages) {
+          map.set(page.id, position)
+          position++
+        }
+      }
+    }
+    return map
+  }, [sortedActs])
+
+  // Helper to get display name for a page: "Title (position)" or just "(position)"
+  const getPageDisplayName = (page: any) => {
+    const position = pagePositionMap.get(page.id) || '?'
+    const hasCustomTitle = page.title && !page.title.match(/^Page \d+$/i)
+    if (hasCustomTitle) {
+      return `${page.title} (${position})`
+    }
+    return `(${position})`
+  }
+
   return (
     <div className="p-3">
       <div className="flex items-center justify-between mb-3">
@@ -1765,16 +1792,16 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       className="flex-1 truncate cursor-text"
                                                       onDoubleClick={(e) => {
                                                         e.stopPropagation()
-                                                        startEditingPage(page.id, page.title || `Page ${page.page_number}`)
+                                                        startEditingPage(page.id, page.title || '')
                                                       }}
                                                     >
-                                                      {page.title || `Page ${page.page_number}`}
+                                                      {getPageDisplayName(page)}
                                                     </span>
                                                   )}
                                                   <button
                                                     onClick={(e) => {
                                                       e.stopPropagation()
-                                                      startEditingPage(page.id, page.title || `Page ${page.page_number}`)
+                                                      startEditingPage(page.id, page.title || '')
                                                     }}
                                                     className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
                                                       selectedPageId === page.id
@@ -1800,7 +1827,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                     ↗
                                                   </button>
                                                   <button
-                                                    onClick={(e) => { e.stopPropagation(); deletePage(page.id, page.page_number) }}
+                                                    onClick={(e) => { e.stopPropagation(); deletePage(page.id, pagePositionMap.get(page.id) || page.page_number) }}
                                                     className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 ${
                                                       selectedPageId === page.id
                                                         ? 'text-blue-200 hover:text-red-300'
