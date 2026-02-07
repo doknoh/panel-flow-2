@@ -515,9 +515,9 @@ ${pageContent}`,
         }
       }
 
-      // Build existing character map
+      // Build existing character map (handle case where no characters exist yet)
       const existingCharacters = new Map(
-        issue.series.characters.map(c => [c.name.toLowerCase(), c.id])
+        (issue.series.characters || []).map(c => [c.name.toLowerCase(), c.id])
       )
 
       // Create detected speakers list
@@ -592,9 +592,9 @@ ${pageContent}`,
         ? structureAnalysis
         : createFlatStructure(parsedPages.length)
 
-      // Build character map
+      // Build character map (handle case where no characters exist yet)
       const characterMap = new Map<string, string>(
-        issue.series.characters.map(c => [c.name.toLowerCase(), c.id])
+        (issue.series.characters || []).map(c => [c.name.toLowerCase(), c.id])
       )
 
       // Create new characters
