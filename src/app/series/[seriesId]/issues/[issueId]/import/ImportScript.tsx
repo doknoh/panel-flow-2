@@ -661,8 +661,13 @@ ${pageContent}`,
 
           if (actError) {
             console.error('[Import] Act creation error:', actError)
-            throw actError
+            throw new Error(`Failed to create act: ${actError.message}`)
           }
+          if (!newAct) {
+            console.error('[Import] Act creation returned null')
+            throw new Error('Failed to create act: no data returned')
+          }
+          console.log('[Import] Created act with id:', newAct.id)
           actIdMap.set(actIdx, newAct.id)
 
           // Create scenes for this act
@@ -684,8 +689,13 @@ ${pageContent}`,
 
             if (sceneError) {
               console.error('[Import] Scene creation error:', sceneError)
-              throw sceneError
+              throw new Error(`Failed to create scene: ${sceneError.message}`)
             }
+            if (!newScene) {
+              console.error('[Import] Scene creation returned null')
+              throw new Error('Failed to create scene: no data returned')
+            }
+            console.log('[Import] Created scene with id:', newScene.id)
             sceneIdMap.set(`${actIdx}-${sceneIdx}`, newScene.id)
           }
         }
@@ -797,9 +807,13 @@ ${pageContent}`,
 
       showToast(`Successfully imported ${parsedPages.length} pages`, 'success')
       router.push(`/series/${seriesId}/issues/${issue.id}`)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Import error:', error)
-      showToast('Failed to import script', 'error')
+      console.error('Import error message:', error?.message)
+      console.error('Import error details:', JSON.stringify(error, null, 2))
+      console.error('Import error code:', error?.code)
+      console.error('Import error hint:', error?.hint)
+      showToast(`Failed to import: ${error?.message || 'Unknown error'}`, 'error')
       setCurrentStep('preview')
     } finally {
       setIsImporting(false)
