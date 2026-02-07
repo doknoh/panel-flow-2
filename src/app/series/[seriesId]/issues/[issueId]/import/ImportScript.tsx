@@ -70,8 +70,8 @@ interface Issue {
   series: {
     id: string
     title: string
-    characters: Character[]
-    locations: Location[]
+    characters?: Character[] | null
+    locations?: Location[] | null
   }
   acts?: Act[]
 }
