@@ -174,7 +174,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
                 *,
                 panels (
                   *,
-                  dialogue_blocks (*),
+                  dialogue_blocks (*, character:character_id (id, name)),
                   captions (*),
                   sound_effects (*)
                 )
