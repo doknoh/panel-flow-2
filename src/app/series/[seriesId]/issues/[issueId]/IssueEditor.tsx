@@ -620,7 +620,15 @@ function IssueEditorContent({
       // We use a different key to avoid conflict: Cmd+Shift+Enter for Zen Mode
       if (isMod && e.shiftKey && e.key === 'Enter') {
         e.preventDefault()
-        setIsZenMode(!isZenMode)
+        if (isZenMode) {
+          setIsZenMode(false)
+        } else {
+          // Refresh data before opening Zen mode to ensure panels are synced
+          void (async () => {
+            await refreshIssue()
+            setIsZenMode(true)
+          })()
+        }
         return
       }
 
@@ -796,7 +804,11 @@ function IssueEditorContent({
               📍 Zoom
             </button>
             <button
-              onClick={() => setIsZenMode(true)}
+              onClick={async () => {
+                // Refresh data before opening Zen mode to ensure panels are synced
+                await refreshIssue()
+                setIsZenMode(true)
+              }}
               className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
               title="Zen Mode (⌘⇧↵)"
             >
