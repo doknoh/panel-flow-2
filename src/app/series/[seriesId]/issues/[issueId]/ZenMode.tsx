@@ -254,8 +254,17 @@ export default function ZenMode({
       ref={containerRef}
       className="fixed inset-0 bg-black z-50 flex flex-col overflow-hidden"
     >
+      {/* Always-visible X button in top right */}
+      <button
+        onClick={onExit}
+        className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors text-xl"
+        title="Exit Zen Mode (Esc)"
+      >
+        ×
+      </button>
+
       {/* Minimal header - fades on scroll/focus */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between text-gray-500 text-sm opacity-50 hover:opacity-100 transition-opacity z-10">
+      <div className="absolute top-0 left-0 right-16 p-4 flex items-center justify-between text-gray-500 text-sm opacity-50 hover:opacity-100 transition-opacity z-10">
         <div className="flex items-center gap-4">
           <span className="font-mono">
             Page {page.page_number} • Panel {currentPanel.panel_number}
@@ -269,12 +278,6 @@ export default function ZenMode({
           {isSaving && (
             <span className="text-blue-400">Saving...</span>
           )}
-          <button
-            onClick={onExit}
-            className="text-gray-500 hover:text-white transition-colors"
-          >
-            Exit Zen Mode
-          </button>
         </div>
       </div>
 
