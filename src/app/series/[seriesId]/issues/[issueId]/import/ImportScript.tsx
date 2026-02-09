@@ -119,6 +119,39 @@ interface DetectedSpeaker {
   linkToDetected?: string
 }
 
+// AI Script Analysis Types
+interface AIPlotline {
+  id: string
+  name: string
+  description: string
+  pages: number[]
+}
+
+interface AISceneBreak {
+  id: string
+  name: string
+  startPage: number
+  endPage: number
+  plotlineId: string
+  description: string
+}
+
+interface AIActBreak {
+  id: string
+  name: string
+  startPage: number
+  endPage: number
+  description: string
+  scenes: string[]
+}
+
+interface AIScriptAnalysis {
+  plotlines: AIPlotline[]
+  scenes: AISceneBreak[]
+  acts: AIActBreak[]
+  summary: string
+}
+
 type ImportStep = 'upload' | 'format' | 'structure' | 'parse' | 'characters' | 'preview' | 'importing'
 
 export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
@@ -136,6 +169,12 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   // Structure detection
   const [structureAnalysis, setStructureAnalysis] = useState<StructureAnalysis | null>(null)
   const [useDetectedStructure, setUseDetectedStructure] = useState(true)
+
+  // AI Structure Analysis
+  const [aiAnalysis, setAiAnalysis] = useState<AIScriptAnalysis | null>(null)
+  const [isAnalyzingStructure, setIsAnalyzingStructure] = useState(false)
+  const [useAiStructure, setUseAiStructure] = useState(false)
+  const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null)
 
   // Parsing
   const [isParsing, setIsParsing] = useState(false)
@@ -363,6 +402,75 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
       handleFile(files[0])
     }
   }, [handleFile])
+
+  // AI-powered structure analysis
+  const analyzeStructureWithAI = async () => {
+    setIsAnalyzingStructure(true)
+    setAiAnalysisError(null)
+
+    try {
+      const response = await fetch('/api/analyze-script-structure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scriptText,
+          issueTitle: issue.title,
+          seriesTitle: issue.series.title,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to analyze script')
+      }
+
+      const { analysis } = await response.json()
+      setAiAnalysis(analysis)
+      setUseAiStructure(true)
+      showToast(`AI detected ${analysis.acts.length} acts, ${analysis.scenes.length} scenes, ${analysis.plotlines.length} plotlines`, 'success')
+    } catch (error: any) {
+      console.error('AI analysis error:', error)
+      setAiAnalysisError(error.message || 'Failed to analyze script structure')
+      showToast('Failed to analyze script with AI', 'error')
+    } finally {
+      setIsAnalyzingStructure(false)
+    }
+  }
+
+  // Convert AI analysis to StructureAnalysis format for import
+  const convertAiToStructure = (): StructureAnalysis | null => {
+    if (!aiAnalysis) return null
+
+    // Group scenes by act
+    const acts: DetectedAct[] = aiAnalysis.acts.map((act, actIdx) => {
+      const actScenes = aiAnalysis.scenes.filter(scene =>
+        act.scenes.includes(scene.id)
+      )
+
+      return {
+        name: act.name,
+        startLine: act.startPage, // Use page as proxy for line
+        rawMarker: `AI: ${act.name}`,
+        scenes: actScenes.map(scene => ({
+          title: scene.name,
+          startLine: scene.startPage,
+          rawMarker: `AI: ${scene.name}`,
+          pages: Array.from(
+            { length: scene.endPage - scene.startPage + 1 },
+            (_, i) => scene.startPage + i
+          ),
+        })),
+      }
+    })
+
+    return {
+      suggestedStructure: acts.length > 0 ? 'acts-and-scenes' : 'flat',
+      acts,
+      hasActMarkers: true,
+      hasSceneMarkers: true,
+      totalPages: aiAnalysis.scenes.reduce((max, s) => Math.max(max, s.endPage), 0),
+    }
+  }
 
   // Parse a single page with AI
   const parseSinglePage = async (pageContent: string, pageNum: number): Promise<ParsedPage | null> => {
@@ -1051,8 +1159,147 @@ ${pageContent}`,
   // Step 3: Structure Detection
   const renderStructureStep = () => (
     <div className="space-y-6">
+      {/* AI Analysis Section */}
+      <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-700/50 rounded-lg p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-2xl">🤖</span>
+          <div>
+            <h3 className="font-semibold">AI-Powered Structure Analysis</h3>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Let AI analyze your script to identify acts, scenes, and plotlines
+            </p>
+          </div>
+        </div>
+
+        {!aiAnalysis && !isAnalyzingStructure && (
+          <button
+            onClick={analyzeStructureWithAI}
+            className="w-full bg-purple-600 hover:bg-purple-700 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+          >
+            <span>✨</span>
+            Analyze Structure with AI
+          </button>
+        )}
+
+        {isAnalyzingStructure && (
+          <div className="bg-purple-900/20 rounded-lg p-4 text-center">
+            <div className="text-3xl mb-2 animate-pulse">🔮</div>
+            <p className="text-sm">AI is analyzing your script structure...</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">This may take 15-30 seconds</p>
+          </div>
+        )}
+
+        {aiAnalysisError && (
+          <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 mt-3">
+            <p className="text-sm text-red-400">{aiAnalysisError}</p>
+            <button
+              onClick={analyzeStructureWithAI}
+              className="text-sm text-red-400 underline mt-1"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {aiAnalysis && (
+          <div className="space-y-4 mt-4">
+            <div className="flex items-center gap-2 text-green-400">
+              <span>✓</span>
+              <span className="font-medium">AI Analysis Complete</span>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-[var(--bg-tertiary)] rounded-lg p-3 text-sm">
+              <p className="text-[var(--text-secondary)]">{aiAnalysis.summary}</p>
+            </div>
+
+            {/* Plotlines */}
+            {aiAnalysis.plotlines.length > 1 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2 text-purple-400">
+                  📊 Plotlines ({aiAnalysis.plotlines.length})
+                </h4>
+                <div className="space-y-2">
+                  {aiAnalysis.plotlines.map((plotline) => (
+                    <div key={plotline.id} className="bg-[var(--bg-tertiary)] rounded p-2">
+                      <div className="font-medium text-sm">{plotline.name}</div>
+                      <div className="text-xs text-[var(--text-muted)]">
+                        {plotline.description}
+                      </div>
+                      <div className="text-xs text-[var(--text-muted)] mt-1">
+                        Pages: {plotline.pages.join(', ')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Acts & Scenes */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-blue-400">
+                🎬 Acts & Scenes
+              </h4>
+              <div className="bg-[var(--bg-tertiary)] rounded-lg p-3 max-h-64 overflow-y-auto">
+                {aiAnalysis.acts.map((act) => (
+                  <div key={act.id} className="mb-4 last:mb-0">
+                    <div className="font-medium text-blue-400 flex items-center gap-2">
+                      <span>{act.name}</span>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        (pages {act.startPage}-{act.endPage})
+                      </span>
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)] mb-2">
+                      {act.description}
+                    </div>
+                    <div className="ml-4 space-y-1">
+                      {aiAnalysis.scenes
+                        .filter(scene => act.scenes.includes(scene.id))
+                        .map((scene) => {
+                          const plotline = aiAnalysis.plotlines.find(p => p.id === scene.plotlineId)
+                          return (
+                            <div key={scene.id} className="text-sm text-[var(--text-secondary)]">
+                              <span className="text-[var(--text-muted)]">└</span> {scene.name}
+                              <span className="text-xs text-[var(--text-muted)]">
+                                {' '}(pp. {scene.startPage}-{scene.endPage})
+                              </span>
+                              {plotline && aiAnalysis.plotlines.length > 1 && (
+                                <span className="text-xs text-purple-400 ml-2">
+                                  [{plotline.name.split(':')[0]}]
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <label className="flex items-center gap-3 cursor-pointer p-2 bg-[var(--bg-tertiary)] rounded-lg">
+              <input
+                type="radio"
+                name="structureChoice"
+                checked={useAiStructure}
+                onChange={() => {
+                  setUseAiStructure(true)
+                  setUseDetectedStructure(false)
+                }}
+                className="w-4 h-4"
+              />
+              <span className="font-medium">Use AI-suggested structure</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Rule-based Detection Section */}
       <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-        <h3 className="font-semibold mb-2">Structure Detection</h3>
+        <h3 className="font-semibold mb-2">Rule-Based Detection</h3>
+        <p className="text-sm text-[var(--text-secondary)] mb-3">
+          Pattern matching for explicit ACT/SCENE markers in your script
+        </p>
 
         {structureAnalysis && (
           <>
@@ -1071,18 +1318,22 @@ ${pageContent}`,
 
             {structureAnalysis.suggestedStructure !== 'flat' && (
               <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-center gap-3 cursor-pointer p-2 bg-[var(--bg-tertiary)] rounded-lg">
                   <input
-                    type="checkbox"
-                    checked={useDetectedStructure}
-                    onChange={(e) => setUseDetectedStructure(e.target.checked)}
+                    type="radio"
+                    name="structureChoice"
+                    checked={useDetectedStructure && !useAiStructure}
+                    onChange={() => {
+                      setUseDetectedStructure(true)
+                      setUseAiStructure(false)
+                    }}
                     className="w-4 h-4"
                   />
-                  <span>Use detected structure (recommended)</span>
+                  <span>Use rule-based structure</span>
                 </label>
 
-                {useDetectedStructure && (
-                  <div className="bg-[var(--bg-tertiary)] rounded-lg p-3 max-h-64 overflow-y-auto">
+                {useDetectedStructure && !useAiStructure && (
+                  <div className="bg-[var(--bg-tertiary)] rounded-lg p-3 max-h-48 overflow-y-auto">
                     {structureAnalysis.acts.map((act, actIdx) => (
                       <div key={actIdx} className="mb-3 last:mb-0">
                         <div className="font-medium text-blue-400">{act.name}</div>
@@ -1107,11 +1358,27 @@ ${pageContent}`,
               </div>
             )}
 
-            {structureAnalysis.suggestedStructure === 'flat' && (
+            {structureAnalysis.suggestedStructure === 'flat' && !aiAnalysis && (
               <p className="text-sm text-[var(--text-secondary)]">
-                All pages will be imported into a single "Act 1 / Main" structure.
-                You can reorganize them in the Issue Editor after import.
+                No explicit markers found. Use AI analysis above for intelligent structure detection,
+                or all pages will be imported into a single "Act 1 / Main" structure.
               </p>
+            )}
+
+            {structureAnalysis.suggestedStructure === 'flat' && aiAnalysis && (
+              <label className="flex items-center gap-3 cursor-pointer p-2 bg-[var(--bg-tertiary)] rounded-lg">
+                <input
+                  type="radio"
+                  name="structureChoice"
+                  checked={!useAiStructure}
+                  onChange={() => {
+                    setUseAiStructure(false)
+                    setUseDetectedStructure(false)
+                  }}
+                  className="w-4 h-4"
+                />
+                <span>Use flat structure (Act 1 / Main)</span>
+              </label>
             )}
           </>
         )}
@@ -1125,8 +1392,19 @@ ${pageContent}`,
           ← Back
         </button>
         <button
-          onClick={parseScript}
-          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+          onClick={() => {
+            // If using AI structure, convert it first
+            if (useAiStructure && aiAnalysis) {
+              const converted = convertAiToStructure()
+              if (converted) {
+                setStructureAnalysis(converted)
+                setUseDetectedStructure(true)
+              }
+            }
+            parseScript()
+          }}
+          disabled={isAnalyzingStructure}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
         >
           Parse Script →
         </button>
