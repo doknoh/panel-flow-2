@@ -538,11 +538,15 @@ ${pageContent}`,
   }
 
   // Parse the entire script
-  const parseScript = async () => {
+  const parseScript = async (overrideStructure?: StructureAnalysis) => {
     if (!scriptText.trim() || !selectedFormat) {
       showToast('Please select a format first', 'error')
       return
     }
+
+    // Use override structure if provided (for AI analysis), otherwise use state
+    const effectiveStructure = overrideStructure || structureAnalysis
+    const shouldUseStructure = overrideStructure ? true : useDetectedStructure
 
     setIsParsing(true)
     setParseError(null)
@@ -571,9 +575,9 @@ ${pageContent}`,
         const result = await parseSinglePage(content, pageNum)
         if (result) {
           // Assign act/scene based on structure analysis
-          if (useDetectedStructure && structureAnalysis) {
-            for (let actIdx = 0; actIdx < structureAnalysis.acts.length; actIdx++) {
-              const act = structureAnalysis.acts[actIdx]
+          if (shouldUseStructure && effectiveStructure) {
+            for (let actIdx = 0; actIdx < effectiveStructure.acts.length; actIdx++) {
+              const act = effectiveStructure.acts[actIdx]
               for (let sceneIdx = 0; sceneIdx < act.scenes.length; sceneIdx++) {
                 const scene = act.scenes[sceneIdx]
                 if (scene.pages.includes(pageNum)) {
@@ -1393,12 +1397,15 @@ ${pageContent}`,
         </button>
         <button
           onClick={() => {
-            // If using AI structure, convert it first
+            // If using AI structure, convert and pass directly to avoid async state timing issues
             if (useAiStructure && aiAnalysis) {
               const converted = convertAiToStructure()
               if (converted) {
+                // Also update state for later use, but pass directly to parseScript
                 setStructureAnalysis(converted)
                 setUseDetectedStructure(true)
+                parseScript(converted) // Pass structure directly!
+                return
               }
             }
             parseScript()
