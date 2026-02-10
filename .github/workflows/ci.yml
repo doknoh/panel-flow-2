@@ -39,4 +39,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
           ANTHROPIC_API_KEY: sk-placeholder
+          # Mock Google Fonts responses to avoid network failures in CI
+          NEXT_FONT_GOOGLE_MOCKED_RESPONSES: 1
 
