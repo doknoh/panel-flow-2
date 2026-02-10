@@ -481,4 +481,28 @@ Reuse existing `acts` and `scenes` tables with additional metadata:
 
 ---
 
+## Known Limitations (Phase 0-2 Implementation)
+
+### Undo/Redo and Formatting
+The current undo/redo system tracks changes at the **blur event** level, not at the individual keystroke or formatting level. This means:
+- If you type text, apply bold formatting (`Cmd+B`), then continue typing, pressing `Cmd+Z` will undo everything back to the last blur (when you clicked away or changed focus)
+- Individual formatting changes (`Cmd+B`, `Cmd+I`) are **not** tracked as separate undo states
+- This is consistent with how other text fields in the app work, but may be unexpected for users familiar with word processors
+
+**Workaround:** If you need to undo just the formatting, manually remove the `**` or `*` markers from the text.
+
+**Future Enhancement:** Track formatting commands as separate undo actions by calling `endTextEdit()` before and after applying formatting.
+
+### Markdown Support Scope
+- **ScriptView:** Full support for bold/italic with `Cmd+B`, `Cmd+I`, visual preview, and word counting
+- **IssueEditor (PageEditor):** Markdown is **stored** correctly but not rendered visually. Users can type `**bold**` and it will work in exports and ScriptView
+- **Zen Mode:** Read-only for dialogue/captions, so formatting not applicable
+
+**Future Enhancement:** Add markdown rendering and keyboard shortcuts to IssueEditor's text fields.
+
+### Clipboard Behavior
+When copying text via `Cmd+Shift+C` (copy to clipboard), markdown delimiters are **stripped** for clean plain text. The formatted text exports with styling in PDF but copies as plain text for pasting elsewhere.
+
+---
+
 *Plan created with input from architecture exploration, feature planning, and red-team validation agents.*

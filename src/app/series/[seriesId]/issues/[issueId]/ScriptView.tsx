@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { jsPDF } from 'jspdf'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
@@ -13,7 +13,8 @@ import {
   parseMarkdownToReact,
   countWords,
   getWordCountClass,
-  parseMarkdownForPdf
+  parseMarkdownForPdf,
+  stripMarkdown
 } from '@/lib/markdown'
 
 // ============================================================================
@@ -1428,7 +1429,8 @@ export default function ScriptView({
           break
 
         case 'visual':
-          lines.push(`PANEL ${block.panelNumber}: ${block.content || '[Visual description]'}`)
+          // Strip markdown for clean clipboard export
+          lines.push(`PANEL ${block.panelNumber}: ${stripMarkdown(block.content || '') || '[Visual description]'}`)
           lines.push('')
           break
 
@@ -1440,8 +1442,8 @@ export default function ScriptView({
             ? ` (${block.dialogueType.toUpperCase()})`
             : ''
           lines.push(`                    ${charName}${typeIndicator}`)
-          // Indent dialogue text
-          const dialogueText = block.content || ''
+          // Strip markdown and indent dialogue text
+          const dialogueText = stripMarkdown(block.content || '')
           const words = dialogueText.split(' ')
           let currentLine = '          '
           for (const word of words) {
@@ -1463,13 +1465,15 @@ export default function ScriptView({
           const captionType = block.captionType && block.captionType !== 'narrative'
             ? ` (${block.captionType.toUpperCase()})`
             : ''
-          lines.push(`     CAPTION${captionType}: ${block.content || ''}`)
+          // Strip markdown for clean clipboard export
+          lines.push(`     CAPTION${captionType}: ${stripMarkdown(block.content || '')}`)
           lines.push('')
           break
         }
 
         case 'sfx':
-          lines.push(`     SFX: ${(block.content || '').toUpperCase()}`)
+          // Strip markdown for clean clipboard export
+          lines.push(`     SFX: ${stripMarkdown(block.content || '').toUpperCase()}`)
           lines.push('')
           break
       }
@@ -2008,7 +2012,53 @@ interface ScriptBlockComponentProps {
   registerRef: (el: HTMLTextAreaElement | HTMLInputElement | null) => void
 }
 
-function ScriptBlockComponent({
+// Memoized word count badge to prevent recalculation on every render
+const WordCountBadge = React.memo(function WordCountBadge({
+  content,
+  className = '',
+  showWarnings = true
+}: {
+  content: string
+  className?: string
+  showWarnings?: boolean
+}) {
+  const wc = useMemo(() => countWords(content), [content])
+
+  if (!content) return null
+
+  const warningText = showWarnings
+    ? wc >= 35 ? ' - too many for letterer!' : wc >= 25 ? ' - getting wordy' : ''
+    : ''
+
+  return (
+    <div className={`absolute right-0 top-0 -mt-5 ${className}`}>
+      <span
+        className={`text-xs font-mono ${getWordCountClass(wc)}`}
+        title={`${wc} words${warningText}`}
+      >
+        {wc}w
+      </span>
+    </div>
+  )
+})
+
+// Memoized inline word count for SFX
+const InlineWordCount = React.memo(function InlineWordCount({ content }: { content: string }) {
+  const wc = useMemo(() => countWords(content), [content])
+
+  if (!content) return null
+
+  return (
+    <span
+      className={`text-xs font-mono ${getWordCountClass(wc)}`}
+      title={`${wc} words`}
+    >
+      {wc}w
+    </span>
+  )
+})
+
+const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   block,
   characters,
   isFocused,
@@ -2166,20 +2216,8 @@ function ScriptBlockComponent({
             className="w-full bg-transparent text-white resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 -ml-2 min-h-[80px] leading-relaxed"
             style={{ caretColor: '#fff' }}
           />
-          {/* Word count indicator */}
-          {block.content && (() => {
-            const wc = countWords(block.content)
-            return (
-              <div className="absolute right-0 top-0 -mt-5">
-                <span
-                  className={`text-xs font-mono ${getWordCountClass(wc)}`}
-                  title={`${wc} words`}
-                >
-                  {wc}w
-                </span>
-              </div>
-            )
-          })()}
+          {/* Word count indicator - memoized for performance */}
+          <WordCountBadge content={block.content} showWarnings={false} />
         </div>
 
         {/* Action bar for adding content to this panel - shown after visual description */}
@@ -2263,20 +2301,8 @@ function ScriptBlockComponent({
             className="w-full max-w-md mx-auto block bg-transparent text-white resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 text-center min-h-[40px] leading-relaxed"
             style={{ caretColor: '#fff' }}
           />
-          {/* Word count indicator */}
-          {block.content && (() => {
-            const wc = countWords(block.content)
-            return (
-              <div className="absolute right-0 top-0 -mt-5">
-                <span
-                  className={`text-xs font-mono ${getWordCountClass(wc)}`}
-                  title={`${wc} words${wc >= 35 ? ' - too many for letterer!' : wc >= 25 ? ' - getting wordy' : ''}`}
-                >
-                  {wc}w
-                </span>
-              </div>
-            )
-          })()}
+          {/* Word count indicator - memoized for performance */}
+          <WordCountBadge content={block.content} showWarnings={true} />
         </div>
 
         {/* Action bar for adding content to this panel */}
@@ -2353,20 +2379,8 @@ function ScriptBlockComponent({
             className="w-full bg-transparent text-amber-400 italic resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 -ml-2 min-h-[30px] leading-relaxed"
             style={{ caretColor: '#fbbf24' }}
           />
-          {/* Word count indicator */}
-          {block.content && (() => {
-            const wc = countWords(block.content)
-            return (
-              <div className="absolute right-0 top-0 -mt-5">
-                <span
-                  className={`text-xs font-mono ${getWordCountClass(wc)}`}
-                  title={`${wc} words`}
-                >
-                  {wc}w
-                </span>
-              </div>
-            )
-          })()}
+          {/* Word count indicator - memoized for performance */}
+          <WordCountBadge content={block.content} showWarnings={false} />
         </div>
 
         {/* Action bar for adding content to this panel */}
@@ -2430,14 +2444,8 @@ function ScriptBlockComponent({
             className="flex-1 bg-transparent text-purple-400 font-bold focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1"
             style={{ caretColor: '#a855f7' }}
           />
-          {block.content && (
-            <span
-              className={`text-xs font-mono ${getWordCountClass(countWords(block.content))}`}
-              title={`${countWords(block.content)} words`}
-            >
-              {countWords(block.content)}w
-            </span>
-          )}
+          {/* Inline word count for SFX - memoized */}
+          <InlineWordCount content={block.content} />
           <button
             onClick={onDeleteSfx}
             className="opacity-0 group-hover/sfx:opacity-100 text-xs text-gray-600 hover:text-red-400 transition-all px-1"
@@ -2491,4 +2499,4 @@ function ScriptBlockComponent({
   }
 
   return null
-}
+})
