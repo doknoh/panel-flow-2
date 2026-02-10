@@ -214,8 +214,8 @@ describe('parseMarkdown', () => {
         { type: 'text', content: '*' }
       ])
       expect(result.plainText).toBe('*')
-      // Single asterisk is treated as text, counts as 1 word per the word counting logic
-      expect(result.wordCount).toBe(1)
+      // Bare asterisks don't count as words (they're markdown artifacts, not content)
+      expect(result.wordCount).toBe(0)
     })
 
     test('should handle double asterisk alone', () => {

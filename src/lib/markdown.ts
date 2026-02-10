@@ -131,8 +131,15 @@ export function countWords(text: string): number {
  */
 function countWordsFromPlainText(plainText: string): number {
   if (!plainText || !plainText.trim()) return 0
-  // Split on whitespace and filter empty strings
-  return plainText.trim().split(/\s+/).filter(word => word.length > 0).length
+  // Split on whitespace and filter:
+  // - Empty strings
+  // - Bare asterisks/markdown markers (**, ***, ****, etc.)
+  return plainText.trim().split(/\s+/).filter(word => {
+    if (word.length === 0) return false
+    // Filter out words that are only asterisks
+    if (/^\*+$/.test(word)) return false
+    return true
+  }).length
 }
 
 // =============================================================================
@@ -210,25 +217,27 @@ export function wrapSelection(
 export function isMarkdownBalanced(text: string): boolean {
   if (!text) return true
 
-  // Count unescaped ** and * markers
-  // This is a simplified check - could be more sophisticated
-  const boldMatches = text.match(/\*\*[^*]+\*\*/g) || []
-  const italicMatches = text.match(/(?<!\*)\*(?!\*)[^*]+\*(?!\*)/g) || []
+  // Use the same regex as parseMarkdown for consistency
+  // This ensures we consider text balanced if it parses successfully
+  const pattern = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*)/g
 
-  // Check for unmatched markers
-  let remaining = text
-  for (const match of boldMatches) {
-    remaining = remaining.replace(match, '')
-  }
-  for (const match of italicMatches) {
-    remaining = remaining.replace(match, '')
-  }
+  // Remove all matched markdown patterns
+  let remaining = text.replace(pattern, '')
 
-  // If there are still * or ** in remaining, it's unbalanced
-  const hasUnmatchedBold = /\*\*/.test(remaining)
-  const hasUnmatchedItalic = /(?<!\*)\*(?!\*)/.test(remaining)
+  // Check for unmatched markers in remaining text
+  // Count asterisks - if we have unmatched *, **, or ***, text is unbalanced
+  const asteriskCount = (remaining.match(/\*/g) || []).length
 
-  return !hasUnmatchedBold && !hasUnmatchedItalic
+  // If no asterisks remain, text is balanced
+  if (asteriskCount === 0) return true
+
+  // Check for specific unbalanced patterns
+  // Single * not part of a pair
+  const hasUnmatchedSingle = /(?<!\*)\*(?!\*)/.test(remaining)
+  // ** not part of valid markdown
+  const hasUnmatchedDouble = /\*\*/.test(remaining)
+
+  return !hasUnmatchedSingle && !hasUnmatchedDouble
 }
 
 /**
