@@ -151,6 +151,13 @@ export default function ScriptView({
   const [currentPageId, setCurrentPageId] = useState<string | null>(selectedPageId)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
 
+  // Sync currentPageId when selectedPageId changes from outside
+  useEffect(() => {
+    if (selectedPageId && selectedPageId !== currentPageId) {
+      setCurrentPageId(selectedPageId)
+    }
+  }, [selectedPageId])
+
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
   const blockRefs = useRef<Map<string, HTMLTextAreaElement | HTMLInputElement>>(new Map())
