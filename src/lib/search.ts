@@ -184,7 +184,7 @@ export function replaceInText(
   replaceTerm: string,
   options: SearchOptions
 ): string {
-  return replaceInMarkdown(text, searchTerm, replaceTerm, options.matchCase, true)
+  return replaceInMarkdown(text, searchTerm, replaceTerm, options.matchCase, true, options.wholeWord)
 }
 
 export function countMatches(

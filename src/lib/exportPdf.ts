@@ -92,12 +92,21 @@ export function exportIssueToPdf(issue: Issue) {
    * Parses **bold** and *italic* and renders with appropriate styling
    */
   const addMarkdownText = (text: string, fontSize: number, indent = 0) => {
-    if (!text) return
+    if (!text || !text.trim()) return
 
     doc.setFontSize(fontSize)
 
     // Parse markdown into styled segments
-    const segments = parseMarkdownForPdf(text)
+    let segments = parseMarkdownForPdf(text)
+
+    // Filter out empty segments to prevent tracking issues
+    segments = segments.filter(s => s.text && s.text.length > 0)
+
+    // If no valid segments, fall back to plain text rendering
+    if (segments.length === 0) {
+      addText(text, fontSize, false, indent)
+      return
+    }
 
     // For simplicity, we'll render line by line with mixed styles
     // jsPDF doesn't support inline style changes easily, so we need to
@@ -105,7 +114,9 @@ export function exportIssueToPdf(issue: Issue) {
 
     // First, split the entire text to determine lines (using plain text)
     const plainText = segments.map(s => s.text).join('')
-    const lines = doc.splitTextToSize(plainText, contentWidth - indent)
+    // Use slightly reduced width to account for bold text being wider
+    const adjustedWidth = (contentWidth - indent) * 0.95
+    const lines = doc.splitTextToSize(plainText, adjustedWidth)
 
     // Track which segment we're in
     let segmentIndex = 0
@@ -130,8 +141,10 @@ export function exportIssueToPdf(issue: Issue) {
         const textToRender = segment.text.slice(charInSegment, charInSegment + charsToRender)
 
         // Set font style based on segment
+        // Note: jsPDF doesn't support 'bolditalic', so we use bold as fallback
+        // Bold is more visually distinct than italic for letterer emphasis
         if (segment.style.bold && segment.style.italic) {
-          doc.setFont('helvetica', 'bolditalic')
+          doc.setFont('helvetica', 'bold') // bolditalic not supported, use bold
         } else if (segment.style.bold) {
           doc.setFont('helvetica', 'bold')
         } else if (segment.style.italic) {

@@ -328,7 +328,8 @@ export function replaceInMarkdown(
   searchTerm: string,
   replacement: string,
   caseSensitive: boolean = false,
-  replaceAll: boolean = false
+  replaceAll: boolean = false,
+  wholeWord: boolean = false
 ): string {
   if (!text || !searchTerm) return text
 
@@ -343,18 +344,23 @@ export function replaceInMarkdown(
     const searchIn = caseSensitive ? segment.content : segment.content.toLowerCase()
     const searchFor = caseSensitive ? searchTerm : searchTerm.toLowerCase()
 
-    if (searchIn.includes(searchFor)) {
+    // Build regex pattern based on options
+    let pattern: string
+    if (wholeWord) {
+      // Use word boundaries for whole word matching
+      pattern = `\\b${escapeRegex(searchTerm)}\\b`
+    } else {
+      pattern = escapeRegex(searchTerm)
+    }
+
+    const flags = caseSensitive ? (replaceAll ? 'g' : '') : (replaceAll ? 'gi' : 'i')
+    const regex = new RegExp(pattern, flags)
+
+    if (regex.test(segment.content)) {
       foundFirst = true
-      // Perform replacement preserving case if not case-sensitive
-      let newContent: string
-      if (replaceAll) {
-        const regex = new RegExp(escapeRegex(searchTerm), caseSensitive ? 'g' : 'gi')
-        newContent = segment.content.replace(regex, replacement)
-      } else {
-        const index = searchIn.indexOf(searchFor)
-        newContent = segment.content.slice(0, index) + replacement +
-          segment.content.slice(index + searchTerm.length)
-      }
+      // Reset regex after test
+      regex.lastIndex = 0
+      const newContent = segment.content.replace(regex, replacement)
       return { ...segment, content: newContent }
     }
 

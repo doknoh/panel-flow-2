@@ -2068,11 +2068,22 @@ function ScriptBlockComponent({
     const start = target.selectionStart ?? 0
     const end = target.selectionEnd ?? 0
 
+    // Handle empty content - insert markers with cursor between
+    if (!content) {
+      const newContent = wrapper + wrapper
+      onContentChange(newContent)
+      requestAnimationFrame(() => {
+        target.focus()
+        target.setSelectionRange(wrapper.length, wrapper.length)
+      })
+      return
+    }
+
     // If no selection, find word boundaries
     let actualStart = start
     let actualEnd = end
 
-    if (start === end && content) {
+    if (start === end) {
       // Find word boundaries
       let wordStart = start
       let wordEnd = end
@@ -2082,6 +2093,21 @@ function ScriptBlockComponent({
       }
       while (wordEnd < content.length && !/\s/.test(content[wordEnd])) {
         wordEnd++
+      }
+
+      // Check if we found a word (not just whitespace)
+      const selectedText = content.slice(wordStart, wordEnd)
+      if (!selectedText.trim()) {
+        // Cursor is in whitespace - insert markers at cursor position
+        const before = content.slice(0, start)
+        const after = content.slice(start)
+        const newContent = before + wrapper + wrapper + after
+        onContentChange(newContent)
+        requestAnimationFrame(() => {
+          target.focus()
+          target.setSelectionRange(start + wrapper.length, start + wrapper.length)
+        })
+        return
       }
 
       actualStart = wordStart
@@ -2141,16 +2167,19 @@ function ScriptBlockComponent({
             style={{ caretColor: '#fff' }}
           />
           {/* Word count indicator */}
-          {block.content && (
-            <div className="absolute right-0 top-0 -mt-5">
-              <span
-                className={`text-xs font-mono ${getWordCountClass(countWords(block.content))}`}
-                title={`${countWords(block.content)} words`}
-              >
-                {countWords(block.content)}w
-              </span>
-            </div>
-          )}
+          {block.content && (() => {
+            const wc = countWords(block.content)
+            return (
+              <div className="absolute right-0 top-0 -mt-5">
+                <span
+                  className={`text-xs font-mono ${getWordCountClass(wc)}`}
+                  title={`${wc} words`}
+                >
+                  {wc}w
+                </span>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Action bar for adding content to this panel - shown after visual description */}
@@ -2235,16 +2264,19 @@ function ScriptBlockComponent({
             style={{ caretColor: '#fff' }}
           />
           {/* Word count indicator */}
-          {block.content && (
-            <div className="absolute right-0 top-0 -mt-5">
-              <span
-                className={`text-xs font-mono ${getWordCountClass(countWords(block.content))}`}
-                title={`${countWords(block.content)} words${countWords(block.content) >= 35 ? ' - too many for letterer!' : countWords(block.content) >= 25 ? ' - getting wordy' : ''}`}
-              >
-                {countWords(block.content)}w
-              </span>
-            </div>
-          )}
+          {block.content && (() => {
+            const wc = countWords(block.content)
+            return (
+              <div className="absolute right-0 top-0 -mt-5">
+                <span
+                  className={`text-xs font-mono ${getWordCountClass(wc)}`}
+                  title={`${wc} words${wc >= 35 ? ' - too many for letterer!' : wc >= 25 ? ' - getting wordy' : ''}`}
+                >
+                  {wc}w
+                </span>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Action bar for adding content to this panel */}
@@ -2322,16 +2354,19 @@ function ScriptBlockComponent({
             style={{ caretColor: '#fbbf24' }}
           />
           {/* Word count indicator */}
-          {block.content && (
-            <div className="absolute right-0 top-0 -mt-5">
-              <span
-                className={`text-xs font-mono ${getWordCountClass(countWords(block.content))}`}
-                title={`${countWords(block.content)} words`}
-              >
-                {countWords(block.content)}w
-              </span>
-            </div>
-          )}
+          {block.content && (() => {
+            const wc = countWords(block.content)
+            return (
+              <div className="absolute right-0 top-0 -mt-5">
+                <span
+                  className={`text-xs font-mono ${getWordCountClass(wc)}`}
+                  title={`${wc} words`}
+                >
+                  {wc}w
+                </span>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Action bar for adding content to this panel */}
