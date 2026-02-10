@@ -60,13 +60,13 @@
   --bg-elevated: #323230;
 
   --text-primary: #FAFAF8;
-  --text-secondary: #A3A39E;
-  --text-muted: #6B6B66;
-  --text-disabled: #4A4A48;
+  --text-secondary: #C5C5C0;  /* Brightened for better contrast */
+  --text-muted: #9A9A95;      /* Brightened for better contrast */
+  --text-disabled: #7A7A75;   /* Brightened for better contrast */
 
-  --border: #3A3A38;
-  --border-subtle: #2E2E2C;
-  --border-strong: #4A4A48;
+  --border: #4A4A48;          /* Brightened for visibility */
+  --border-subtle: #3A3A38;
+  --border-strong: #5A5A58;   /* Brightened */
 
   --accent: #A3A3A1;
   --accent-hover: #D4D4D2;
@@ -95,13 +95,13 @@
     --bg-elevated: #323230;
 
     --text-primary: #FAFAF8;
-    --text-secondary: #A3A39E;
-    --text-muted: #6B6B66;
-    --text-disabled: #4A4A48;
+    --text-secondary: #C5C5C0;  /* Brightened for better contrast */
+    --text-muted: #9A9A95;      /* Brightened for better contrast */
+    --text-disabled: #7A7A75;   /* Brightened for better contrast */
 
-    --border: #3A3A38;
-    --border-subtle: #2E2E2C;
-    --border-strong: #4A4A48;
+    --border: #4A4A48;          /* Brightened for visibility */
+    --border-subtle: #3A3A38;
+    --border-strong: #5A5A58;   /* Brightened */
 
     --accent: #A3A3A1;
     --accent-hover: #D4D4D2;

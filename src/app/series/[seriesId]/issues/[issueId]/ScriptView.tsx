@@ -16,6 +16,7 @@ import {
   parseMarkdownForPdf,
   stripMarkdown
 } from '@/lib/markdown'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 // ============================================================================
 // Types
@@ -1846,6 +1847,9 @@ export default function ScriptView({
                '• Unsaved'}
             </span>
 
+            {/* Theme toggle */}
+            <ThemeToggle />
+
             {/* Page navigation */}
             {scope === 'page' && (
               <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
@@ -2229,7 +2233,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Describe what we see in this panel... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-[var(--text-primary)] resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 -ml-2 min-h-[60px] leading-relaxed overflow-hidden"
+            className="w-full bg-transparent text-[var(--text-primary)] font-medium resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 -ml-2 min-h-[60px] leading-relaxed overflow-hidden"
             style={{ caretColor: 'var(--text-primary)' }}
           />
           {/* Word count indicator - memoized for performance */}
@@ -2315,7 +2319,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Dialogue... (Cmd+B bold, Cmd+I italic)"
-            className="w-full max-w-md mx-auto block bg-transparent text-[var(--text-primary)] resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 text-center min-h-[40px] leading-relaxed overflow-hidden"
+            className="w-full max-w-md mx-auto block bg-transparent text-[var(--text-primary)] font-medium resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 text-center min-h-[40px] leading-relaxed overflow-hidden"
             style={{ caretColor: 'var(--text-primary)' }}
           />
           {/* Word count indicator - memoized for performance */}
@@ -2394,7 +2398,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Caption text... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-amber-400 italic resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 -ml-2 min-h-[30px] leading-relaxed overflow-hidden"
+            className="w-full bg-transparent text-amber-400 font-medium italic resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 -ml-2 min-h-[30px] leading-relaxed overflow-hidden"
             style={{ caretColor: '#fbbf24' }}
           />
           {/* Word count indicator - memoized for performance */}
