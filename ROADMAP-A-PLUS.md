@@ -333,6 +333,97 @@
 
 ---
 
+# PHASE 7: FINAL DRAFT-INSPIRED FEATURES
+*"Match the industry standard for professional comic writing"*
+
+**Timeline: 3-4 weeks**
+**Reference:** See `docs/FINAL-DRAFT-FEATURES-PLAN.md` for detailed implementation plan
+
+### 7.1 Bold/Italic Text Formatting (HIGH PRIORITY)
+**Problem:** Letterers need formatting cues in dialogue (emphasis, whispers, screams).
+
+**Solution:**
+- Markdown-based storage (`**bold**`, `*italic*`)
+- Visual editor with `Cmd+B`, `Cmd+I` shortcuts
+- Renders in PDF exports with proper styling
+- Works in ScriptView, IssueEditor, and all dialogue fields
+
+**Files:** New `src/lib/markdown.ts`, `src/components/RichTextEditor.tsx`
+
+### 7.2 Word Count Per Panel
+**Problem:** Panels with 35+ words overwhelm letterers and readers.
+
+**Solution:**
+- Real-time word count display per panel
+- Color thresholds: green (0-24), yellow (25-34), red (35+)
+- Aggregate count for page/scene/act/issue scopes
+- Strips markdown from count for accuracy
+
+**Files:** Modify `ScriptView.tsx`, `StatusBar.tsx`
+
+### 7.3 Writing Stats Dashboard
+**Problem:** No visibility into writing velocity or habits.
+
+**Solution:**
+- Daily word count tracking with streak system
+- Configurable daily goals (default: 500 words)
+- Progress graphs (7-day, 30-day, all-time)
+- Session history with duration tracking
+- Writing achievements/milestones
+
+**Files:** New `src/app/dashboard/stats/page.tsx`, database migration
+
+### 7.4 Sprint Timer
+**Problem:** Hard to maintain focus during writing sessions.
+
+**Solution:**
+- Pomodoro-style timer (15/25/45/60 min presets)
+- Real-time word count delta during sprint
+- Optional word goal for sprint
+- Automatic session logging to stats
+- Break reminders between sprints
+
+**Files:** New `src/components/SprintTimer.tsx`
+
+### 7.5 Split View
+**Problem:** Can't view reference material while writing.
+
+**Solution:**
+- Vertical or horizontal split of ScriptView
+- Compare pages side-by-side
+- View character/location reference in one pane
+- Independent or synchronized scrolling
+- Linked editing for real-time sync
+
+**Files:** Modify `ScriptView.tsx` with split state management
+
+### 7.6 Character Report
+**Problem:** No quick way to analyze character presence/dialogue.
+
+**Solution:**
+- Generate per-character statistics:
+  - Appearance count (panels with visual mention)
+  - Dialogue count and word count
+  - First/last appearance references
+  - Dialogue type breakdown
+- Export to PDF or CSV
+
+**Files:** New `src/app/series/[seriesId]/issues/[issueId]/reports/characters/page.tsx`
+
+### 7.7 Beat Board (Story Canvas)
+**Problem:** No visual way to organize story beats like Final Draft's index cards.
+
+**Solution:**
+- Index card view for scenes/beats
+- Free-form canvas arrangement
+- Color coding by act/plotline
+- Drag-and-drop reordering
+- Summary view (50 words max per card)
+
+**Files:** New `src/app/series/[seriesId]/beat-board/page.tsx`
+
+---
+
 # IMPLEMENTATION PRIORITY FOR RESURGET
 
 Given your immediate need (import 5 scripts, polish, finish 3 more), here's the **critical path**:
@@ -372,6 +463,12 @@ Given your immediate need (import 5 scripts, polish, finish 3 more), here's the 
 - [ ] Export production-ready script in any format
 - [ ] Track exactly what changed between drafts
 - [ ] Hand artist a brief that includes visual references
+- [ ] Format dialogue with bold/italic for letterer communication (Phase 7)
+- [ ] See real-time word count per panel with visual warnings (Phase 7)
+- [ ] Track writing streaks and daily word goals (Phase 7)
+- [ ] Run focused sprint sessions with automatic tracking (Phase 7)
+- [ ] Generate character appearance/dialogue reports (Phase 7)
+- [ ] Organize story beats visually on a canvas (Phase 7)
 
 ---
 
@@ -383,11 +480,18 @@ Given your immediate need (import 5 scripts, polish, finish 3 more), here's the 
 - `page_thumbnail_url` on pages
 - `parked_at_issue_id` on canvas_items
 - `graduated_to` linking table for canvas items
+- `writing_sessions` table (Phase 7 - stats/sprint)
+- `writing_goals` table (Phase 7 - stats)
+- `scene.beat_color` column (Phase 7 - beat board)
+- `scene.canvas_position` JSONB column (Phase 7 - beat board)
 
 **New Routes:**
 - `/series/[seriesId]/weave` — Series-level beat map
 - `/series/[seriesId]/timeline` — Chronological view
 - `/series/[seriesId]/bible` — Story bible export
+- `/dashboard/stats` — Writing statistics dashboard (Phase 7)
+- `/series/[seriesId]/issues/[issueId]/reports/characters` — Character report (Phase 7)
+- `/series/[seriesId]/beat-board` — Beat board canvas (Phase 7)
 
 **Component Architecture:**
 - `ZenMode.tsx` — Fullscreen distraction-free writing
@@ -395,6 +499,9 @@ Given your immediate need (import 5 scripts, polish, finish 3 more), here's the 
 - `LayoutSketcher.tsx` — Panel arrangement tool
 - `VersionDiff.tsx` — Side-by-side comparison
 - `PreviewEditor.tsx` — Editable import preview
+- `RichTextEditor.tsx` — Bold/italic text editor (Phase 7)
+- `SprintTimer.tsx` — Pomodoro writing timer (Phase 7)
+- `markdown.ts` — Markdown parsing utilities (Phase 7)
 
 ---
 

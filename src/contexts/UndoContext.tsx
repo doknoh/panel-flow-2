@@ -139,6 +139,9 @@ type RecordableAction = {
   [key: string]: any
 }
 
+// Entity types for generic text edit tracking
+type EditableEntityType = 'panel' | 'dialogue' | 'caption' | 'sfx'
+
 interface UndoContextType {
   canUndo: boolean
   canRedo: boolean
@@ -148,9 +151,12 @@ interface UndoContextType {
   undo: () => Promise<void>
   redo: () => Promise<void>
   clearHistory: () => void
-  // For text debouncing
+  // For text debouncing (panel fields)
   startTextEdit: (panelId: string, field: string, initialValue: string | null) => void
   endTextEdit: (panelId: string, field: string, finalValue: string | null) => void
+  // For generic text debouncing (dialogue, caption, sfx text fields)
+  startGenericTextEdit: (entityType: EditableEntityType, entityId: string, field: string, initialValue: string | null, metadata?: Record<string, any>) => void
+  endGenericTextEdit: (entityType: EditableEntityType, entityId: string, field: string, finalValue: string | null) => void
 }
 
 const UndoContext = createContext<UndoContextType | null>(null)
@@ -174,6 +180,15 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
 
   // Track ongoing text edits for debouncing
   const pendingTextEdits = useRef<Map<string, { field: string; initialValue: string | null; timer: NodeJS.Timeout | null }>>(new Map())
+
+  // Track generic entity text edits (for dialogue, caption, sfx)
+  const pendingGenericEdits = useRef<Map<string, {
+    entityType: EditableEntityType
+    entityId: string
+    field: string
+    initialValue: string | null
+    metadata?: Record<string, any>
+  }>>(new Map())
 
   const recordAction = useCallback((action: RecordableAction) => {
     const fullAction = { ...action, timestamp: Date.now() } as UndoAction
@@ -223,6 +238,88 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
     }
 
     pendingTextEdits.current.delete(key)
+  }, [recordAction])
+
+  // Start tracking a generic entity text edit (for dialogue/caption/sfx)
+  const startGenericTextEdit = useCallback((
+    entityType: EditableEntityType,
+    entityId: string,
+    field: string,
+    initialValue: string | null,
+    metadata?: Record<string, any>
+  ) => {
+    const key = `${entityType}:${entityId}:${field}`
+    const existing = pendingGenericEdits.current.get(key)
+
+    // Don't start new tracking if we're already tracking this field
+    if (!existing) {
+      pendingGenericEdits.current.set(key, {
+        entityType,
+        entityId,
+        field,
+        initialValue,
+        metadata,
+      })
+    }
+  }, [])
+
+  // End a generic text edit and record it if value changed
+  const endGenericTextEdit = useCallback((
+    entityType: EditableEntityType,
+    entityId: string,
+    field: string,
+    finalValue: string | null
+  ) => {
+    const key = `${entityType}:${entityId}:${field}`
+    const edit = pendingGenericEdits.current.get(key)
+
+    if (edit && edit.initialValue !== finalValue) {
+      // Record appropriate action based on entity type
+      switch (entityType) {
+        case 'dialogue':
+          recordAction({
+            type: 'dialogue_update',
+            dialogueId: entityId,
+            field,
+            oldValue: edit.initialValue,
+            newValue: finalValue,
+            description: `Update dialogue ${field}`,
+          })
+          break
+        case 'caption':
+          recordAction({
+            type: 'caption_update',
+            captionId: entityId,
+            field,
+            oldValue: edit.initialValue,
+            newValue: finalValue,
+            description: `Update caption ${field}`,
+          })
+          break
+        case 'sfx':
+          recordAction({
+            type: 'sfx_update',
+            sfxId: entityId,
+            oldValue: edit.initialValue || '',
+            newValue: finalValue || '',
+            description: 'Update sound effect',
+          })
+          break
+        case 'panel':
+          // For panels, use the existing panel_field_update
+          recordAction({
+            type: 'panel_field_update',
+            panelId: entityId,
+            field: field as 'visual_description' | 'shot_type' | 'notes',
+            oldValue: edit.initialValue,
+            newValue: finalValue,
+            description: `Update ${field.replace('_', ' ')}`,
+          })
+          break
+      }
+    }
+
+    pendingGenericEdits.current.delete(key)
   }, [recordAction])
 
   const executeUndo = useCallback(async (action: UndoAction): Promise<UndoAction | null> => {
@@ -513,6 +610,7 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
     setUndoStack([])
     setRedoStack([])
     pendingTextEdits.current.clear()
+    pendingGenericEdits.current.clear()
   }, [])
 
   return (
@@ -528,6 +626,8 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
         clearHistory,
         startTextEdit,
         endTextEdit,
+        startGenericTextEdit,
+        endGenericTextEdit,
       }}
     >
       {children}

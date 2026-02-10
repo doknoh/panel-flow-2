@@ -1,5 +1,7 @@
 // Search utilities for Find & Replace functionality
 
+import { replaceInMarkdown } from './markdown'
+
 export interface SearchMatch {
   type: 'visual_description' | 'dialogue' | 'caption' | 'sfx' | 'notes'
   actNumber: number
@@ -182,8 +184,7 @@ export function replaceInText(
   replaceTerm: string,
   options: SearchOptions
 ): string {
-  const regex = createSearchRegex(searchTerm, options)
-  return text.replace(regex, replaceTerm)
+  return replaceInMarkdown(text, searchTerm, replaceTerm, options.matchCase, true)
 }
 
 export function countMatches(

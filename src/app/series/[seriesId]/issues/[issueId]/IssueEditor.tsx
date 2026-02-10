@@ -12,6 +12,7 @@ import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import JumpToPageModal from './JumpToPageModal'
 import ZoomPanel from './ZoomPanel'
 import ZenMode from './ZenMode'
+import ScriptView from './ScriptView'
 import QuickNav from './QuickNav'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
@@ -421,6 +422,7 @@ function IssueEditorContent({
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isJumpToPageOpen, setIsJumpToPageOpen] = useState(false)
   const [isZenMode, setIsZenMode] = useState(false)
+  const [isScriptView, setIsScriptView] = useState(false)
   const [isQuickNavOpen, setIsQuickNavOpen] = useState(false)
 
   // Get all pages in order for navigation
@@ -814,6 +816,17 @@ function IssueEditorContent({
             >
               🧘 Zen
             </button>
+            <button
+              onClick={async () => {
+                // Refresh data before opening Script view to ensure content is synced
+                await refreshIssue()
+                setIsScriptView(true)
+              }}
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
+              title="Script View"
+            >
+              📜 Script
+            </button>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/import`}
               className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
@@ -1134,6 +1147,17 @@ function IssueEditorContent({
           onNavigate={(direction) => {
             navigateToPage(direction)
           }}
+        />
+      )}
+
+      {/* Script View (Traditional script format editor) */}
+      {isScriptView && (
+        <ScriptView
+          issue={issue}
+          selectedPageId={selectedPageId}
+          onExit={() => setIsScriptView(false)}
+          onRefresh={refreshIssue}
+          onNavigate={(pageId) => setSelectedPageId(pageId)}
         />
       )}
 

@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { parseMarkdownForPdf } from './markdown'
 
 interface DialogueBlock {
   character_id: string | null
@@ -86,6 +87,80 @@ export function exportIssueToPdf(issue: Issue) {
     }
   }
 
+  /**
+   * Render text with markdown bold/italic support
+   * Parses **bold** and *italic* and renders with appropriate styling
+   */
+  const addMarkdownText = (text: string, fontSize: number, indent = 0) => {
+    if (!text) return
+
+    doc.setFontSize(fontSize)
+
+    // Parse markdown into styled segments
+    const segments = parseMarkdownForPdf(text)
+
+    // For simplicity, we'll render line by line with mixed styles
+    // jsPDF doesn't support inline style changes easily, so we need to
+    // calculate positions manually for each segment on each line
+
+    // First, split the entire text to determine lines (using plain text)
+    const plainText = segments.map(s => s.text).join('')
+    const lines = doc.splitTextToSize(plainText, contentWidth - indent)
+
+    // Track which segment we're in
+    let segmentIndex = 0
+    let charInSegment = 0
+
+    for (const line of lines) {
+      if (y > doc.internal.pageSize.getHeight() - margin) {
+        doc.addPage()
+        y = margin
+      }
+
+      // Render each character/segment of this line
+      let x = margin + indent
+      let lineCharIndex = 0
+
+      while (lineCharIndex < line.length && segmentIndex < segments.length) {
+        const segment = segments[segmentIndex]
+        const remainingInSegment = segment.text.length - charInSegment
+
+        // How many chars of this segment are in this line?
+        const charsToRender = Math.min(remainingInSegment, line.length - lineCharIndex)
+        const textToRender = segment.text.slice(charInSegment, charInSegment + charsToRender)
+
+        // Set font style based on segment
+        if (segment.style.bold && segment.style.italic) {
+          doc.setFont('helvetica', 'bolditalic')
+        } else if (segment.style.bold) {
+          doc.setFont('helvetica', 'bold')
+        } else if (segment.style.italic) {
+          doc.setFont('helvetica', 'italic')
+        } else {
+          doc.setFont('helvetica', 'normal')
+        }
+
+        // Render this portion
+        doc.text(textToRender, x, y)
+
+        // Move x position for next segment
+        x += doc.getTextWidth(textToRender)
+
+        // Update tracking
+        lineCharIndex += charsToRender
+        charInSegment += charsToRender
+
+        // If we've exhausted this segment, move to next
+        if (charInSegment >= segment.text.length) {
+          segmentIndex++
+          charInSegment = 0
+        }
+      }
+
+      y += fontSize * 1.4
+    }
+  }
+
   const addSpace = (pts: number) => {
     y += pts
     if (y > doc.internal.pageSize.getHeight() - margin) {
@@ -151,9 +226,9 @@ export function exportIssueToPdf(issue: Issue) {
           const shotType = panel.shot_type ? ` (${panel.shot_type.replace('_', ' ').toUpperCase()})` : ''
           addText(`Panel ${panel.panel_number}${shotType}`, 11, true, 20)
 
-          // Visual description
+          // Visual description (supports markdown bold/italic)
           if (panel.visual_description) {
-            addText(panel.visual_description, 10, false, 40)
+            addMarkdownText(panel.visual_description, 10, 40)
           }
 
           addSpace(6)
@@ -163,7 +238,8 @@ export function exportIssueToPdf(issue: Issue) {
           for (const caption of sortedCaptions) {
             const captionType = caption.caption_type.toUpperCase()
             addText(`CAPTION (${captionType}):`, 10, true, 40)
-            addText(`"${caption.text}"`, 10, false, 60)
+            // Caption text supports markdown bold/italic
+            addMarkdownText(`"${caption.text}"`, 10, 60)
             addSpace(4)
           }
 
@@ -179,15 +255,17 @@ export function exportIssueToPdf(issue: Issue) {
               : ''
 
             addText(`${characterName.toUpperCase()}${dialogueType}:`, 10, true, 40)
-            addText(`"${dialogue.text}"`, 10, false, 60)
+            // Dialogue text supports markdown bold/italic for letterer
+            addMarkdownText(`"${dialogue.text}"`, 10, 60)
             addSpace(4)
           }
 
-          // Sound effects
+          // Sound effects (supports markdown bold/italic)
           const sortedSfx = [...(panel.sound_effects || [])].sort((a, b) => a.sort_order - b.sort_order)
           for (const sfx of sortedSfx) {
             if (sfx.text) {
-              addText(`SFX: ${sfx.text.toUpperCase()}`, 10, true, 40)
+              // SFX label + text with markdown support
+              addMarkdownText(`SFX: **${sfx.text.toUpperCase()}**`, 10, 40)
               addSpace(4)
             }
           }
