@@ -2109,6 +2109,14 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
     }
   }
 
+  // Auto-resize textarea to fit content
+  const autoResize = (el: HTMLTextAreaElement | null) => {
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = el.scrollHeight + 'px'
+    }
+  }
+
   const applyFormatting = (
     target: HTMLTextAreaElement | HTMLInputElement,
     content: string,
@@ -2206,14 +2214,15 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
         </div>
         <div className="relative">
           <textarea
-            ref={(el) => registerRef(el)}
+            ref={(el) => { registerRef(el); autoResize(el) }}
             value={block.content}
             onChange={(e) => onChange(e.target.value)}
+            onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
             onKeyDown={(e) => handleTextareaKeyDown(e, block.content, onChange)}
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Describe what we see in this panel... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-white resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 -ml-2 min-h-[80px] leading-relaxed"
+            className="w-full bg-transparent text-white resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 -ml-2 min-h-[60px] leading-relaxed overflow-hidden"
             style={{ caretColor: '#fff' }}
           />
           {/* Word count indicator - memoized for performance */}
@@ -2291,14 +2300,15 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
         </div>
         <div className="relative">
           <textarea
-            ref={(el) => registerRef(el)}
+            ref={(el) => { registerRef(el); autoResize(el) }}
             value={block.content}
             onChange={(e) => onChange(e.target.value)}
+            onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
             onKeyDown={(e) => handleTextareaKeyDown(e, block.content, onChange)}
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Dialogue... (Cmd+B bold, Cmd+I italic)"
-            className="w-full max-w-md mx-auto block bg-transparent text-white resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 text-center min-h-[40px] leading-relaxed"
+            className="w-full max-w-md mx-auto block bg-transparent text-white resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 text-center min-h-[40px] leading-relaxed overflow-hidden"
             style={{ caretColor: '#fff' }}
           />
           {/* Word count indicator - memoized for performance */}
@@ -2369,14 +2379,15 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
         </div>
         <div className="relative">
           <textarea
-            ref={(el) => registerRef(el)}
+            ref={(el) => { registerRef(el); autoResize(el) }}
             value={block.content}
             onChange={(e) => onChange(e.target.value)}
+            onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
             onKeyDown={(e) => handleTextareaKeyDown(e, block.content, onChange)}
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Caption text... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-amber-400 italic resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 -ml-2 min-h-[30px] leading-relaxed"
+            className="w-full bg-transparent text-amber-400 italic resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 -ml-2 min-h-[30px] leading-relaxed overflow-hidden"
             style={{ caretColor: '#fbbf24' }}
           />
           {/* Word count indicator - memoized for performance */}
