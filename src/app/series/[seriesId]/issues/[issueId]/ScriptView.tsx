@@ -1958,24 +1958,24 @@ export default function ScriptView({
 
       {/* Footer with hints */}
       <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--bg-primary)]">
-        <div className="max-w-4xl mx-auto px-6 py-2 flex items-center justify-center text-[var(--text-disabled)] text-xs gap-6">
+        <div className="max-w-4xl mx-auto px-6 py-2 flex items-center justify-center text-[var(--text-secondary)] text-xs gap-6">
           <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘Z</kbd> Undo
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘Z</kbd> Undo
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘⇧Z</kbd> Redo
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘⇧Z</kbd> Redo
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘S</kbd> Save
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘S</kbd> Save
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘F</kbd> Find
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘F</kbd> Find
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘⇧←/→</kbd> Prev/Next page
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘⇧←/→</kbd> Prev/Next page
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">Esc</kbd> Exit
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">Esc</kbd> Exit
           </span>
         </div>
       </div>
