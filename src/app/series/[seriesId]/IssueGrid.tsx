@@ -210,9 +210,7 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
           )}
         </div>
       ) : (
-        <div className="text-xs text-[var(--text-muted)] mt-auto pt-2 border-t border-[var(--border)] italic">
-          No content yet
-        </div>
+        <div className="mt-auto pt-2 border-t border-[var(--border)]" />
       )}
 
       {/* Last edited */}
