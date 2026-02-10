@@ -5,6 +5,7 @@
  * with extensive edge case testing for stress testing purposes.
  */
 
+import React from 'react'
 import {
   parseMarkdown,
   stripMarkdown,
@@ -792,29 +793,37 @@ describe('parseMarkdownToReact', () => {
   test('should create strong element for bold', () => {
     const result = parseMarkdownToReact('**bold**')
     expect(result).toHaveLength(1)
-    expect(result[0]?.type).toBe('strong')
-    expect(result[0]?.props?.children).toBe('bold')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = result[0] as any
+    expect(element?.type).toBe('strong')
+    expect(element?.props?.children).toBe('bold')
   })
 
   test('should create em element for italic', () => {
     const result = parseMarkdownToReact('*italic*')
     expect(result).toHaveLength(1)
-    expect(result[0]?.type).toBe('em')
-    expect(result[0]?.props?.children).toBe('italic')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = result[0] as any
+    expect(element?.type).toBe('em')
+    expect(element?.props?.children).toBe('italic')
   })
 
   test('should create nested strong and em for bold-italic', () => {
     const result = parseMarkdownToReact('***bold-italic***')
     expect(result).toHaveLength(1)
-    expect(result[0]?.type).toBe('strong')
-    expect(result[0]?.props?.children?.type).toBe('em')
-    expect(result[0]?.props?.children?.props?.children).toBe('bold-italic')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = result[0] as any
+    expect(element?.type).toBe('strong')
+    expect(element?.props?.children?.type).toBe('em')
+    expect(element?.props?.children?.props?.children).toBe('bold-italic')
   })
 
   test('should return Fragment for plain text', () => {
     const result = parseMarkdownToReact('plain')
     expect(result).toHaveLength(1)
-    expect(result[0]?.type).toBe(Symbol.for('react.fragment'))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = result[0] as any
+    expect(element?.type).toBe(Symbol.for('react.fragment'))
   })
 
   test('should handle mixed content', () => {
@@ -824,7 +833,7 @@ describe('parseMarkdownToReact', () => {
 
   test('should have unique keys for each element', () => {
     const result = parseMarkdownToReact('**a** *b* ***c***')
-    const keys = result.map((r: any) => r?.key)
+    const keys = result.map((r) => (r as React.ReactElement)?.key)
     const uniqueKeys = new Set(keys)
     expect(uniqueKeys.size).toBe(result.length)
   })
