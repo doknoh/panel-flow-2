@@ -222,7 +222,7 @@ export function isMarkdownBalanced(text: string): boolean {
   const pattern = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*)/g
 
   // Remove all matched markdown patterns
-  let remaining = text.replace(pattern, '')
+  const remaining = text.replace(pattern, '')
 
   // Check for unmatched markers in remaining text
   // Count asterisks - if we have unmatched *, **, or ***, text is unbalanced
