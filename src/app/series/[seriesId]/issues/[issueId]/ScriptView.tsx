@@ -1774,11 +1774,11 @@ export default function ScriptView({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 bg-[#1a1a1a] z-50 flex flex-col overflow-hidden"
+      className="fixed inset-0 bg-[var(--bg-primary)] z-50 flex flex-col overflow-hidden"
       style={{ fontFamily: "'Courier Prime', 'Courier New', monospace" }}
     >
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-gray-800 bg-[#1a1a1a]">
+      <div className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-primary)]">
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -1786,13 +1786,13 @@ export default function ScriptView({
                 await forceSaveAll()
                 onExit()
               }}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               title="Exit Script View (Esc)"
             >
               ← Exit
             </button>
-            <span className="text-gray-600">|</span>
-            <span className="text-gray-400 text-sm">
+            <span className="text-[var(--text-disabled)]">|</span>
+            <span className="text-[var(--text-secondary)] text-sm">
               {issue.series?.title} • Issue #{issue.number}
             </span>
           </div>
@@ -1802,7 +1802,7 @@ export default function ScriptView({
             <select
               value={scope}
               onChange={(e) => setScope(e.target.value as Scope)}
-              className="bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded px-2 py-1"
+              className="bg-[var(--bg-tertiary)] border border-[var(--border-strong)] text-[var(--text-secondary)] text-sm rounded px-2 py-1"
             >
               <option value="page">Page</option>
               <option value="scene">Scene</option>
@@ -1814,14 +1814,14 @@ export default function ScriptView({
             <div className="flex items-center gap-1">
               <button
                 onClick={copyToClipboard}
-                className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded hover:bg-gray-800 transition-colors"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                 title="Copy script to clipboard"
               >
                 📋 Copy
               </button>
               <button
                 onClick={exportToPdf}
-                className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded hover:bg-gray-800 transition-colors"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                 title="Export to PDF"
               >
                 📄 PDF
@@ -1841,10 +1841,10 @@ export default function ScriptView({
 
             {/* Page navigation */}
             {scope === 'page' && (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <button
                   onClick={() => navigateToPage('prev')}
-                  className="hover:text-white disabled:opacity-30"
+                  className="hover:text-[var(--text-primary)] disabled:opacity-30"
                   disabled={getPagePositionInfo.currentPageNum <= 1}
                 >
                   ‹
@@ -1854,12 +1854,12 @@ export default function ScriptView({
                 </span>
                 <button
                   onClick={() => navigateToPage('next')}
-                  className="hover:text-white disabled:opacity-30"
+                  className="hover:text-[var(--text-primary)] disabled:opacity-30"
                   disabled={getPagePositionInfo.currentPageNum >= getPagePositionInfo.totalPages}
                 >
                   ›
                 </button>
-                <span className="text-gray-600 mx-1">|</span>
+                <span className="text-[var(--text-disabled)] mx-1">|</span>
                 <button
                   onClick={addPage}
                   className="hover:text-green-400 transition-colors"
@@ -1884,7 +1884,7 @@ export default function ScriptView({
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-8">
           {blocks.length === 0 ? (
-            <div className="text-center text-gray-500 py-20">
+            <div className="text-center text-[var(--text-muted)] py-20">
               <p className="text-lg">No content to display</p>
               <p className="text-sm mt-2">Add pages and panels in the Issue Editor first</p>
             </div>
@@ -1946,25 +1946,25 @@ export default function ScriptView({
       </div>
 
       {/* Footer with hints */}
-      <div className="flex-shrink-0 border-t border-gray-800 bg-[#1a1a1a]">
-        <div className="max-w-4xl mx-auto px-6 py-2 flex items-center justify-center text-gray-600 text-xs gap-6">
+      <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--bg-primary)]">
+        <div className="max-w-4xl mx-auto px-6 py-2 flex items-center justify-center text-[var(--text-disabled)] text-xs gap-6">
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">⌘Z</kbd> Undo
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘Z</kbd> Undo
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">⌘⇧Z</kbd> Redo
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘⇧Z</kbd> Redo
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">⌘S</kbd> Save
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘S</kbd> Save
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">⌘F</kbd> Find
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘F</kbd> Find
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">⌘⇧←/→</kbd> Prev/Next page
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">⌘⇧←/→</kbd> Prev/Next page
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">Esc</kbd> Exit
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">Esc</kbd> Exit
           </span>
         </div>
       </div>
@@ -2186,11 +2186,11 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   if (block.type === 'page-header') {
     return (
       <div className="mt-8 first:mt-0 mb-4">
-        <div className="text-white font-bold text-lg">
+        <div className="text-[var(--text-primary)] font-bold text-lg">
           {block.content}
         </div>
         {block.actName && block.sceneName && (
-          <div className="text-gray-500 text-xs mt-1">
+          <div className="text-[var(--text-muted)] text-xs mt-1">
             {block.actName} › {block.sceneName}
           </div>
         )}
@@ -2202,11 +2202,11 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   if (block.type === 'visual') {
     return (
       <div className="mt-4 group/panel">
-        <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
+        <div className="flex items-center gap-2 text-[var(--text-secondary)] text-sm mb-1">
           <span>PANEL {block.panelNumber}:</span>
           <button
             onClick={onDeletePanel}
-            className="opacity-0 group-hover/panel:opacity-100 text-xs text-gray-600 hover:text-red-400 transition-all px-1"
+            className="opacity-0 group-hover/panel:opacity-100 text-xs text-[var(--text-disabled)] hover:text-red-400 transition-all px-1"
             title="Delete this panel"
           >
             ×
@@ -2222,8 +2222,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Describe what we see in this panel... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-white resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 -ml-2 min-h-[60px] leading-relaxed overflow-hidden"
-            style={{ caretColor: '#fff' }}
+            className="w-full bg-transparent text-[var(--text-primary)] resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 -ml-2 min-h-[60px] leading-relaxed overflow-hidden"
+            style={{ caretColor: 'var(--text-primary)' }}
           />
           {/* Word count indicator - memoized for performance */}
           <WordCountBadge content={block.content} showWarnings={false} />
@@ -2234,21 +2234,21 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           <div className="flex items-center gap-2 mt-2 ml-2">
             <button
               onClick={onAddDialogue}
-              className="text-xs text-gray-500 hover:text-blue-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-blue-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add dialogue to this panel"
             >
               + Dialogue
             </button>
             <button
               onClick={onAddCaption}
-              className="text-xs text-gray-500 hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add caption to this panel"
             >
               + Caption
             </button>
             <button
               onClick={onAddSfx}
-              className="text-xs text-gray-500 hover:text-purple-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-purple-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add sound effect to this panel"
             >
               + SFX
@@ -2258,10 +2258,10 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
 
         {/* Add Panel button at end of page */}
         {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-gray-800">
+          <div className="mt-6 pt-4 border-t border-[var(--border)]">
             <button
               onClick={onAddPanel}
-              className="text-xs text-gray-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded border border-gray-700 hover:border-green-600 hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-green-400 transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-green-600 hover:bg-[var(--bg-tertiary)]"
               title="Add new panel to this page"
             >
               + Add Panel
@@ -2291,7 +2291,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             />
             <button
               onClick={onDeleteDialogue}
-              className="opacity-0 group-hover/dialogue:opacity-100 text-xs text-gray-600 hover:text-red-400 transition-all px-1 ml-1"
+              className="opacity-0 group-hover/dialogue:opacity-100 text-xs text-[var(--text-disabled)] hover:text-red-400 transition-all px-1 ml-1"
               title="Delete this dialogue"
             >
               ×
@@ -2308,8 +2308,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Dialogue... (Cmd+B bold, Cmd+I italic)"
-            className="w-full max-w-md mx-auto block bg-transparent text-white resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 text-center min-h-[40px] leading-relaxed overflow-hidden"
-            style={{ caretColor: '#fff' }}
+            className="w-full max-w-md mx-auto block bg-transparent text-[var(--text-primary)] resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 text-center min-h-[40px] leading-relaxed overflow-hidden"
+            style={{ caretColor: 'var(--text-primary)' }}
           />
           {/* Word count indicator - memoized for performance */}
           <WordCountBadge content={block.content} showWarnings={true} />
@@ -2320,21 +2320,21 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           <div className="flex items-center justify-center gap-2 mt-2">
             <button
               onClick={onAddDialogue}
-              className="text-xs text-gray-500 hover:text-blue-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-blue-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add dialogue to this panel"
             >
               + Dialogue
             </button>
             <button
               onClick={onAddCaption}
-              className="text-xs text-gray-500 hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add caption to this panel"
             >
               + Caption
             </button>
             <button
               onClick={onAddSfx}
-              className="text-xs text-gray-500 hover:text-purple-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-purple-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add sound effect to this panel"
             >
               + SFX
@@ -2344,10 +2344,10 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
 
         {/* Add Panel button at end of page */}
         {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-gray-800 text-center">
+          <div className="mt-6 pt-4 border-t border-[var(--border)] text-center">
             <button
               onClick={onAddPanel}
-              className="text-xs text-gray-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded border border-gray-700 hover:border-green-600 hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-green-400 transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-green-600 hover:bg-[var(--bg-tertiary)]"
               title="Add new panel to this page"
             >
               + Add Panel
@@ -2371,7 +2371,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           />
           <button
             onClick={onDeleteCaption}
-            className="opacity-0 group-hover/caption:opacity-100 text-xs text-gray-600 hover:text-red-400 transition-all px-1"
+            className="opacity-0 group-hover/caption:opacity-100 text-xs text-[var(--text-disabled)] hover:text-red-400 transition-all px-1"
             title="Delete this caption"
           >
             ×
@@ -2387,7 +2387,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Caption text... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-amber-400 italic resize-none focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1 -ml-2 min-h-[30px] leading-relaxed overflow-hidden"
+            className="w-full bg-transparent text-amber-400 italic resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 -ml-2 min-h-[30px] leading-relaxed overflow-hidden"
             style={{ caretColor: '#fbbf24' }}
           />
           {/* Word count indicator - memoized for performance */}
@@ -2399,21 +2399,21 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           <div className="flex items-center gap-2 mt-2 ml-2">
             <button
               onClick={onAddDialogue}
-              className="text-xs text-gray-500 hover:text-blue-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-blue-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add dialogue to this panel"
             >
               + Dialogue
             </button>
             <button
               onClick={onAddCaption}
-              className="text-xs text-gray-500 hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add caption to this panel"
             >
               + Caption
             </button>
             <button
               onClick={onAddSfx}
-              className="text-xs text-gray-500 hover:text-purple-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-purple-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add sound effect to this panel"
             >
               + SFX
@@ -2423,10 +2423,10 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
 
         {/* Add Panel button at end of page */}
         {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-gray-800">
+          <div className="mt-6 pt-4 border-t border-[var(--border)]">
             <button
               onClick={onAddPanel}
-              className="text-xs text-gray-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded border border-gray-700 hover:border-green-600 hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-green-400 transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-green-600 hover:bg-[var(--bg-tertiary)]"
               title="Add new panel to this page"
             >
               + Add Panel
@@ -2452,14 +2452,14 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Sound effect... (Cmd+B bold, Cmd+I italic)"
-            className="flex-1 bg-transparent text-purple-400 font-bold focus:outline-none focus:bg-gray-900/30 rounded px-2 py-1"
+            className="flex-1 bg-transparent text-purple-400 font-bold focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1"
             style={{ caretColor: '#a855f7' }}
           />
           {/* Inline word count for SFX - memoized */}
           <InlineWordCount content={block.content} />
           <button
             onClick={onDeleteSfx}
-            className="opacity-0 group-hover/sfx:opacity-100 text-xs text-gray-600 hover:text-red-400 transition-all px-1"
+            className="opacity-0 group-hover/sfx:opacity-100 text-xs text-[var(--text-disabled)] hover:text-red-400 transition-all px-1"
             title="Delete this sound effect"
           >
             ×
@@ -2471,21 +2471,21 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           <div className="flex items-center gap-2 mt-2 ml-2">
             <button
               onClick={onAddDialogue}
-              className="text-xs text-gray-500 hover:text-blue-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-blue-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add dialogue to this panel"
             >
               + Dialogue
             </button>
             <button
               onClick={onAddCaption}
-              className="text-xs text-gray-500 hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add caption to this panel"
             >
               + Caption
             </button>
             <button
               onClick={onAddSfx}
-              className="text-xs text-gray-500 hover:text-purple-400 transition-colors px-2 py-1 rounded hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-purple-400 transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               title="Add sound effect to this panel"
             >
               + SFX
@@ -2495,10 +2495,10 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
 
         {/* Add Panel button at end of page */}
         {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-gray-800">
+          <div className="mt-6 pt-4 border-t border-[var(--border)]">
             <button
               onClick={onAddPanel}
-              className="text-xs text-gray-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded border border-gray-700 hover:border-green-600 hover:bg-gray-800"
+              className="text-xs text-[var(--text-muted)] hover:text-green-400 transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-green-600 hover:bg-[var(--bg-tertiary)]"
               title="Add new panel to this page"
             >
               + Add Panel
