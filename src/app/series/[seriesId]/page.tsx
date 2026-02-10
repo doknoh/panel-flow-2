@@ -33,7 +33,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
   if (series) {
     const { data: issuesData } = await supabase
       .from('issues')
-      .select('id, number, title, tagline, status, updated_at')
+      .select('id, number, title, tagline, status, updated_at, acts(id, scenes(id, pages(id, panels(id, word_count))))')
       .eq('series_id', seriesId)
       .order('number')
     issues = issuesData || []
