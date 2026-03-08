@@ -109,7 +109,7 @@ export default function BlueprintStructure({
             return (
               <li key={item.id} className="bp-structure-item dimmed">
                 <span className="bp-item-meta">
-                  {String(item.actNumber).padStart(2, '0')}.00 // ACT {item.actNumber}
+                  {String(item.actNumber).padStart(2, '0')}.00 {'// '}ACT {item.actNumber}
                 </span>
                 <span className="bp-item-title">{item.title}</span>
               </li>
@@ -124,7 +124,7 @@ export default function BlueprintStructure({
                 onClick={() => onSelectScene(item.id)}
               >
                 <span className="bp-item-meta">
-                  {String(item.actNumber).padStart(2, '0')}.{String(item.sceneOrder).padStart(2, '0')} // SCENE {item.sceneOrder}
+                  {String(item.actNumber).padStart(2, '0')}.{String(item.sceneOrder).padStart(2, '0')} {'// '}SCENE {item.sceneOrder}
                 </span>
                 <span className="bp-item-title">{item.title}</span>
                 <div className="bp-item-stats">

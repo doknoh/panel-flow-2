@@ -77,7 +77,7 @@ export default function BlueprintReference({
         {pageCharacters.map((char: any, idx: number) => (
           <div key={char.id} className="bp-context-card">
             <div className="bp-card-header">
-              <span>CHR_{String(idx + 1).padStart(2, '0')} // {(char.display_name || char.name || 'UNKNOWN').toUpperCase()}</span>
+              <span>CHR_{String(idx + 1).padStart(2, '0')} {'// '}{(char.display_name || char.name || 'UNKNOWN').toUpperCase()}</span>
               <span>#{String(idx + 1).padStart(2, '0')}</span>
             </div>
             <div className="bp-card-content">
@@ -126,7 +126,7 @@ export default function BlueprintReference({
         {pageLocation && (
           <div className="bp-context-card">
             <div className="bp-card-header">
-              <span>LOC // {(pageLocation.name || 'UNKNOWN').toUpperCase()}</span>
+              <span>LOC {'// '}{(pageLocation.name || 'UNKNOWN').toUpperCase()}</span>
               <span>#LOC</span>
             </div>
             <div className="bp-card-content">
