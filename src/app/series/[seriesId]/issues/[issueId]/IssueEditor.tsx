@@ -828,6 +828,13 @@ function IssueEditorContent({
               📜 Script
             </button>
             <Link
+              href={`/series/${seriesId}/issues/${issue.id}/blueprint`}
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
+              title="Blueprint View"
+            >
+              📐 Blueprint
+            </Link>
+            <Link
               href={`/series/${seriesId}/issues/${issue.id}/import`}
               className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
