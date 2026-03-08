@@ -17,7 +17,7 @@ export default function IssueEditorError({
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center p-4">
       <div className="max-w-lg w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8">
-        <div className="text-amber-400 text-4xl mb-4 text-center">!</div>
+        <div className="text-[var(--color-warning)] text-4xl mb-4 text-center">!</div>
         <h1 className="text-xl font-bold mb-2 text-center">Editor Error</h1>
         <p className="text-[var(--text-secondary)] mb-4 text-center">
           There was a problem loading the issue editor. Your work has been auto-saved.
@@ -25,7 +25,7 @@ export default function IssueEditorError({
 
         <div className="bg-[var(--bg-tertiary)] rounded p-4 mb-6">
           <p className="text-sm text-[var(--text-secondary)] mb-1">Error details:</p>
-          <p className="text-sm text-red-400 font-mono">
+          <p className="text-sm text-[var(--color-error)] font-mono">
             {error.message || 'Unknown error'}
           </p>
         </div>
@@ -33,7 +33,7 @@ export default function IssueEditorError({
         <div className="flex flex-col gap-3">
           <button
             onClick={reset}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-[var(--text-primary)] font-medium py-2 px-4 rounded transition-colors"
+            className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--text-primary)] font-medium py-2 px-4 rounded transition-colors"
           >
             Reload Editor
           </button>

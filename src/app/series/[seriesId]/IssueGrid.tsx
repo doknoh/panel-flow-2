@@ -72,13 +72,13 @@ function formatRelativeTime(dateString: string): string {
 function getStatusConfig(status: string) {
   switch (status) {
     case 'complete':
-      return { bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-700 dark:text-green-300', border: 'border-green-300 dark:border-green-800' }
+      return { bg: 'bg-[var(--color-success-bg)]', text: 'text-[var(--color-success)]', border: 'border-[var(--color-success)]/30' }
     case 'drafting':
-      return { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-300 dark:border-blue-800' }
+      return { bg: 'bg-[var(--color-primary)]/10', text: 'text-[var(--color-primary)]', border: 'border-[var(--color-primary)]/30' }
     case 'revision':
-      return { bg: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-300 dark:border-yellow-800' }
+      return { bg: 'bg-[var(--color-warning-bg)]', text: 'text-[var(--color-warning)]', border: 'border-[var(--color-warning)]/30' }
     case 'outline':
-      return { bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-300 dark:border-purple-800' }
+      return { bg: 'bg-[var(--accent-hover)]/10', text: 'text-[var(--accent-hover)]', border: 'border-[var(--accent-hover)]/30' }
     default:
       return { bg: 'bg-[var(--bg-tertiary)]', text: 'text-[var(--text-secondary)]', border: 'border-[var(--border)]' }
   }
@@ -132,7 +132,7 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
   }
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-all group relative">
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out group relative">
       <Link
         href={`/series/${seriesId}/issues/${issue.id}`}
         className="absolute inset-0 rounded-lg"
@@ -171,7 +171,7 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
         ) : (
           <button
             onClick={handleTitleClick}
-            className="font-medium text-[var(--text-primary)] line-clamp-1 text-left w-full hover:text-[var(--color-primary)] transition-colors flex items-center gap-1 group/title"
+            className="font-medium text-[var(--text-primary)] line-clamp-1 text-left w-full hover:text-[var(--color-primary)] active:scale-[0.97] transition-all duration-150 ease-out flex items-center gap-1 group/title"
           >
             {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
             <svg className="w-3 h-3 opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,7 +247,7 @@ export default function IssueGrid({ issues: initialIssues, seriesId }: { issues:
   const sortedIssues = [...issues].sort((a, b) => a.number - b.number)
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
       {sortedIssues.map((issue) => (
         <IssueCard
           key={issue.id}

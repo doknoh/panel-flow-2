@@ -463,9 +463,9 @@ Return this exact JSON structure:
 
   const statusColors: Record<string, string> = {
     outline: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]',
-    drafting: 'bg-blue-900 text-blue-300',
-    revision: 'bg-amber-900 text-amber-300',
-    complete: 'bg-green-900 text-green-300',
+    drafting: 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]',
+    revision: 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]',
+    complete: 'bg-[var(--color-success)]/20 text-[var(--color-success)]',
   }
 
   return (
@@ -489,7 +489,7 @@ Return this exact JSON structure:
             <span className="text-sm font-medium text-[var(--text-secondary)]">Series Outline Notes</span>
             <button
               onClick={() => setEditingSeriesNotes(!editingSeriesNotes)}
-              className="text-xs text-blue-400 hover:text-blue-300"
+              className="text-xs text-[var(--color-primary)] hover:opacity-90"
             >
               {editingSeriesNotes ? 'Cancel' : 'Edit'}
             </button>
@@ -500,12 +500,12 @@ Return this exact JSON structure:
                 value={seriesNotes}
                 onChange={(e) => setSeriesNotes(e.target.value)}
                 placeholder="High-level outline notes for the entire series..."
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-vertical min-h-[100px] focus:border-purple-500 focus:outline-none"
+                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-vertical min-h-[100px] focus:border-[var(--accent-hover)] focus:outline-none"
                 rows={4}
               />
               <button
                 onClick={saveSeriesNotes}
-                className="text-sm bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded"
+                className="text-sm bg-[var(--accent-hover)] hover:opacity-90 px-3 py-1.5 rounded"
               >
                 Save Notes
               </button>
@@ -549,7 +549,7 @@ Return this exact JSON structure:
               <div className="flex items-center gap-3">
                 <button
                   onClick={acceptAllChanges}
-                  className="text-sm text-blue-400 hover:text-blue-300"
+                  className="text-sm text-[var(--color-primary)] hover:opacity-90"
                 >
                   Select All
                 </button>
@@ -588,12 +588,12 @@ Return this exact JSON structure:
                           <span className="text-sm font-medium text-[var(--text-secondary)]">Summary</span>
                         </label>
                         <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
-                            <div className="text-red-400 text-xs mb-1">Current</div>
+                          <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 rounded p-3">
+                            <div className="text-[var(--color-error)] text-xs mb-1">Current</div>
                             <p className="text-[var(--text-secondary)]">{po.currentSummary || <em className="text-[var(--text-secondary)]">Empty</em>}</p>
                           </div>
-                          <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
-                            <div className="text-green-400 text-xs mb-1">Proposed</div>
+                          <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/20 rounded p-3">
+                            <div className="text-[var(--color-success)] text-xs mb-1">Proposed</div>
                             <p className="text-[var(--text-secondary)]">{po.proposedSummary}</p>
                           </div>
                         </div>
@@ -613,12 +613,12 @@ Return this exact JSON structure:
                           <span className="text-sm font-medium text-[var(--text-secondary)]">Themes</span>
                         </label>
                         <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
-                            <div className="text-red-400 text-xs mb-1">Current</div>
+                          <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 rounded p-3">
+                            <div className="text-[var(--color-error)] text-xs mb-1">Current</div>
                             <p className="text-[var(--text-secondary)]">{po.currentThemes || <em className="text-[var(--text-secondary)]">Empty</em>}</p>
                           </div>
-                          <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
-                            <div className="text-green-400 text-xs mb-1">Proposed</div>
+                          <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/20 rounded p-3">
+                            <div className="text-[var(--color-success)] text-xs mb-1">Proposed</div>
                             <p className="text-[var(--text-secondary)]">{po.proposedThemes}</p>
                           </div>
                         </div>
@@ -640,12 +640,12 @@ Return this exact JSON structure:
                           </span>
                         </label>
                         <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="bg-red-900/20 border border-red-800/30 rounded p-3">
-                            <div className="text-red-400 text-xs mb-1">Current</div>
+                          <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 rounded p-3">
+                            <div className="text-[var(--color-error)] text-xs mb-1">Current</div>
                             <p className="text-[var(--text-secondary)]">{act.currentBeatSummary || <em className="text-[var(--text-secondary)]">Empty</em>}</p>
                           </div>
-                          <div className="bg-green-900/20 border border-green-800/30 rounded p-3">
-                            <div className="text-green-400 text-xs mb-1">Proposed</div>
+                          <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/20 rounded p-3">
+                            <div className="text-[var(--color-success)] text-xs mb-1">Proposed</div>
                             <p className="text-[var(--text-secondary)]">{act.proposedBeatSummary}</p>
                           </div>
                         </div>
@@ -670,7 +670,7 @@ Return this exact JSON structure:
                 <button
                   onClick={applyAcceptedChanges}
                   disabled={acceptedChanges.size === 0}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed rounded font-medium"
+                  className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed rounded font-medium"
                 >
                   Apply Selected Changes
                 </button>
@@ -687,7 +687,7 @@ Return this exact JSON structure:
           <button
             onClick={syncOutlineFromScripts}
             disabled={isSyncing}
-            className="text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-tertiary)] px-3 py-1 rounded"
+            className="text-sm bg-[var(--accent-hover)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] px-3 py-1 rounded"
           >
             {isSyncing ? 'Syncing...' : 'Sync from Scripts'}
           </button>
@@ -739,7 +739,7 @@ Return this exact JSON structure:
                   <span>{stats.totalWords.toLocaleString()} words</span>
                   <Link
                     href={`/series/${series.id}/issues/${issue.id}`}
-                    className="text-blue-400 hover:text-blue-300"
+                    className="text-[var(--color-primary)] hover:opacity-90"
                     onClick={(e) => e.stopPropagation()}
                   >
                     Edit →
@@ -757,7 +757,7 @@ Return this exact JSON structure:
                       <button
                         onClick={() => generateAISummary(issue)}
                         disabled={isGenerating}
-                        className="text-xs text-blue-400 hover:text-blue-300 disabled:text-[var(--text-muted)]"
+                        className="text-xs text-[var(--color-primary)] hover:opacity-90 disabled:text-[var(--text-muted)]"
                       >
                         {isGenerating ? 'Generating...' : 'Generate with AI'}
                       </button>
@@ -765,13 +765,13 @@ Return this exact JSON structure:
 
                     {generatedSummary ? (
                       <div className="space-y-2">
-                        <div className="p-3 bg-blue-900/20 border border-blue-800/50 rounded text-sm">
+                        <div className="p-3 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/30 rounded text-sm">
                           <p className="text-[var(--text-secondary)]">{generatedSummary}</p>
                         </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => saveSummary(issue.id)}
-                            className="text-xs bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
+                            className="text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-3 py-1 rounded"
                           >
                             Save Summary
                           </button>
@@ -826,7 +826,7 @@ Return this exact JSON structure:
                                 </span>
                               </div>
                               {act.intention && (
-                                <p className="text-xs text-purple-400/70 mt-0.5">
+                                <p className="text-xs text-[var(--accent-hover)]/70 mt-0.5">
                                   → {act.intention}
                                 </p>
                               )}
@@ -871,7 +871,7 @@ Return this exact JSON structure:
           <p className="text-[var(--text-secondary)]">No issues yet</p>
           <Link
             href={`/series/${series.id}`}
-            className="text-blue-400 hover:text-blue-300 text-sm mt-2 inline-block"
+            className="text-[var(--color-primary)] hover:opacity-90 text-sm mt-2 inline-block"
           >
             Go to series page to create issues
           </Link>

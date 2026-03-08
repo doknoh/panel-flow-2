@@ -139,8 +139,8 @@ export default function TypeSelector({
   }
 
   const typeLabel = getTypeLabel()
-  const baseColor = type === 'dialogue' ? 'text-blue-500' : 'text-amber-500'
-  const hoverColor = type === 'dialogue' ? 'hover:text-blue-400' : 'hover:text-amber-400'
+  const baseColor = type === 'dialogue' ? 'text-[var(--color-primary)]' : 'text-amber-500'
+  const hoverColor = type === 'dialogue' ? 'hover:text-[var(--accent-hover)]' : 'hover:text-amber-400'
 
   return (
     <div ref={containerRef} className={`relative inline-block ${className}`}>
@@ -149,16 +149,16 @@ export default function TypeSelector({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className={`${baseColor} ${hoverColor} text-xs uppercase tracking-wider transition-colors cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800`}
+        className={`${baseColor} ${hoverColor} text-xs uppercase tracking-wider cursor-pointer px-1 py-0.5 rounded hover:bg-[var(--bg-tertiary)] active:scale-[0.97] transition-all duration-150 ease-out`}
         title={`Change ${type} type`}
       >
         {typeLabel ? `(${typeLabel})` : `[${type === 'dialogue' ? 'type' : 'type'}]`}
-        <span className="ml-0.5 text-gray-600">▾</span>
+        <span className="ml-0.5 text-[var(--text-muted)]">▾</span>
       </button>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 left-0 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-50 mt-1 left-0 w-48 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden">
           <ul
             ref={listRef}
             className="max-h-64 overflow-y-auto py-1"
@@ -173,15 +173,15 @@ export default function TypeSelector({
                 onMouseEnter={() => setHighlightedIndex(index)}
                 className={`px-3 py-2 cursor-pointer transition-colors ${
                   index === highlightedIndex
-                    ? type === 'dialogue' ? 'bg-blue-600 text-white' : 'bg-amber-600 text-white'
+                    ? type === 'dialogue' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-warning)] text-white'
                     : option.value === value
-                    ? 'bg-gray-800 ' + baseColor
-                    : 'text-gray-300 hover:bg-gray-800'
+                    ? 'bg-[var(--bg-tertiary)] ' + baseColor
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
                 }`}
               >
                 <div className="text-sm font-medium">{option.label}</div>
                 <div className={`text-xs ${
-                  index === highlightedIndex ? 'text-white/70' : 'text-gray-500'
+                  index === highlightedIndex ? 'text-white/70' : 'text-[var(--text-muted)]'
                 }`}>
                   {option.description}
                 </div>

@@ -228,7 +228,7 @@ function QuickStats({ overall }: { overall: PacingAnalysis['overall'] }) {
           <div className="flex items-center justify-between">
             <span className="text-xs text-[var(--text-muted)]">{stat.label}</span>
             {stat.isGood ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-success)]" />
             ) : (
               <Minus className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             )}
@@ -297,7 +297,7 @@ function InsightsList({
               key={`warning-${idx}`}
               insight={insight}
               icon={<AlertTriangle className="w-4 h-4" />}
-              iconColor="text-red-500"
+              iconColor="text-[var(--color-error)]"
               bgColor="bg-red-500/10"
               onPageClick={(pageNum) => {
                 const pageId = getPageId(pageNum)
@@ -311,7 +311,7 @@ function InsightsList({
               key={`suggestion-${idx}`}
               insight={insight}
               icon={<Lightbulb className="w-4 h-4" />}
-              iconColor="text-yellow-500"
+              iconColor="text-[var(--color-warning)]"
               bgColor="bg-yellow-500/10"
               onPageClick={(pageNum) => {
                 const pageId = getPageId(pageNum)
@@ -325,7 +325,7 @@ function InsightsList({
               key={`strength-${idx}`}
               insight={insight}
               icon={<CheckCircle2 className="w-4 h-4" />}
-              iconColor="text-green-500"
+              iconColor="text-[var(--color-success)]"
               bgColor="bg-green-500/10"
               onPageClick={(pageNum) => {
                 const pageId = getPageId(pageNum)

@@ -230,7 +230,7 @@ ${JSON.stringify(appearanceData, null, 2)}`,
         <button
           onClick={generateStates}
           disabled={isGenerating || !selectedCharacter}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+          className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium active:scale-[0.97] transition-all duration-150 ease-out"
         >
           {isGenerating ? 'Analyzing...' : 'Generate Arc with AI'}
         </button>
@@ -301,12 +301,12 @@ ${JSON.stringify(appearanceData, null, 2)}`,
       )}
 
       {/* Per-Issue Breakdown */}
-      <div className="space-y-4">
+      <div className="space-y-4 stagger-children">
         <h3 className="font-medium">Issue-by-Issue Arc</h3>
         {statesForCharacter.map(({ issue, state }) => (
           <div
             key={issue.id}
-            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4"
+            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
           >
             <div className="flex items-center justify-between mb-2">
               <div>
@@ -315,9 +315,9 @@ ${JSON.stringify(appearanceData, null, 2)}`,
               </div>
               {state?.emotional_score && (
                 <div className={`text-lg font-bold ${
-                  state.emotional_score >= 7 ? 'text-green-400' :
+                  state.emotional_score >= 7 ? 'text-[var(--color-success)]' :
                   state.emotional_score >= 4 ? 'text-amber-400' :
-                  'text-red-400'
+                  'text-[var(--color-error)]'
                 }`}>
                   {state.emotional_score}/10
                 </div>

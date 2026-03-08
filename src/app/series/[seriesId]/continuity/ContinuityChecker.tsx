@@ -318,9 +318,9 @@ ${ic.text.slice(0, 3000)}
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'error': return 'text-red-400 bg-red-400/10 border-red-400/30'
-      case 'warning': return 'text-amber-400 bg-amber-400/10 border-amber-400/30'
-      case 'info': return 'text-blue-400 bg-blue-400/10 border-blue-400/30'
+      case 'error': return 'text-[var(--color-error)] bg-[var(--color-error)]/10 border-[var(--color-error)]/30'
+      case 'warning': return 'text-[var(--color-warning)] bg-[var(--color-warning)]/10 border-[var(--color-warning)]/30'
+      case 'info': return 'text-[var(--color-primary)] bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
       default: return 'text-[var(--text-secondary)] bg-[var(--text-secondary)]/10 border-[var(--text-secondary)]/30'
     }
   }
@@ -348,7 +348,7 @@ ${ic.text.slice(0, 3000)}
         <button
           onClick={analyze}
           disabled={isAnalyzing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap"
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"
         >
           {isAnalyzing ? 'Analyzing...' : hasAnalyzed ? 'Re-analyze' : 'Run Analysis'}
         </button>
@@ -383,7 +383,7 @@ ${ic.text.slice(0, 3000)}
             <div className="flex flex-wrap gap-2 sm:gap-4">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-3 py-1.5 rounded text-sm ${
+                className={`px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
                   filter === 'all' ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]'
                 }`}
               >
@@ -391,24 +391,24 @@ ${ic.text.slice(0, 3000)}
               </button>
               <button
                 onClick={() => setFilter('error')}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  filter === 'error' ? 'bg-red-600/30 text-red-400' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-red-400'
+                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
+                  filter === 'error' ? 'bg-[var(--color-error)]/30 text-[var(--color-error)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-error)]'
                 }`}
               >
                 Errors ({issuesByType.error})
               </button>
               <button
                 onClick={() => setFilter('warning')}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  filter === 'warning' ? 'bg-amber-600/30 text-amber-400' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-amber-400'
+                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
+                  filter === 'warning' ? 'bg-[var(--color-warning)]/30 text-[var(--color-warning)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-warning)]'
                 }`}
               >
                 Warnings ({issuesByType.warning})
               </button>
               <button
                 onClick={() => setFilter('info')}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  filter === 'info' ? 'bg-blue-600/30 text-blue-400' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-blue-400'
+                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
+                  filter === 'info' ? 'bg-[var(--color-primary)]/30 text-[var(--color-primary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-primary)]'
                 }`}
               >
                 Info ({issuesByType.info})
@@ -418,11 +418,11 @@ ${ic.text.slice(0, 3000)}
 
           {/* Issue List */}
           {filteredIssues.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 stagger-children">
               {filteredIssues.map((issue, idx) => (
                 <div
                   key={idx}
-                  className={`border rounded-lg p-4 ${getSeverityColor(issue.severity)}`}
+                  className={`border rounded-lg p-4 hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out ${getSeverityColor(issue.severity)}`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">
@@ -444,7 +444,7 @@ ${ic.text.slice(0, 3000)}
             </div>
           ) : (
             <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
-              <p className="text-green-400 text-lg font-medium">No issues found!</p>
+              <p className="text-[var(--color-success)] text-lg font-medium">No issues found!</p>
               <p className="text-[var(--text-secondary)] mt-2">Your series appears to be continuity-clean.</p>
             </div>
           )}

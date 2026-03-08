@@ -46,9 +46,9 @@ export default function CollaboratorAvatars({ seriesId, maxDisplay = 3 }: Collab
   const remainingCount = collaborators.length - maxDisplay
 
   const roleColors: Record<string, string> = {
-    editor: 'bg-blue-500/20 border-blue-500/50 text-blue-400',
-    commenter: 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400',
-    viewer: 'bg-gray-500/20 border-gray-500/50 text-gray-400',
+    editor: 'bg-[var(--color-primary)]/20 border-[var(--color-primary)]/50 text-[var(--color-primary)]',
+    commenter: 'bg-[var(--color-warning)]/20 border-[var(--color-warning)]/50 text-[var(--color-warning)]',
+    viewer: 'bg-[var(--bg-tertiary)] border-[var(--border)] text-[var(--text-muted)]',
   }
 
   return (

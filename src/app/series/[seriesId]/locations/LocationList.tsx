@@ -179,7 +179,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
             type="text"
             value={form.name || ''}
             onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-[var(--color-primary)] focus:outline-none"
             placeholder="Location name"
           />
         </div>
@@ -189,7 +189,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           <textarea
             value={form.description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-[var(--color-primary)] focus:outline-none"
             rows={2}
             placeholder="General description of this location"
           />
@@ -200,7 +200,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           <textarea
             value={form.visual_description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, visual_description: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-[var(--color-primary)] focus:outline-none"
             rows={3}
             placeholder="Detailed visual description for artists"
           />
@@ -211,7 +211,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           <textarea
             value={form.significance || ''}
             onChange={(e) => setForm(prev => ({ ...prev, significance: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-[var(--color-primary)] focus:outline-none"
             rows={2}
             placeholder="Why is this location important to the story?"
           />
@@ -245,7 +245,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           <button
             onClick={saveLocation}
             disabled={!form.name?.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
           >
             {isCreating ? 'Create Location' : 'Save Changes'}
           </button>
@@ -267,7 +267,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
         {!isCreating && !editingId && (
           <button
             onClick={startCreate}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
           >
             + New Location
           </button>
@@ -286,7 +286,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           </p>
           <button
             onClick={startCreate}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
           >
             Create Your First Location
           </button>
@@ -297,7 +297,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
             <div
               key={location.id}
               className={`bg-[var(--bg-secondary)] border rounded-lg p-4 ${
-                editingId === location.id ? 'border-blue-500' : 'border-[var(--border)]'
+                editingId === location.id ? 'border-[var(--color-primary)]' : 'border-[var(--border)]'
               }`}
             >
               <div className="flex items-start justify-between mb-2">
@@ -311,7 +311,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
                   </button>
                   <button
                     onClick={() => deleteLocation(location.id)}
-                    className="text-[var(--text-secondary)] hover:text-red-400 text-sm"
+                    className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm"
                   >
                     Delete
                   </button>

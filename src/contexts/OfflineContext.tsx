@@ -144,7 +144,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     <OfflineContext.Provider value={{ isOnline, pendingChanges: queue.length, queueChange, syncNow }}>
       {children}
       {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 bg-yellow-600 text-white text-center py-1 text-sm z-50">
+        <div className="fixed top-0 left-0 right-0 bg-[var(--color-warning)] text-white text-center py-1 text-sm z-50">
           Offline - changes will sync when reconnected
           {queue.length > 0 && ` (${queue.length} pending)`}
         </div>

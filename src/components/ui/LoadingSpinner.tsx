@@ -14,7 +14,7 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
 
   return (
     <div
-      className={`${sizeClasses[size]} border-[var(--text-muted)] border-t-blue-500 rounded-full animate-spin ${className}`}
+      className={`${sizeClasses[size]} border-[var(--text-muted)] border-t-[var(--color-primary)] rounded-full animate-spin ${className}`}
       role="status"
       aria-label="Loading"
     />
@@ -57,7 +57,9 @@ interface SkeletonProps {
 
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
-    <div className={`bg-[var(--bg-tertiary)] animate-pulse rounded ${className}`} />
+    <div className={`relative overflow-hidden bg-[var(--bg-tertiary)] ${className}`}>
+      <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-[var(--bg-elevated)]/40 to-transparent" />
+    </div>
   )
 }
 

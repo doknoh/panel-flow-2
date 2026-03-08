@@ -64,7 +64,7 @@ export default function VersionDiff({
       {/* Legend */}
       <div className="flex items-center gap-6 px-4 text-xs">
         <span className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded bg-green-500/30 border border-green-500" />
+          <span className="w-3 h-3 rounded bg-[var(--color-success)]/30 border border-[var(--color-success)]" />
           <span className="text-green-400">Added</span>
         </span>
         <span className="flex items-center gap-2">
@@ -72,7 +72,7 @@ export default function VersionDiff({
           <span className="text-amber-400">Modified</span>
         </span>
         <span className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded bg-red-500/30 border border-red-500" />
+          <span className="w-3 h-3 rounded bg-[var(--color-error)]/30 border border-[var(--color-error)]" />
           <span className="text-red-400">Removed</span>
         </span>
         <span className="flex items-center gap-2">
@@ -112,9 +112,9 @@ interface PageDiffCardProps {
 
 function PageDiffCard({ pageDiff, expanded, onToggle, compact }: PageDiffCardProps) {
   const statusColors = {
-    new: 'border-green-500/50 bg-green-500/5',
+    new: 'border-[var(--color-success)]/50 bg-[var(--color-success)]/5',
     modified: 'border-amber-500/50 bg-amber-500/5',
-    removed: 'border-red-500/50 bg-red-500/5',
+    removed: 'border-[var(--color-error)]/50 bg-[var(--color-error)]/5',
     unchanged: 'border-[var(--border)] bg-[var(--bg-secondary)]'
   }
 
@@ -279,7 +279,7 @@ export function SideBySideDiff({
     <div className="grid grid-cols-2 gap-4">
       {/* Old content */}
       <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-        <div className="px-4 py-2 bg-red-500/10 border-b border-[var(--border)]">
+        <div className="px-4 py-2 bg-[var(--color-error)]/10 border-b border-[var(--border)]">
           <span className="text-sm font-medium text-red-400">{oldTitle}</span>
         </div>
         <div className="p-4 font-mono text-xs max-h-96 overflow-auto">
@@ -294,7 +294,7 @@ export function SideBySideDiff({
 
       {/* New content */}
       <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-        <div className="px-4 py-2 bg-green-500/10 border-b border-[var(--border)]">
+        <div className="px-4 py-2 bg-[var(--color-success)]/10 border-b border-[var(--border)]">
           <span className="text-sm font-medium text-green-400">{newTitle}</span>
         </div>
         <div className="p-4 font-mono text-xs max-h-96 overflow-auto">

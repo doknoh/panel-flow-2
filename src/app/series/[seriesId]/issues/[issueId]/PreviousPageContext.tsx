@@ -78,8 +78,8 @@ export default function PreviousPageContext({ previousPage, sceneName }: Previou
         <div className="px-4 pb-3 space-y-3 max-h-64 overflow-y-auto">
           {/* Story beat if present */}
           {previousPage.story_beat && (
-            <div className="bg-purple-900/20 border border-purple-800/30 rounded px-3 py-2">
-              <span className="text-xs font-medium text-purple-400">Story Beat:</span>
+            <div className="bg-[var(--accent-hover)]/20 border border-[var(--accent-hover)]/30 rounded px-3 py-2">
+              <span className="text-xs font-medium text-[var(--accent-hover)]">Story Beat:</span>
               <p className="text-sm text-[var(--text-secondary)] mt-1">{previousPage.story_beat}</p>
             </div>
           )}
@@ -103,11 +103,11 @@ export default function PreviousPageContext({ previousPage, sceneName }: Previou
 
                 {/* Dialogue */}
                 {panel.dialogue_blocks.length > 0 && (
-                  <div className="space-y-1 border-l-2 border-blue-500/30 pl-2">
+                  <div className="space-y-1 border-l-2 border-[var(--color-primary)]/30 pl-2">
                     {panel.dialogue_blocks.map((d, i) => (
                       <div key={i} className="text-xs">
                         {d.speaker_name && (
-                          <span className="font-medium text-blue-400">{d.speaker_name}: </span>
+                          <span className="font-medium text-[var(--color-primary)]">{d.speaker_name}: </span>
                         )}
                         <span className="text-[var(--text-secondary)]">
                           "{d.text}"

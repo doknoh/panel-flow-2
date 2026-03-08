@@ -162,8 +162,8 @@ export default function PageTypeSelector({
             currentType === 'SINGLE'
               ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
               : currentType === 'SPLASH'
-              ? 'bg-purple-900/30 text-purple-300 border border-purple-700/50'
-              : 'bg-blue-900/30 text-blue-300 border border-blue-700/50'
+              ? 'bg-[var(--accent-hover)]/30 text-[var(--accent-hover)] border border-[var(--accent-hover)]/50'
+              : 'bg-[var(--color-primary)]/30 text-[var(--color-primary)] border border-[var(--color-primary)]/50'
           }`}
           title={currentTypeInfo.description}
         >
@@ -199,7 +199,7 @@ export default function PageTypeSelector({
                   <div className="text-xs text-[var(--text-muted)]">{type.description}</div>
                 </div>
                 {type.value === currentType && (
-                  <svg className="w-4 h-4 ml-auto text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 ml-auto text-[var(--color-primary)]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 )}
@@ -273,7 +273,7 @@ export default function PageTypeSelector({
               <button
                 onClick={() => updatePageType(pendingType)}
                 disabled={saving}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-[var(--color-primary)] hover:opacity-90 rounded-lg text-sm font-medium text-white disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Set Without Linking'}
               </button>

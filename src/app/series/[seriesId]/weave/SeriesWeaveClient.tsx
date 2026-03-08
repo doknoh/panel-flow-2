@@ -229,9 +229,9 @@ export default function SeriesWeaveClient({
 
   const getSeriesActColor = (seriesAct: Issue['series_act']) => {
     switch (seriesAct) {
-      case 'BEGINNING': return 'text-green-400'
+      case 'BEGINNING': return 'text-[var(--color-success)]'
       case 'MIDDLE': return 'text-amber-400'
-      case 'END': return 'text-red-400'
+      case 'END': return 'text-[var(--color-error)]'
       default: return 'text-[var(--text-muted)]'
     }
   }
@@ -241,7 +241,7 @@ export default function SeriesWeaveClient({
       {/* Legend */}
       <div className="mb-6 flex items-center gap-6 text-sm">
         <div className="flex items-center gap-2">
-          <span className="w-4 h-4 rounded bg-green-500/30 border border-green-500"></span>
+          <span className="w-4 h-4 rounded bg-[var(--color-success)]/30 border border-[var(--color-success)]"></span>
           <span className="text-[var(--text-secondary)]">First Appearance</span>
         </div>
         <div className="flex items-center gap-2">
@@ -249,7 +249,7 @@ export default function SeriesWeaveClient({
           <span className="text-[var(--text-secondary)]">Climax</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-4 h-4 rounded bg-purple-500/30 border border-purple-500"></span>
+          <span className="w-4 h-4 rounded bg-[var(--accent-hover)]/30 border border-[var(--accent-hover)]"></span>
           <span className="text-[var(--text-secondary)]">Resolution</span>
         </div>
         <div className="flex items-center gap-2">
@@ -273,7 +273,7 @@ export default function SeriesWeaveClient({
                 >
                   <Link
                     href={`/series/${series.id}/issues/${issue.id}/weave`}
-                    className="hover:text-blue-400 transition-colors"
+                    className="hover:text-[var(--color-primary)] transition-colors"
                   >
                     <div className="font-bold">#{issue.number}</div>
                     {issue.title && (
@@ -302,7 +302,7 @@ export default function SeriesWeaveClient({
                   <p>No plotlines defined yet.</p>
                   <Link
                     href={`/series/${series.id}/plotlines`}
-                    className="text-blue-400 hover:text-blue-300 text-sm mt-2 inline-block"
+                    className="text-[var(--color-primary)] hover:text-[var(--accent-hover)] text-sm mt-2 inline-block"
                   >
                     Create your first plotline →
                   </Link>
@@ -366,7 +366,7 @@ export default function SeriesWeaveClient({
                             {/* Markers */}
                             <div className="flex flex-wrap gap-1 mb-2">
                               {cellData.firstAppearance && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/50">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)] border border-[var(--color-success)]/50">
                                   1st
                                 </span>
                               )}
@@ -376,7 +376,7 @@ export default function SeriesWeaveClient({
                                 </span>
                               )}
                               {cellData.resolution && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/50">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent-hover)]/20 text-[var(--accent-hover)] border border-[var(--accent-hover)]/50">
                                   Resolution
                                 </span>
                               )}
@@ -420,7 +420,7 @@ export default function SeriesWeaveClient({
                                   </div>
                                   <button
                                     onClick={() => setEditingCell(null)}
-                                    className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                                    className="text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
                                   >
                                     ✕
                                   </button>
@@ -430,9 +430,9 @@ export default function SeriesWeaveClient({
                                 <div className="flex gap-2 mb-4">
                                   <button
                                     onClick={() => toggleMarker(plotline.id, issue.id, 'first_appearance')}
-                                    className={`px-3 py-1.5 rounded text-sm ${
+                                    className={`px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
                                       cellData.firstAppearance
-                                        ? 'bg-green-500/20 text-green-400 border border-green-500'
+                                        ? 'bg-[var(--color-success)]/20 text-[var(--color-success)] border border-[var(--color-success)]'
                                         : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
                                     }`}
                                   >
@@ -440,7 +440,7 @@ export default function SeriesWeaveClient({
                                   </button>
                                   <button
                                     onClick={() => toggleMarker(plotline.id, issue.id, 'climax_issue')}
-                                    className={`px-3 py-1.5 rounded text-sm ${
+                                    className={`px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
                                       cellData.climax
                                         ? 'bg-amber-500/20 text-amber-400 border border-amber-500'
                                         : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
@@ -450,9 +450,9 @@ export default function SeriesWeaveClient({
                                   </button>
                                   <button
                                     onClick={() => toggleMarker(plotline.id, issue.id, 'resolution_issue')}
-                                    className={`px-3 py-1.5 rounded text-sm ${
+                                    className={`px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
                                       cellData.resolution
-                                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500'
+                                        ? 'bg-[var(--accent-hover)]/20 text-[var(--accent-hover)] border border-[var(--accent-hover)]'
                                         : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
                                     }`}
                                   >
@@ -469,7 +469,7 @@ export default function SeriesWeaveClient({
                                     value={editNotes}
                                     onChange={(e) => setEditNotes(e.target.value)}
                                     placeholder="What happens with this plotline in this issue?"
-                                    className="w-full h-24 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded p-2 text-sm resize-none focus:outline-none focus:border-blue-500"
+                                    className="w-full h-24 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded p-2 text-sm resize-none focus:outline-none focus:border-[var(--color-primary)]"
                                   />
                                 </div>
 
@@ -477,20 +477,20 @@ export default function SeriesWeaveClient({
                                 <div className="flex justify-between items-center">
                                   <Link
                                     href={`/series/${series.id}/issues/${issue.id}/weave`}
-                                    className="text-sm text-blue-400 hover:text-blue-300"
+                                    className="text-sm text-[var(--color-primary)] hover:text-[var(--accent-hover)]"
                                   >
                                     Open Issue Weave →
                                   </Link>
                                   <div className="flex gap-2">
                                     <button
                                       onClick={() => setEditingCell(null)}
-                                      className="px-3 py-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                      className="px-3 py-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
                                     >
                                       Cancel
                                     </button>
                                     <button
                                       onClick={() => saveNotes(plotline.id, issue.id)}
-                                      className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 rounded"
+                                      className="px-3 py-1.5 text-sm bg-[var(--color-primary)] hover:opacity-90 rounded active:scale-[0.97] transition-all duration-150 ease-out"
                                     >
                                       Save
                                     </button>
@@ -516,7 +516,7 @@ export default function SeriesWeaveClient({
           <p className="mb-2">No issues in this series yet.</p>
           <Link
             href={`/series/${series.id}`}
-            className="text-blue-400 hover:text-blue-300"
+            className="text-[var(--color-primary)] hover:text-[var(--accent-hover)]"
           >
             Create your first issue →
           </Link>

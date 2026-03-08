@@ -93,7 +93,7 @@ export default function SeriesMetadata({
       {/* Expand/Collapse toggle */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="mt-4 text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+        className="mt-4 text-sm text-[var(--color-primary)] hover:opacity-80 flex items-center gap-1"
       >
         {isExpanded ? '▼ Hide' : readOnly ? '▶ View' : '▶ Edit'} Series Details
         {isSaving && <span className="text-[var(--text-secondary)] ml-2">(saving...)</span>}
@@ -108,7 +108,7 @@ export default function SeriesMetadata({
               value={logline}
               onChange={(e) => !readOnly && handleFieldChange('logline', e.target.value, setLogline)}
               placeholder="One paragraph concept for the series..."
-              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
               rows={2}
               readOnly={readOnly}
             />
@@ -121,7 +121,7 @@ export default function SeriesMetadata({
               value={theme}
               onChange={(e) => !readOnly && handleFieldChange('central_theme', e.target.value, setTheme)}
               placeholder="The core thematic exploration..."
-              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
               readOnly={readOnly}
             />
           </div>
@@ -137,7 +137,7 @@ export default function SeriesMetadata({
               value={visualGrammar}
               onChange={(e) => !readOnly && handleFieldChange('visual_grammar', e.target.value, setVisualGrammar)}
               placeholder="e.g., 9-panel grids for introspection, splash pages for revelations, specific color palettes for each plotline..."
-              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
               rows={3}
               readOnly={readOnly}
             />
@@ -154,7 +154,7 @@ export default function SeriesMetadata({
               value={rules}
               onChange={(e) => !readOnly && handleFieldChange('rules', e.target.value, setRules)}
               placeholder="e.g., Character names always in caps in descriptions, Media Chorus appears as inset panels, neural sequences use blue tint..."
-              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none ${readOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
               rows={3}
               readOnly={readOnly}
             />

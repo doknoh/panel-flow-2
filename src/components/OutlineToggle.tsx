@@ -15,9 +15,9 @@ export default function OutlineToggle({ mode, onChange, className = '' }: Outlin
     <div className={`flex gap-1 bg-[var(--bg-tertiary)] rounded-lg p-0.5 ${className}`}>
       <button
         onClick={() => onChange('outline')}
-        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+        className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ease-out ${
           mode === 'outline'
-            ? 'bg-purple-600 text-[var(--text-primary)]'
+            ? 'bg-[var(--accent-hover)] text-[var(--text-primary)]'
             : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
         }`}
         title="View and edit story structure"
@@ -26,9 +26,9 @@ export default function OutlineToggle({ mode, onChange, className = '' }: Outlin
       </button>
       <button
         onClick={() => onChange('draft')}
-        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+        className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ease-out ${
           mode === 'draft'
-            ? 'bg-green-600 text-[var(--text-primary)]'
+            ? 'bg-[var(--color-success)] text-[var(--text-primary)]'
             : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
         }`}
         title="Write panel descriptions and dialogue"

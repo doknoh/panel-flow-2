@@ -21,7 +21,7 @@ export default function Header({
   children,
 }: HeaderProps) {
   return (
-    <header className="border-b border-[var(--border)] bg-[var(--bg-primary)] px-4 sm:px-6 py-4">
+    <header className="border-b border-[var(--text-primary)] bg-[var(--bg-primary)] px-4 sm:px-6 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4">
           {showBackLink && (
@@ -35,7 +35,7 @@ export default function Header({
               <span className="text-[var(--text-muted)]">/</span>
             </>
           )}
-          <h1 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">{title}</h1>
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--text-primary)]">{title}</h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           {children}
@@ -49,7 +49,7 @@ export default function Header({
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm whitespace-nowrap transition-colors"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 Sign out
               </button>

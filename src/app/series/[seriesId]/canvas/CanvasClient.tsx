@@ -214,15 +214,15 @@ export default function CanvasClient({
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50">
+      <header className="border-b border-[var(--border)] bg-[var(--bg-secondary)]/50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
                 href={`/series/${seriesId}`}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >
                 ← {seriesTitle}
               </Link>
@@ -236,19 +236,19 @@ export default function CanvasClient({
             <div className="relative">
               <button
                 onClick={() => setIsCreating(!isCreating)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+                className="px-4 py-2 bg-[var(--color-primary)] hover:opacity-90 rounded-lg font-medium active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 + Add Idea
               </button>
 
               {/* Type selector dropdown */}
               {isCreating && (
-                <div className="absolute right-0 top-full mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-2 min-w-[180px]">
+                <div className="absolute right-0 top-full mt-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 py-2 min-w-[180px]">
                   {Object.entries(ITEM_TYPE_CONFIG).map(([type, config]) => (
                     <button
                       key={type}
                       onClick={() => handleCreateItem(type as ItemType)}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center gap-2"
+                      className="w-full px-4 py-2 text-left hover:bg-[var(--bg-tertiary)] flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out"
                     >
                       <span>{config.icon}</span>
                       <span>{config.label}</span>
@@ -263,10 +263,10 @@ export default function CanvasClient({
           <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out ${
                 filter === 'all'
-                  ? 'bg-white text-gray-900'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
               }`}
             >
               All ({items.length})
@@ -278,10 +278,10 @@ export default function CanvasClient({
                 <button
                   key={type}
                   onClick={() => setFilter(type as ItemType)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1 ${
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out ${
                     filter === type
-                      ? 'bg-white text-gray-900'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
+                      : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                   }`}
                 >
                   <span>{config.icon}</span>
@@ -299,14 +299,14 @@ export default function CanvasClient({
         {filteredItems.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">💭</div>
-            <h2 className="text-xl font-medium text-gray-300 mb-2">Your canvas is empty</h2>
-            <p className="text-gray-500 mb-6">
+            <h2 className="text-xl font-medium text-[var(--text-secondary)] mb-2">Your canvas is empty</h2>
+            <p className="text-[var(--text-muted)] mb-6">
               Start dumping ideas here—characters, themes, visuals, what-ifs. <br />
               They can graduate to structured entities when ready.
             </p>
             <button
               onClick={() => setIsCreating(true)}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+              className="px-6 py-3 bg-[var(--color-primary)] hover:opacity-90 rounded-lg font-medium active:scale-[0.97] transition-all duration-150 ease-out"
             >
               + Add Your First Idea
             </button>

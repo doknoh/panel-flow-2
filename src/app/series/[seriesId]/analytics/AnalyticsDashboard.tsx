@@ -267,7 +267,7 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
             </div>
             <div className="h-3 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
               <div
-                className="h-full bg-green-500 rounded-full transition-all"
+                className="h-full bg-[var(--color-success)] rounded-full transition-all"
                 style={{ width: `${stats.completionPercent}%` }}
               />
             </div>
@@ -284,9 +284,9 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
                   <div className="flex-1 h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${
-                        issue.status === 'complete' ? 'bg-green-500' :
-                        issue.status === 'revision' ? 'bg-amber-500' :
-                        issue.status === 'drafting' ? 'bg-blue-500' :
+                        issue.status === 'complete' ? 'bg-[var(--color-success)]' :
+                        issue.status === 'revision' ? 'bg-[var(--color-warning)]' :
+                        issue.status === 'drafting' ? 'bg-[var(--color-primary)]' :
                         'bg-[var(--text-muted)]'
                       }`}
                       style={{ width: issue.status === 'complete' ? '100%' : `${Math.min((issue.pages / 40) * 100, 100)}%` }}
@@ -305,7 +305,7 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
         <h2 className="text-lg font-semibold mb-4">Consistency</h2>
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-3xl font-bold text-amber-400">{stats.writingStreak}</div>
+            <div className="text-3xl font-bold text-[var(--color-warning)]">{stats.writingStreak}</div>
             <div className="text-[var(--text-secondary)] text-sm">Day Streak</div>
           </div>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
@@ -329,7 +329,7 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
             {recentActivity.map((day, i) => (
               <div
                 key={i}
-                className="flex-1 bg-blue-500 rounded-t transition-all hover:bg-blue-400"
+                className="flex-1 bg-[var(--color-primary)] rounded-t transition-all hover:opacity-80"
                 style={{
                   height: `${Math.max((day.words / maxRecentWords) * 100, day.words > 0 ? 10 : 2)}%`,
                   opacity: day.words > 0 ? 1 : 0.2,
@@ -351,7 +351,7 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
             {activityByDay.map((day) => (
               <div key={day.day} className="flex-1 flex flex-col items-center">
                 <div
-                  className="w-full bg-purple-500 rounded-t transition-all"
+                  className="w-full bg-[var(--accent-hover)] rounded-t transition-all"
                   style={{ height: `${Math.max(day.percent, day.words > 0 ? 10 : 5)}%` }}
                 />
                 <span className="text-xs text-[var(--text-secondary)] mt-2">{day.day}</span>
@@ -409,9 +409,9 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded ${
-                      issue.status === 'complete' ? 'bg-green-900 text-green-300' :
-                      issue.status === 'revision' ? 'bg-amber-900 text-amber-300' :
-                      issue.status === 'drafting' ? 'bg-blue-900 text-blue-300' :
+                      issue.status === 'complete' ? 'bg-[var(--color-success)]/20 text-[var(--color-success)]' :
+                      issue.status === 'revision' ? 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]' :
+                      issue.status === 'drafting' ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]' :
                       'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
                     }`}>
                       {issue.status}

@@ -127,17 +127,17 @@ export default function CharacterAutocomplete({
             setTimeout(() => inputRef.current?.focus(), 0)
           }
         }}
-        className="text-blue-400 font-bold uppercase tracking-wider text-sm hover:text-blue-300 transition-colors cursor-pointer"
+        className="text-[var(--color-primary)] font-bold uppercase tracking-wider text-sm hover:text-[var(--accent-hover)] transition-colors cursor-pointer"
       >
         {selectedCharacter?.name || placeholder}
-        <span className="ml-1 text-gray-500">▾</span>
+        <span className="ml-1 text-[var(--text-muted)]">▾</span>
       </button>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 left-1/2 -translate-x-1/2 w-56 bg-gray-900 border border-gray-700 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-50 mt-1 left-1/2 -translate-x-1/2 w-56 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden">
           {/* Search input */}
-          <div className="p-2 border-b border-gray-700">
+          <div className="p-2 border-b border-[var(--border)]">
             <input
               ref={inputRef}
               type="text"
@@ -145,7 +145,7 @@ export default function CharacterAutocomplete({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type to filter..."
-              className="w-full bg-gray-800 text-white text-sm px-3 py-1.5 rounded border border-gray-600 focus:outline-none focus:border-blue-500"
+              className="w-full bg-[var(--bg-tertiary)] text-white text-sm px-3 py-1.5 rounded border border-[var(--border-strong)] focus:outline-none focus:border-[var(--color-primary)]"
               autoFocus
             />
           </div>
@@ -157,7 +157,7 @@ export default function CharacterAutocomplete({
             role="listbox"
           >
             {options.length === 0 ? (
-              <li className="px-3 py-2 text-gray-500 text-sm">
+              <li className="px-3 py-2 text-[var(--text-muted)] text-sm">
                 No characters match
               </li>
             ) : (
@@ -170,11 +170,11 @@ export default function CharacterAutocomplete({
                   onMouseEnter={() => setHighlightedIndex(index)}
                   className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
                     index === highlightedIndex
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-[var(--color-primary)] text-white'
                       : option.id === selectedId
-                      ? 'bg-gray-800 text-blue-400'
-                      : 'text-gray-300 hover:bg-gray-800'
-                  } ${option.id === null ? 'text-gray-500 italic' : ''}`}
+                      ? 'bg-[var(--bg-tertiary)] text-[var(--color-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                  } ${option.id === null ? 'text-[var(--text-muted)] italic' : ''}`}
                 >
                   {option.name}
                 </li>

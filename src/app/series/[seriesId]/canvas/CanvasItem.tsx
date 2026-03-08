@@ -106,17 +106,17 @@ export default function CanvasItem({
       onDragEnd={onDragEnd}
       className={`
         relative group rounded-lg border-l-4 transition-all cursor-grab active:cursor-grabbing
-        ${item.color_tag ? COLOR_CLASSES[item.color_tag] : 'border-l-gray-600'}
+        ${item.color_tag ? COLOR_CLASSES[item.color_tag] : 'border-l-[var(--border)]'}
         ${isDragging ? 'opacity-50 scale-95' : 'opacity-100'}
         bg-gradient-to-br ${config.color}
-        border border-gray-700/50 hover:border-gray-600
+        border border-[var(--border)]/50 hover:border-[var(--border-strong)]
       `}
     >
       {/* Header with type icon and menu */}
       <div className="flex items-center justify-between px-3 pt-3 pb-2">
         <div className="flex items-center gap-2">
           <span className="text-lg">{config.icon}</span>
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+          <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
             {config.label}
           </span>
         </div>
@@ -138,13 +138,13 @@ export default function CanvasItem({
                 className="fixed inset-0 z-40"
                 onClick={() => setShowMenu(false)}
               />
-              <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1 min-w-[140px]">
+              <div className="absolute right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 py-1 min-w-[140px]">
                 <button
                   onClick={() => {
                     setIsEditing(true)
                     setShowMenu(false)
                   }}
-                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
                 >
                   ✏️ Edit
                 </button>
@@ -153,7 +153,7 @@ export default function CanvasItem({
                     setShowColorPicker(true)
                     setShowMenu(false)
                   }}
-                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
                 >
                   🎨 Color
                 </button>
@@ -163,18 +163,18 @@ export default function CanvasItem({
                       onGraduate(item)
                       setShowMenu(false)
                     }}
-                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
                   >
                     🎓 Graduate
                   </button>
                 )}
-                <hr className="border-gray-700 my-1" />
+                <hr className="border-[var(--border)] my-1" />
                 <button
                   onClick={() => {
                     onArchive(item.id)
                     setShowMenu(false)
                   }}
-                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-700 flex items-center gap-2 text-red-400"
+                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2 text-[var(--color-error)]"
                 >
                   🗑️ Archive
                 </button>
@@ -192,26 +192,26 @@ export default function CanvasItem({
               ref={titleRef}
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              className="w-full bg-black/30 border border-gray-600 rounded px-2 py-1 text-white font-medium"
+              className="w-full bg-black/30 border border-[var(--border)] rounded px-2 py-1 text-[var(--text-primary)] font-medium"
               placeholder="Title"
             />
             <textarea
               ref={contentRef}
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
-              className="w-full bg-black/30 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 resize-none min-h-[60px]"
+              className="w-full bg-black/30 border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-secondary)] resize-none min-h-[60px]"
               placeholder="Notes, ideas, fragments..."
             />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={handleCancel}
-                className="px-2 py-1 text-xs text-gray-400 hover:text-white"
+                className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded"
+                className="px-2 py-1 text-xs bg-[var(--color-primary)] hover:opacity-90 rounded"
               >
                 Save
               </button>
@@ -219,14 +219,14 @@ export default function CanvasItem({
           </div>
         ) : (
           <div onClick={() => setIsEditing(true)} className="cursor-text">
-            <h3 className="font-medium text-white mb-1">{item.title}</h3>
+            <h3 className="font-medium text-[var(--text-primary)] mb-1">{item.title}</h3>
             {item.content && (
-              <p className="text-sm text-gray-300 whitespace-pre-wrap line-clamp-4">
+              <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap line-clamp-4">
                 {item.content}
               </p>
             )}
             {!item.content && (
-              <p className="text-sm text-gray-500 italic">Click to add notes...</p>
+              <p className="text-sm text-[var(--text-muted)] italic">Click to add notes...</p>
             )}
           </div>
         )}
@@ -235,7 +235,7 @@ export default function CanvasItem({
       {/* Inspiration source */}
       {item.inspiration_source && (
         <div className="px-3 pb-2">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-[var(--text-muted)]">
             Inspired by: {item.inspiration_source}
           </span>
         </div>
@@ -245,7 +245,7 @@ export default function CanvasItem({
       {canGraduate && (
         <button
           onClick={() => onGraduate(item)}
-          className="absolute bottom-2 right-2 px-2 py-0.5 text-xs bg-green-600/50 hover:bg-green-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute bottom-2 right-2 px-2 py-0.5 text-xs bg-[var(--color-success)]/50 hover:bg-[var(--color-success)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         >
           Graduate →
         </button>
@@ -258,7 +258,7 @@ export default function CanvasItem({
             className="fixed inset-0 z-40"
             onClick={() => setShowColorPicker(false)}
           />
-          <div className="absolute left-3 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 p-2">
+          <div className="absolute left-3 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 p-2">
             <div className="grid grid-cols-4 gap-1">
               {COLOR_OPTIONS.map(color => (
                 <button
@@ -271,7 +271,7 @@ export default function CanvasItem({
               ))}
               <button
                 onClick={() => handleColorChange(null)}
-                className={`w-6 h-6 rounded bg-gray-600 hover:ring-2 ring-white/50 transition-all flex items-center justify-center text-xs ${
+                className={`w-6 h-6 rounded bg-[var(--bg-tertiary)] hover:ring-2 ring-white/50 transition-all flex items-center justify-center text-xs ${
                   !item.color_tag ? 'ring-2' : ''
                 }`}
               >

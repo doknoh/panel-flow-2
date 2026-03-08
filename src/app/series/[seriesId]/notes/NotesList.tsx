@@ -23,10 +23,10 @@ interface NotesListProps {
 }
 
 const NOTE_TYPES: { value: NoteType; label: string; color: string }[] = [
-  { value: 'OPEN_QUESTION', label: 'Open Question', color: 'bg-amber-500' },
-  { value: 'DECISION', label: 'Decision', color: 'bg-blue-500' },
-  { value: 'AI_INSIGHT', label: 'AI Insight', color: 'bg-purple-500' },
-  { value: 'GENERAL', label: 'General', color: 'bg-gray-500' },
+  { value: 'OPEN_QUESTION', label: 'Open Question', color: 'bg-[var(--color-warning)]' },
+  { value: 'DECISION', label: 'Decision', color: 'bg-[var(--color-primary)]' },
+  { value: 'AI_INSIGHT', label: 'AI Insight', color: 'bg-[var(--accent-hover)]' },
+  { value: 'GENERAL', label: 'General', color: 'bg-[var(--bg-tertiary)]' },
 ]
 
 export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
@@ -170,7 +170,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as NoteType | 'ALL')}
-            className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm focus:border-[var(--accent-hover)] focus:outline-none"
           >
             <option value="ALL">All Types</option>
             {NOTE_TYPES.map(type => (
@@ -209,7 +209,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
 
         <button
           onClick={() => setIsCreating(true)}
-          className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-sm font-medium"
+          className="bg-[var(--accent-hover)] hover:opacity-90 px-4 py-2 rounded text-sm font-medium"
         >
           + Add Note
         </button>
@@ -222,7 +222,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             <select
               value={newNoteType}
               onChange={(e) => setNewNoteType(e.target.value as NoteType)}
-              className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm focus:border-[var(--accent-hover)] focus:outline-none"
             >
               {NOTE_TYPES.map(type => (
                 <option key={type.value} value={type.value}>{type.label}</option>
@@ -233,14 +233,14 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             value={newNoteContent}
             onChange={(e) => setNewNoteContent(e.target.value)}
             placeholder="What's on your mind?"
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none mb-3"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--accent-hover)] focus:outline-none mb-3"
             rows={3}
             autoFocus
           />
           <div className="flex items-center gap-2">
             <button
               onClick={createNote}
-              className="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded text-sm font-medium"
+              className="bg-[var(--accent-hover)] hover:opacity-90 px-4 py-1.5 rounded text-sm font-medium"
             >
               Save
             </button>
@@ -282,7 +282,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                     onClick={() => toggleResolved(note)}
                     className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
                       note.resolved
-                        ? 'bg-green-600 border-green-600 text-[var(--text-primary)]'
+                        ? 'bg-[var(--color-success)] border-[var(--color-success)] text-[var(--text-primary)]'
                         : 'border-[var(--text-muted)] hover:border-[var(--text-muted)]'
                     }`}
                   >
@@ -303,7 +303,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                         {formatDate(note.created_at)}
                       </span>
                       {note.resolved && note.resolved_at && (
-                        <span className="text-green-500 text-xs">
+                        <span className="text-[var(--color-success)] text-xs">
                           Resolved {formatDate(note.resolved_at)}
                         </span>
                       )}
@@ -315,14 +315,14 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                         <textarea
                           value={editingContent}
                           onChange={(e) => setEditingContent(e.target.value)}
-                          className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-indigo-500 focus:outline-none mb-2"
+                          className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--accent-hover)] focus:outline-none mb-2"
                           rows={3}
                           autoFocus
                         />
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => updateNote(note.id)}
-                            className="bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded text-xs font-medium"
+                            className="bg-[var(--accent-hover)] hover:opacity-90 px-3 py-1 rounded text-xs font-medium"
                           >
                             Save
                           </button>
@@ -358,7 +358,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                       </button>
                       <button
                         onClick={() => deleteNote(note.id)}
-                        className="text-[var(--text-muted)] hover:text-red-400 p-1"
+                        className="text-[var(--text-muted)] hover:text-[var(--color-error)] p-1"
                         title="Delete"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

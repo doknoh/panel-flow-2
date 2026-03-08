@@ -225,7 +225,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
           </div>
           <button
             onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl"
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl active:scale-[0.97] transition-all duration-150 ease-out"
           >
             ×
           </button>
@@ -235,12 +235,12 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {/* Status messages */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-sm text-red-400">
+            <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/50 rounded-lg p-3 text-sm text-[var(--color-error)]">
               {error}
             </div>
           )}
           {success && (
-            <div className="bg-green-500/10 border border-green-500/50 rounded-lg p-3 text-sm text-green-400">
+            <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/50 rounded-lg p-3 text-sm text-[var(--color-success)]">
               {success}
             </div>
           )}
@@ -270,7 +270,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
               <button
                 type="submit"
                 disabled={inviting || !inviteEmail.trim()}
-                className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 {inviting ? '...' : 'Invite'}
               </button>
@@ -293,7 +293,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
                     className="flex items-center justify-between bg-[var(--bg-tertiary)] rounded-lg p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-sm">
+                      <div className="w-8 h-8 rounded-full bg-[var(--color-warning)]/20 flex items-center justify-center text-[var(--color-warning)] text-sm">
                         ✉
                       </div>
                       <div>
@@ -306,7 +306,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
                     </div>
                     <button
                       onClick={() => handleCancelInvitation(invite.id)}
-                      className="text-[var(--text-muted)] hover:text-red-400 text-sm"
+                      className="text-[var(--text-muted)] hover:text-[var(--color-error)] text-sm active:scale-[0.97] transition-all duration-150 ease-out"
                     >
                       Cancel
                     </button>
@@ -361,7 +361,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
                       </select>
                       <button
                         onClick={() => handleRemoveCollaborator(collab.id)}
-                        className="text-[var(--text-muted)] hover:text-red-400 text-sm p-1"
+                        className="text-[var(--text-muted)] hover:text-[var(--color-error)] text-sm p-1 active:scale-[0.97] transition-all duration-150 ease-out"
                         title="Remove collaborator"
                       >
                         ×

@@ -26,7 +26,7 @@ export default function OutlinePageClient({ series }: OutlinePageClientProps) {
             onClick={() => setViewMode('timeline')}
             className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
               viewMode === 'timeline'
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-[var(--accent-hover)] text-white'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
@@ -36,7 +36,7 @@ export default function OutlinePageClient({ series }: OutlinePageClientProps) {
             onClick={() => setViewMode('list')}
             className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
               viewMode === 'list'
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-[var(--accent-hover)] text-white'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >

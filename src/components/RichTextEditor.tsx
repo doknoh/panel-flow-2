@@ -224,7 +224,7 @@ export function FormattingToolbar({ onBold, onItalic, className = '' }: Formatti
       <button
         type="button"
         onClick={onBold}
-        className="p-1 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+        className="p-1 text-xs text-[var(--text-muted)] hover:text-[var(--bg-elevated)] hover:bg-[var(--accent)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
         title="Bold (Cmd+B)"
       >
         <strong>B</strong>
@@ -232,7 +232,7 @@ export function FormattingToolbar({ onBold, onItalic, className = '' }: Formatti
       <button
         type="button"
         onClick={onItalic}
-        className="p-1 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+        className="p-1 text-xs text-[var(--text-muted)] hover:text-[var(--bg-elevated)] hover:bg-[var(--accent)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
         title="Italic (Cmd+I)"
       >
         <em>I</em>

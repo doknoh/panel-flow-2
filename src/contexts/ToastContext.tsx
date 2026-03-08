@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -8,6 +8,7 @@ interface Toast {
   id: string
   message: string
   type: ToastType
+  exiting?: boolean
 }
 
 interface ToastContextType {
@@ -28,20 +29,34 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const timersRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+
+  const dismissToast = useCallback((id: string) => {
+    // Clear auto-dismiss timer if exists
+    const timer = timersRef.current.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      timersRef.current.delete(id)
+    }
+    // Start exit animation
+    setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t))
+    // Remove after exit animation (200ms)
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, 200)
+  }, [])
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Math.random().toString(36).substring(2, 9)
     setToasts(prev => [...prev, { id, message, type }])
 
     // Auto-dismiss after 4 seconds
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
+    const timer = setTimeout(() => {
+      timersRef.current.delete(id)
+      dismissToast(id)
     }, 4000)
-  }, [])
-
-  const dismissToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }, [])
+    timersRef.current.set(id, timer)
+  }, [dismissToast])
 
   return (
     <ToastContext.Provider value={{ toasts, showToast, dismissToast }}>
@@ -59,17 +74,19 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
       {toasts.map(toast => (
         <div
           key={toast.id}
-          className={`px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[280px] animate-slide-in ${
-            toast.type === 'success' ? 'bg-green-600 text-[var(--text-primary)]' :
-            toast.type === 'error' ? 'bg-red-600 text-[var(--text-primary)]' :
-            toast.type === 'warning' ? 'bg-yellow-600 text-[var(--text-primary)]' :
-            'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+          className={`px-4 py-3 shadow-lg flex items-center gap-3 min-w-[280px] ${
+            toast.exiting ? 'animate-toast-out' : 'animate-toast-in'
+          } ${
+            toast.type === 'success' ? 'bg-[var(--color-success)] text-white' :
+            toast.type === 'error' ? 'bg-[var(--color-error)] text-white' :
+            toast.type === 'warning' ? 'bg-[var(--color-warning)] text-white' :
+            'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border)]'
           }`}
         >
-          <span className="flex-1">{toast.message}</span>
+          <span className="flex-1 text-sm">{toast.message}</span>
           <button
             onClick={() => onDismiss(toast.id)}
-            className="text-white/70 hover:text-white"
+            className="text-white/70 hover:text-white active:scale-[0.97] transition-all duration-150 ease-out"
           >
             ×
           </button>

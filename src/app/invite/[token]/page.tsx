@@ -134,8 +134,8 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
         </div>
 
         {!emailMatch && (
-          <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-4 mb-6 text-sm">
-            <p className="text-yellow-400">
+          <div className="bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/50 rounded-lg p-4 mb-6 text-sm">
+            <p className="text-[var(--color-warning)]">
               <strong>Note:</strong> This invitation was sent to {invitation.email}, but you're logged in as {user.email}.
               You can still accept if you have access to both accounts.
             </p>

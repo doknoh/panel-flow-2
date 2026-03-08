@@ -257,7 +257,7 @@ function SortablePage({
             onClick={(e) => onSelect(page.id, e)}
             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
               isSelected
-                ? 'bg-blue-500 border-blue-500 text-white'
+                ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
                 : 'bg-[var(--bg-tertiary)]/90 border-[var(--border)] hover:border-[var(--text-secondary)]'
             }`}
             title="Click to select, Shift+click for range, ⌘/Ctrl+click to toggle"
@@ -274,7 +274,7 @@ function SortablePage({
             {...attributes}
             {...listeners}
             className={`cursor-grab active:cursor-grabbing px-1.5 py-0.5 rounded transition-all flex items-center gap-1 ${
-              isSelected ? 'bg-blue-500/80' : 'bg-[var(--bg-tertiary)]/90 opacity-0 group-hover:opacity-100'
+              isSelected ? 'bg-[var(--color-primary)]/80' : 'bg-[var(--bg-tertiary)]/90 opacity-0 group-hover:opacity-100'
             }`}
             title={isSelected && selectionCount > 1 ? `Drag ${selectionCount} pages` : 'Drag to reorder'}
           >
@@ -295,10 +295,10 @@ function SortablePage({
 
       <div
         className={`relative flex flex-col transition-all duration-300 ${
-          isDragging ? 'ring-2 ring-blue-500' : ''
-        } ${isSelected ? 'ring-2 ring-blue-500' : ''} ${
-          isPartOfSelection && !isSelected ? 'ring-1 ring-blue-400/50' : ''
-        } ${isJustMoved ? 'ring-2 ring-green-400 shadow-lg shadow-green-500/30' : ''}`}
+          isDragging ? 'ring-2 ring-[var(--color-primary)]' : ''
+        } ${isSelected ? 'ring-2 ring-[var(--color-primary)]' : ''} ${
+          isPartOfSelection && !isSelected ? 'ring-1 ring-[var(--color-primary)]/50' : ''
+        } ${isJustMoved ? 'ring-2 ring-[var(--color-success)] shadow-lg shadow-[var(--color-success)]/30' : ''}`}
         style={{
           width: PAGE_WIDTH,
           height: PAGE_HEIGHT,
@@ -374,7 +374,7 @@ function SortablePage({
                 }}
               >
                 {page.time_period ? (
-                  <span className="text-amber-400/80 font-medium">{page.time_period}</span>
+                  <span className="text-[var(--color-warning)]/80 font-medium">{page.time_period}</span>
                 ) : (
                   <span className="opacity-0 group-hover:opacity-60">+time</span>
                 )}
@@ -408,7 +408,7 @@ function SortablePage({
                 }}
               >
                 {page.visual_motif ? (
-                  <span className="text-purple-400/80 font-medium">{page.visual_motif}</span>
+                  <span className="text-[var(--accent-hover)]/80 font-medium">{page.visual_motif}</span>
                 ) : (
                   <span className="opacity-0 group-hover:opacity-60">+motif</span>
                 )}
@@ -457,7 +457,7 @@ function SortablePage({
           {/* Footer: Scene name (click to select scene) + Edit link */}
           <div className="flex items-center justify-between mt-1 pt-1 border-t border-[var(--border)]">
             <button
-              className="text-[8px] text-[var(--text-muted)] hover:text-blue-400 truncate max-w-[70px] transition-colors"
+              className="text-[8px] text-[var(--text-muted)] hover:text-[var(--color-primary)] truncate max-w-[70px] transition-colors"
               onClick={(e) => {
                 e.stopPropagation()
                 onSelectScene(scene.id)
@@ -468,7 +468,7 @@ function SortablePage({
             </button>
             <Link
               href={`/series/${seriesId}/issues/${issueId}?page=${page.id}`}
-              className="text-[8px] text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="text-[8px] text-[var(--color-primary)] hover:opacity-90 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => e.stopPropagation()}
             >
               Edit→
@@ -1041,7 +1041,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           </p>
           <Link
             href={`/series/${seriesId}/issues/${issue.id}`}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded-lg font-medium transition-colors"
           >
             ← Back to Editor
           </Link>
@@ -1175,19 +1175,19 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           <span className="text-sm text-[var(--text-secondary)] font-medium">
             {flatPages.length} pages • {spreads.length} spreads
             {spreads.filter(s => s.isLinkedSpread).length > 0 && (
-              <span className="text-blue-400 ml-2">
+              <span className="text-[var(--color-primary)] ml-2">
                 ({spreads.filter(s => s.isLinkedSpread).length} linked)
               </span>
             )}
             {spreads.filter(s => s.isSplash).length > 0 && (
-              <span className="text-purple-400 ml-2">
+              <span className="text-[var(--accent-hover)] ml-2">
                 ({spreads.filter(s => s.isSplash).length} splash)
               </span>
             )}
           </span>
           {selectedCount > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-blue-400 font-medium">
+              <span className="text-sm text-[var(--color-primary)] font-medium">
                 {selectedCount} selected
               </span>
               <button
@@ -1233,7 +1233,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                 <span className="font-medium">{pl.name}</span>
                 <button
                   onClick={() => deletePlotline(pl.id)}
-                  className="text-[var(--text-secondary)] hover:text-red-400 ml-1 text-lg leading-none"
+                  className="text-[var(--text-secondary)] hover:text-[var(--color-error)] ml-1 text-lg leading-none"
                 >
                   ×
                 </button>
@@ -1279,7 +1279,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
             <button
               onClick={createPlotline}
               disabled={!newPlotlineName.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium transition-colors"
             >
               Add
             </button>
@@ -1320,11 +1320,11 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                 {spread.isLinkedSpread && spread.left && spread.right ? (
                   <div className="relative">
                     {/* Spread indicator badge */}
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 px-3 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center gap-1">
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 px-3 py-0.5 bg-[var(--color-primary)] text-white text-[10px] font-bold rounded-full flex items-center gap-1">
                       <span>◧◨</span>
                       <span>SPREAD</span>
                     </div>
-                    <div className="flex items-stretch ring-2 ring-blue-500/50 rounded-lg overflow-hidden">
+                    <div className="flex items-stretch ring-2 ring-[var(--color-primary)]/50 rounded-lg overflow-hidden">
                       {/* Left page */}
                       <SortablePage
                         fp={spread.left}
@@ -1349,8 +1349,8 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                         issueId={issue.id}
                       />
                       {/* Minimal spine for linked spread */}
-                      <div className="w-1 bg-blue-500/30 flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
-                        <div className="w-px h-[90%] bg-blue-500/50" />
+                      <div className="w-1 bg-[var(--color-primary)]/30 flex items-center justify-center" style={{ height: PAGE_HEIGHT }}>
+                        <div className="w-px h-[90%] bg-[var(--color-primary)]/50" />
                       </div>
                       {/* Right page */}
                       <SortablePage
@@ -1381,11 +1381,11 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                   /* Splash Page - show as full-width single page */
                   <div className="relative">
                     {/* Splash indicator badge */}
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 px-3 py-0.5 bg-purple-600 text-white text-[10px] font-bold rounded-full flex items-center gap-1">
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 px-3 py-0.5 bg-[var(--accent-hover)] text-white text-[10px] font-bold rounded-full flex items-center gap-1">
                       <span>◼</span>
                       <span>SPLASH</span>
                     </div>
-                    <div className="flex items-center justify-center ring-2 ring-purple-500/50 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-center ring-2 ring-[var(--accent-hover)]/50 rounded-lg overflow-hidden">
                       <SortablePage
                         fp={spread.left}
                         pageIndex={flatPages.findIndex(fp => fp.page.id === spread.left!.page.id)}
@@ -1413,8 +1413,8 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                         <div className="w-px h-[90%] bg-[var(--bg-tertiary)]" />
                       </div>
                       {/* Empty right side for splash */}
-                      <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-purple-900/10 border-2 border-dashed border-purple-500/30 flex items-center justify-center">
-                        <span className="text-purple-500/50 text-xs font-medium">Full page extends</span>
+                      <div style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} className="bg-[var(--accent-hover)]/5 border-2 border-dashed border-[var(--accent-hover)]/30 flex items-center justify-center">
+                        <span className="text-[var(--accent-hover)]/50 text-xs font-medium">Full page extends</span>
                       </div>
                     </div>
                   </div>
@@ -1507,7 +1507,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                 </>
               )}
               <div
-                className="relative rounded-lg ring-2 ring-blue-500 shadow-2xl shadow-blue-500/30"
+                className="relative rounded-lg ring-2 ring-[var(--color-primary)] shadow-2xl shadow-[var(--color-primary)]/30"
                 style={{
                   width: PAGE_WIDTH,
                   height: PAGE_HEIGHT,
@@ -1516,7 +1516,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
               >
                 {/* Badge showing count */}
                 {selectedPageIds.has(activePage.page.id) && selectedCount > 1 && (
-                  <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg">
+                  <div className="absolute -top-2 -right-2 bg-[var(--color-primary)] text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg">
                     {selectedCount}
                   </div>
                 )}
@@ -1551,8 +1551,8 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           <p>• <strong className="text-[var(--text-secondary)]">L/R orientation auto-updates</strong> based on position</p>
           <p>• <strong className="text-[var(--text-secondary)]">Click any page</strong> to add a story beat</p>
           <p>• <strong className="text-[var(--text-secondary)]">Assign plotlines</strong> via the dropdown</p>
-          <p className="pt-2 border-t border-[var(--border)] mt-2">• <strong className="text-blue-400">Linked Spreads</strong> are shown with a blue border and "SPREAD" badge — set page type in the editor</p>
-          <p>• <strong className="text-purple-400">Splash Pages</strong> are shown with a purple border — full-page single panels</p>
+          <p className="pt-2 border-t border-[var(--border)] mt-2">• <strong className="text-[var(--color-primary)]">Linked Spreads</strong> are shown with a blue border and "SPREAD" badge — set page type in the editor</p>
+          <p>• <strong className="text-[var(--accent-hover)]">Splash Pages</strong> are shown with a purple border — full-page single panels</p>
         </div>
       </details>
     </div>

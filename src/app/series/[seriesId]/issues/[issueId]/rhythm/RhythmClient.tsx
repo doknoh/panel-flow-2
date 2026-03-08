@@ -72,15 +72,15 @@ export default function RhythmClient({
             <div className="text-[var(--text-muted)] text-sm">Avg Panels/Page</div>
           </div>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold text-blue-400">{formatRatio(rhythm.silentRatio)}</div>
+            <div className="text-2xl font-bold text-[var(--color-primary)]">{formatRatio(rhythm.silentRatio)}</div>
             <div className="text-[var(--text-muted)] text-sm">Silent Panels</div>
           </div>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold text-green-400">{formatRatio(rhythm.dialogueRatio)}</div>
+            <div className="text-2xl font-bold text-[var(--color-success)]">{formatRatio(rhythm.dialogueRatio)}</div>
             <div className="text-[var(--text-muted)] text-sm">Dialogue Panels</div>
           </div>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold text-red-400">{formatRatio(rhythm.actionRatio)}</div>
+            <div className="text-2xl font-bold text-[var(--color-error)]">{formatRatio(rhythm.actionRatio)}</div>
             <div className="text-[var(--text-muted)] text-sm">Action Panels</div>
           </div>
         </div>
@@ -111,15 +111,15 @@ export default function RhythmClient({
               {/* Legend */}
               <div className="flex gap-4 text-xs text-[var(--text-muted)]">
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                  <div className="w-3 h-3 bg-[var(--color-primary)]/50 rounded"></div>
                   <span>Sparse (≤3 panels)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-blue-600 rounded"></div>
+                  <div className="w-3 h-3 bg-[var(--color-primary)] rounded"></div>
                   <span>Normal (4-6 panels)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-blue-800 rounded"></div>
+                  <div className="w-3 h-3 bg-[var(--color-primary)]/80 rounded"></div>
                   <span>Dense (≥7 panels)</span>
                 </div>
               </div>
@@ -178,18 +178,18 @@ export default function RhythmClient({
                     key={i}
                     className={`p-3 rounded ${
                       insight.type === 'warning'
-                        ? 'bg-yellow-500/10 border border-yellow-500/30'
+                        ? 'bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30'
                         : insight.type === 'strength'
-                        ? 'bg-green-500/10 border border-green-500/30'
-                        : 'bg-blue-500/10 border border-blue-500/30'
+                        ? 'bg-[var(--color-success)]/10 border border-[var(--color-success)]/30'
+                        : 'bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/30'
                     }`}
                   >
                     <div className={`flex items-start gap-2 ${
                       insight.type === 'warning'
-                        ? 'text-yellow-300'
+                        ? 'text-[var(--color-warning)]'
                         : insight.type === 'strength'
-                        ? 'text-green-300'
-                        : 'text-blue-300'
+                        ? 'text-[var(--color-success)]'
+                        : 'text-[var(--color-primary)]'
                     }`}>
                       <span className="shrink-0">
                         {insight.type === 'warning' ? '⚠️' : insight.type === 'strength' ? '✅' : '💡'}
@@ -241,8 +241,8 @@ export default function RhythmClient({
                       </span>
                     </td>
                     <td className="px-4 py-2 text-[var(--text-muted)]">
-                      {page.isSplash && <span className="text-purple-400">Splash</span>}
-                      {page.isSpread && <span className="text-cyan-400">Spread</span>}
+                      {page.isSplash && <span className="text-[var(--accent-hover)]">Splash</span>}
+                      {page.isSpread && <span className="text-[var(--text-secondary)]">Spread</span>}
                       {!page.isSplash && !page.isSpread && 'Standard'}
                     </td>
                     <td className="px-4 py-2">{page.panelCount}</td>
@@ -252,9 +252,9 @@ export default function RhythmClient({
                     <td className="px-4 py-2">{page.actionPanels}</td>
                     <td className="px-4 py-2">
                       <span className={`inline-block px-2 py-0.5 rounded text-xs ${
-                        page.density === 'sparse' ? 'bg-blue-400/20 text-blue-300' :
-                        page.density === 'normal' ? 'bg-blue-600/20 text-blue-300' :
-                        'bg-blue-800/20 text-blue-300'
+                        page.density === 'sparse' ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' :
+                        page.density === 'normal' ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]' :
+                        'bg-[var(--color-primary)]/30 text-[var(--color-primary)]'
                       }`}>
                         {page.density}
                       </span>

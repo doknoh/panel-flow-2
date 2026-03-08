@@ -217,7 +217,7 @@ export default function ZoomPanel({
             key={`${level.type}-${level.id}-${index}`}
             className={`
               flex items-center gap-2 px-3 py-1.5 text-sm
-              ${level.isActive ? 'bg-blue-500/20 text-blue-300' : 'text-[var(--text-secondary)]'}
+              ${level.isActive ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'}
               ${level.onClick ? 'cursor-pointer hover:bg-[var(--bg-tertiary)]' : ''}
             `}
             style={{ paddingLeft: `${12 + level.depth * 16}px` }}
@@ -233,7 +233,7 @@ export default function ZoomPanel({
               <span className="text-xs text-[var(--text-muted)] shrink-0">{level.metadata}</span>
             )}
             {level.isActive && (
-              <span className="text-blue-400 shrink-0">◀</span>
+              <span className="text-[var(--color-primary)] shrink-0">◀</span>
             )}
           </div>
         ))}

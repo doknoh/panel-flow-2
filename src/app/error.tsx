@@ -17,7 +17,7 @@ export default function GlobalError({
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8 text-center">
-        <div className="text-red-400 text-4xl mb-4">!</div>
+        <div className="text-[var(--color-error)] text-4xl mb-4">!</div>
         <h1 className="text-xl font-bold mb-2">Something went wrong</h1>
         <p className="text-[var(--text-secondary)] mb-6">
           {error.message || 'An unexpected error occurred. Please try again.'}
@@ -25,7 +25,7 @@ export default function GlobalError({
         <div className="flex flex-col gap-3">
           <button
             onClick={reset}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-[var(--text-primary)] font-medium py-2 px-4 rounded transition-colors"
+            className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium py-2 px-4 rounded transition-colors"
           >
             Try again
           </button>

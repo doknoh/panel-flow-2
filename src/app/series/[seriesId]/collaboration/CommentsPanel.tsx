@@ -284,7 +284,7 @@ export default function CommentsPanel({
               key={comment.id}
               className={`rounded-lg border ${
                 comment.resolved_at
-                  ? 'border-green-500/30 bg-green-500/5 opacity-60'
+                  ? 'border-[var(--color-success)]/30 bg-[var(--color-success)]/5 opacity-60'
                   : 'border-[var(--border)] bg-[var(--bg-tertiary)]'
               }`}
             >
@@ -299,7 +299,7 @@ export default function CommentsPanel({
                       {formatDate(comment.created_at)}
                     </span>
                     {comment.resolved_at && (
-                      <span className="text-xs text-green-400 flex items-center gap-1">
+                      <span className="text-xs text-[var(--color-success)] flex items-center gap-1">
                         ✓ Resolved
                       </span>
                     )}
@@ -308,7 +308,7 @@ export default function CommentsPanel({
                     {!comment.resolved_at ? (
                       <button
                         onClick={() => handleResolve(comment.id)}
-                        className="text-xs text-[var(--text-muted)] hover:text-green-400"
+                        className="text-xs text-[var(--text-muted)] hover:text-[var(--color-success)]"
                         title="Mark as resolved"
                       >
                         ✓
@@ -325,7 +325,7 @@ export default function CommentsPanel({
                     {comment.user_id === currentUserId && (
                       <button
                         onClick={() => handleDelete(comment.id)}
-                        className="text-xs text-[var(--text-muted)] hover:text-red-400"
+                        className="text-xs text-[var(--text-muted)] hover:text-[var(--color-error)]"
                         title="Delete"
                       >
                         ×
@@ -361,7 +361,7 @@ export default function CommentsPanel({
                         {reply.user_id === currentUserId && (
                           <button
                             onClick={() => handleDelete(reply.id, comment.id)}
-                            className="text-xs text-[var(--text-muted)] hover:text-red-400 ml-auto"
+                            className="text-xs text-[var(--text-muted)] hover:text-[var(--color-error)] ml-auto"
                           >
                             ×
                           </button>

@@ -113,7 +113,7 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
   }, [issue, selectedPageId])
 
   return (
-    <div className="h-8 bg-[var(--bg-secondary)] border-t border-[var(--border)] px-4 flex items-center justify-between text-xs text-[var(--text-secondary)] shrink-0">
+    <div className="h-7 bg-[var(--bg-primary)] border-t border-[var(--text-primary)] px-4 flex items-center justify-between text-[10px] font-mono uppercase text-[var(--text-secondary)] shrink-0">
       {/* Left side - Page stats */}
       <div className="flex items-center gap-4">
         {selectedPage && (
@@ -138,9 +138,9 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
         <button
           onClick={undo}
           disabled={!canUndo}
-          className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
+          className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 transition-all duration-150 ease-out ${
             canUndo
-              ? 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+              ? 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] active:scale-[0.97]'
               : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-not-allowed'
           }`}
           title="Undo (⌘Z)"
@@ -153,9 +153,9 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
         <button
           onClick={redo}
           disabled={!canRedo}
-          className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
+          className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 transition-all duration-150 ease-out ${
             canRedo
-              ? 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+              ? 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] active:scale-[0.97]'
               : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-not-allowed'
           }`}
           title="Redo (⌘⇧Z)"
@@ -178,25 +178,25 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
         </span>
         <span className="text-[var(--text-muted)]">|</span>
         <span className={`flex items-center gap-1 ${
-          saveStatus === 'saved' ? 'text-green-500' :
-          saveStatus === 'saving' ? 'text-yellow-500' :
-          'text-red-500'
+          saveStatus === 'saved' ? 'text-[var(--color-success)]' :
+          saveStatus === 'saving' ? 'text-[var(--color-warning)]' :
+          'text-[var(--color-error)]'
         }`}>
           {saveStatus === 'saved' && (
             <>
-              <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-success)]" />
               Saved
             </>
           )}
           {saveStatus === 'saving' && (
             <>
-              <span className="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-warning)] animate-pulse" />
               Saving...
             </>
           )}
           {saveStatus === 'unsaved' && (
             <>
-              <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-error)]" />
               Unsaved
             </>
           )}

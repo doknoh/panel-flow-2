@@ -275,13 +275,13 @@ export default function QuickNav({
                 }}
                 className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${
                   index === selectedIndex
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[var(--color-primary)] text-white'
                     : 'hover:bg-[var(--bg-secondary)]'
                 }`}
                 style={{ paddingLeft: `${1 + item.indent * 1}rem` }}
               >
                 <span className={`text-xs font-mono uppercase ${
-                  index === selectedIndex ? 'text-blue-200' : 'text-[var(--text-muted)]'
+                  index === selectedIndex ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)]'
                 }`}>
                   {item.type === 'act' && '📑'}
                   {item.type === 'scene' && '🎬'}
@@ -292,7 +292,7 @@ export default function QuickNav({
                   <div className="font-medium truncate">{item.label}</div>
                   {item.sublabel && (
                     <div className={`text-xs truncate ${
-                      index === selectedIndex ? 'text-blue-200' : 'text-[var(--text-secondary)]'
+                      index === selectedIndex ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'
                     }`}>
                       {item.sublabel}
                     </div>
@@ -300,7 +300,7 @@ export default function QuickNav({
                 </div>
                 {item.type === 'panel' && (
                   <span className={`text-xs ${
-                    index === selectedIndex ? 'text-blue-200' : 'text-[var(--text-muted)]'
+                    index === selectedIndex ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)]'
                   }`}>
                     Page {item.pageNumber}
                   </span>
@@ -322,7 +322,7 @@ export default function QuickNav({
             <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] rounded">Esc</kbd> Close
           </span>
           <span className="ml-auto">
-            Try: <code className="text-blue-400">p5</code>, <code className="text-blue-400">3:2</code>, <code className="text-blue-400">scene name</code>
+            Try: <code className="text-[var(--color-primary)]">p5</code>, <code className="text-[var(--color-primary)]">3:2</code>, <code className="text-[var(--color-primary)]">scene name</code>
           </span>
         </div>
       </div>

@@ -98,11 +98,11 @@ function getDeadlineStatus(issue: Issue, velocity: Velocity): 'complete' | 'on_t
 }
 
 const statusConfig = {
-  complete: { bg: 'bg-green-500/20', text: 'text-green-400', icon: CheckCircle, label: 'Complete' },
-  on_track: { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: CheckCircle, label: 'On Track' },
-  at_risk: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', icon: AlertTriangle, label: 'At Risk' },
-  overdue: { bg: 'bg-red-500/20', text: 'text-red-400', icon: AlertTriangle, label: 'Overdue' },
-  no_deadline: { bg: 'bg-gray-500/20', text: 'text-gray-400', icon: Clock, label: 'No Deadline' },
+  complete: { bg: 'bg-[var(--color-success)]/20', text: 'text-[var(--color-success)]', icon: CheckCircle, label: 'Complete' },
+  on_track: { bg: 'bg-[var(--color-primary)]/20', text: 'text-[var(--color-primary)]', icon: CheckCircle, label: 'On Track' },
+  at_risk: { bg: 'bg-[var(--color-warning)]/20', text: 'text-[var(--color-warning)]', icon: AlertTriangle, label: 'At Risk' },
+  overdue: { bg: 'bg-[var(--color-error)]/20', text: 'text-[var(--color-error)]', icon: AlertTriangle, label: 'Overdue' },
+  no_deadline: { bg: 'bg-[var(--text-muted)]/20', text: 'text-[var(--text-muted)]', icon: Clock, label: 'No Deadline' },
 }
 
 export default function DeadlineDashboard({ seriesId, issues, sessions }: DeadlineDashboardProps) {
@@ -245,7 +245,7 @@ export default function DeadlineDashboard({ seriesId, issues, sessions }: Deadli
           <div className="mt-3">
             <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
               <div
-                className="h-full bg-green-500 transition-all"
+                className="h-full bg-[var(--color-success)] transition-all"
                 style={{ width: `${overallProgress.total > 0 ? (overallProgress.completed / overallProgress.total) * 100 : 0}%` }}
               />
             </div>
@@ -255,8 +255,8 @@ export default function DeadlineDashboard({ seriesId, issues, sessions }: Deadli
 
       {/* At-Risk Alerts */}
       {atRiskIssues.length > 0 && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-yellow-400 mb-3">
+        <div className="bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-[var(--color-warning)] mb-3">
             <AlertTriangle className="w-5 h-5" />
             <span className="font-medium">At-Risk Deadlines</span>
           </div>
@@ -275,7 +275,7 @@ export default function DeadlineDashboard({ seriesId, issues, sessions }: Deadli
                 <div key={issue.id} className="text-sm">
                   <span className="font-medium">Issue #{issue.number}</span>
                   {' '}projected {projected ? format(projected, 'MMM d') : 'unknown'}
-                  {daysLate > 0 && <span className="text-yellow-400"> ({daysLate} days late)</span>}
+                  {daysLate > 0 && <span className="text-[var(--color-warning)]"> ({daysLate} days late)</span>}
                   <div className="text-[var(--text-muted)] text-xs mt-1">
                     Need {requiredPace.toFixed(1)} pages/day (vs current {velocity.pagesPerDay.toFixed(1)}) to meet deadline
                   </div>
@@ -320,7 +320,7 @@ export default function DeadlineDashboard({ seriesId, issues, sessions }: Deadli
                   <div className="flex-1">
                     <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                       <div
-                        className={`h-full transition-all ${status === 'complete' ? 'bg-green-500' : 'bg-blue-500'}`}
+                        className={`h-full transition-all ${status === 'complete' ? 'bg-[var(--color-success)]' : 'bg-[var(--color-primary)]'}`}
                         style={{ width: `${progress}%` }}
                       />
                     </div>

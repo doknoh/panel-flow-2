@@ -61,7 +61,7 @@ export default function PatternsClient({
                 onClick={() => setViewMode('plotlines')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   viewMode === 'plotlines'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[var(--color-primary)] text-white'
                     : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -71,7 +71,7 @@ export default function PatternsClient({
                 onClick={() => setViewMode('characters')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   viewMode === 'characters'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[var(--color-primary)] text-white'
                     : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -122,16 +122,16 @@ export default function PatternsClient({
                                 {appearance ? (
                                   <div className="flex items-center justify-center">
                                     {appearance.isFirstAppearance && (
-                                      <span className="text-green-400" title="First Appearance">●</span>
+                                      <span className="text-[var(--color-success)]" title="First Appearance">●</span>
                                     )}
                                     {!appearance.isFirstAppearance && !appearance.isClimaxIssue && !appearance.isResolutionIssue && (
-                                      <span className="text-blue-400">─</span>
+                                      <span className="text-[var(--color-primary)]">─</span>
                                     )}
                                     {appearance.isClimaxIssue && (
-                                      <span className="text-yellow-400" title="Climax">*</span>
+                                      <span className="text-[var(--color-warning)]" title="Climax">*</span>
                                     )}
                                     {appearance.isResolutionIssue && (
-                                      <span className="text-purple-400" title="Resolution">R</span>
+                                      <span className="text-[var(--accent-hover)]" title="Resolution">R</span>
                                     )}
                                   </div>
                                 ) : (
@@ -148,19 +148,19 @@ export default function PatternsClient({
                   {/* Legend */}
                   <div className="flex gap-4 mt-4 text-xs text-[var(--text-muted)]">
                     <div className="flex items-center gap-1">
-                      <span className="text-green-400">●</span>
+                      <span className="text-[var(--color-success)]">●</span>
                       <span>First Appearance</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-blue-400">─</span>
+                      <span className="text-[var(--color-primary)]">─</span>
                       <span>Present</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-yellow-400">*</span>
+                      <span className="text-[var(--color-warning)]">*</span>
                       <span>Climax</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-purple-400">R</span>
+                      <span className="text-[var(--accent-hover)]">R</span>
                       <span>Resolution</span>
                     </div>
                   </div>
@@ -236,10 +236,10 @@ export default function PatternsClient({
                             <div className="flex items-center gap-2">
                               <span className="truncate">{trajectory.characterName}</span>
                               {trajectory.role === 'protagonist' && (
-                                <span className="text-xs px-1.5 py-0.5 bg-blue-900 text-blue-300 rounded">P</span>
+                                <span className="text-xs px-1.5 py-0.5 bg-[var(--color-primary)]/20 text-[var(--color-primary)] rounded">P</span>
                               )}
                               {trajectory.role === 'antagonist' && (
-                                <span className="text-xs px-1.5 py-0.5 bg-red-900 text-red-300 rounded">A</span>
+                                <span className="text-xs px-1.5 py-0.5 bg-[var(--color-error)]/20 text-[var(--color-error)] rounded">A</span>
                               )}
                             </div>
                           </td>
@@ -263,19 +263,19 @@ export default function PatternsClient({
                   {/* Legend */}
                   <div className="flex gap-4 mt-4 text-xs text-[var(--text-muted)]">
                     <div className="flex items-center gap-1">
-                      <div className="w-4 h-4 bg-gray-800 rounded" />
+                      <div className="w-4 h-4 bg-[var(--bg-tertiary)] rounded" />
                       <span>Absent</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-4 h-4 bg-blue-900 rounded" />
+                      <div className="w-4 h-4 bg-[var(--color-primary)]/20 rounded" />
                       <span>Light</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-4 h-4 bg-blue-700 rounded" />
+                      <div className="w-4 h-4 bg-[var(--color-primary)]/50 rounded" />
                       <span>Moderate</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-4 h-4 bg-blue-500 rounded" />
+                      <div className="w-4 h-4 bg-[var(--color-primary)] rounded" />
                       <span>Heavy</span>
                     </div>
                   </div>
@@ -304,7 +304,7 @@ export default function PatternsClient({
                           {trajectory.gaps.map((gap, i) => (
                             <span
                               key={i}
-                              className="text-sm px-2 py-1 bg-yellow-500/10 text-yellow-300 rounded"
+                              className="text-sm px-2 py-1 bg-[var(--color-warning)]/10 text-[var(--color-warning)] rounded"
                             >
                               Issues #{gap.start}–#{gap.end} ({gap.length} issues)
                             </span>
@@ -337,12 +337,12 @@ export default function PatternsClient({
                     key={i}
                     className={`p-3 rounded-lg border ${
                       insight.type === 'warning'
-                        ? 'bg-yellow-500/10 border-yellow-500/30'
+                        ? 'bg-[var(--color-warning)]/10 border-[var(--color-warning)]/30'
                         : insight.type === 'strength'
-                        ? 'bg-green-500/10 border-green-500/30'
+                        ? 'bg-[var(--color-success)]/10 border-[var(--color-success)]/30'
                         : insight.type === 'suggestion'
-                        ? 'bg-blue-500/10 border-blue-500/30'
-                        : 'bg-gray-500/10 border-gray-500/30'
+                        ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
+                        : 'bg-[var(--bg-tertiary)] border-[var(--border)]'
                     }`}
                   >
                     <div className={`flex items-start gap-2 ${getInsightColor(insight.type)}`}>

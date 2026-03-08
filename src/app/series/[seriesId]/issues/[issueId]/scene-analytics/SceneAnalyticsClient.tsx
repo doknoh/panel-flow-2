@@ -140,11 +140,11 @@ export default function SceneAnalyticsClient({
             <div className="text-[var(--text-muted)] text-sm">Words</div>
           </div>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold text-green-400">{overallStats.strengthCount}</div>
+            <div className="text-2xl font-bold text-[var(--color-success)]">{overallStats.strengthCount}</div>
             <div className="text-[var(--text-muted)] text-sm">Strengths</div>
           </div>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold text-yellow-400">{overallStats.warningCount}</div>
+            <div className="text-2xl font-bold text-[var(--color-warning)]">{overallStats.warningCount}</div>
             <div className="text-[var(--text-muted)] text-sm">Warnings</div>
           </div>
         </div>
@@ -155,17 +155,17 @@ export default function SceneAnalyticsClient({
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-[var(--text-muted)]">Words/Page:</span>{' '}
-              <span className="text-green-400">{SCENE_THRESHOLDS.wordsPerPage.ideal.min}-{SCENE_THRESHOLDS.wordsPerPage.ideal.max}</span>
+              <span className="text-[var(--color-success)]">{SCENE_THRESHOLDS.wordsPerPage.ideal.min}-{SCENE_THRESHOLDS.wordsPerPage.ideal.max}</span>
               <span className="text-[var(--text-muted)]"> ideal</span>
             </div>
             <div>
               <span className="text-[var(--text-muted)]">Panels/Page:</span>{' '}
-              <span className="text-green-400">{SCENE_THRESHOLDS.panelsPerPage.ideal.min}-{SCENE_THRESHOLDS.panelsPerPage.ideal.max}</span>
+              <span className="text-[var(--color-success)]">{SCENE_THRESHOLDS.panelsPerPage.ideal.min}-{SCENE_THRESHOLDS.panelsPerPage.ideal.max}</span>
               <span className="text-[var(--text-muted)]"> ideal</span>
             </div>
             <div>
               <span className="text-[var(--text-muted)]">Dialogue Ratio:</span>{' '}
-              <span className="text-green-400">{Math.round(SCENE_THRESHOLDS.dialogueRatio.ideal.min * 100)}-{Math.round(SCENE_THRESHOLDS.dialogueRatio.ideal.max * 100)}%</span>
+              <span className="text-[var(--color-success)]">{Math.round(SCENE_THRESHOLDS.dialogueRatio.ideal.min * 100)}-{Math.round(SCENE_THRESHOLDS.dialogueRatio.ideal.max * 100)}%</span>
               <span className="text-[var(--text-muted)]"> ideal</span>
             </div>
           </div>
@@ -264,10 +264,10 @@ export default function SceneAnalyticsClient({
                               key={idx}
                               className={`flex items-start gap-2 text-sm p-2 rounded ${
                                 insight.type === 'warning'
-                                  ? 'bg-yellow-500/10 text-yellow-300'
+                                  ? 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
                                   : insight.type === 'strength'
-                                  ? 'bg-green-500/10 text-green-300'
-                                  : 'bg-blue-500/10 text-blue-300'
+                                  ? 'bg-[var(--color-success)]/10 text-[var(--color-success)]'
+                                  : 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
                               }`}
                             >
                               <span className="shrink-0">
@@ -353,10 +353,10 @@ function MetricBar({
   const isTooHigh = value > warnHigh
 
   const barColor = isIdeal
-    ? 'bg-green-500'
+    ? 'bg-[var(--color-success)]'
     : isTooLow || isTooHigh
-    ? 'bg-yellow-500'
-    : 'bg-blue-500'
+    ? 'bg-[var(--color-warning)]'
+    : 'bg-[var(--color-primary)]'
 
   // Calculate bar width as percentage of range
   const barWidth = Math.min(100, Math.max(5, (value / warnHigh) * 100))
@@ -365,7 +365,7 @@ function MetricBar({
     <div>
       <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
         <span>{label}</span>
-        <span className={isIdeal ? 'text-green-400' : isTooLow || isTooHigh ? 'text-yellow-400' : ''}>
+        <span className={isIdeal ? 'text-[var(--color-success)]' : isTooLow || isTooHigh ? 'text-[var(--color-warning)]' : ''}>
           {value}{suffix}
         </span>
       </div>

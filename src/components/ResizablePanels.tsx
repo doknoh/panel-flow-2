@@ -136,15 +136,15 @@ export default function ResizablePanels({
 
       {/* Left Divider */}
       <div
-        className="w-1 bg-[var(--border)] hover:bg-blue-500/50 cursor-col-resize shrink-0 relative group hidden md:block transition-colors"
+        className="w-1 bg-[var(--border)] hover:bg-[var(--color-primary)]/50 cursor-col-resize shrink-0 relative group hidden md:block transition-colors"
         onMouseDown={handleLeftMouseDown}
         onDoubleClick={handleLeftDoubleClick}
         title="Drag to resize • Double-click to reset"
       >
-        <div className={`absolute inset-y-0 -left-1 -right-1 ${isDraggingLeft ? 'bg-blue-500/30' : ''}`} />
+        <div className={`absolute inset-y-0 -left-1 -right-1 ${isDraggingLeft ? 'bg-[var(--color-primary)]/30' : ''}`} />
         {/* Visible grab indicator on hover */}
         <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-0.5 h-8 bg-blue-400 rounded-full" />
+          <div className="w-0.5 h-8 bg-[var(--color-primary)] rounded-full" />
         </div>
       </div>
 
@@ -155,15 +155,15 @@ export default function ResizablePanels({
 
       {/* Right Divider */}
       <div
-        className="w-1 bg-[var(--border)] hover:bg-blue-500/50 cursor-col-resize shrink-0 relative group hidden md:block transition-colors"
+        className="w-1 bg-[var(--border)] hover:bg-[var(--color-primary)]/50 cursor-col-resize shrink-0 relative group hidden md:block transition-colors"
         onMouseDown={handleRightMouseDown}
         onDoubleClick={handleRightDoubleClick}
         title="Drag to resize • Double-click to reset"
       >
-        <div className={`absolute inset-y-0 -left-1 -right-1 ${isDraggingRight ? 'bg-blue-500/30' : ''}`} />
+        <div className={`absolute inset-y-0 -left-1 -right-1 ${isDraggingRight ? 'bg-[var(--color-primary)]/30' : ''}`} />
         {/* Visible grab indicator on hover */}
         <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-0.5 h-8 bg-blue-400 rounded-full" />
+          <div className="w-0.5 h-8 bg-[var(--color-primary)] rounded-full" />
         </div>
       </div>
 

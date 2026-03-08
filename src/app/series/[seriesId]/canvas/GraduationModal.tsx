@@ -112,22 +112,22 @@ export default function GraduationModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+      <div className="relative bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-800">
+        <div className="px-6 py-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-2xl">🎓</span>
               <div>
                 <h2 className="text-lg font-semibold">Graduate Idea</h2>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-[var(--text-muted)]">
                   Promote &ldquo;{item.title}&rdquo; to a structured entity
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-white"
+              className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -141,23 +141,23 @@ export default function GraduationModal({
           {/* Step 1: Choose type */}
           {step === 'type' && (
             <div className="space-y-4">
-              <p className="text-gray-300">What should this become?</p>
+              <p className="text-[var(--text-secondary)]">What should this become?</p>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleSelectType('character')}
-                  className="p-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-purple-500 rounded-lg text-left transition-all"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--accent-hover)] rounded-lg text-left transition-all"
                 >
                   <div className="text-2xl mb-2">🎭</div>
                   <div className="font-medium">Character</div>
-                  <div className="text-sm text-gray-400">A person in your story</div>
+                  <div className="text-sm text-[var(--text-muted)]">A person in your story</div>
                 </button>
                 <button
                   onClick={() => handleSelectType('location')}
-                  className="p-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 rounded-lg text-left transition-all"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-primary)] rounded-lg text-left transition-all"
                 >
                   <div className="text-2xl mb-2">📍</div>
                   <div className="font-medium">Location</div>
-                  <div className="text-sm text-gray-400">A place in your world</div>
+                  <div className="text-sm text-[var(--text-muted)]">A place in your world</div>
                 </button>
               </div>
             </div>
@@ -168,30 +168,30 @@ export default function GraduationModal({
             <div className="space-y-4">
               <button
                 onClick={() => setStep('type')}
-                className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
+                className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1"
               >
                 ← Back
               </button>
-              <p className="text-gray-300">
+              <p className="text-[var(--text-secondary)]">
                 Create a new {graduationType} or link to an existing one?
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleSelectMode('new')}
-                  className="p-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-green-500 rounded-lg text-left transition-all"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-success)] rounded-lg text-left transition-all"
                 >
                   <div className="text-2xl mb-2">✨</div>
                   <div className="font-medium">Create New</div>
-                  <div className="text-sm text-gray-400">Start fresh</div>
+                  <div className="text-sm text-[var(--text-muted)]">Start fresh</div>
                 </button>
                 <button
                   onClick={() => handleSelectMode('existing')}
                   disabled={existingList.length === 0}
-                  className="p-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-amber-500 rounded-lg text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-warning)] rounded-lg text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="text-2xl mb-2">🔗</div>
                   <div className="font-medium">Link Existing</div>
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-[var(--text-muted)]">
                     {existingList.length > 0
                       ? `${existingList.length} available`
                       : 'None available'}
@@ -206,7 +206,7 @@ export default function GraduationModal({
             <div className="space-y-4">
               <button
                 onClick={() => setStep('mode')}
-                className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
+                className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1"
               >
                 ← Back
               </button>
@@ -214,26 +214,26 @@ export default function GraduationModal({
               {graduationMode === 'new' ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                       Name
                     </label>
                     <input
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
                       placeholder={graduationType === 'character' ? 'Character name' : 'Location name'}
                     />
                   </div>
 
                   {graduationType === 'character' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                         Role
                       </label>
                       <select
                         value={newRole}
                         onChange={(e) => setNewRole(e.target.value)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
                       >
                         <option value="protagonist">Protagonist</option>
                         <option value="antagonist">Antagonist</option>
@@ -244,20 +244,20 @@ export default function GraduationModal({
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                       Description
                     </label>
                     <textarea
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none resize-none h-24"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] focus:border-[var(--color-primary)] focus:outline-none resize-none h-24"
                       placeholder="Notes, backstory, details..."
                     />
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-gray-300">
+                  <p className="text-[var(--text-secondary)]">
                     Select an existing {graduationType} to link:
                   </p>
                   <div className="max-h-60 overflow-y-auto space-y-2">
@@ -269,13 +269,13 @@ export default function GraduationModal({
                           onClick={() => setSelectedExistingId(entity.id)}
                           className={`w-full p-3 text-left rounded-lg border transition-all ${
                             selectedExistingId === entity.id
-                              ? 'bg-blue-900/50 border-blue-500'
-                              : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                              ? 'bg-[var(--color-primary)]/20 border-[var(--color-primary)]'
+                              : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border-strong)]'
                           }`}
                         >
                           <div className="font-medium">{entity.name}</div>
                           {role && (
-                            <div className="text-sm text-gray-400 capitalize">{role}</div>
+                            <div className="text-sm text-[var(--text-muted)] capitalize">{role}</div>
                           )}
                         </button>
                       )
@@ -285,7 +285,7 @@ export default function GraduationModal({
               )}
 
               {error && (
-                <div className="p-3 bg-red-900/30 border border-red-800 rounded-lg text-red-300 text-sm">
+                <div className="p-3 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg text-[var(--color-error)] text-sm">
                   {error}
                 </div>
               )}
@@ -295,10 +295,10 @@ export default function GraduationModal({
 
         {/* Footer */}
         {step === 'form' && (
-          <div className="px-6 py-4 border-t border-gray-800 flex justify-end gap-3">
+          <div className="px-6 py-4 border-t border-[var(--border)] flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             >
               Cancel
             </button>
@@ -309,7 +309,7 @@ export default function GraduationModal({
                 (graduationMode === 'new' && !newName.trim()) ||
                 (graduationMode === 'existing' && !selectedExistingId)
               }
-              className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg font-medium transition-colors"
+              className="px-4 py-2 bg-[var(--color-success)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg font-medium transition-colors"
             >
               {isSubmitting ? 'Graduating...' : '🎓 Graduate'}
             </button>

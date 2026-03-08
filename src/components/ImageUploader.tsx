@@ -231,7 +231,7 @@ export default function ImageUploader({
               <div
                 key={image.id}
                 className={`relative w-12 h-12 rounded overflow-hidden group ${
-                  image.is_primary ? 'ring-2 ring-blue-500' : ''
+                  image.is_primary ? 'ring-2 ring-[var(--color-primary)]' : ''
                 }`}
               >
                 <img
@@ -241,7 +241,7 @@ export default function ImageUploader({
                 />
                 <button
                   onClick={() => handleDelete(image)}
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs"
+                  className="absolute inset-0 bg-[var(--text-primary)]/60 opacity-0 group-hover:opacity-100 active:scale-[0.97] transition-all duration-150 ease-out flex items-center justify-center text-white text-xs"
                 >
                   ✕
                 </button>
@@ -256,7 +256,7 @@ export default function ImageUploader({
             {...getRootProps()}
             className={`border border-dashed rounded p-2 text-center cursor-pointer transition-colors text-xs ${
               isDragActive
-                ? 'border-blue-500 bg-blue-500/10'
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
                 : 'border-[var(--border)] hover:border-[var(--text-secondary)]'
             }`}
           >
@@ -279,7 +279,7 @@ export default function ImageUploader({
               key={image.id}
               className={`relative group aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                 image.is_primary
-                  ? 'border-blue-500 shadow-lg shadow-blue-500/20'
+                  ? 'border-[var(--color-primary)] shadow-lg shadow-[var(--color-primary)]/20'
                   : 'border-transparent hover:border-[var(--border)]'
               }`}
             >
@@ -292,18 +292,18 @@ export default function ImageUploader({
 
               {/* Primary badge */}
               {image.is_primary && (
-                <div className="absolute top-2 left-2 bg-blue-500 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+                <div className="absolute top-2 left-2 bg-[var(--color-primary)] text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
                   PRIMARY
                 </div>
               )}
 
               {/* Hover overlay with actions */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+              <div className="absolute inset-0 bg-[var(--text-primary)]/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
                 <div className="flex gap-2">
                   {!image.is_primary && (
                     <button
                       onClick={() => handleSetPrimary(image)}
-                      className="p-2 bg-blue-500 hover:bg-blue-600 rounded-full text-white text-sm transition-colors"
+                      className="p-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out"
                       title="Set as primary"
                     >
                       ★
@@ -314,14 +314,14 @@ export default function ImageUploader({
                       setEditingCaption(image.id)
                       setCaptionValue(image.caption || '')
                     }}
-                    className="p-2 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full text-white text-sm transition-colors"
+                    className="p-2 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out"
                     title="Edit caption"
                   >
                     ✎
                   </button>
                   <button
                     onClick={() => handleDelete(image)}
-                    className="p-2 bg-red-500 hover:bg-red-600 rounded-full text-white text-sm transition-colors"
+                    className="p-2 bg-[var(--color-error)] hover:bg-[var(--color-error)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out"
                     title="Delete"
                   >
                     ✕
@@ -338,7 +338,7 @@ export default function ImageUploader({
 
               {/* Caption editor */}
               {editingCaption === image.id && (
-                <div className="absolute inset-0 bg-black/90 p-3 flex flex-col">
+                <div className="absolute inset-0 bg-[var(--text-primary)]/90 p-3 flex flex-col">
                   <textarea
                     value={captionValue}
                     onChange={(e) => setCaptionValue(e.target.value)}
@@ -349,13 +349,13 @@ export default function ImageUploader({
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => setEditingCaption(null)}
-                      className="flex-1 py-1 text-sm text-[var(--text-secondary)] hover:text-white"
+                      className="flex-1 py-1 text-sm text-[var(--text-secondary)] hover:text-white active:scale-[0.97] transition-all duration-150 ease-out"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => handleSaveCaption(image)}
-                      className="flex-1 py-1 text-sm bg-blue-500 hover:bg-blue-600 rounded"
+                      className="flex-1 py-1 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
                     >
                       Save
                     </button>
@@ -373,7 +373,7 @@ export default function ImageUploader({
           {...getRootProps()}
           className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
             isDragActive
-              ? 'border-blue-500 bg-blue-500/10'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
               : 'border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/50'
           } ${uploading ? 'opacity-50 cursor-wait' : ''}`}
         >
@@ -381,13 +381,13 @@ export default function ImageUploader({
 
           {uploading ? (
             <div className="space-y-2">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-sm text-[var(--text-muted)]">Uploading...</p>
             </div>
           ) : isDragActive ? (
             <div className="space-y-2">
               <div className="text-4xl">📸</div>
-              <p className="text-sm text-blue-400">Drop images here</p>
+              <p className="text-sm text-[var(--color-primary)]">Drop images here</p>
             </div>
           ) : (
             <div className="space-y-2">

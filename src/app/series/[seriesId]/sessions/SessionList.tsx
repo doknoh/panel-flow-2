@@ -105,10 +105,10 @@ export default function SessionList({ sessions: initialSessions, seriesId }: Ses
   }
 
   const looseEndTypeColors: Record<string, string> = {
-    untracked_character: 'bg-blue-900/50 text-blue-300 border-blue-800',
-    untracked_location: 'bg-purple-900/50 text-purple-300 border-purple-800',
+    untracked_character: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/30',
+    untracked_location: 'bg-[var(--accent-hover)]/10 text-[var(--accent-hover)] border-[var(--accent-hover)]/30',
     continuity_flag: 'bg-amber-900/50 text-amber-300 border-amber-800',
-    page_alignment: 'bg-orange-900/50 text-orange-300 border-orange-800',
+    page_alignment: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/30',
     other: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border)]',
   }
 
@@ -156,7 +156,7 @@ export default function SessionList({ sessions: initialSessions, seriesId }: Ses
       </div>
 
       {/* Sessions List */}
-      <div className="space-y-3">
+      <div className="space-y-3 stagger-children">
         {sessions.map((session) => {
           const isExpanded = expandedSession === session.id
           const unresolvedLooseEnds = session.loose_ends.filter(le => !le.resolved)
@@ -165,7 +165,7 @@ export default function SessionList({ sessions: initialSessions, seriesId }: Ses
           return (
             <div
               key={session.id}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
             >
               {/* Session Header */}
               <div
@@ -281,7 +281,7 @@ export default function SessionList({ sessions: initialSessions, seriesId }: Ses
                                 e.stopPropagation()
                                 resolveLooseEnd(looseEnd.id, session.id)
                               }}
-                              className="text-xs bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded"
+                              className="text-xs bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded active:scale-[0.97] transition-all duration-150 ease-out"
                             >
                               Resolve
                             </button>
@@ -312,7 +312,7 @@ export default function SessionList({ sessions: initialSessions, seriesId }: Ses
                     <div className="pt-2">
                       <Link
                         href={`/series/${seriesId}/issues/${session.issue.id}`}
-                        className="text-sm text-blue-400 hover:text-blue-300"
+                        className="text-sm text-[var(--color-primary)] hover:text-[var(--accent-hover)]"
                       >
                         Go to Issue #{session.issue.number} →
                       </Link>

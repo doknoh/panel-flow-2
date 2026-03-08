@@ -2,10 +2,16 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
 export default function LoginButton() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleGoogleLogin = async () => {
     setLoading(true)
@@ -28,15 +34,106 @@ export default function LoginButton() {
     }
   }
 
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const supabase = createClient()
+
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        })
+        if (error) {
+          setError(error.message)
+        } else {
+          setMessage('Account created. You can now sign in.')
+          setIsSignUp(false)
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (error) {
+          setError(error.message)
+        } else {
+          router.push('/dashboard')
+          return
+        }
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error')
+    }
+    setLoading(false)
+  }
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Email + Password form */}
+      <form onSubmit={handleEmailAuth} className="space-y-3">
+        <input
+          type="email"
+          placeholder="Email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full py-3 px-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={6}
+          className="w-full py-3 px-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 bg-[var(--color-primary)] text-white font-medium py-3 px-4 rounded-lg hover:bg-[var(--color-primary-hover)] active:scale-[0.97] transition-all duration-150 ease-out disabled:opacity-50"
+        >
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : null}
+          {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsSignUp(!isSignUp)
+            setError(null)
+            setMessage(null)
+          }}
+          className="w-full text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
+        >
+          {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+        </button>
+      </form>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 border-t border-[var(--border)]" />
+        <span className="text-[var(--text-muted)] text-xs uppercase">or</span>
+        <div className="flex-1 border-t border-[var(--border)]" />
+      </div>
+
+      {/* Google OAuth button */}
       <button
         onClick={handleGoogleLogin}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-3 bg-white text-black font-medium py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-3 bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-strong)] font-medium py-3 px-4 rounded-lg hover:bg-[var(--bg-tertiary)] active:scale-[0.97] transition-all duration-150 ease-out disabled:opacity-50"
       >
         {loading ? (
-          <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-[var(--text-primary)] border-t-transparent rounded-full animate-spin" />
         ) : (
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -59,8 +156,13 @@ export default function LoginButton() {
         )}
         {loading ? 'Connecting...' : 'Sign in with Google'}
       </button>
+
+      {/* Messages */}
+      {message && (
+        <p className="text-[var(--color-success)] text-sm text-center">{message}</p>
+      )}
       {error && (
-        <p className="text-red-400 text-sm text-center">{error}</p>
+        <p className="text-[var(--color-error)] text-sm text-center">{error}</p>
       )}
     </div>
   )

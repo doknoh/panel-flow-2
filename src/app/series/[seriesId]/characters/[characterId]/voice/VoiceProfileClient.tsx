@@ -249,7 +249,7 @@ export default function VoiceProfileClient({
               <button
                 onClick={handleTrain}
                 disabled={isTraining || dialogues.length < 5}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg font-medium transition-colors"
+                className="px-4 py-2 bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg font-medium transition-colors"
               >
                 {isTraining ? 'Training...' : profile ? 'Retrain' : 'Train Profile'}
               </button>
@@ -257,7 +257,7 @@ export default function VoiceProfileClient({
                 <button
                   onClick={handleCheckConsistency}
                   disabled={isChecking}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg font-medium transition-colors"
+                  className="px-4 py-2 bg-[var(--color-warning)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg font-medium transition-colors"
                 >
                   {isChecking ? 'Checking...' : 'Check Consistency'}
                 </button>
@@ -278,13 +278,13 @@ export default function VoiceProfileClient({
             <div className="text-[var(--text-muted)] text-sm">Dialogue Samples</div>
           </div>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className={`text-2xl font-bold ${profile ? 'text-green-400' : 'text-[var(--text-muted)]'}`}>
+            <div className={`text-2xl font-bold ${profile ? 'text-[var(--color-success)]' : 'text-[var(--text-muted)]'}`}>
               {profile ? 'Trained' : 'Not Trained'}
             </div>
             <div className="text-[var(--text-muted)] text-sm">Profile Status</div>
           </div>
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className={`text-2xl font-bold ${flags.length > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+            <div className={`text-2xl font-bold ${flags.length > 0 ? 'text-[var(--color-warning)]' : 'text-[var(--color-success)]'}`}>
               {flags.length}
             </div>
             <div className="text-[var(--text-muted)] text-sm">Inconsistencies</div>
@@ -297,7 +297,7 @@ export default function VoiceProfileClient({
             onClick={() => setActiveTab('profile')}
             className={`px-4 py-2 -mb-px border-b-2 transition-colors ${
               activeTab === 'profile'
-                ? 'border-blue-500 text-blue-400'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
@@ -307,13 +307,13 @@ export default function VoiceProfileClient({
             onClick={() => setActiveTab('flags')}
             className={`px-4 py-2 -mb-px border-b-2 transition-colors flex items-center gap-2 ${
               activeTab === 'flags'
-                ? 'border-blue-500 text-blue-400'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
             Flags
             {flags.length > 0 && (
-              <span className="px-1.5 py-0.5 text-xs bg-yellow-500/20 text-yellow-400 rounded">
+              <span className="px-1.5 py-0.5 text-xs bg-[var(--color-warning)]/20 text-[var(--color-warning)] rounded">
                 {flags.length}
               </span>
             )}
@@ -322,7 +322,7 @@ export default function VoiceProfileClient({
             onClick={() => setActiveTab('samples')}
             className={`px-4 py-2 -mb-px border-b-2 transition-colors ${
               activeTab === 'samples'
-                ? 'border-blue-500 text-blue-400'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
@@ -369,7 +369,7 @@ export default function VoiceProfileClient({
                     <h3 className="font-medium mb-2">Common Words</h3>
                     <div className="flex flex-wrap gap-2">
                       {profile.commonWords.slice(0, 10).map((word, i) => (
-                        <span key={i} className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-sm">
+                        <span key={i} className="px-2 py-1 bg-[var(--color-primary)]/20 text-[var(--color-primary)] rounded text-sm">
                           {word}
                         </span>
                       ))}
@@ -384,7 +384,7 @@ export default function VoiceProfileClient({
                     <h3 className="font-medium mb-2">Avoided Words</h3>
                     <div className="flex flex-wrap gap-2">
                       {profile.avoidedWords.slice(0, 10).map((word, i) => (
-                        <span key={i} className="px-2 py-1 bg-red-500/20 text-red-300 rounded text-sm">
+                        <span key={i} className="px-2 py-1 bg-[var(--color-error)]/20 text-[var(--color-error)] rounded text-sm">
                           {word}
                         </span>
                       ))}
@@ -399,7 +399,7 @@ export default function VoiceProfileClient({
                     <h3 className="font-medium mb-2">Tone Markers</h3>
                     <div className="flex flex-wrap gap-2">
                       {profile.toneMarkers.map((marker, i) => (
-                        <span key={i} className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-sm capitalize">
+                        <span key={i} className="px-2 py-1 bg-[var(--accent-hover)]/20 text-[var(--accent-hover)] rounded text-sm capitalize">
                           {marker}
                         </span>
                       ))}
@@ -414,7 +414,7 @@ export default function VoiceProfileClient({
                     <h3 className="font-medium mb-2">Speech Quirks</h3>
                     <div className="flex flex-wrap gap-2">
                       {profile.speechQuirks.map((quirk, i) => (
-                        <span key={i} className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-sm capitalize">
+                        <span key={i} className="px-2 py-1 bg-[var(--color-success)]/20 text-[var(--color-success)] rounded text-sm capitalize">
                           {quirk.replace('_', ' ')}
                         </span>
                       ))}
@@ -431,7 +431,7 @@ export default function VoiceProfileClient({
                     <h3 className="font-medium mb-3">Representative Quotes</h3>
                     <div className="space-y-3">
                       {profile.sampleQuotes.map((quote, i) => (
-                        <blockquote key={i} className="border-l-2 border-blue-500 pl-3 text-[var(--text-secondary)] italic">
+                        <blockquote key={i} className="border-l-2 border-[var(--color-primary)] pl-3 text-[var(--text-secondary)] italic">
                           &ldquo;{quote}&rdquo;
                         </blockquote>
                       ))}
@@ -472,7 +472,7 @@ export default function VoiceProfileClient({
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className={`flex items-center gap-2 mb-2 ${
-                          flag.severity === 'warning' ? 'text-yellow-400' : 'text-blue-400'
+                          flag.severity === 'warning' ? 'text-[var(--color-warning)]' : 'text-[var(--color-primary)]'
                         }`}>
                           <span>{flag.severity === 'warning' ? '⚠️' : '💡'}</span>
                           <span className="font-medium">{flag.message}</span>
@@ -490,11 +490,11 @@ export default function VoiceProfileClient({
                         {flag.flagged_word && (
                           <div className="text-sm">
                             <span className="text-[var(--text-muted)]">Flagged word: </span>
-                            <span className="text-red-400">{flag.flagged_word}</span>
+                            <span className="text-[var(--color-error)]">{flag.flagged_word}</span>
                             {flag.suggested_alternative && (
                               <>
                                 <span className="text-[var(--text-muted)]"> → try: </span>
-                                <span className="text-green-400">{flag.suggested_alternative}</span>
+                                <span className="text-[var(--color-success)]">{flag.suggested_alternative}</span>
                               </>
                             )}
                           </div>

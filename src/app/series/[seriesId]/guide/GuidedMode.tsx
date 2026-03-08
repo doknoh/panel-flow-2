@@ -483,7 +483,7 @@ export default function GuidedMode({
             </Link>
             <div>
               <h1 className="font-semibold flex items-center gap-2">
-                <span className="text-purple-400">Guide</span>
+                <span className="text-[var(--accent-hover)]">Guide</span>
                 <span className="text-[var(--text-muted)]">/</span>
                 <span>{contextLabel}</span>
               </h1>
@@ -501,7 +501,7 @@ export default function GuidedMode({
               <div className="relative">
                 <button
                   onClick={() => setShowSessionMenu(!showSessionMenu)}
-                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1.5 border border-[var(--border)] rounded-lg flex items-center gap-1"
+                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1.5 border border-[var(--border)] rounded-lg flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
                 >
                   Options
                   <span className="text-[10px]">▼</span>
@@ -521,25 +521,25 @@ export default function GuidedMode({
                         <div className="text-[10px] uppercase text-[var(--text-muted)] px-2 py-1">Shift Focus To</div>
                         <button
                           onClick={() => shiftFocus('character_deep_dive')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
                         >
                           🎭 Characters
                         </button>
                         <button
                           onClick={() => shiftFocus('outline')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
                         >
                           📐 Story Structure
                         </button>
                         <button
                           onClick={() => shiftFocus('world_building')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
                         >
                           🌍 World Building
                         </button>
                         <button
                           onClick={() => shiftFocus('general')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
                         >
                           🔮 Open Exploration
                         </button>
@@ -553,7 +553,7 @@ export default function GuidedMode({
                             extractInsights()
                           }}
                           disabled={isExtracting || messages.length < 2}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] transition-all duration-150 ease-out"
                         >
                           {isExtracting ? '⏳ Extracting...' : '💡 Extract Insights'}
                         </button>
@@ -565,7 +565,7 @@ export default function GuidedMode({
                             setExtractionResults(null)
                             setShowSessionPicker(true)
                           }}
-                          className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-[var(--bg-tertiary)] rounded"
+                          className="w-full text-left px-3 py-2 text-sm text-[var(--color-error)] hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
                         >
                           ✨ New Session
                         </button>
@@ -603,13 +603,13 @@ export default function GuidedMode({
                 </div>
                 <div className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all"
+                    className="h-full bg-gradient-to-r from-[var(--accent-hover)] to-[var(--color-primary)] transition-all"
                     style={{ width: `${analysis.overallScore}%` }}
                   />
                 </div>
                 <div className="mt-3 text-xs text-[var(--text-muted)]">
                   {analysis.suggestedFocus && (
-                    <p>Suggested focus: <span className="text-purple-400">{analysis.suggestedFocus}</span></p>
+                    <p>Suggested focus: <span className="text-[var(--accent-hover)]">{analysis.suggestedFocus}</span></p>
                   )}
                 </div>
               </div>
@@ -619,28 +619,28 @@ export default function GuidedMode({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md mb-6">
               <button
                 onClick={() => startNewSession('general')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left transition-colors"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 <div className="font-medium mb-1">Open Exploration</div>
                 <div className="text-xs text-[var(--text-secondary)]">Let the AI guide based on what's needed</div>
               </button>
               <button
                 onClick={() => startNewSession('character_deep_dive')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left transition-colors"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 <div className="font-medium mb-1">Character Deep Dive</div>
                 <div className="text-xs text-[var(--text-secondary)]">Explore motivations, arcs, and voices</div>
               </button>
               <button
                 onClick={() => startNewSession('outline')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left transition-colors"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 <div className="font-medium mb-1">Story Structure</div>
                 <div className="text-xs text-[var(--text-secondary)]">Work out acts, beats, and pacing</div>
               </button>
               <button
                 onClick={() => startNewSession('world_building')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left transition-colors"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 <div className="font-medium mb-1">World Building</div>
                 <div className="text-xs text-[var(--text-secondary)]">Define locations, rules, and atmosphere</div>
@@ -656,7 +656,7 @@ export default function GuidedMode({
                     <button
                       key={s.id}
                       onClick={() => resumeSession(s)}
-                      className="w-full p-3 bg-[var(--bg-secondary)]/50 hover:bg-[var(--bg-tertiary)]/50 border border-[var(--border)] rounded-lg text-left transition-colors"
+                      className="w-full p-3 bg-[var(--bg-secondary)]/50 hover:bg-[var(--bg-tertiary)]/50 border border-[var(--border)] rounded-lg text-left active:scale-[0.97] hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm">
@@ -687,12 +687,12 @@ export default function GuidedMode({
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex animate-message-arrive ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                       msg.role === 'user'
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-[var(--color-primary)] text-white'
                         : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
                     }`}
                   >
@@ -706,7 +706,7 @@ export default function GuidedMode({
                         </div>
                         <button
                           onClick={() => setPendingExtraction(msg.extracted_data)}
-                          className="text-xs bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded-full"
+                          className="text-xs bg-[var(--accent-hover)] hover:opacity-90 px-3 py-1 rounded-full active:scale-[0.97] transition-all duration-150 ease-out"
                         >
                           Save to project
                         </button>
@@ -736,22 +736,22 @@ export default function GuidedMode({
 
             {/* Pending Extraction Banner (legacy - from AI markers) */}
             {pendingExtraction && (
-              <div className="px-4 py-3 bg-purple-900/30 border-t border-purple-500/30">
+              <div className="px-4 py-3 bg-[var(--accent-hover)]/10 border-t border-[var(--accent-hover)]/30">
                 <div className="flex items-center justify-between max-w-2xl mx-auto">
                   <div className="text-sm">
-                    <span className="text-purple-300">Ready to save:</span>{' '}
+                    <span className="text-[var(--accent-hover)]">Ready to save:</span>{' '}
                     <span className="text-white">{pendingExtraction.type}</span>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPendingExtraction(null)}
-                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1"
+                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1 active:scale-[0.97] transition-all duration-150 ease-out"
                     >
                       Dismiss
                     </button>
                     <button
                       onClick={saveExtractedData}
-                      className="text-xs bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded"
+                      className="text-xs bg-[var(--accent-hover)] hover:opacity-90 px-3 py-1 rounded active:scale-[0.97] transition-all duration-150 ease-out"
                     >
                       Save
                     </button>
@@ -770,7 +770,7 @@ export default function GuidedMode({
                     </div>
                     <button
                       onClick={() => setExtractionResults(null)}
-                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
                     >
                       ✕
                     </button>
@@ -829,14 +829,14 @@ export default function GuidedMode({
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Share your thoughts..."
-                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl px-4 py-3 resize-none text-sm focus:outline-none focus:border-purple-500 transition-colors"
+                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl px-4 py-3 resize-none text-sm focus:outline-none focus:border-[var(--accent-hover)] transition-colors"
                   rows={2}
                   disabled={isLoading}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={!input.trim() || isLoading}
-                  className="px-4 bg-purple-600 hover:bg-purple-500 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-xl font-medium transition-colors"
+                  className="px-4 bg-[var(--accent-hover)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-xl font-medium active:scale-[0.97] transition-all duration-150 ease-out"
                 >
                   Send
                 </button>

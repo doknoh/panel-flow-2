@@ -75,12 +75,20 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     if (!selectedPageId) return null
     for (const act of (issue.acts || [])) {
       for (const scene of (act.scenes || [])) {
-        const page = (scene.pages || []).find((p: any) => p.id === selectedPageId)
-        if (page) {
+        const pageIndex = (scene.pages || []).findIndex((p: any) => p.id === selectedPageId)
+        if (pageIndex !== -1) {
+          const page = scene.pages[pageIndex]
           return {
             page,
             act: { id: act.id, name: act.name, sort_order: act.sort_order },
-            scene: { id: scene.id, name: scene.name, sort_order: scene.sort_order }
+            scene: {
+              id: scene.id,
+              name: scene.name,
+              sort_order: scene.sort_order,
+              plotline_name: scene.plotline?.name || null,
+              total_pages: (scene.pages || []).length,
+            },
+            pagePositionInScene: pageIndex + 1,
           }
         }
       }
@@ -363,7 +371,8 @@ type MobileView = 'nav' | 'editor' | 'toolkit'
 interface PageContext {
   page: any
   act: { id: string; name: string; sort_order: number }
-  scene: { id: string; name: string; sort_order: number }
+  scene: { id: string; name: string; sort_order: number; plotline_name?: string | null; total_pages?: number }
+  pagePositionInScene?: number
 }
 
 function IssueEditorContent({
@@ -424,6 +433,7 @@ function IssueEditorContent({
   const [isZenMode, setIsZenMode] = useState(false)
   const [isScriptView, setIsScriptView] = useState(false)
   const [isQuickNavOpen, setIsQuickNavOpen] = useState(false)
+  const [peekPageId, setPeekPageId] = useState<string | null>(null)
 
   // Get all pages in order for navigation
   const allPages = React.useMemo(() => {
@@ -461,6 +471,23 @@ function IssueEditorContent({
     }
     return []
   }, [issue.acts, selectedPageContext?.scene?.id])
+
+  // Peek page data — find full page data for the peek overlay
+  const peekPageData = React.useMemo(() => {
+    if (!peekPageId) return null
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        const page = (scene.pages || []).find((p: any) => p.id === peekPageId)
+        if (page) return page
+      }
+    }
+    return null
+  }, [issue.acts, peekPageId])
+
+  // Clear peek overlay when navigating to a different page
+  useEffect(() => {
+    setPeekPageId(null)
+  }, [selectedPageId])
 
   // Navigation helpers
   const navigateToPage = useCallback((direction: 'prev' | 'next') => {
@@ -713,6 +740,19 @@ function IssueEditorContent({
         return
       }
 
+      // Alt + Arrow Up/Down = Quick page peek (prev/next page preview)
+      if (e.altKey && !isMod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault()
+        if (!selectedPageId || allPages.length === 0) return
+        const currentIndex = allPages.findIndex(p => p.id === selectedPageId)
+        if (currentIndex === -1) return
+        const peekIndex = e.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1
+        if (peekIndex >= 0 && peekIndex < allPages.length) {
+          setPeekPageId(prev => prev === allPages[peekIndex].id ? null : allPages[peekIndex].id)
+        }
+        return
+      }
+
       // Cmd/Ctrl + P = Add new page to current scene
       if (isMod && e.key === 'p') {
         e.preventDefault()
@@ -727,12 +767,12 @@ function IssueEditorContent({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene, isZenMode])
+  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene, isZenMode, selectedPageId, allPages])
 
   return (
     <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header */}
-      <header className="border-b border-[var(--border)] px-4 py-3 shrink-0">
+      <header className="border-b border-[var(--text-primary)] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
             <Link href={`/series/${seriesId}`} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] shrink-0">
@@ -763,7 +803,7 @@ function IssueEditorContent({
                   setEditedTitle(issue.title || '')
                   setIsEditingTitle(true)
                 }}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden sm:inline truncate max-w-[300px] text-left group"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden sm:inline truncate max-w-[300px] text-left group active:scale-[0.97] transition-all duration-150 ease-out"
                 title="Click to edit title"
               >
                 {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
@@ -776,7 +816,7 @@ function IssueEditorContent({
           <div className="flex items-center gap-2 md:gap-4">
             <button
               onClick={() => setIsShortcutsOpen(true)}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
               title="Keyboard shortcuts (?)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -793,14 +833,14 @@ function IssueEditorContent({
             </button>
             <button
               onClick={() => setIsFindReplaceOpen(true)}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:block"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:block active:scale-[0.97] transition-all duration-150 ease-out"
               title="Find & Replace (⌘F)"
             >
               Find
             </button>
             <button
               onClick={() => setIsZoomPanelOpen(!isZoomPanelOpen)}
-              className={`text-sm hidden md:flex items-center gap-1 ${isZoomPanelOpen ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              className={`text-sm hidden md:flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out ${isZoomPanelOpen ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
               title="Context Ladder (⌘.)"
             >
               📍 Zoom
@@ -811,7 +851,7 @@ function IssueEditorContent({
                 await refreshIssue()
                 setIsZenMode(true)
               }}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
               title="Zen Mode (⌘⇧↵)"
             >
               🧘 Zen
@@ -822,18 +862,11 @@ function IssueEditorContent({
                 await refreshIssue()
                 setIsScriptView(true)
               }}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
               title="Script View"
             >
               📜 Script
             </button>
-            <Link
-              href={`/series/${seriesId}/issues/${issue.id}/blueprint`}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
-              title="Blueprint View"
-            >
-              📐 Blueprint
-            </Link>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/import`}
               className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
@@ -848,19 +881,19 @@ function IssueEditorContent({
             </Link>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/scene-analytics`}
-              className="text-sm text-cyan-400 hover:text-cyan-300 hidden lg:block"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
               Analytics
             </Link>
             <Link
               href={`/series/${seriesId}/issues/${issue.id}/rhythm`}
-              className="text-sm text-pink-400 hover:text-pink-300 hidden lg:block"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
               Rhythm
             </Link>
             <Link
               href={`/series/${seriesId}/guide?issue=${issue.id}`}
-              className="text-sm text-purple-400 hover:text-purple-300 hidden lg:block"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
               Guide
             </Link>
@@ -881,7 +914,7 @@ function IssueEditorContent({
                     console.error('PDF export error:', error)
                   }
                 }}
-                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded"
+                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 PDF
               </button>
@@ -895,7 +928,7 @@ function IssueEditorContent({
                     console.error('Doc export error:', error)
                   }
                 }}
-                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded hidden sm:block"
+                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded hidden sm:block active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 Doc
               </button>
@@ -909,7 +942,7 @@ function IssueEditorContent({
                     console.error('TXT export error:', error)
                   }
                 }}
-                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded hidden sm:block"
+                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded hidden sm:block active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 TXT
               </button>
@@ -922,19 +955,19 @@ function IssueEditorContent({
         <div className="flex md:hidden mt-3 gap-1 border-t border-[var(--border)] pt-3 -mx-4 px-4">
           <button
             onClick={() => setMobileView('nav')}
-            className={`flex-1 py-2 text-sm rounded ${mobileView === 'nav' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+            className={`flex-1 py-2 text-sm rounded active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'nav' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
           >
             Navigation
           </button>
           <button
             onClick={() => setMobileView('editor')}
-            className={`flex-1 py-2 text-sm rounded ${mobileView === 'editor' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+            className={`flex-1 py-2 text-sm rounded active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'editor' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
           >
             Editor
           </button>
           <button
             onClick={() => setMobileView('toolkit')}
-            className={`flex-1 py-2 text-sm rounded ${mobileView === 'toolkit' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+            className={`flex-1 py-2 text-sm rounded active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'toolkit' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
           >
             Toolkit
           </button>
@@ -974,8 +1007,8 @@ function IssueEditorContent({
                   previousPage={previousPageData?.page || null}
                   sceneName={previousPageData?.sceneName}
                 />
-                {/* Current page editor */}
-                <div className="flex-1 overflow-y-auto">
+                {/* Current page editor — keyed for transition animation */}
+                <div key={selectedPage.id} className="flex-1 overflow-y-auto" style={{ animation: 'page-enter 150ms ease-out' }}>
                   <PageEditor
                     page={selectedPage}
                     pageContext={selectedPageContext}
@@ -1064,7 +1097,7 @@ function IssueEditorContent({
                 </p>
                 <button
                   onClick={() => setMobileView('nav')}
-                  className="mt-6 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                  className="mt-6 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] active:scale-[0.97] transition-all duration-150 ease-out"
                 >
                   Go to Navigation →
                 </button>
@@ -1221,6 +1254,87 @@ function IssueEditorContent({
         isOpen={isQuickNavOpen}
         onClose={() => setIsQuickNavOpen(false)}
       />
+
+      {/* Quick Page Peek — read-only preview of adjacent page */}
+      {peekPageData && (
+        <div className="fixed inset-0 z-50 flex" onClick={() => setPeekPageId(null)}>
+          <div
+            className="w-[420px] bg-[var(--bg-secondary)] shadow-xl overflow-y-auto border-r border-[var(--border)]"
+            style={{ animation: 'page-enter 150ms ease-out' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-[var(--text-primary)]">Page {peekPageData.page_number}</h3>
+                  <span className="text-xs text-[var(--text-muted)] font-mono">
+                    ({peekPageData.page_number % 2 === 0 ? 'left' : 'right'}) — peek
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedPageId(peekPageId)
+                      setPeekPageId(null)
+                    }}
+                    className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                  >
+                    Go to page
+                  </button>
+                  <button
+                    onClick={() => setPeekPageId(null)}
+                    className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-lg leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {[...(peekPageData.panels || [])].sort((a: any, b: any) => a.panel_number - b.panel_number).map((panel: any) => (
+                  <div key={panel.id || panel.panel_number} className="bg-[var(--bg-tertiary)] rounded p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold text-[var(--text-secondary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
+                        Panel {panel.panel_number}
+                      </span>
+                      {panel.shot_type && (
+                        <span className="text-[10px] text-[var(--text-muted)]">{panel.shot_type}</span>
+                      )}
+                    </div>
+                    {panel.visual_description && (
+                      <p className="text-xs text-[var(--text-secondary)] mb-2 leading-relaxed">{panel.visual_description}</p>
+                    )}
+                    {(panel.dialogue_blocks || []).length > 0 && (
+                      <div className="space-y-1 border-l-2 border-[var(--color-primary)]/30 pl-2 mt-2">
+                        {(panel.dialogue_blocks || []).map((d: any, i: number) => (
+                          <div key={d.id || i} className="text-xs">
+                            <span className="font-medium text-[var(--color-primary)]">
+                              {d.character?.name || 'SPEAKER'}:
+                            </span>{' '}
+                            <span className="text-[var(--text-secondary)]">{d.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(panel.captions || []).length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {(panel.captions || []).map((c: any, i: number) => (
+                          <div key={c.id || i} className="text-xs italic text-[var(--text-muted)]">
+                            CAP: {c.text}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {(!peekPageData.panels || peekPageData.panels.length === 0) && (
+                  <p className="text-sm text-[var(--text-muted)] italic py-4 text-center">No panels on this page yet</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 bg-black/20" />
+        </div>
+      )}
     </div>
   )
 }

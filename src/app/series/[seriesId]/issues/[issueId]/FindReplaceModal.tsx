@@ -256,7 +256,7 @@ export default function FindReplaceModal({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search text..."
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--color-primary)]"
               />
             </div>
             <div className="flex items-end gap-2">
@@ -286,7 +286,7 @@ export default function FindReplaceModal({
               value={replaceTerm}
               onChange={(e) => setReplaceTerm(e.target.value)}
               placeholder="Replacement text..."
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-indigo-500"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--color-primary)]"
             />
           </div>
 
@@ -297,7 +297,7 @@ export default function FindReplaceModal({
                 type="checkbox"
                 checked={matchCase}
                 onChange={(e) => setMatchCase(e.target.checked)}
-                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] text-indigo-500 focus:ring-indigo-500"
+                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
               />
               Match case
             </label>
@@ -306,7 +306,7 @@ export default function FindReplaceModal({
                 type="checkbox"
                 checked={wholeWord}
                 onChange={(e) => setWholeWord(e.target.checked)}
-                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] text-indigo-500 focus:ring-indigo-500"
+                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
               />
               Whole word
             </label>
@@ -348,7 +348,7 @@ export default function FindReplaceModal({
                 return (
                   <>
                     <span className="text-[var(--text-secondary)]">{displayBefore}</span>
-                    <span className="bg-yellow-500/30 text-yellow-200 px-0.5 rounded">{match}</span>
+                    <span className="bg-[var(--color-warning)]/30 text-[var(--color-warning)] px-0.5 rounded">{match}</span>
                     <span className="text-[var(--text-secondary)]">{displayAfter}</span>
                   </>
                 )
@@ -376,7 +376,7 @@ export default function FindReplaceModal({
             <button
               onClick={handleReplaceAll}
               disabled={matches.length === 0 || !replaceTerm || isReplacing}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[var(--color-primary)] hover:opacity-90 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Replace All ({matches.length})
             </button>

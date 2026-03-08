@@ -13,7 +13,7 @@ export default function ThemeToggle({ className = '', showLabel = false }: Theme
   return (
     <button
       onClick={toggleTheme}
-      className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] ${className}`}
+      className={`flex items-center gap-2 px-2 py-1.5 rounded-lg active:scale-[0.97] transition-all duration-150 ease-out hover:bg-[var(--bg-tertiary)] ${className}`}
       title={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
       aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
     >

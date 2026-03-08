@@ -180,10 +180,10 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
 
   const getRoleColor = (role: string | null) => {
     switch (role) {
-      case 'protagonist': return 'bg-blue-900 text-blue-300'
-      case 'antagonist': return 'bg-red-900 text-red-300'
-      case 'supporting': return 'bg-purple-900 text-purple-300'
-      case 'recurring': return 'bg-amber-900 text-amber-300'
+      case 'protagonist': return 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]'
+      case 'antagonist': return 'bg-[var(--color-error)]/20 text-[var(--color-error)]'
+      case 'supporting': return 'bg-[var(--accent-hover)]/20 text-[var(--accent-hover)]'
+      case 'recurring': return 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
       default: return 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
     }
   }
@@ -234,7 +234,7 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-400">{stat.totalAppearances}</div>
+                    <div className="text-2xl font-bold text-[var(--color-primary)]">{stat.totalAppearances}</div>
                     <div className="text-xs text-[var(--text-secondary)]">appearances</div>
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
                 {/* Visual bar */}
                 <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden mb-3">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] transition-all duration-300"
                     style={{ width: `${barWidth}%` }}
                   />
                 </div>
@@ -281,7 +281,7 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
                           key={issue.id}
                           className={`px-2 py-0.5 rounded text-xs ${
                             stat.issueAppearances.has(issue.number)
-                              ? 'bg-blue-900 text-blue-300'
+                              ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]'
                               : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
                           }`}
                         >
@@ -319,7 +319,7 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
             </div>
             <div>
               <div className="text-[var(--text-secondary)]">Most Active</div>
-              <div className="text-xl font-bold text-blue-400">
+              <div className="text-xl font-bold text-[var(--color-primary)]">
                 {characterStats[0]?.character.name || '—'}
               </div>
             </div>

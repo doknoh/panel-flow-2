@@ -240,7 +240,7 @@ export default function ZenMode({
           <p className="text-xl mb-4">No panels on this page</p>
           <button
             onClick={onExit}
-            className="text-sm text-gray-400 hover:text-white"
+            className="text-sm text-[var(--text-muted)] hover:text-white"
           >
             Press Escape to exit
           </button>
@@ -257,26 +257,26 @@ export default function ZenMode({
       {/* Always-visible X button in top right */}
       <button
         onClick={onExit}
-        className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors text-xl"
+        className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-white transition-colors text-xl"
         title="Exit Zen Mode (Esc)"
       >
         ×
       </button>
 
       {/* Minimal header - fades on scroll/focus */}
-      <div className="absolute top-0 left-0 right-16 p-4 flex items-center justify-between text-gray-500 text-sm opacity-50 hover:opacity-100 transition-opacity z-10">
+      <div className="absolute top-0 left-0 right-16 p-4 flex items-center justify-between text-[var(--text-muted)] text-sm opacity-50 hover:opacity-100 transition-opacity z-10">
         <div className="flex items-center gap-4">
           <span className="font-mono">
             Page {page.page_number} • Panel {currentPanel.panel_number}
           </span>
-          <span className="text-gray-600">{pagePosition}</span>
+          <span className="text-[var(--text-secondary)]">{pagePosition}</span>
         </div>
         <div className="flex items-center gap-4">
           {hasChanges && (
-            <span className="text-amber-500">Unsaved</span>
+            <span className="text-[var(--color-warning)]">Unsaved</span>
           )}
           {isSaving && (
-            <span className="text-blue-400">Saving...</span>
+            <span className="text-[var(--color-primary)]">Saving...</span>
           )}
         </div>
       </div>
@@ -299,7 +299,7 @@ export default function ZenMode({
                 className={`w-2 h-2 rounded-full transition-all ${
                   i === currentPanelIndex
                     ? 'w-8 bg-white'
-                    : 'bg-gray-700 hover:bg-gray-500'
+                    : 'bg-[var(--bg-tertiary)] hover:bg-[var(--text-muted)]'
                 }`}
               />
             ))}
@@ -307,7 +307,7 @@ export default function ZenMode({
 
           {/* Visual Description */}
           <div className="space-y-2">
-            <label className="block text-gray-500 text-xs uppercase tracking-wider">
+            <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
               Visual Description
             </label>
             <textarea
@@ -315,7 +315,7 @@ export default function ZenMode({
               value={currentPanel.visual_description || ''}
               onChange={(e) => updatePanelField('visual_description', e.target.value)}
               placeholder="Describe what we see in this panel..."
-              className="w-full bg-transparent text-white text-lg leading-relaxed resize-none focus:outline-none placeholder:text-gray-700 min-h-[200px]"
+              className="w-full bg-transparent text-white text-lg leading-relaxed resize-none focus:outline-none placeholder:text-[var(--text-muted)] min-h-[200px]"
               style={{
                 caretColor: '#fff',
               }}
@@ -324,14 +324,14 @@ export default function ZenMode({
 
           {/* Existing dialogue (read-only in zen mode for focus) */}
           {currentPanel.dialogue_blocks.length > 0 && (
-            <div className="space-y-2 border-t border-gray-800 pt-6">
-              <label className="block text-gray-500 text-xs uppercase tracking-wider">
+            <div className="space-y-2 border-t border-[var(--border)] pt-6">
+              <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
                 Dialogue
               </label>
               <div className="space-y-2">
                 {currentPanel.dialogue_blocks.map((d) => (
-                  <div key={d.id} className="text-gray-300">
-                    <span className="text-blue-400 font-medium">
+                  <div key={d.id} className="text-[var(--text-secondary)]">
+                    <span className="text-[var(--color-primary)] font-medium">
                       {d.character?.name || 'Unknown'}:
                     </span>{' '}
                     <span className="italic">{d.text}</span>
@@ -343,13 +343,13 @@ export default function ZenMode({
 
           {/* Captions */}
           {currentPanel.captions.length > 0 && (
-            <div className="space-y-2 border-t border-gray-800 pt-6">
-              <label className="block text-gray-500 text-xs uppercase tracking-wider">
+            <div className="space-y-2 border-t border-[var(--border)] pt-6">
+              <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
                 Captions
               </label>
               <div className="space-y-2">
                 {currentPanel.captions.map((c) => (
-                  <div key={c.id} className="text-amber-400 italic">
+                  <div key={c.id} className="text-[var(--color-warning)] italic">
                     {c.text}
                   </div>
                 ))}
@@ -358,37 +358,37 @@ export default function ZenMode({
           )}
 
           {/* Notes */}
-          <div className="space-y-2 border-t border-gray-800 pt-6">
-            <label className="block text-gray-500 text-xs uppercase tracking-wider">
+          <div className="space-y-2 border-t border-[var(--border)] pt-6">
+            <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
               Notes (Internal)
             </label>
             <textarea
               value={currentPanel.notes || ''}
               onChange={(e) => updatePanelField('notes', e.target.value)}
               placeholder="Internal notes..."
-              className="w-full bg-transparent text-gray-400 text-sm leading-relaxed resize-none focus:outline-none placeholder:text-gray-700 min-h-[60px]"
+              className="w-full bg-transparent text-[var(--text-muted)] text-sm leading-relaxed resize-none focus:outline-none placeholder:text-[var(--text-muted)] min-h-[60px]"
             />
           </div>
         </div>
       </div>
 
       {/* Bottom hints - also fades */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-center text-gray-600 text-xs opacity-50 hover:opacity-100 transition-opacity">
+      <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-center text-[var(--text-secondary)] text-xs opacity-50 hover:opacity-100 transition-opacity">
         <div className="flex items-center gap-6">
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">Tab</kbd> Next panel
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">Tab</kbd> Next panel
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">Shift+Tab</kbd> Prev panel
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">Shift+Tab</kbd> Prev panel
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">⌘⇧→</kbd> Next page
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">⌘⇧→</kbd> Next page
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">⌘⇧←</kbd> Prev page
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">⌘⇧←</kbd> Prev page
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">Esc</kbd> Exit
+            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">Esc</kbd> Exit
           </span>
         </div>
       </div>

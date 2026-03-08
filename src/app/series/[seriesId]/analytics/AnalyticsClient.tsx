@@ -20,7 +20,7 @@ export default function AnalyticsClient({ series, sessions }: AnalyticsClientPro
           onClick={() => setActiveTab('dashboard')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'dashboard'
-              ? 'border-blue-500 text-[var(--text-primary)]'
+              ? 'border-[var(--color-primary)] text-[var(--text-primary)]'
               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -30,7 +30,7 @@ export default function AnalyticsClient({ series, sessions }: AnalyticsClientPro
           onClick={() => setActiveTab('rankings')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'rankings'
-              ? 'border-blue-500 text-[var(--text-primary)]'
+              ? 'border-[var(--color-primary)] text-[var(--text-primary)]'
               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >

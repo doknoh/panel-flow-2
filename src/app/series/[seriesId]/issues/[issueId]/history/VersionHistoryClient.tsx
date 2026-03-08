@@ -251,7 +251,7 @@ export default function VersionHistoryClient({
               onClick={() => setSelectedIndex(index)}
               className={`w-full text-left p-4 rounded-lg border transition-colors ${
                 selectedIndex === index
-                  ? 'bg-blue-900/30 border-blue-500'
+                  ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]'
                   : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border)]'
               }`}
             >
@@ -261,7 +261,7 @@ export default function VersionHistoryClient({
                   <p className="text-sm text-[var(--text-secondary)]">{getSnapshotSummary(snapshot)}</p>
                 </div>
                 {index === 0 && (
-                  <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">
+                  <span className="text-xs bg-[var(--color-success)]/20 text-[var(--color-success)] px-2 py-0.5 rounded">
                     Current
                   </span>
                 )}
@@ -272,7 +272,7 @@ export default function VersionHistoryClient({
               <div className="mt-2">
                 {diffs.slice(0, 3).map((diff, i) => (
                   <p key={i} className="text-xs text-[var(--text-secondary)]">
-                    <span className="text-yellow-500 mr-1">&bull;</span>
+                    <span className="text-[var(--color-warning)] mr-1">&bull;</span>
                     {diff}
                   </p>
                 ))}
@@ -299,7 +299,7 @@ export default function VersionHistoryClient({
                 <button
                   onClick={() => handleRestore(selectedSnapshot)}
                   disabled={isRestoring}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded font-medium text-sm"
+                  className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded font-medium text-sm"
                 >
                   {isRestoring ? 'Restoring...' : 'Restore This Version'}
                 </button>
@@ -312,7 +312,7 @@ export default function VersionHistoryClient({
               <div className="bg-[var(--bg-tertiary)] rounded p-3">
                 {findDifferences(previousSnapshot, selectedSnapshot).map((diff, i) => (
                   <p key={i} className="text-sm">
-                    <span className={diff.includes('added') || diff.includes('Added') ? 'text-green-400' : diff.includes('removed') || diff.includes('Removed') ? 'text-red-400' : 'text-yellow-400'}>
+                    <span className={diff.includes('added') || diff.includes('Added') ? 'text-[var(--color-success)]' : diff.includes('removed') || diff.includes('Removed') ? 'text-[var(--color-error)]' : 'text-[var(--color-warning)]'}>
                       {diff.includes('added') || diff.includes('Added') ? '+' : diff.includes('removed') || diff.includes('Removed') ? '-' : '~'}
                     </span>{' '}
                     {diff}

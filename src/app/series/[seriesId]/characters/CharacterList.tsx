@@ -194,7 +194,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
               type="text"
               value={form.name || ''}
               onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-[var(--color-primary)] focus:outline-none"
               placeholder="Character name"
             />
           </div>
@@ -203,7 +203,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
             <select
               value={form.role || ''}
               onChange={(e) => setForm(prev => ({ ...prev, role: e.target.value }))}
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-[var(--color-primary)] focus:outline-none"
             >
               <option value="">Select role</option>
               <option value="protagonist">Protagonist</option>
@@ -220,7 +220,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
           <textarea
             value={form.description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-[var(--color-primary)] focus:outline-none"
             rows={2}
             placeholder="Brief character description"
           />
@@ -231,7 +231,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
           <textarea
             value={form.visual_description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, visual_description: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-[var(--color-primary)] focus:outline-none"
             rows={2}
             placeholder="Physical appearance, clothing, distinctive features"
           />
@@ -242,7 +242,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
           <textarea
             value={form.personality_traits || ''}
             onChange={(e) => setForm(prev => ({ ...prev, personality_traits: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-[var(--color-primary)] focus:outline-none"
             rows={2}
             placeholder="Key personality characteristics"
           />
@@ -253,7 +253,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
           <textarea
             value={form.background || ''}
             onChange={(e) => setForm(prev => ({ ...prev, background: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-[var(--color-primary)] focus:outline-none"
             rows={3}
             placeholder="Character history and backstory"
           />
@@ -287,7 +287,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
           <button
             onClick={saveCharacter}
             disabled={!form.name?.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
           >
             {isCreating ? 'Create Character' : 'Save Changes'}
           </button>
@@ -309,7 +309,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
         {!isCreating && !editingId && (
           <button
             onClick={startCreate}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:opacity-90 px-4 py-2 rounded font-medium"
           >
             + New Character
           </button>
@@ -328,7 +328,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
           </p>
           <button
             onClick={startCreate}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:opacity-90 px-4 py-2 rounded font-medium"
           >
             Create Your First Character
           </button>
@@ -339,7 +339,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
             <div
               key={character.id}
               className={`bg-[var(--bg-secondary)] border rounded-lg p-4 ${
-                editingId === character.id ? 'border-blue-500' : 'border-[var(--border)]'
+                editingId === character.id ? 'border-[var(--color-primary)]' : 'border-[var(--border)]'
               }`}
             >
               <div className="flex items-start justify-between">
@@ -348,8 +348,8 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
                     <h3 className="font-semibold text-lg">{character.name}</h3>
                     {character.role && (
                       <span className={`text-xs px-2 py-0.5 rounded ${
-                        character.role === 'protagonist' ? 'bg-blue-900 text-blue-300' :
-                        character.role === 'antagonist' ? 'bg-red-900 text-red-300' :
+                        character.role === 'protagonist' ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]' :
+                        character.role === 'antagonist' ? 'bg-[var(--color-error)]/20 text-[var(--color-error)]' :
                         'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
                       }`}>
                         {character.role}
@@ -369,7 +369,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
                 <div className="flex gap-2 ml-4">
                   <a
                     href={`/series/${seriesId}/characters/${character.id}/voice`}
-                    className="text-purple-400 hover:text-purple-300 text-sm"
+                    className="text-[var(--accent-hover)] hover:opacity-80 text-sm"
                   >
                     Voice
                   </a>
@@ -381,7 +381,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
                   </button>
                   <button
                     onClick={() => deleteCharacter(character.id)}
-                    className="text-[var(--text-secondary)] hover:text-red-400 text-sm"
+                    className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm"
                   >
                     Delete
                   </button>

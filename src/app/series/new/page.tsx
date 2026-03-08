@@ -101,7 +101,7 @@ export default function NewSeriesPage() {
             <button
               type="button"
               onClick={() => setMode('manual')}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all text-left ${
+              className={`flex-1 px-4 py-3 rounded-lg border-2 active:scale-[0.97] transition-all duration-150 ease-out text-left ${
                 mode === 'manual'
                   ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
                   : 'border-[var(--border)] hover:border-[var(--text-tertiary)]'
@@ -115,14 +115,14 @@ export default function NewSeriesPage() {
             <button
               type="button"
               onClick={() => setMode('guided')}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all text-left ${
+              className={`flex-1 px-4 py-3 rounded-lg border-2 active:scale-[0.97] transition-all duration-150 ease-out text-left ${
                 mode === 'guided'
-                  ? 'border-purple-500 bg-purple-500/10'
+                  ? 'border-[var(--accent-hover)] bg-[var(--accent-hover)]/10'
                   : 'border-[var(--border)] hover:border-[var(--text-tertiary)]'
               }`}
             >
               <div className="font-medium mb-1">
-                Guided AI <span className="text-purple-400">✨</span>
+                Guided AI <span className="text-[var(--accent-hover)]">✨</span>
               </div>
               <div className="text-sm text-[var(--text-secondary)]">
                 Develop your concept through dialogue
@@ -178,7 +178,7 @@ export default function NewSeriesPage() {
               </div>
             </>
           ) : (
-            <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-6">
+            <div className="bg-[var(--accent-hover)]/5 border border-[var(--accent-hover)]/20 rounded-lg p-6">
               <p className="text-[var(--text-secondary)] mb-2">
                 After creating your series, you&apos;ll enter a guided conversation with your AI writing partner.
               </p>
@@ -194,9 +194,9 @@ export default function NewSeriesPage() {
               disabled={loading || !formData.title}
               className={`${
                 mode === 'guided'
-                  ? 'bg-purple-600 hover:bg-purple-700'
+                  ? 'bg-[var(--accent-hover)] hover:bg-[var(--accent)]'
                   : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]'
-              } disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors`}
+              } disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium active:scale-[0.97] transition-all duration-150 ease-out`}
             >
               {loading
                 ? 'Creating...'
@@ -207,7 +207,7 @@ export default function NewSeriesPage() {
             </button>
             <Link
               href="/dashboard"
-              className="bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-6 py-3 rounded-lg font-medium transition-colors"
+              className="bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-6 py-3 rounded-lg font-medium active:scale-[0.97] transition-all duration-150 ease-out"
             >
               Cancel
             </Link>

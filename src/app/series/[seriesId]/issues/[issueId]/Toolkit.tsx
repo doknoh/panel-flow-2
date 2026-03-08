@@ -1118,7 +1118,7 @@ DRAFT MODE:
         >
           Alerts
           {activeAlerts.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-black text-[10px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--color-warning)] text-black text-[10px] font-bold rounded-full flex items-center justify-center">
               {activeAlerts.length}
             </span>
           )}
@@ -1127,7 +1127,7 @@ DRAFT MODE:
           onClick={() => setActiveTab('pacing')}
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
             activeTab === 'pacing'
-              ? 'bg-purple-600 text-white'
+              ? 'bg-[var(--accent-hover)] text-white'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -1137,7 +1137,7 @@ DRAFT MODE:
           onClick={() => setActiveTab('ai')}
           className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
             activeTab === 'ai'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[var(--color-primary)] text-white'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -1172,7 +1172,7 @@ DRAFT MODE:
                 <h3 className="font-semibold text-sm">Issue Context</h3>
                 <button
                   onClick={() => setIsEditingContext(!isEditingContext)}
-                  className="text-xs text-blue-400 hover:text-blue-300"
+                  className="text-xs text-[var(--color-primary)] hover:opacity-80"
                 >
                   {isEditingContext ? 'Cancel' : 'Edit'}
                 </button>
@@ -1286,7 +1286,7 @@ DRAFT MODE:
                   <button
                     onClick={saveContext}
                     disabled={saving}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] py-2 rounded text-sm sticky bottom-0"
+                    className="w-full bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] py-2 rounded text-sm sticky bottom-0"
                   >
                     {saving ? 'Saving...' : 'Save Context'}
                   </button>
@@ -1489,7 +1489,7 @@ DRAFT MODE:
                   {/* Delete button */}
                   <button
                     onClick={() => deleteCharacter(selectedCharacter.id)}
-                    className="w-full mt-4 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                    className="w-full mt-4 px-3 py-2 text-sm text-[var(--color-error)] hover:opacity-80 hover:bg-[var(--color-error)]/10 rounded transition-colors"
                   >
                     Delete Character
                   </button>
@@ -1642,7 +1642,7 @@ DRAFT MODE:
                   {/* Delete button */}
                   <button
                     onClick={() => deleteLocation(selectedLocation.id)}
-                    className="w-full mt-4 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                    className="w-full mt-4 px-3 py-2 text-sm text-[var(--color-error)] hover:opacity-80 hover:bg-[var(--color-error)]/10 rounded transition-colors"
                   >
                     Delete Location
                   </button>
@@ -1698,7 +1698,7 @@ DRAFT MODE:
                 onClick={() => setVisualsFilter('characters')}
                 className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
                   visualsFilter === 'characters'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[var(--color-primary)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -1708,7 +1708,7 @@ DRAFT MODE:
                 onClick={() => setVisualsFilter('locations')}
                 className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
                   visualsFilter === 'locations'
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-[var(--accent-hover)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -1737,8 +1737,8 @@ DRAFT MODE:
                   <div className="flex items-center gap-2">
                     <span className={`text-xs px-2 py-0.5 rounded ${
                       selectedVisual.entityType === 'character'
-                        ? 'bg-blue-900/50 text-blue-300'
-                        : 'bg-purple-900/50 text-purple-300'
+                        ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]'
+                        : 'bg-[var(--accent-hover)]/20 text-[var(--accent-hover)]'
                     }`}>
                       {selectedVisual.entityType}
                     </span>
@@ -1792,8 +1792,8 @@ DRAFT MODE:
                       <div className="absolute bottom-0 left-0 right-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className={`text-[10px] px-1 py-0.5 rounded inline-block ${
                           visual.entityType === 'character'
-                            ? 'bg-blue-600'
-                            : 'bg-purple-600'
+                            ? 'bg-[var(--color-primary)]'
+                            : 'bg-[var(--accent-hover)]'
                         }`}>
                           {visual.entityName}
                         </div>
@@ -1828,7 +1828,7 @@ DRAFT MODE:
 
             {activeAlerts.length === 0 ? (
               <div className="text-center py-8">
-                <div className="text-green-400 text-2xl mb-2">✓</div>
+                <div className="text-[var(--color-success)] text-2xl mb-2">✓</div>
                 <p className="text-[var(--text-secondary)] text-sm">No issues detected</p>
                 <p className="text-[var(--text-muted)] text-xs mt-1">
                   {dismissedAlerts.size > 0
@@ -1843,8 +1843,8 @@ DRAFT MODE:
                     key={alert.id}
                     className={`rounded-lg p-3 border ${
                       alert.severity === 'warning'
-                        ? 'bg-amber-900/20 border-amber-700/50'
-                        : 'bg-blue-900/20 border-blue-700/50'
+                        ? 'bg-[var(--color-warning)]/10 border-[var(--color-warning)]/30'
+                        : 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -1852,13 +1852,13 @@ DRAFT MODE:
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
                             alert.severity === 'warning'
-                              ? 'bg-amber-500/20 text-amber-400'
-                              : 'bg-blue-500/20 text-blue-400'
+                              ? 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
+                              : 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]'
                           }`}>
                             {alert.type}
                           </span>
                           <span className={`text-sm font-medium ${
-                            alert.severity === 'warning' ? 'text-amber-300' : 'text-blue-300'
+                            alert.severity === 'warning' ? 'text-[var(--color-warning)]' : 'text-[var(--color-primary)]'
                           }`}>
                             {alert.message}
                           </span>
@@ -1881,7 +1881,7 @@ DRAFT MODE:
             <div className="pt-4 border-t border-[var(--border)]">
               <a
                 href={`/series/${issue.series.id}/continuity`}
-                className="text-xs text-blue-400 hover:text-blue-300"
+                className="text-xs text-[var(--color-primary)] hover:opacity-80"
               >
                 Run full continuity check →
               </a>
@@ -1928,7 +1928,7 @@ DRAFT MODE:
                   onClick={() => setAiMode('outline')}
                   className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
                     aiMode === 'outline'
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-[var(--accent-hover)] text-white'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
@@ -1938,7 +1938,7 @@ DRAFT MODE:
                   onClick={() => setAiMode('draft')}
                   className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
                     aiMode === 'draft'
-                      ? 'bg-green-600 text-white'
+                      ? 'bg-[var(--color-success)] text-white'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
@@ -2005,7 +2005,7 @@ DRAFT MODE:
                     key={i}
                     className={`rounded-lg text-sm ${
                       msg.role === 'user'
-                        ? 'bg-blue-900/30 ml-4 p-3'
+                        ? 'bg-[var(--color-primary)]/10 ml-4 p-3'
                         : 'bg-[var(--bg-tertiary)] mr-2 p-3'
                     }`}
                   >
@@ -2030,19 +2030,19 @@ DRAFT MODE:
                               onClick={() => applySuggestion(suggestion)}
                               className={`w-full text-left p-2 rounded text-xs transition-colors ${
                                 isOutline
-                                  ? 'bg-purple-900/30 hover:bg-purple-900/50 border border-purple-700/50'
+                                  ? 'bg-[var(--accent-hover)]/10 hover:bg-[var(--accent-hover)]/20 border border-[var(--accent-hover)]/30'
                                   : isDialogue
-                                    ? 'bg-blue-900/30 hover:bg-blue-900/50 border border-blue-700/50'
+                                    ? 'bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 border border-[var(--color-primary)]/30'
                                     : isCaption
-                                      ? 'bg-amber-900/30 hover:bg-amber-900/50 border border-amber-700/50'
-                                      : 'bg-green-900/30 hover:bg-green-900/50 border border-green-700/50'
+                                      ? 'bg-[var(--color-warning)]/10 hover:bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/30'
+                                      : 'bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/20 border border-[var(--color-success)]/30'
                               }`}
                             >
                               <span className={`font-medium ${
-                                isOutline ? 'text-purple-300'
-                                  : isDialogue ? 'text-blue-300'
-                                    : isCaption ? 'text-amber-300'
-                                      : 'text-green-300'
+                                isOutline ? 'text-[var(--accent-hover)]'
+                                  : isDialogue ? 'text-[var(--color-primary)]'
+                                    : isCaption ? 'text-[var(--color-warning)]'
+                                      : 'text-[var(--color-success)]'
                               }`}>
                                 {isOutline ? '📋' : isDialogue ? '💬' : isCaption ? '📝' : '🎬'}{' '}
                                 {suggestion.type.replace(/_/g, ' ')} → {suggestion.targetLabel}
@@ -2080,7 +2080,7 @@ DRAFT MODE:
                 <button
                   onClick={sendMessage}
                   disabled={isLoading || !chatInput.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded text-sm shrink-0"
+                  className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded text-sm shrink-0"
                 >
                   Send
                 </button>

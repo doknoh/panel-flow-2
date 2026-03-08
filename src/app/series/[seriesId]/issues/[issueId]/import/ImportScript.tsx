@@ -962,7 +962,7 @@ ${pageContent}`,
             <div
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 i <= currentIndex
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[var(--color-primary)] text-white'
                   : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
               }`}
             >
@@ -970,7 +970,7 @@ ${pageContent}`,
             </div>
             {i < steps.length - 1 && (
               <div className={`w-8 h-0.5 mx-1 ${
-                i < currentIndex ? 'bg-blue-600' : 'bg-[var(--bg-tertiary)]'
+                i < currentIndex ? 'bg-[var(--color-primary)]' : 'bg-[var(--bg-tertiary)]'
               }`} />
             )}
           </div>
@@ -983,7 +983,7 @@ ${pageContent}`,
   const renderUploadStep = () => (
     <div className="space-y-6">
       <div
-        className="border-2 border-dashed border-[var(--border)] rounded-lg p-12 text-center hover:border-blue-500 transition-colors cursor-pointer"
+        className="border-2 border-dashed border-[var(--border)] rounded-lg p-12 text-center hover:border-[var(--color-primary)] transition-colors cursor-pointer"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
@@ -1029,12 +1029,12 @@ ${pageContent}`,
             }, 0)
           }}
           placeholder="Paste your script here..."
-          className="w-full h-64 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-4 py-3 text-sm font-mono resize-none focus:border-blue-500 focus:outline-none"
+          className="w-full h-64 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-4 py-3 text-sm font-mono resize-none focus:border-[var(--color-primary)] focus:outline-none"
         />
         {scriptText && (
           <button
             onClick={() => analyzeScript(scriptText)}
-            className="mt-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+            className="mt-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
           >
             Analyze Script
           </button>
@@ -1061,7 +1061,7 @@ ${pageContent}`,
 
         {detectedFormats.length > 0 ? (
           <div className="space-y-3">
-            <p className="text-sm text-green-400">
+            <p className="text-sm text-[var(--color-success)]">
               ✓ Detected {detectedFormats.length} possible format{detectedFormats.length !== 1 ? 's' : ''}
             </p>
 
@@ -1070,7 +1070,7 @@ ${pageContent}`,
                 key={format.pattern.name}
                 className={`block p-3 rounded-lg border cursor-pointer transition-colors ${
                   selectedFormat?.name === format.pattern.name
-                    ? 'border-blue-500 bg-blue-500/10'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
                     : 'border-[var(--border)] hover:border-[var(--border-hover)]'
                 }`}
               >
@@ -1105,7 +1105,7 @@ ${pageContent}`,
             ))}
           </div>
         ) : (
-          <div className="text-amber-400 p-4 bg-amber-900/20 rounded-lg">
+          <div className="text-[var(--color-warning)] p-4 bg-[var(--color-warning)]/10 rounded-lg">
             <p className="font-medium">No standard format detected</p>
             <p className="text-sm mt-1">
               Your script may use a custom format. Select a format manually or try adding PAGE markers.
@@ -1125,7 +1125,7 @@ ${pageContent}`,
                 onClick={() => setSelectedFormat(pattern)}
                 className={`text-left p-2 rounded text-sm ${
                   selectedFormat?.name === pattern.name
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[var(--color-primary)] text-white'
                     : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]/80'
                 }`}
               >
@@ -1152,7 +1152,7 @@ ${pageContent}`,
         <button
           onClick={() => setCurrentStep('structure')}
           disabled={!selectedFormat}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
         >
           Continue to Structure →
         </button>
@@ -1164,7 +1164,7 @@ ${pageContent}`,
   const renderStructureStep = () => (
     <div className="space-y-6">
       {/* AI Analysis Section */}
-      <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-700/50 rounded-lg p-4">
+      <div className="bg-gradient-to-r from-[var(--accent-hover)]/10 to-[var(--color-primary)]/10 border border-[var(--accent-hover)]/30 rounded-lg p-4">
         <div className="flex items-center gap-3 mb-3">
           <span className="text-2xl">🤖</span>
           <div>
@@ -1178,7 +1178,7 @@ ${pageContent}`,
         {!aiAnalysis && !isAnalyzingStructure && (
           <button
             onClick={analyzeStructureWithAI}
-            className="w-full bg-purple-600 hover:bg-purple-700 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+            className="w-full bg-[var(--accent-hover)] hover:opacity-90 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
           >
             <span>✨</span>
             Analyze Structure with AI
@@ -1186,7 +1186,7 @@ ${pageContent}`,
         )}
 
         {isAnalyzingStructure && (
-          <div className="bg-purple-900/20 rounded-lg p-4 text-center">
+          <div className="bg-[var(--accent-hover)]/20 rounded-lg p-4 text-center">
             <div className="text-3xl mb-2 animate-pulse">🔮</div>
             <p className="text-sm">AI is analyzing your script structure...</p>
             <p className="text-xs text-[var(--text-muted)] mt-1">This may take 15-30 seconds</p>
@@ -1194,11 +1194,11 @@ ${pageContent}`,
         )}
 
         {aiAnalysisError && (
-          <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 mt-3">
-            <p className="text-sm text-red-400">{aiAnalysisError}</p>
+          <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg p-3 mt-3">
+            <p className="text-sm text-[var(--color-error)]">{aiAnalysisError}</p>
             <button
               onClick={analyzeStructureWithAI}
-              className="text-sm text-red-400 underline mt-1"
+              className="text-sm text-[var(--color-error)] underline mt-1"
             >
               Try again
             </button>
@@ -1207,7 +1207,7 @@ ${pageContent}`,
 
         {aiAnalysis && (
           <div className="space-y-4 mt-4">
-            <div className="flex items-center gap-2 text-green-400">
+            <div className="flex items-center gap-2 text-[var(--color-success)]">
               <span>✓</span>
               <span className="font-medium">AI Analysis Complete</span>
             </div>
@@ -1220,7 +1220,7 @@ ${pageContent}`,
             {/* Plotlines */}
             {aiAnalysis.plotlines.length > 1 && (
               <div>
-                <h4 className="text-sm font-medium mb-2 text-purple-400">
+                <h4 className="text-sm font-medium mb-2 text-[var(--accent-hover)]">
                   📊 Plotlines ({aiAnalysis.plotlines.length})
                 </h4>
                 <div className="space-y-2">
@@ -1241,13 +1241,13 @@ ${pageContent}`,
 
             {/* Acts & Scenes */}
             <div>
-              <h4 className="text-sm font-medium mb-2 text-blue-400">
+              <h4 className="text-sm font-medium mb-2 text-[var(--color-primary)]">
                 🎬 Acts & Scenes
               </h4>
               <div className="bg-[var(--bg-tertiary)] rounded-lg p-3 max-h-64 overflow-y-auto">
                 {aiAnalysis.acts.map((act) => (
                   <div key={act.id} className="mb-4 last:mb-0">
-                    <div className="font-medium text-blue-400 flex items-center gap-2">
+                    <div className="font-medium text-[var(--color-primary)] flex items-center gap-2">
                       <span>{act.name}</span>
                       <span className="text-xs text-[var(--text-muted)]">
                         (pages {act.startPage}-{act.endPage})
@@ -1268,7 +1268,7 @@ ${pageContent}`,
                                 {' '}(pp. {scene.startPage}-{scene.endPage})
                               </span>
                               {plotline && aiAnalysis.plotlines.length > 1 && (
-                                <span className="text-xs text-purple-400 ml-2">
+                                <span className="text-xs text-[var(--accent-hover)] ml-2">
                                   [{plotline.name.split(':')[0]}]
                                 </span>
                               )}
@@ -1309,8 +1309,8 @@ ${pageContent}`,
           <>
             <div className={`p-3 rounded-lg mb-4 ${
               structureAnalysis.suggestedStructure === 'flat'
-                ? 'bg-amber-900/20 border border-amber-800'
-                : 'bg-green-900/20 border border-green-800'
+                ? 'bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30'
+                : 'bg-[var(--color-success)]/10 border border-[var(--color-success)]/30'
             }`}>
               <div className="font-medium">
                 {getStructureLabel(structureAnalysis.suggestedStructure)}
@@ -1340,7 +1340,7 @@ ${pageContent}`,
                   <div className="bg-[var(--bg-tertiary)] rounded-lg p-3 max-h-48 overflow-y-auto">
                     {structureAnalysis.acts.map((act, actIdx) => (
                       <div key={actIdx} className="mb-3 last:mb-0">
-                        <div className="font-medium text-blue-400">{act.name}</div>
+                        <div className="font-medium text-[var(--color-primary)]">{act.name}</div>
                         {act.scenes.length > 0 && (
                           <div className="ml-4 mt-1 space-y-1">
                             {act.scenes.map((scene, sceneIdx) => (
@@ -1411,7 +1411,7 @@ ${pageContent}`,
             parseScript()
           }}
           disabled={isAnalyzingStructure}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
         >
           Parse Script →
         </button>
@@ -1422,7 +1422,7 @@ ${pageContent}`,
   // Step 4: Parsing Progress
   const renderParseStep = () => (
     <div className="space-y-6">
-      <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-6 text-center">
+      <div className="bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/30 rounded-lg p-6 text-center">
         <div className="text-4xl mb-4 animate-pulse">🔄</div>
         <h3 className="font-semibold text-lg mb-2">Parsing Script...</h3>
         <p className="text-sm text-[var(--text-secondary)] mb-4">
@@ -1430,7 +1430,7 @@ ${pageContent}`,
         </p>
         <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-2 mb-2">
           <div
-            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+            className="bg-[var(--color-primary)] h-2 rounded-full transition-all duration-300"
             style={{ width: `${importProgress}%` }}
           />
         </div>
@@ -1532,7 +1532,7 @@ ${pageContent}`,
 
               <div className="w-20 text-right">
                 {speaker.mapping === 'new' && (
-                  <span className="text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded">Create</span>
+                  <span className="text-xs text-[var(--color-success)] bg-[var(--color-success)]/10 px-2 py-1 rounded">Create</span>
                 )}
                 {speaker.mapping === 'skip' && (
                   <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] px-2 py-1 rounded">Skip</span>
@@ -1555,7 +1555,7 @@ ${pageContent}`,
             computeDiff()
             setCurrentStep('preview')
           }}
-          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
         >
           Continue to Preview →
         </button>
@@ -1577,7 +1577,7 @@ ${pageContent}`,
           <p className="text-sm text-[var(--text-secondary)]">
             {parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels total
             {existingPageCount > 0 && (
-              <span className="text-amber-400 ml-2">
+              <span className="text-[var(--color-warning)] ml-2">
                 • Will replace {existingPageCount} existing pages
               </span>
             )}
@@ -1592,7 +1592,7 @@ ${pageContent}`,
           </button>
           <button
             onClick={importParsedScript}
-            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-success)] hover:opacity-90 px-4 py-2 rounded font-medium"
           >
             Import Script
           </button>
@@ -1646,7 +1646,7 @@ ${pageContent}`,
                   </span>
                   <button
                     onClick={() => addPanel(page.number)}
-                    className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded transition-opacity"
                     title="Add panel"
                   >
                     + Panel
@@ -1654,7 +1654,7 @@ ${pageContent}`,
                   {parsedPages.length > 1 && (
                     <button
                       onClick={() => deletePage(page.number)}
-                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-error)] hover:opacity-90 rounded transition-opacity"
                       title="Delete page"
                     >
                       ×
@@ -1671,7 +1671,7 @@ ${pageContent}`,
                       key={panel.number}
                       className={`border-l-2 pl-3 group/panel transition-colors ${
                         isEditing
-                          ? 'border-blue-500 bg-blue-500/5'
+                          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
                           : 'border-[var(--border)] hover:border-[var(--border-hover)]'
                       }`}
                     >
@@ -1683,7 +1683,7 @@ ${pageContent}`,
                           {isEditing ? (
                             <button
                               onClick={() => setEditingPanel(null)}
-                              className="text-xs px-2 py-0.5 bg-green-600 hover:bg-green-700 rounded"
+                              className="text-xs px-2 py-0.5 bg-[var(--color-success)] hover:opacity-90 rounded"
                             >
                               Done
                             </button>
@@ -1698,7 +1698,7 @@ ${pageContent}`,
                           {page.panels.length > 1 && (
                             <button
                               onClick={() => deletePanel(page.number, panel.number)}
-                              className="text-xs px-2 py-0.5 bg-red-600/50 hover:bg-red-600 rounded"
+                              className="text-xs px-2 py-0.5 bg-[var(--color-error)]/50 hover:bg-[var(--color-error)] rounded"
                               title="Delete panel"
                             >
                               ×
@@ -1714,7 +1714,7 @@ ${pageContent}`,
                             <textarea
                               value={panel.visualDescription}
                               onChange={(e) => updatePanelDescription(page.number, panel.number, e.target.value)}
-                              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500"
+                              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-[var(--color-primary)]"
                               rows={3}
                             />
                           </div>
@@ -1727,13 +1727,13 @@ ${pageContent}`,
                                   <input
                                     value={d.speaker}
                                     onChange={(e) => updateDialogue(page.number, panel.number, i, { speaker: e.target.value })}
-                                    className="w-32 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+                                    className="w-32 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm focus:outline-none focus:border-[var(--color-primary)]"
                                     placeholder="Speaker"
                                   />
                                   <input
                                     value={d.text}
                                     onChange={(e) => updateDialogue(page.number, panel.number, i, { text: e.target.value })}
-                                    className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+                                    className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm focus:outline-none focus:border-[var(--color-primary)]"
                                     placeholder="Dialogue text"
                                   />
                                 </div>
@@ -1747,17 +1747,17 @@ ${pageContent}`,
                             <p className="text-sm mb-2">{panel.visualDescription}</p>
                           )}
                           {panel.captions.map((caption, i) => (
-                            <div key={i} className="text-sm text-amber-400 mb-1">
+                            <div key={i} className="text-sm text-[var(--color-warning)] mb-1">
                               CAP: {caption.text}
                             </div>
                           ))}
                           {panel.dialogue.map((d, i) => (
                             <div key={i} className="text-sm mb-1">
-                              <span className="font-medium text-blue-400">{d.speaker}:</span> {d.text}
+                              <span className="font-medium text-[var(--color-primary)]">{d.speaker}:</span> {d.text}
                             </div>
                           ))}
                           {panel.sfx.map((sfx, i) => (
-                            <div key={i} className="text-sm text-green-400 font-bold">
+                            <div key={i} className="text-sm text-[var(--color-success)] font-bold">
                               SFX: {sfx}
                             </div>
                           ))}
@@ -1777,12 +1777,12 @@ ${pageContent}`,
   // Step 7: Importing
   const renderImportingStep = () => (
     <div className="space-y-6">
-      <div className="bg-green-900/20 border border-green-800 rounded-lg p-6 text-center">
+      <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-lg p-6 text-center">
         <div className="text-4xl mb-4 animate-pulse">📥</div>
         <h3 className="font-semibold text-lg mb-2">Importing to Panel Flow...</h3>
         <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-2 mb-2">
           <div
-            className="bg-green-500 h-2 rounded-full transition-all duration-300"
+            className="bg-[var(--color-success)] h-2 rounded-full transition-all duration-300"
             style={{ width: `${importProgress}%` }}
           />
         </div>
@@ -1798,8 +1798,8 @@ ${pageContent}`,
       {renderStepIndicator()}
 
       {parseError && (
-        <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
-          <h3 className="font-medium text-red-400 mb-1">Error</h3>
+        <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg p-4 mb-6">
+          <h3 className="font-medium text-[var(--color-error)] mb-1">Error</h3>
           <p className="text-sm">{parseError}</p>
         </div>
       )}

@@ -68,7 +68,7 @@ export default function AcceptInvitation({
   return (
     <div>
       {error && (
-        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-4 text-sm text-red-400">
+        <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/50 rounded-lg p-4 mb-4 text-sm text-[var(--color-error)]">
           {error}
         </div>
       )}

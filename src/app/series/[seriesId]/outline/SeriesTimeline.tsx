@@ -43,16 +43,16 @@ interface SeriesTimelineProps {
 }
 
 const statusColors: Record<string, { bg: string; border: string; text: string }> = {
-  outline: { bg: 'bg-slate-800', border: 'border-slate-600', text: 'text-slate-300' },
-  drafting: { bg: 'bg-blue-900/50', border: 'border-blue-500', text: 'text-blue-300' },
-  revision: { bg: 'bg-amber-900/50', border: 'border-amber-500', text: 'text-amber-300' },
-  complete: { bg: 'bg-green-900/50', border: 'border-green-500', text: 'text-green-300' },
+  outline: { bg: 'bg-[var(--bg-tertiary)]', border: 'border-[var(--border-strong)]', text: 'text-[var(--text-secondary)]' },
+  drafting: { bg: 'bg-[var(--color-primary)]/10', border: 'border-[var(--color-primary)]', text: 'text-[var(--color-primary)]' },
+  revision: { bg: 'bg-[var(--color-warning)]/10', border: 'border-[var(--color-warning)]', text: 'text-[var(--color-warning)]' },
+  complete: { bg: 'bg-[var(--color-success)]/10', border: 'border-[var(--color-success)]', text: 'text-[var(--color-success)]' },
 }
 
 const actLabels: Record<string, { label: string; color: string }> = {
-  BEGINNING: { label: 'Act 1: Beginning', color: 'text-blue-400' },
-  MIDDLE: { label: 'Act 2: Middle', color: 'text-purple-400' },
-  END: { label: 'Act 3: End', color: 'text-red-400' },
+  BEGINNING: { label: 'Act 1: Beginning', color: 'text-[var(--color-primary)]' },
+  MIDDLE: { label: 'Act 2: Middle', color: 'text-[var(--accent-hover)]' },
+  END: { label: 'Act 3: End', color: 'text-[var(--color-error)]' },
 }
 
 export default function SeriesTimeline({ series, onRefresh }: SeriesTimelineProps) {
@@ -380,7 +380,7 @@ export default function SeriesTimeline({ series, onRefresh }: SeriesTimelineProp
             <p className="text-[var(--text-muted)]">No issues yet</p>
             <Link
               href={`/series/${series.id}`}
-              className="text-blue-400 hover:text-blue-300 text-sm mt-2 inline-block"
+              className="text-[var(--color-primary)] hover:opacity-90 text-sm mt-2 inline-block"
             >
               Create your first issue
             </Link>
@@ -469,7 +469,7 @@ export default function SeriesTimeline({ series, onRefresh }: SeriesTimelineProp
                           setEditingAssignment(null)
                         }}
                         disabled={isSaving}
-                        className="text-sm text-red-400 hover:text-red-300"
+                        className="text-sm text-[var(--color-error)] hover:opacity-90"
                       >
                         Remove from this issue
                       </button>
@@ -481,7 +481,7 @@ export default function SeriesTimeline({ series, onRefresh }: SeriesTimelineProp
                         setEditingAssignment(null)
                       }}
                       disabled={isSaving}
-                      className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded text-sm"
+                      className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] py-2 rounded text-sm"
                     >
                       Add plotline to this issue
                     </button>

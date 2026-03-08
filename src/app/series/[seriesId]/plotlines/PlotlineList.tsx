@@ -197,7 +197,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
             type="text"
             value={form.name || ''}
             onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 focus:border-[var(--color-primary)] focus:outline-none"
             placeholder="e.g., Marshall IRL, Tracy Solo, B-Plot"
           />
         </div>
@@ -227,7 +227,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
           <textarea
             value={form.description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 resize-none focus:border-[var(--color-primary)] focus:outline-none"
             rows={3}
             placeholder="Brief description of this plotline's focus"
           />
@@ -237,7 +237,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
           <button
             onClick={savePlotline}
             disabled={!form.name?.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
           >
             {isCreating ? 'Create Plotline' : 'Save Changes'}
           </button>
@@ -266,7 +266,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
         {!isCreating && !editingId && (
           <button
             onClick={startCreate}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
           >
             + New Plotline
           </button>
@@ -285,7 +285,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
           </p>
           <button
             onClick={startCreate}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
           >
             Create Your First Plotline
           </button>
@@ -296,7 +296,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
             <div
               key={plotline.id}
               className={`bg-[var(--bg-secondary)] border rounded-lg p-4 ${
-                editingId === plotline.id ? 'border-blue-500' : 'border-[var(--border)]'
+                editingId === plotline.id ? 'border-[var(--color-primary)]' : 'border-[var(--border)]'
               }`}
             >
               <div className="flex items-start justify-between">
@@ -321,7 +321,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
                   </button>
                   <button
                     onClick={() => deletePlotline(plotline.id)}
-                    className="text-[var(--text-secondary)] hover:text-red-400 text-sm"
+                    className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm"
                   >
                     Delete
                   </button>

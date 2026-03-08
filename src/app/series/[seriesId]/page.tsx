@@ -95,7 +95,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         <div className="flex items-center gap-4">
           <Link
             href={`/series/${seriesId}/deadlines`}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg active:scale-[0.97] transition-all duration-150 ease-out"
           >
             <Calendar className="w-4 h-4" />
             Deadlines
@@ -111,10 +111,10 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           <div className="mb-4 flex items-center gap-2">
             <span className={`text-xs px-3 py-1 rounded-full ${
               userRole === 'editor'
-                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
                 : userRole === 'commenter'
-                ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                ? 'bg-[var(--color-warning)]/20 text-[var(--color-warning)] border border-[var(--color-warning)]/30'
+                : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] border border-[var(--border)]'
             }`}>
               {userRole === 'editor' ? '✏️ Editor Access' : userRole === 'commenter' ? '💬 Commenter Access' : '👁️ View Only'}
             </span>
@@ -169,35 +169,35 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Link
               href={`/series/${seriesId}/canvas`}
-              className="bg-gradient-to-br from-amber-900/50 to-[var(--bg-secondary)] border border-amber-700/50 rounded-lg p-4 hover:border-amber-600 hover:from-amber-900/70 transition-colors group"
+              className="bg-gradient-to-br from-[var(--color-warning)]/20 to-[var(--bg-secondary)] border border-[var(--color-warning)]/30 rounded-lg p-4 hover:border-[var(--color-warning)]/50 hover:from-[var(--color-warning)]/30 transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">💭</div>
-              <h3 className="font-medium mb-1 text-amber-200">Canvas</h3>
-              <p className="text-amber-300/70 text-sm">Brainstorm fuzzy ideas</p>
+              <h3 className="font-medium mb-1 text-[var(--color-warning)]">Canvas</h3>
+              <p className="text-[var(--color-warning)]/70 text-sm">Brainstorm fuzzy ideas</p>
             </Link>
             <Link
               href={`/series/${seriesId}/guide`}
-              className="bg-gradient-to-br from-purple-900/50 to-[var(--bg-secondary)] border border-purple-700/50 rounded-lg p-4 hover:border-purple-600 hover:from-purple-900/70 transition-colors group"
+              className="bg-gradient-to-br from-[var(--accent-hover)]/20 to-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 rounded-lg p-4 hover:border-[var(--accent-hover)]/50 hover:from-[var(--accent-hover)]/30 transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🎭</div>
-              <h3 className="font-medium mb-1 text-purple-200">Guide</h3>
-              <p className="text-purple-300/70 text-sm">AI-guided writing sessions</p>
+              <h3 className="font-medium mb-1 text-[var(--accent-hover)]">Guide</h3>
+              <p className="text-[var(--accent-hover)]/70 text-sm">AI-guided writing sessions</p>
             </Link>
             <Link
               href={`/series/${seriesId}/outline`}
-              className="bg-gradient-to-br from-indigo-900/50 to-[var(--bg-secondary)] border border-indigo-700/50 rounded-lg p-4 hover:border-indigo-600 hover:from-indigo-900/70 transition-colors group"
+              className="bg-gradient-to-br from-[var(--accent-hover)]/20 to-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 rounded-lg p-4 hover:border-[var(--accent-hover)]/50 hover:from-[var(--accent-hover)]/30 transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">📋</div>
-              <h3 className="font-medium mb-1 text-indigo-200">Series Outline</h3>
-              <p className="text-indigo-300/70 text-sm">Timeline view & plotline tracking</p>
+              <h3 className="font-medium mb-1 text-[var(--accent-hover)]">Series Outline</h3>
+              <p className="text-[var(--accent-hover)]/70 text-sm">Timeline view & plotline tracking</p>
             </Link>
             <Link
               href={`/series/${seriesId}/weave`}
-              className="bg-gradient-to-br from-rose-900/50 to-[var(--bg-secondary)] border border-rose-700/50 rounded-lg p-4 hover:border-rose-600 hover:from-rose-900/70 transition-colors group"
+              className="bg-gradient-to-br from-[var(--color-error)]/20 to-[var(--bg-secondary)] border border-[var(--color-error)]/30 rounded-lg p-4 hover:border-[var(--color-error)]/50 hover:from-[var(--color-error)]/30 transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🧬</div>
-              <h3 className="font-medium mb-1 text-rose-200">Series Weave</h3>
-              <p className="text-rose-300/70 text-sm">Plotlines across all issues</p>
+              <h3 className="font-medium mb-1 text-[var(--color-error)]">Series Weave</h3>
+              <p className="text-[var(--color-error)]/70 text-sm">Plotlines across all issues</p>
             </Link>
             <Link
               href={`/series/${seriesId}/analytics`}
@@ -225,11 +225,11 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             </Link>
             <Link
               href={`/series/${seriesId}/patterns`}
-              className="bg-gradient-to-br from-cyan-900/50 to-[var(--bg-secondary)] border border-cyan-700/50 rounded-lg p-4 hover:border-cyan-600 hover:from-cyan-900/70 transition-colors group"
+              className="bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--bg-secondary)] border border-[var(--color-primary)]/30 rounded-lg p-4 hover:border-[var(--color-primary)]/50 hover:from-[var(--color-primary)]/30 transition-colors group"
             >
               <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🕸️</div>
-              <h3 className="font-medium mb-1 text-cyan-200">Patterns</h3>
-              <p className="text-cyan-300/70 text-sm">Cross-issue weaving</p>
+              <h3 className="font-medium mb-1 text-[var(--color-primary)]">Patterns</h3>
+              <p className="text-[var(--color-primary)]/70 text-sm">Cross-issue weaving</p>
             </Link>
             <Link
               href={`/series/${seriesId}/notes`}
