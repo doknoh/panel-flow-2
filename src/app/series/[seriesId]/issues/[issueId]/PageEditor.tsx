@@ -7,6 +7,7 @@ import { useOffline } from '@/contexts/OfflineContext'
 import { useUndo } from '@/contexts/UndoContext'
 import PageTypeSelector from './PageTypeSelector'
 import CommentButton from '../../collaboration/CommentButton'
+import DescriptionAnalysis from '@/components/DescriptionAnalysis'
 import {
   DndContext,
   closestCenter,
@@ -128,6 +129,13 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
+  const [mentionState, setMentionState] = useState<{
+    panelId: string
+    query: string
+    position: { top: number; left: number }
+    startIndex: number
+  } | null>(null)
+  const [mentionIndex, setMentionIndex] = useState(0)
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const lastPageIdRef = useRef<string | null>(null)
   const optimisticIdsRef = useRef<Set<string>>(new Set())
@@ -484,6 +492,84 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   const handleOtherFieldBlur = (panel: Panel, field: 'notes' | 'shot_type') => {
     endTextEdit(panel.id, field, panel[field] || null)
     handlePanelBlur(panel)
+  }
+
+  // @mention filtering
+  const filteredMentionCharacters = useMemo(() => {
+    if (!mentionState) return []
+    const q = mentionState.query.toLowerCase()
+    return characters.filter(c =>
+      c.name.toLowerCase().includes(q)
+    ).slice(0, 8)
+  }, [mentionState, characters])
+
+  // Handle @mention keydown in visual_description
+  const handleDescriptionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, panelId: string) => {
+    if (mentionState && mentionState.panelId === panelId) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setMentionIndex(prev => Math.min(prev + 1, filteredMentionCharacters.length - 1))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setMentionIndex(prev => Math.max(prev - 1, 0))
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        if (filteredMentionCharacters.length > 0) {
+          e.preventDefault()
+          insertMention(panelId, filteredMentionCharacters[mentionIndex])
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setMentionState(null)
+      }
+    }
+  }
+
+  // Handle @mention input change
+  const handleDescriptionInput = (e: React.ChangeEvent<HTMLTextAreaElement>, panelId: string) => {
+    const textarea = e.target
+    const value = textarea.value
+    const cursorPos = textarea.selectionStart
+
+    // Look backward from cursor for @ trigger
+    const textBeforeCursor = value.slice(0, cursorPos)
+    const atIndex = textBeforeCursor.lastIndexOf('@')
+
+    if (atIndex >= 0) {
+      const query = textBeforeCursor.slice(atIndex + 1)
+      // Only show if @ is at start or after a space, and query has no spaces
+      const charBefore = atIndex > 0 ? textBeforeCursor[atIndex - 1] : ' '
+      if ((charBefore === ' ' || charBefore === '\n' || atIndex === 0) && !query.includes(' ')) {
+        // Calculate position for dropdown
+        const rect = textarea.getBoundingClientRect()
+        setMentionState({
+          panelId,
+          query,
+          position: { top: rect.bottom + 4, left: rect.left },
+          startIndex: atIndex,
+        })
+        setMentionIndex(0)
+        return
+      }
+    }
+
+    setMentionState(null)
+  }
+
+  // Insert selected character mention
+  const insertMention = (panelId: string, character: Character) => {
+    if (!mentionState) return
+    const panel = panels.find(p => p.id === panelId)
+    if (!panel) return
+
+    const text = panel.visual_description || ''
+    const displayName = character.name.toUpperCase()
+    // Replace @query with CHARACTER NAME
+    const before = text.slice(0, mentionState.startIndex)
+    const after = text.slice(mentionState.startIndex + 1 + mentionState.query.length)
+    const newText = before + displayName + after
+
+    updatePanelField(panelId, 'visual_description', newText)
+    setMentionState(null)
   }
 
   const addDialogue = async (panelId: string, options?: { defaultCharacterId?: string | null; autoFocus?: boolean }) => {
@@ -1169,11 +1255,44 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                 onChange={(e) => {
                                   updatePanelField(panel.id, 'visual_description', e.target.value)
                                   autoResize(e.target)
+                                  handleDescriptionInput(e, panel.id)
                                 }}
-                                onBlur={() => handleVisualDescriptionBlur(panel)}
-                                placeholder="Describe what the reader sees in this panel..."
+                                onKeyDown={(e) => handleDescriptionKeyDown(e, panel.id)}
+                                onBlur={() => {
+                                  // Delay to allow mention click
+                                  setTimeout(() => setMentionState(null), 150)
+                                  handleVisualDescriptionBlur(panel)
+                                }}
+                                placeholder="Describe what the reader sees... (type @ to mention a character)"
                                 className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none"
                                 style={{ minHeight: '60px' }}
+                              />
+                              {/* @mention dropdown */}
+                              {mentionState && mentionState.panelId === panel.id && filteredMentionCharacters.length > 0 && (
+                                <div
+                                  className="absolute z-50 mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 min-w-[180px] max-h-[200px] overflow-y-auto"
+                                >
+                                  {filteredMentionCharacters.map((char, idx) => (
+                                    <button
+                                      key={char.id}
+                                      onMouseDown={(e) => {
+                                        e.preventDefault()
+                                        insertMention(panel.id, char)
+                                      }}
+                                      className={`w-full px-3 py-1.5 text-left text-sm flex items-center gap-2 ${
+                                        idx === mentionIndex
+                                          ? 'bg-[var(--color-primary)]/20 text-[var(--text-primary)]'
+                                          : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
+                                      }`}
+                                    >
+                                      <span className="font-medium">{char.name}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              <DescriptionAnalysis
+                                visualDescription={panel.visual_description || ''}
+                                shotType={panel.shot_type}
                               />
                             </div>
 

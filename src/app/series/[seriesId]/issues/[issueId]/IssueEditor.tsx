@@ -22,6 +22,7 @@ import { exportIssueToTxt } from '@/lib/exportTxt'
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import CommandPalette from '@/components/CommandPalette'
 
 interface Plotline {
   id: string
@@ -868,6 +869,12 @@ function IssueEditorContent({
               📜 Script
             </button>
             <Link
+              href={`/series/${seriesId}/issues/${issue.id}/read`}
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1"
+            >
+              📖 Read
+            </Link>
+            <Link
               href={`/series/${seriesId}/issues/${issue.id}/import`}
               className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
             >
@@ -1137,6 +1144,9 @@ function IssueEditorContent({
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
       />
+
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette seriesId={seriesId} issueId={issue.id} />
 
       {/* Jump to Page Modal */}
       <JumpToPageModal

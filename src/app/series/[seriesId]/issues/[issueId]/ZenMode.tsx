@@ -69,6 +69,8 @@ export default function ZenMode({
   const [panels, setPanels] = useState<Panel[]>(page.panels || [])
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
+  const [sessionWordCount, setSessionWordCount] = useState(0)
+  const initialWordCountRef = useRef(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
@@ -80,6 +82,25 @@ export default function ZenMode({
     setPanels(page.panels || [])
     setCurrentPanelIndex(0)
   }, [page.id])
+
+  // Track initial word count on mount
+  useEffect(() => {
+    const totalWords = (page.panels || []).reduce((sum, p) => {
+      const desc = (p.visual_description || '').trim()
+      return sum + (desc ? desc.split(/\s+/).length : 0)
+    }, 0)
+    initialWordCountRef.current = totalWords
+  }, [])
+
+  // Update session word count when panels change
+  useEffect(() => {
+    const currentTotal = panels.reduce((sum, p) => {
+      const desc = (p.visual_description || '').trim()
+      return sum + (desc ? desc.split(/\s+/).length : 0)
+    }, 0)
+    const delta = currentTotal - initialWordCountRef.current
+    setSessionWordCount(Math.max(0, delta))
+  }, [panels])
 
   // Focus textarea on mount and panel change
   useEffect(() => {
@@ -282,7 +303,7 @@ export default function ZenMode({
       </div>
 
       {/* Main writing area - centered with typewriter scroll */}
-      <div className="flex-1 flex items-center justify-center px-8 py-20">
+      <div className="flex-1 flex items-center justify-center px-8 py-20 overflow-y-auto">
         <div className="w-full max-w-2xl space-y-8">
           {/* Panel indicator */}
           <div className="flex items-center justify-center gap-2">
@@ -304,6 +325,14 @@ export default function ZenMode({
               />
             ))}
           </div>
+
+          {/* Previous panel context (faded) */}
+          {currentPanelIndex > 0 && panels[currentPanelIndex - 1] && (
+            <div className="opacity-20 text-sm text-[var(--text-muted)] italic border-b border-[var(--border)] pb-4 line-clamp-3">
+              <span className="text-xs uppercase tracking-wider block mb-1">Panel {panels[currentPanelIndex - 1].panel_number}</span>
+              {panels[currentPanelIndex - 1].visual_description || 'No description'}
+            </div>
+          )}
 
           {/* Visual Description */}
           <div className="space-y-2">
@@ -369,11 +398,23 @@ export default function ZenMode({
               className="w-full bg-transparent text-[var(--text-muted)] text-sm leading-relaxed resize-none focus:outline-none placeholder:text-[var(--text-muted)] min-h-[60px]"
             />
           </div>
+
+          {/* Next panel context (faded) */}
+          {currentPanelIndex < panels.length - 1 && panels[currentPanelIndex + 1] && (
+            <div className="opacity-20 text-sm text-[var(--text-muted)] italic border-t border-[var(--border)] pt-4 line-clamp-3">
+              <span className="text-xs uppercase tracking-wider block mb-1">Panel {panels[currentPanelIndex + 1].panel_number}</span>
+              {panels[currentPanelIndex + 1].visual_description || 'No description'}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom hints - also fades */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-center text-[var(--text-secondary)] text-xs opacity-50 hover:opacity-100 transition-opacity">
+      {/* Bottom bar with word count and hints */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between text-[var(--text-secondary)] text-xs opacity-50 hover:opacity-100 transition-opacity">
+        {/* Session word count */}
+        <div className="text-[var(--text-muted)] font-mono">
+          +{sessionWordCount} words this session
+        </div>
         <div className="flex items-center gap-6">
           <span>
             <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">Tab</kbd> Next panel

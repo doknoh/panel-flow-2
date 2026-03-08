@@ -22,6 +22,10 @@ export interface CanvasItemData {
   sort_order: number
   promoted_to_character_id: string | null
   promoted_to_location_id: string | null
+  filed_to_scene_id: string | null
+  filed_to_page_id: string | null
+  filed_at: string | null
+  source: 'manual' | 'ai' | 'guided' | null
   archived: boolean
   created_at: string
   updated_at: string
@@ -37,6 +41,18 @@ export interface Location {
   id: string
   name: string
 }
+
+export interface FilingTarget {
+  issueId: string
+  issueNumber: number
+  issueTitle: string | null
+  sceneId: string
+  sceneName: string | null
+  pageId: string
+  pageNumber: number
+}
+
+type FilingFilter = 'all' | 'unfiled' | 'filed'
 
 interface CanvasClientProps {
   seriesId: string
@@ -68,15 +84,75 @@ export default function CanvasClient({
   const [items, setItems] = useState<CanvasItemData[]>(initialItems)
   const [isCreating, setIsCreating] = useState(false)
   const [filter, setFilter] = useState<ItemType | 'all'>('all')
+  const [filingFilter, setFilingFilter] = useState<FilingFilter>('all')
   const [graduatingItem, setGraduatingItem] = useState<CanvasItemData | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [filingTargets, setFilingTargets] = useState<FilingTarget[]>([])
+  const [filingTargetsLoaded, setFilingTargetsLoaded] = useState(false)
 
   const supabase = createClient()
 
-  // Filter items
-  const filteredItems = filter === 'all'
-    ? items
-    : items.filter(item => item.item_type === filter)
+  // Load filing targets (issues -> scenes -> pages)
+  const loadFilingTargets = useCallback(async () => {
+    if (filingTargetsLoaded) return
+    const { data: issues } = await supabase
+      .from('issues')
+      .select('id, number, title')
+      .eq('series_id', seriesId)
+      .order('number')
+
+    if (!issues) return
+
+    const targets: FilingTarget[] = []
+    for (const issue of issues) {
+      const { data: acts } = await supabase
+        .from('acts')
+        .select('id, sort_order')
+        .eq('issue_id', issue.id)
+        .order('sort_order')
+
+      if (!acts) continue
+      for (const act of acts) {
+        const { data: scenes } = await supabase
+          .from('scenes')
+          .select('id, name, title, sort_order')
+          .eq('act_id', act.id)
+          .order('sort_order')
+
+        if (!scenes) continue
+        for (const scene of scenes) {
+          const { data: pages } = await supabase
+            .from('pages')
+            .select('id, page_number')
+            .eq('scene_id', scene.id)
+            .order('page_number')
+
+          if (!pages) continue
+          for (const page of pages) {
+            targets.push({
+              issueId: issue.id,
+              issueNumber: issue.number,
+              issueTitle: issue.title,
+              sceneId: scene.id,
+              sceneName: scene.name || scene.title,
+              pageId: page.id,
+              pageNumber: page.page_number,
+            })
+          }
+        }
+      }
+    }
+    setFilingTargets(targets)
+    setFilingTargetsLoaded(true)
+  }, [supabase, seriesId, filingTargetsLoaded])
+
+  // Filter items by type and filing status
+  const filteredItems = items.filter(item => {
+    if (filter !== 'all' && item.item_type !== filter) return false
+    if (filingFilter === 'filed' && !item.filed_to_page_id) return false
+    if (filingFilter === 'unfiled' && item.filed_to_page_id) return false
+    return true
+  })
 
   // Create new item
   const handleCreateItem = useCallback(async (type: ItemType) => {
@@ -137,6 +213,52 @@ export default function CanvasClient({
 
     if (error) {
       console.error('Error archiving canvas item:', error)
+      setItems(initialItems)
+    }
+  }, [supabase, initialItems])
+
+  // File item to a page
+  const handleFileItem = useCallback(async (id: string, target: FilingTarget) => {
+    const updates = {
+      filed_to_scene_id: target.sceneId,
+      filed_to_page_id: target.pageId,
+      filed_at: new Date().toISOString(),
+    }
+
+    setItems(prev => prev.map(item =>
+      item.id === id ? { ...item, ...updates, updated_at: new Date().toISOString() } : item
+    ))
+
+    const { error } = await supabase
+      .from('canvas_items')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error filing canvas item:', error)
+      setItems(initialItems)
+    }
+  }, [supabase, initialItems])
+
+  // Unfile item
+  const handleUnfileItem = useCallback(async (id: string) => {
+    const updates = {
+      filed_to_scene_id: null,
+      filed_to_page_id: null,
+      filed_at: null,
+    }
+
+    setItems(prev => prev.map(item =>
+      item.id === id ? { ...item, ...updates, updated_at: new Date().toISOString() } : item
+    ))
+
+    const { error } = await supabase
+      .from('canvas_items')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error unfiling canvas item:', error)
       setItems(initialItems)
     }
   }, [supabase, initialItems])
@@ -260,36 +382,55 @@ export default function CanvasClient({
           </div>
 
           {/* Filter tabs */}
-          <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out ${
-                filter === 'all'
-                  ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-              }`}
-            >
-              All ({items.length})
-            </button>
-            {Object.entries(ITEM_TYPE_CONFIG).map(([type, config]) => {
-              const count = items.filter(i => i.item_type === type).length
-              if (count === 0) return null
-              return (
+          <div className="flex items-center gap-4 mt-4 overflow-x-auto pb-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out ${
+                  filter === 'all'
+                    ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
+                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                }`}
+              >
+                All ({items.length})
+              </button>
+              {Object.entries(ITEM_TYPE_CONFIG).map(([type, config]) => {
+                const count = items.filter(i => i.item_type === type).length
+                if (count === 0) return null
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setFilter(type as ItemType)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out ${
+                      filter === type
+                        ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
+                        : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                    }`}
+                  >
+                    <span>{config.icon}</span>
+                    <span>{config.label}</span>
+                    <span className="ml-1 opacity-60">({count})</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Filing filter */}
+            <div className="flex gap-1 border-l border-[var(--border)] pl-4">
+              {(['all', 'unfiled', 'filed'] as FilingFilter[]).map(f => (
                 <button
-                  key={type}
-                  onClick={() => setFilter(type as ItemType)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out ${
-                    filter === type
+                  key={f}
+                  onClick={() => setFilingFilter(f)}
+                  className={`px-2 py-1 rounded text-xs font-medium capitalize active:scale-[0.97] transition-all duration-150 ease-out ${
+                    filingFilter === f
                       ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                      : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                 >
-                  <span>{config.icon}</span>
-                  <span>{config.label}</span>
-                  <span className="ml-1 opacity-60">({count})</span>
+                  {f}
                 </button>
-              )
-            })}
+              ))}
+            </div>
           </div>
         </div>
       </header>
@@ -321,6 +462,10 @@ export default function CanvasClient({
                 onUpdate={handleUpdateItem}
                 onArchive={handleArchiveItem}
                 onGraduate={handleGraduate}
+                onFileItem={handleFileItem}
+                onUnfileItem={handleUnfileItem}
+                filingTargets={filingTargets}
+                onLoadFilingTargets={loadFilingTargets}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}

@@ -8,6 +8,7 @@ import Header from '@/components/ui/Header'
 import ShareButton from './collaboration/ShareButton'
 import CollaboratorAvatars from './collaboration/CollaboratorAvatars'
 import { Calendar } from 'lucide-react'
+import CommandPalette from '@/components/CommandPalette'
 
 export default async function SeriesPage({ params }: { params: Promise<{ seriesId: string }> }) {
   const { seriesId } = await params
@@ -281,6 +282,9 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           </div>
         </div>
       </main>
+
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette seriesId={seriesId} />
     </div>
   )
 }

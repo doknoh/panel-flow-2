@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { postJsonWithRetry, FetchError } from '@/lib/fetch-with-retry'
 import { useToast } from '@/contexts/ToastContext'
 import { getImageUrl } from '@/lib/supabase/storage'
+import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
 import PacingAnalyst from '@/components/PacingAnalyst'
 import type { PageData } from '@/lib/pacing'
 
@@ -65,135 +65,58 @@ interface ToolkitProps {
   onRefresh?: () => void
 }
 
+interface ToolProposal {
+  toolUseId: string
+  toolName: string
+  input: Record<string, unknown>
+  status: 'streaming' | 'pending' | 'executing' | 'completed' | 'dismissed'
+}
+
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
-  suggestions?: AISuggestion[]
+  toolProposals?: ToolProposal[]
 }
 
-interface AISuggestion {
-  type: 'act_intention' | 'scene_intention' | 'page_intention' | 'scene_summary' | 'act_beat' | 'panel_description' | 'dialogue' | 'caption'
-  targetId: string
-  targetLabel: string
-  content: string
-  panelNumber?: number // For panel-level content
-  speakerName?: string // For dialogue
-  captionType?: string // For captions
+// Tool display config
+const TOOL_DISPLAY: Record<string, { icon: string; label: string; color: string }> = {
+  create_character: { icon: '👤', label: 'Create Character', color: 'var(--color-primary)' },
+  update_character: { icon: '👤', label: 'Update Character', color: 'var(--color-primary)' },
+  create_location: { icon: '📍', label: 'Create Location', color: 'var(--color-success)' },
+  create_plotline: { icon: '🧵', label: 'Create Plotline', color: 'var(--accent-hover)' },
+  save_canvas_beat: { icon: '💡', label: 'Save to Canvas', color: 'var(--color-warning)' },
+  add_panel_note: { icon: '📝', label: 'Add Panel Note', color: 'var(--color-info)' },
+  update_scene_metadata: { icon: '🎬', label: 'Update Scene', color: 'var(--accent-hover)' },
+  draft_panel_description: { icon: '🎨', label: 'Draft Panel', color: 'var(--color-success)' },
+  add_dialogue: { icon: '💬', label: 'Add Dialogue', color: 'var(--color-primary)' },
+  save_project_note: { icon: '📌', label: 'Save Note', color: 'var(--color-warning)' },
 }
 
-// Parse AI response for actionable suggestions
-// Supports outline fields AND panel content (descriptions, dialogue, captions)
-function parseAISuggestions(response: string, context: PageContext | null): AISuggestion[] {
-  const suggestions: AISuggestion[] = []
-
-  if (!context) return suggestions
-
-  // Look for markers in the response that indicate saveable content
-  // Format: [SAVE_AS:type] content [/SAVE_AS]
-  // For panel content: [SAVE_AS:panel_description:panelNum] or [SAVE_AS:dialogue:panelNum:SPEAKER]
-  const savePattern = /\[SAVE_AS:([\w_]+)(?::([^\]]+))?\]([\s\S]*?)\[\/SAVE_AS\]/g
-  let match
-
-  while ((match = savePattern.exec(response)) !== null) {
-    const [, type, metadata, content] = match
-    const trimmedContent = content.trim()
-
-    switch (type) {
-      case 'act_intention':
-        suggestions.push({
-          type: 'act_intention',
-          targetId: context.act.id,
-          targetLabel: context.act.name || `Act ${context.act.sort_order + 1}`,
-          content: trimmedContent,
-        })
-        break
-      case 'scene_intention':
-        suggestions.push({
-          type: 'scene_intention',
-          targetId: context.scene.id,
-          targetLabel: context.scene.title || context.scene.name || 'Current Scene',
-          content: trimmedContent,
-        })
-        break
-      case 'page_intention':
-        suggestions.push({
-          type: 'page_intention',
-          targetId: context.page.id,
-          targetLabel: `Page ${context.page.page_number}`,
-          content: trimmedContent,
-        })
-        break
-      case 'scene_summary':
-        suggestions.push({
-          type: 'scene_summary',
-          targetId: context.scene.id,
-          targetLabel: context.scene.title || context.scene.name || 'Current Scene',
-          content: trimmedContent,
-        })
-        break
-      case 'act_beat':
-        suggestions.push({
-          type: 'act_beat',
-          targetId: context.act.id,
-          targetLabel: context.act.name || `Act ${context.act.sort_order + 1}`,
-          content: trimmedContent,
-        })
-        break
-      case 'panel_description':
-        // Metadata format: panelNumber
-        const panelNum = metadata ? parseInt(metadata) : 1
-        const panel = context.page.panels?.find((p: any) => p.panel_number === panelNum)
-        if (panel) {
-          suggestions.push({
-            type: 'panel_description',
-            targetId: panel.id,
-            targetLabel: `Page ${context.page.page_number}, Panel ${panelNum}`,
-            content: trimmedContent,
-            panelNumber: panelNum,
-          })
-        }
-        break
-      case 'dialogue':
-        // Metadata format: panelNumber:SPEAKER_NAME
-        if (metadata) {
-          const [panelStr, ...speakerParts] = metadata.split(':')
-          const dialoguePanelNum = parseInt(panelStr)
-          const speakerName = speakerParts.join(':') // In case speaker name has colons
-          const dialoguePanel = context.page.panels?.find((p: any) => p.panel_number === dialoguePanelNum)
-          if (dialoguePanel) {
-            suggestions.push({
-              type: 'dialogue',
-              targetId: dialoguePanel.id,
-              targetLabel: `${speakerName} (Page ${context.page.page_number}, Panel ${dialoguePanelNum})`,
-              content: trimmedContent,
-              panelNumber: dialoguePanelNum,
-              speakerName: speakerName,
-            })
-          }
-        }
-        break
-      case 'caption':
-        // Metadata format: panelNumber:captionType
-        if (metadata) {
-          const [panelStr, captionType = 'narration'] = metadata.split(':')
-          const captionPanelNum = parseInt(panelStr)
-          const captionPanel = context.page.panels?.find((p: any) => p.panel_number === captionPanelNum)
-          if (captionPanel) {
-            suggestions.push({
-              type: 'caption',
-              targetId: captionPanel.id,
-              targetLabel: `${captionType.toUpperCase()} (Page ${context.page.page_number}, Panel ${captionPanelNum})`,
-              content: trimmedContent,
-              panelNumber: captionPanelNum,
-              captionType: captionType,
-            })
-          }
-        }
-        break
-    }
+function getToolSummary(toolName: string, input: Record<string, unknown>): string {
+  switch (toolName) {
+    case 'create_character':
+      return `Create character: ${input.display_name || input.name}`
+    case 'update_character':
+      return `Update character details`
+    case 'create_location':
+      return `Create location: ${input.name}`
+    case 'create_plotline':
+      return `Create plotline: ${input.name}`
+    case 'save_canvas_beat':
+      return `Save to canvas: "${input.title}"`
+    case 'add_panel_note':
+      return `Add editorial note to panel`
+    case 'update_scene_metadata':
+      return `Update scene: ${input.title || 'metadata'}`
+    case 'draft_panel_description':
+      return `Draft panel description`
+    case 'add_dialogue':
+      return `Add dialogue for ${input.speaker_name}`
+    case 'save_project_note':
+      return `Save project note`
+    default:
+      return toolName.replace(/_/g, ' ')
   }
-
-  return suggestions
 }
 
 export default function Toolkit({ issue, selectedPageContext, onRefresh }: ToolkitProps) {
@@ -374,12 +297,30 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [aiMode, setAiMode] = useState<'outline' | 'draft'>('outline')
+  const [streamingText, setStreamingText] = useState('')
+  const [streamingToolProposals, setStreamingToolProposals] = useState<ToolProposal[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const conversationIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatMessages])
+  }, [chatMessages, streamingText])
+
+  // Trigger conversation synthesis on unmount or when chat is cleared
+  useEffect(() => {
+    return () => {
+      const convId = conversationIdRef.current
+      if (convId) {
+        // Fire and forget — synthesize the conversation
+        fetch('/api/ai/synthesize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversationId: convId }),
+        }).catch(() => {})
+      }
+    }
+  }, [])
 
   // Sync local status with prop when it changes from outside
   useEffect(() => {
@@ -683,375 +624,223 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   }
 
   // Build comprehensive context for AI - includes full script content
-  const buildHierarchicalContext = () => {
-    const parts: string[] = []
+  // Handle tool proposal confirm/dismiss
+  const handleToolProposal = async (
+    proposal: ToolProposal,
+    confirmed: boolean,
+    messageIndex: number
+  ) => {
+    // Find the assistant message text that preceded this tool call
+    const assistantMsg = chatMessages[messageIndex]
+    if (!assistantMsg) return
 
-    // Series level
-    parts.push(`SERIES: "${issue.series.title}"`)
-    if (issue.series.central_theme) {
-      parts.push(`Central Theme: ${issue.series.central_theme}`)
-    }
-    if (issue.series.logline) {
-      parts.push(`Logline: ${issue.series.logline}`)
-    }
+    // Update proposal status
+    setChatMessages(prev => prev.map((msg, idx) => {
+      if (idx !== messageIndex || !msg.toolProposals) return msg
+      return {
+        ...msg,
+        toolProposals: msg.toolProposals.map(tp =>
+          tp.toolUseId === proposal.toolUseId
+            ? { ...tp, status: confirmed ? 'executing' as const : 'dismissed' as const }
+            : tp
+        ),
+      }
+    }))
 
-    // Characters with details
-    if (issue.series.characters.length > 0) {
-      parts.push(`\nCHARACTERS:`)
-      issue.series.characters.forEach((c: any) => {
-        parts.push(`- ${c.name}${c.role ? ` (${c.role})` : ''}${c.description ? `: ${c.description}` : ''}`)
+    if (!confirmed) return
+
+    // Build prior message history (text-only messages before this one)
+    const priorMessages = chatMessages
+      .slice(0, messageIndex)
+      .map(m => ({ role: m.role, content: m.content }))
+
+    setIsLoading(true)
+    setStreamingText('')
+    setStreamingToolProposals([])
+
+    try {
+      const response = await fetch('/api/ai/tool-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: priorMessages,
+          assistantText: assistantMsg.content,
+          toolUseId: proposal.toolUseId,
+          toolName: proposal.toolName,
+          toolInput: proposal.input,
+          confirmed,
+          seriesId: issue.series.id,
+          issueId: issue.id,
+          pageId: selectedPageContext?.page?.id,
+        }),
       })
-    }
 
-    // Locations with details
-    if (issue.series.locations.length > 0) {
-      parts.push(`\nLOCATIONS:`)
-      issue.series.locations.forEach((l: any) => {
-        parts.push(`- ${l.name}${l.description ? `: ${l.description}` : ''}`)
-      })
-    }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
 
-    // Issue level
-    parts.push(`\n${'='.repeat(50)}`)
-    parts.push(`ISSUE #${issue.number}${issue.title ? `: ${issue.title}` : ''}`)
-    parts.push(`${'='.repeat(50)}`)
-    if (issue.summary) parts.push(`Summary: ${issue.summary}`)
-    if (issue.themes) parts.push(`Themes: ${issue.themes}`)
-    if (issue.stakes) parts.push(`Stakes: ${issue.stakes}`)
-    if (issue.outline_notes) parts.push(`Outline Notes: ${issue.outline_notes}`)
-
-    // Build full script content
-    const sortedActs = [...(issue.acts || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
-
-    for (const act of sortedActs) {
-      parts.push(`\n${'─'.repeat(40)}`)
-      parts.push(`ACT: ${act.name || `Act ${act.sort_order + 1}`}`)
-      if (act.intention) parts.push(`Intention: ${act.intention}`)
-      if (act.beat_summary) parts.push(`Beat Summary: ${act.beat_summary}`)
-      parts.push(`${'─'.repeat(40)}`)
-
-      const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
-
-      for (const scene of sortedScenes) {
-        parts.push(`\nSCENE: ${scene.title || scene.name || 'Untitled'}`)
-        if (scene.intention) parts.push(`Intention: ${scene.intention}`)
-        if (scene.scene_summary) parts.push(`Summary: ${scene.scene_summary}`)
-
-        const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
-
-        for (const page of sortedPages) {
-          parts.push(`\nPAGE ${page.page_number}`)
-          if (page.intention) parts.push(`[Intention: ${page.intention}]`)
-
-          const sortedPanels = [...(page.panels || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
-
-          for (const panel of sortedPanels) {
-            parts.push(`\nPanel ${panel.panel_number}:`)
-            if (panel.visual_description) {
-              parts.push(panel.visual_description)
-            }
-
-            // Dialogue
-            const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
-            for (const d of sortedDialogue) {
-              if (d.text) {
-                const speaker = d.speaker_name || 'UNKNOWN'
-                parts.push(`${speaker}: "${d.text}"`)
-              }
-            }
-
-            // Captions
-            const sortedCaptions = [...(panel.captions || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
-            for (const c of sortedCaptions) {
-              if (c.text) {
-                const type = c.caption_type || 'CAPTION'
-                parts.push(`[${type.toUpperCase()}]: ${c.text}`)
-              }
-            }
-          }
+      // Mark the tool as completed
+      setChatMessages(prev => prev.map((msg, idx) => {
+        if (idx !== messageIndex || !msg.toolProposals) return msg
+        return {
+          ...msg,
+          toolProposals: msg.toolProposals.map(tp =>
+            tp.toolUseId === proposal.toolUseId
+              ? { ...tp, status: 'completed' as const }
+              : tp
+          ),
         }
-      }
-    }
+      }))
 
-    // Current location indicator
-    if (selectedPageContext) {
-      const { act, scene, page } = selectedPageContext
-      parts.push(`\n${'='.repeat(50)}`)
-      parts.push(`CURRENTLY VIEWING: ${act.name || `Act ${act.sort_order + 1}`} › ${scene.title || scene.name || 'Scene'} › Page ${page.page_number}`)
-      parts.push(`${'='.repeat(50)}`)
-    }
-
-    return parts.join('\n')
-  }
-
-  // Apply an AI suggestion to the database
-  const applySuggestion = async (suggestion: AISuggestion) => {
-    const supabase = createClient()
-
-    // Handle panel content separately (dialogue, captions need inserts, not updates)
-    if (suggestion.type === 'dialogue' && suggestion.speakerName) {
-      // Get the highest sort_order for existing dialogue blocks in this panel
-      const { data: existingDialogue } = await supabase
-        .from('dialogue_blocks')
-        .select('sort_order')
-        .eq('panel_id', suggestion.targetId)
-        .order('sort_order', { ascending: false })
-        .limit(1)
-
-      const nextSortOrder = existingDialogue?.[0]?.sort_order !== undefined
-        ? existingDialogue[0].sort_order + 1
-        : 0
-
-      const { error } = await supabase
-        .from('dialogue_blocks')
-        .insert({
-          panel_id: suggestion.targetId,
-          speaker_name: suggestion.speakerName,
-          text: suggestion.content,
-          sort_order: nextSortOrder,
-        })
-
-      if (error) {
-        showToast('Failed to add dialogue', 'error')
-      } else {
-        showToast(`Added dialogue for ${suggestion.speakerName}`, 'success')
-        onRefresh?.()
-      }
-      return
-    }
-
-    if (suggestion.type === 'caption' && suggestion.captionType) {
-      // Get the highest sort_order for existing captions in this panel
-      const { data: existingCaptions } = await supabase
-        .from('captions')
-        .select('sort_order')
-        .eq('panel_id', suggestion.targetId)
-        .order('sort_order', { ascending: false })
-        .limit(1)
-
-      const nextSortOrder = existingCaptions?.[0]?.sort_order !== undefined
-        ? existingCaptions[0].sort_order + 1
-        : 0
-
-      const { error } = await supabase
-        .from('captions')
-        .insert({
-          panel_id: suggestion.targetId,
-          caption_type: suggestion.captionType,
-          text: suggestion.content,
-          sort_order: nextSortOrder,
-        })
-
-      if (error) {
-        showToast('Failed to add caption', 'error')
-      } else {
-        showToast(`Added ${suggestion.captionType} caption`, 'success')
-        onRefresh?.()
-      }
-      return
-    }
-
-    if (suggestion.type === 'panel_description') {
-      const { error } = await supabase
-        .from('panels')
-        .update({ visual_description: suggestion.content })
-        .eq('id', suggestion.targetId)
-
-      if (error) {
-        showToast('Failed to save panel description', 'error')
-      } else {
-        showToast(`Saved description to ${suggestion.targetLabel}`, 'success')
-        onRefresh?.()
-      }
-      return
-    }
-
-    // Handle outline fields (original logic)
-    let table: string
-    let field: string
-
-    switch (suggestion.type) {
-      case 'act_intention':
-        table = 'acts'
-        field = 'intention'
-        break
-      case 'act_beat':
-        table = 'acts'
-        field = 'beat_summary'
-        break
-      case 'scene_intention':
-        table = 'scenes'
-        field = 'intention'
-        break
-      case 'scene_summary':
-        table = 'scenes'
-        field = 'scene_summary'
-        break
-      case 'page_intention':
-        table = 'pages'
-        field = 'intention'
-        break
-      default:
-        showToast('Unknown suggestion type', 'error')
-        return
-    }
-
-    const { error } = await supabase
-      .from(table)
-      .update({ [field]: suggestion.content })
-      .eq('id', suggestion.targetId)
-
-    if (error) {
-      showToast(`Failed to save ${suggestion.type.replace('_', ' ')}`, 'error')
-    } else {
-      showToast(`Saved to ${suggestion.targetLabel}`, 'success')
+      // Process SSE stream for the continuation
+      await processSSEStream(response)
       onRefresh?.()
+    } catch (error) {
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Failed to process tool result. Please try again.',
+      }])
     }
+
+    setIsLoading(false)
   }
 
-  // Determine if the issue has substantial content or is blank
-  const hasExistingContent = useMemo(() => {
-    let panelCount = 0
-    let dialogueCount = 0
-    for (const act of (issue.acts || [])) {
-      for (const scene of (act.scenes || [])) {
-        for (const page of (scene.pages || [])) {
-          for (const panel of (page.panels || [])) {
-            panelCount++
-            if (panel.visual_description) panelCount++
-            dialogueCount += (panel.dialogue_blocks?.length || 0)
+  // Process an SSE stream response and update state
+  const processSSEStream = async (response: Response) => {
+    const reader = response.body?.getReader()
+    if (!reader) return
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let fullText = ''
+    const toolProposals: ToolProposal[] = []
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6)
+
+          const parsed = parseSSEData(data)
+
+          if (parsed.done) break
+
+          if (parsed.error) {
+            setChatMessages(prev => [...prev, {
+              role: 'assistant',
+              content: `Error: ${parsed.error}`,
+            }])
+            return
+          }
+
+          if (parsed.content) {
+            fullText += parsed.content
+            setStreamingText(fullText)
+          }
+
+          if (parsed.toolUse) {
+            const toolEvent = parsed.toolUse
+            if (toolEvent.event === 'start') {
+              toolProposals.push({
+                toolUseId: toolEvent.toolUseId,
+                toolName: toolEvent.toolName,
+                input: {},
+                status: 'streaming',
+              })
+              setStreamingToolProposals([...toolProposals])
+            } else if (toolEvent.event === 'complete') {
+              const idx = toolProposals.findIndex(tp => tp.toolUseId === toolEvent.toolUseId)
+              if (idx >= 0) {
+                toolProposals[idx] = {
+                  ...toolProposals[idx],
+                  input: (toolEvent as ToolUseSSEEvent & { input: Record<string, unknown> }).input,
+                  status: 'pending',
+                }
+                setStreamingToolProposals([...toolProposals])
+              }
+            }
           }
         }
       }
+    } finally {
+      reader.releaseLock()
     }
-    // Consider "has content" if there are panels with descriptions or dialogue
-    return panelCount > 5 || dialogueCount > 3
-  }, [issue])
 
-  // Build conversation history for context
-  const buildConversationHistory = () => {
-    // Include up to 10 recent messages for context
-    const recentMessages = chatMessages.slice(-10)
-    if (recentMessages.length === 0) return ''
-
-    return '\n\nCONVERSATION SO FAR:\n' + recentMessages.map(msg =>
-      `${msg.role === 'user' ? 'Author' : 'You'}: ${msg.content}`
-    ).join('\n\n')
+    // Finalize the message
+    setChatMessages(prev => [...prev, {
+      role: 'assistant',
+      content: fullText,
+      toolProposals: toolProposals.length > 0 ? toolProposals : undefined,
+    }])
+    setStreamingText('')
+    setStreamingToolProposals([])
   }
 
   const sendMessage = async () => {
     if (!chatInput.trim() || isLoading) return
 
     const userMessage = chatInput.trim()
-    const isFirstMessage = chatMessages.length === 0
     setChatInput('')
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setIsLoading(true)
+    setStreamingText('')
+    setStreamingToolProposals([])
 
     try {
-      // Build rich context with full script
-      const context = buildHierarchicalContext()
-      const conversationHistory = buildConversationHistory()
+      // Build message history for the API
+      const allMessages = [
+        ...chatMessages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: userMessage },
+      ]
 
-      // Determine opening approach based on content state
-      const openingGuidance = isFirstMessage
-        ? hasExistingContent
-          ? `
-OPENING APPROACH: This issue has existing content. You have read it all. Start by acknowledging the work that exists and ask ONE question about what the author wants to work on today.
-Example: "I've read through Issue #${issue.number}. [Brief observation about what you notice - a strength, a theme, something interesting]. What would you like to work on?"`
-          : `
-OPENING APPROACH: This is a new/blank issue with little content. Start with macro-level exploration. Ask ONE big-picture question to help define the story from the top down.
-Think: What is this issue ABOUT? What happens? Who changes? What's the emotional journey?
-Example: "Let's build out Issue #${issue.number}. What's the core story you want to tell in this issue?"`
-        : ''
+      const controller = new AbortController()
+      abortControllerRef.current = controller
 
-      // Core instructions for a true writing partner
-      const coreInstructions = `
-YOU ARE A WRITING PARTNER who has thoroughly read and understood this entire script.
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: allMessages,
+          seriesId: issue.series.id,
+          issueId: issue.id,
+          pageId: selectedPageContext?.page?.id,
+          mode: 'ask',
+          conversationId: conversationIdRef.current,
+        }),
+        signal: controller.signal,
+      })
 
-CRITICAL RULES:
-1. ASK ONLY ONE QUESTION AT A TIME. Never ask multiple questions in a single response. This is essential for a Socratic dialogue.
-2. You have READ THE FULL SCRIPT above. Reference specific scenes, dialogue, and moments when relevant.
-3. Don't treat the author like they're starting from scratch - engage with what EXISTS.
-4. Be a collaborator, not an interrogator.
-5. If offering feedback, ask first: "Would you like my thoughts on [specific aspect]?" Don't fire off critiques.
-6. When giving feedback, be specific - reference actual pages, panels, dialogue lines.
-7. LISTEN for when the author puts a "fine point" on something - when they articulate something clearly that could be saved (a plot point, scene intention, panel description, dialogue line). When you hear this, ASK if they want it added to the document.
-${openingGuidance}
-
-CONVERSATION MEMORY: You remember everything discussed in this conversation. Build on previous answers. Don't re-ask questions that have been answered.
-${conversationHistory}
-
-YOUR KNOWLEDGE: You have the complete script above. You know the characters, their voices, the locations, the plot beats, the dialogue. USE this knowledge.`
-
-      // Mode-specific additions with expanded save options
-      const modeInstructions = aiMode === 'outline'
-        ? `
-
-OUTLINE MODE:
-- Help with story structure, act breaks, scene purposes, character arcs
-- Work from macro to micro: Series theme → Issue stakes → Act purposes → Scene intentions → Page beats
-- When the author articulates something clearly, ASK: "That sounds like [type of thing]. Want me to save that as the [field name]?"
-- If they agree, wrap the content in tags:
-  [SAVE_AS:act_intention]content[/SAVE_AS]
-  [SAVE_AS:scene_intention]content[/SAVE_AS]
-  [SAVE_AS:page_intention]content[/SAVE_AS]
-  [SAVE_AS:scene_summary]content[/SAVE_AS]
-  [SAVE_AS:act_beat]content[/SAVE_AS]
-- ONLY use these tags AFTER the author agrees to save something.`
-        : `
-
-DRAFT MODE:
-- Help write and refine actual script content - panel descriptions, dialogue, captions
-- Be specific and visual in your suggestions
-- Match the existing voice and tone of the script
-- When the author articulates a clear panel description, dialogue line, or caption, ASK: "Want me to add that to [location]?"
-- If they agree, wrap the content in tags:
-  [SAVE_AS:panel_description:panelNumber]visual description here[/SAVE_AS]
-  [SAVE_AS:dialogue:panelNumber:SPEAKER_NAME]dialogue text here[/SAVE_AS]
-  [SAVE_AS:caption:panelNumber:captionType]caption text here[/SAVE_AS]
-  (captionType can be: narration, thought, location, time)
-- ONLY use these tags AFTER the author agrees to save something.`
-
-      const fullContext = context + coreInstructions + modeInstructions
-
-      const data = await postJsonWithRetry<{ response?: string; error?: string }>(
-        '/api/chat',
-        { message: userMessage, context: fullContext, maxTokens: 2048 },
-        { retries: 2, retryDelay: 1000 }
-      )
-
-      if (data.error) {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: `Error: ${data.error}` }])
-      } else {
-        const response = data.response || ''
-        // Parse for suggestions
-        const suggestions = parseAISuggestions(response, selectedPageContext || null)
-        // Clean response by removing the SAVE_AS tags for display
-        const cleanResponse = response.replace(/\[SAVE_AS:[\w_]+(?::[^\]]+)?\]([\s\S]*?)\[\/SAVE_AS\]/g, '$1')
-        setChatMessages(prev => [...prev, {
-          role: 'assistant',
-          content: cleanResponse,
-          suggestions: suggestions.length > 0 ? suggestions : undefined
-        }])
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || `HTTP ${response.status}`)
       }
+
+      // Capture conversation ID for synthesis on unmount
+      const convId = response.headers.get('X-Conversation-Id')
+      if (convId) {
+        conversationIdRef.current = convId
+      }
+
+      // Process the SSE stream
+      await processSSEStream(response)
     } catch (error) {
-      let errorMessage = 'Failed to connect to AI assistant. Please try again.'
+      if ((error as Error).name === 'AbortError') return
 
-      if (error instanceof FetchError) {
-        if (error.status === 429) {
-          errorMessage = `Rate limit reached. Please wait ${error.retryAfter || 60} seconds before trying again.`
-        } else if (error.status === 401) {
-          errorMessage = 'Session expired. Please refresh the page to continue.'
-        } else if (error.status >= 500) {
-          errorMessage = 'The AI service is temporarily unavailable. Please try again in a moment.'
-        }
-      }
-
-      setChatMessages(prev => [...prev, { role: 'assistant', content: errorMessage }])
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: error instanceof Error ? error.message : 'Failed to connect to AI assistant.',
+      }])
     }
 
     setIsLoading(false)
+    abortControllerRef.current = null
   }
 
   // Calculate stats
@@ -1920,147 +1709,170 @@ DRAFT MODE:
         {/* AI Chat Tab */}
         {activeTab === 'ai' && (
           <div className="flex flex-col h-full">
-            {/* Mode Toggle & Current Scope */}
-            <div className="mb-3 space-y-2 shrink-0">
-              {/* Mode Toggle */}
-              <div className="flex gap-1 bg-[var(--bg-secondary)] rounded-lg p-1">
-                <button
-                  onClick={() => setAiMode('outline')}
-                  className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
-                    aiMode === 'outline'
-                      ? 'bg-[var(--accent-hover)] text-white'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  Outline Mode
-                </button>
-                <button
-                  onClick={() => setAiMode('draft')}
-                  className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
-                    aiMode === 'draft'
-                      ? 'bg-[var(--color-success)] text-white'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  Draft Mode
-                </button>
+            {/* Current Scope Indicator */}
+            {selectedPageContext && (
+              <div className="mb-3 shrink-0 text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] rounded px-3 py-2">
+                <span className="text-[var(--text-secondary)]">Working on:</span>{' '}
+                <span className="text-[var(--text-secondary)]">
+                  {selectedPageContext.act.name || `Act ${selectedPageContext.act.sort_order + 1}`}
+                </span>
+                {' › '}
+                <span className="text-[var(--text-secondary)]">
+                  {selectedPageContext.scene.title || selectedPageContext.scene.name || 'Scene'}
+                </span>
+                {' › '}
+                <span className="text-[var(--text-secondary)]">
+                  Page {selectedPageContext.page.page_number}
+                </span>
               </div>
-
-              {/* Current Scope Indicator */}
-              {selectedPageContext && (
-                <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] rounded px-3 py-2">
-                  <span className="text-[var(--text-secondary)]">Working on:</span>{' '}
-                  <span className="text-[var(--text-secondary)]">
-                    {selectedPageContext.act.name || `Act ${selectedPageContext.act.sort_order + 1}`}
-                  </span>
-                  {' › '}
-                  <span className="text-[var(--text-secondary)]">
-                    {selectedPageContext.scene.title || selectedPageContext.scene.name || 'Scene'}
-                  </span>
-                  {' › '}
-                  <span className="text-[var(--text-secondary)]">
-                    Page {selectedPageContext.page.page_number}
-                  </span>
-                </div>
-              )}
-            </div>
+            )}
 
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto space-y-3 mb-3">
-              {chatMessages.length === 0 ? (
+              {chatMessages.length === 0 && !streamingText ? (
                 <div className="text-center py-6 px-4">
-                  <div className="text-3xl mb-3 opacity-30">
-                    {aiMode === 'outline' ? '🧠' : '✍️'}
-                  </div>
+                  <div className="text-3xl mb-3 opacity-30">✍️</div>
                   <p className="text-[var(--text-secondary)] text-sm mb-2">
-                    {aiMode === 'outline' ? 'AI Outline Partner' : 'AI Writing Partner'}
+                    AI Creative Partner
                   </p>
                   <p className="text-[var(--text-muted)] text-xs mb-4">
-                    {aiMode === 'outline'
-                      ? 'Work out your story from the top down. The AI will push you to clarify your ideas and can save them to your outline.'
-                      : 'Get help writing panel descriptions, dialogue, and captions for your script.'
-                    }
+                    Your editor knows the full project — characters, plotlines, script, and structure.
+                    It can create characters, save ideas to canvas, draft panels, and more.
                   </p>
                   <div className="text-xs text-[var(--text-muted)] space-y-1.5 text-left bg-[var(--bg-tertiary)]/50 rounded-lg p-3">
-                    {aiMode === 'outline' ? (
-                      <>
-                        <p>• "What should this scene accomplish?"</p>
-                        <p>• "Help me work out the act breaks"</p>
-                        <p>• "What's the emotional beat of this page?"</p>
-                        <p>• "Push me on the theme of this issue"</p>
-                      </>
-                    ) : (
-                      <>
-                        <p>• "Write dialogue for a tense confrontation"</p>
-                        <p>• "Describe a dramatic establishing shot"</p>
-                        <p>• "Suggest pacing for this action sequence"</p>
-                        <p>• "Help with character's inner monologue"</p>
-                      </>
-                    )}
+                    <p>&bull; &quot;What should this scene accomplish?&quot;</p>
+                    <p>&bull; &quot;Help me work out the act breaks&quot;</p>
+                    <p>&bull; &quot;Draft a tense establishing shot for this page&quot;</p>
+                    <p>&bull; &quot;Create a character for the detective&quot;</p>
                   </div>
                 </div>
               ) : (
-                chatMessages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-lg text-sm ${
-                      msg.role === 'user'
-                        ? 'bg-[var(--color-primary)]/10 ml-4 p-3'
-                        : 'bg-[var(--bg-tertiary)] mr-2 p-3'
-                    }`}
-                  >
-                    <p className="text-xs text-[var(--text-muted)] mb-1">
-                      {msg.role === 'user' ? 'You' : 'AI Writing Partner'}
-                    </p>
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                <>
+                  {chatMessages.map((msg, i) => (
+                    <div
+                      key={i}
+                      className={`rounded-lg text-sm ${
+                        msg.role === 'user'
+                          ? 'bg-[var(--color-primary)]/10 ml-4 p-3'
+                          : 'bg-[var(--bg-tertiary)] mr-2 p-3'
+                      }`}
+                    >
+                      <p className="text-xs text-[var(--text-muted)] mb-1">
+                        {msg.role === 'user' ? 'You' : 'AI Creative Partner'}
+                      </p>
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
 
-                    {/* AI Suggestions */}
-                    {msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
-                        <p className="text-xs text-[var(--text-secondary)]">Save to document:</p>
-                        {msg.suggestions.map((suggestion, idx) => {
-                          const isOutline = ['act_intention', 'scene_intention', 'page_intention', 'scene_summary', 'act_beat'].includes(suggestion.type)
-                          const isDialogue = suggestion.type === 'dialogue'
-                          const isCaption = suggestion.type === 'caption'
-                          const isPanelDesc = suggestion.type === 'panel_description'
+                      {/* Tool Proposals */}
+                      {msg.toolProposals && msg.toolProposals.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
+                          {msg.toolProposals.map((proposal) => {
+                            const display = TOOL_DISPLAY[proposal.toolName] || { icon: '🔧', label: proposal.toolName, color: 'var(--text-secondary)' }
+                            const summary = getToolSummary(proposal.toolName, proposal.input)
 
-                          return (
-                            <button
-                              key={idx}
-                              onClick={() => applySuggestion(suggestion)}
-                              className={`w-full text-left p-2 rounded text-xs transition-colors ${
-                                isOutline
-                                  ? 'bg-[var(--accent-hover)]/10 hover:bg-[var(--accent-hover)]/20 border border-[var(--accent-hover)]/30'
-                                  : isDialogue
-                                    ? 'bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 border border-[var(--color-primary)]/30'
-                                    : isCaption
-                                      ? 'bg-[var(--color-warning)]/10 hover:bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/30'
-                                      : 'bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/20 border border-[var(--color-success)]/30'
-                              }`}
-                            >
-                              <span className={`font-medium ${
-                                isOutline ? 'text-[var(--accent-hover)]'
-                                  : isDialogue ? 'text-[var(--color-primary)]'
-                                    : isCaption ? 'text-[var(--color-warning)]'
-                                      : 'text-[var(--color-success)]'
-                              }`}>
-                                {isOutline ? '📋' : isDialogue ? '💬' : isCaption ? '📝' : '🎬'}{' '}
-                                {suggestion.type.replace(/_/g, ' ')} → {suggestion.targetLabel}
-                              </span>
-                              <p className="text-[var(--text-secondary)] mt-1 line-clamp-2">{suggestion.content}</p>
-                            </button>
-                          )
-                        })}
+                            return (
+                              <div
+                                key={proposal.toolUseId}
+                                className="border border-dashed rounded-lg p-3"
+                                style={{ borderColor: display.color }}
+                              >
+                                <div className="flex items-start gap-2 mb-2">
+                                  <span className="text-base">{display.icon}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium" style={{ color: display.color }}>
+                                      {display.label}
+                                    </p>
+                                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">{summary}</p>
+                                  </div>
+                                  {/* Status badge */}
+                                  {proposal.status === 'completed' && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">Done</span>
+                                  )}
+                                  {proposal.status === 'dismissed' && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-muted)]">Skipped</span>
+                                  )}
+                                  {proposal.status === 'executing' && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)]">Running...</span>
+                                  )}
+                                </div>
+
+                                {/* Confirm / Skip buttons for pending proposals */}
+                                {proposal.status === 'pending' && (
+                                  <div className="flex gap-2 mt-2">
+                                    <button
+                                      onClick={() => handleToolProposal(proposal, true, i)}
+                                      disabled={isLoading}
+                                      className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50"
+                                    >
+                                      Confirm
+                                    </button>
+                                    <button
+                                      onClick={() => handleToolProposal(proposal, false, i)}
+                                      disabled={isLoading}
+                                      className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                                    >
+                                      Skip
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Streaming text (in-progress response) */}
+                  {streamingText && (
+                    <div className="bg-[var(--bg-tertiary)] mr-2 p-3 rounded-lg text-sm">
+                      <p className="text-xs text-[var(--text-muted)] mb-1">AI Creative Partner</p>
+                      <p className="whitespace-pre-wrap">{streamingText}</p>
+
+                      {/* Streaming tool proposals */}
+                      {streamingToolProposals.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
+                          {streamingToolProposals.map((proposal) => {
+                            const display = TOOL_DISPLAY[proposal.toolName] || { icon: '🔧', label: proposal.toolName, color: 'var(--text-secondary)' }
+                            return (
+                              <div
+                                key={proposal.toolUseId}
+                                className="border border-dashed rounded-lg p-3 opacity-70"
+                                style={{ borderColor: display.color }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">{display.icon}</span>
+                                  <p className="text-xs font-medium" style={{ color: display.color }}>
+                                    {proposal.status === 'streaming' ? `${display.label}...` : display.label}
+                                  </p>
+                                  {proposal.status === 'streaming' && (
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-warning)] animate-pulse" />
+                                  )}
+                                </div>
+                                {proposal.status === 'pending' && (
+                                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                                    {getToolSummary(proposal.toolName, proposal.input)}
+                                  </p>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Loading indicator when waiting for first token */}
+                  {isLoading && !streamingText && (
+                    <div className="bg-[var(--bg-tertiary)] p-3 rounded-lg mr-2">
+                      <p className="text-xs text-[var(--text-muted)] mb-1">AI Creative Partner</p>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" />
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" style={{ animationDelay: '0.2s' }} />
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" style={{ animationDelay: '0.4s' }} />
                       </div>
-                    )}
-                  </div>
-                ))
-              )}
-              {isLoading && (
-                <div className="bg-[var(--bg-tertiary)] p-3 rounded-lg mr-4">
-                  <p className="text-xs text-[var(--text-muted)] mb-1">AI Writing Partner</p>
-                  <p className="text-[var(--text-secondary)]">Thinking...</p>
-                </div>
+                    </div>
+                  )}
+                </>
               )}
               <div ref={chatEndRef} />
             </div>
@@ -2073,7 +1885,7 @@ DRAFT MODE:
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                  placeholder={aiMode === 'outline' ? "Work out your story..." : "Ask for writing help..."}
+                  placeholder="Talk to your editor..."
                   className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
                   disabled={isLoading}
                 />

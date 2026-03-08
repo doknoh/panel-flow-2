@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { CanvasItemData, ColorTag, COLOR_OPTIONS } from './CanvasClient'
+import { CanvasItemData, ColorTag, COLOR_OPTIONS, FilingTarget } from './CanvasClient'
 
 interface CanvasItemProps {
   item: CanvasItemData
@@ -9,6 +9,10 @@ interface CanvasItemProps {
   onUpdate: (id: string, updates: Partial<CanvasItemData>) => void
   onArchive: (id: string) => void
   onGraduate: (item: CanvasItemData) => void
+  onFileItem: (id: string, target: FilingTarget) => void
+  onUnfileItem: (id: string) => void
+  filingTargets: FilingTarget[]
+  onLoadFilingTargets: () => void
   onDragStart: (id: string) => void
   onDragOver: (e: React.DragEvent, targetId: string) => void
   onDragEnd: () => void
@@ -43,6 +47,10 @@ export default function CanvasItem({
   onUpdate,
   onArchive,
   onGraduate,
+  onFileItem,
+  onUnfileItem,
+  filingTargets,
+  onLoadFilingTargets,
   onDragStart,
   onDragOver,
   onDragEnd,
@@ -53,6 +61,8 @@ export default function CanvasItem({
   const [editContent, setEditContent] = useState(item.content || '')
   const [showMenu, setShowMenu] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const [showFilingPicker, setShowFilingPicker] = useState(false)
+  const [filingIssueFilter, setFilingIssueFilter] = useState<string | null>(null)
   const titleRef = useRef<HTMLInputElement>(null)
   const contentRef = useRef<HTMLTextAreaElement>(null)
 
@@ -157,6 +167,28 @@ export default function CanvasItem({
                 >
                   🎨 Color
                 </button>
+                {item.filed_to_page_id ? (
+                  <button
+                    onClick={() => {
+                      onUnfileItem(item.id)
+                      setShowMenu(false)
+                    }}
+                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
+                  >
+                    📂 Unfile
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      onLoadFilingTargets()
+                      setShowFilingPicker(true)
+                      setShowMenu(false)
+                    }}
+                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
+                  >
+                    📁 File To...
+                  </button>
+                )}
                 {canGraduate && (
                   <button
                     onClick={() => {
@@ -241,6 +273,24 @@ export default function CanvasItem({
         </div>
       )}
 
+      {/* Filed badge */}
+      {item.filed_to_page_id && (
+        <div className="px-3 pb-2">
+          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/30">
+            📁 Filed to Page {filingTargets.find(t => t.pageId === item.filed_to_page_id)?.pageNumber || '?'}
+          </span>
+        </div>
+      )}
+
+      {/* Source badge for AI-generated items */}
+      {item.source === 'ai' && (
+        <div className="px-3 pb-2">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--accent-hover)]/20 text-[var(--accent-hover)] border border-[var(--accent-hover)]/30">
+            AI generated
+          </span>
+        </div>
+      )}
+
       {/* Graduate badge for character/world items */}
       {canGraduate && (
         <button
@@ -278,6 +328,75 @@ export default function CanvasItem({
                 ✕
               </button>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Filing picker modal */}
+      {showFilingPicker && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => {
+              setShowFilingPicker(false)
+              setFilingIssueFilter(null)
+            }}
+          />
+          <div className="absolute left-0 right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 p-3 min-w-[220px] max-h-[300px] overflow-y-auto">
+            <div className="text-xs font-medium text-[var(--text-muted)] uppercase mb-2">File to page</div>
+            {filingTargets.length === 0 ? (
+              <p className="text-xs text-[var(--text-muted)]">Loading...</p>
+            ) : (
+              <>
+                {/* Issue filter */}
+                {(() => {
+                  const issueIds = [...new Set(filingTargets.map(t => t.issueId))]
+                  return (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {issueIds.map(issueId => {
+                        const target = filingTargets.find(t => t.issueId === issueId)!
+                        return (
+                          <button
+                            key={issueId}
+                            onClick={() => setFilingIssueFilter(filingIssueFilter === issueId ? null : issueId)}
+                            className={`px-2 py-0.5 rounded text-xs ${
+                              filingIssueFilter === issueId
+                                ? 'bg-[var(--color-primary)] text-white'
+                                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                            }`}
+                          >
+                            #{target.issueNumber}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+
+                {/* Page list */}
+                <div className="space-y-0.5">
+                  {filingTargets
+                    .filter(t => !filingIssueFilter || t.issueId === filingIssueFilter)
+                    .map(target => (
+                      <button
+                        key={target.pageId}
+                        onClick={() => {
+                          onFileItem(item.id, target)
+                          setShowFilingPicker(false)
+                          setFilingIssueFilter(null)
+                        }}
+                        className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
+                      >
+                        <span className="text-[var(--text-muted)]">#{target.issueNumber}</span>
+                        <span className="font-medium">p.{target.pageNumber}</span>
+                        {target.sceneName && (
+                          <span className="text-[var(--text-muted)] truncate">{target.sceneName}</span>
+                        )}
+                      </button>
+                    ))}
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

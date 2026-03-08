@@ -98,4 +98,28 @@ export const rateLimiters = {
     maxRequests: 100,
     windowMs: 60 * 1000,
   }),
+
+  // AI synthesis: 5 per minute (conversation summaries)
+  aiSynthesize: (userId: string) => checkRateLimit(`ai-synthesize:${userId}`, {
+    maxRequests: 5,
+    windowMs: 60 * 1000,
+  }),
+
+  // AI profile synthesis: 2 per minute
+  aiSynthesizeProfile: (userId: string) => checkRateLimit(`ai-synthesize-profile:${userId}`, {
+    maxRequests: 2,
+    windowMs: 60 * 1000,
+  }),
+
+  // AI debrief: 10 per minute
+  aiDebrief: (userId: string) => checkRateLimit(`ai-debrief:${userId}`, {
+    maxRequests: 10,
+    windowMs: 60 * 1000,
+  }),
+
+  // AI tool result: 20 per minute
+  aiToolResult: (userId: string) => checkRateLimit(`ai-tool-result:${userId}`, {
+    maxRequests: 20,
+    windowMs: 60 * 1000,
+  }),
 }
