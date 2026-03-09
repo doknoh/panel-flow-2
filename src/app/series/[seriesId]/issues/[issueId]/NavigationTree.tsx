@@ -1772,9 +1772,13 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation()
-                            const rect = e.currentTarget.getBoundingClientRect()
-                            setContextMenu({ x: rect.left, y: rect.bottom, type: 'act', id: act.id, title: act.name || `Act ${act.number}` })
-                            setContextSubmenu(null)
+                            if (contextMenu?.id === act.id) {
+                              closeContextMenu()
+                            } else {
+                              const rect = e.currentTarget.getBoundingClientRect()
+                              setContextMenu({ x: rect.left, y: rect.bottom, type: 'act', id: act.id, title: act.name || `Act ${act.number}` })
+                              setContextSubmenu(null)
+                            }
                           }}
                           className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-tertiary)] transition-opacity text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                           aria-label="Act options"
@@ -1833,9 +1837,13 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                         onMouseDown={(e) => e.stopPropagation()}
                                         onClick={(e) => {
                                           e.stopPropagation()
-                                          const rect = e.currentTarget.getBoundingClientRect()
-                                          setContextMenu({ x: rect.left, y: rect.bottom, type: 'scene', id: scene.id, title: scene.title || 'Untitled Scene' })
-                                          setContextSubmenu(null)
+                                          if (contextMenu?.id === scene.id) {
+                                            closeContextMenu()
+                                          } else {
+                                            const rect = e.currentTarget.getBoundingClientRect()
+                                            setContextMenu({ x: rect.left, y: rect.bottom, type: 'scene', id: scene.id, title: scene.title || 'Untitled Scene' })
+                                            setContextSubmenu(null)
+                                          }
                                         }}
                                         className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-tertiary)] transition-opacity text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                                         aria-label="Scene options"
@@ -1888,9 +1896,13 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                     onMouseDown={(e) => e.stopPropagation()}
                                                     onClick={(e) => {
                                                       e.stopPropagation()
-                                                      const rect = e.currentTarget.getBoundingClientRect()
-                                                      setContextMenu({ x: rect.left, y: rect.bottom, type: 'page', id: page.id, title: page.title || '' })
-                                                      setContextSubmenu(null)
+                                                      if (contextMenu?.id === page.id) {
+                                                        closeContextMenu()
+                                                      } else {
+                                                        const rect = e.currentTarget.getBoundingClientRect()
+                                                        setContextMenu({ x: rect.left, y: rect.bottom, type: 'page', id: page.id, title: page.title || '' })
+                                                        setContextSubmenu(null)
+                                                      }
                                                     }}
                                                     className={`opacity-0 group-hover:opacity-100 p-0.5 transition-opacity ${
                                                       isSelected
