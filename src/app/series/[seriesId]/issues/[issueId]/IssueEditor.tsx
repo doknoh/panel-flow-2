@@ -903,41 +903,41 @@ function IssueEditorContent({
                 VIEW
               </button>
               {openDropdown === 'view' && (
-                <div className="absolute right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 w-48 z-50">
+                <div className="dropdown-panel absolute right-0 top-full mt-1 py-1 w-48 z-50">
                   <button
                     onClick={() => { setIsZoomPanelOpen(!isZoomPanelOpen); setOpenDropdown(null) }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] flex items-center justify-between ${isZoomPanelOpen ? 'text-[var(--color-primary)]' : ''}`}
+                    className={`dropdown-item justify-between ${isZoomPanelOpen ? 'active' : ''}`}
                   >
                     <span>Zoom</span>
-                    <span className="text-xs text-[var(--text-muted)] font-mono">Cmd+.</span>
+                    <span className="text-xs opacity-40 font-mono">Cmd+.</span>
                   </button>
                   <button
                     onClick={async () => { await refreshIssue(); setIsZenMode(true); setOpenDropdown(null) }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] flex items-center justify-between"
+                    className="dropdown-item justify-between"
                   >
                     <span>Zen Mode</span>
-                    <span className="text-xs text-[var(--text-muted)] font-mono">Cmd+Shift+Enter</span>
+                    <span className="text-xs opacity-40 font-mono">Cmd+Shift+Enter</span>
                   </button>
                   <button
                     onClick={async () => { await refreshIssue(); setIsScriptView(true); setOpenDropdown(null) }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                   >
                     Script View
                   </button>
                   <Link
                     href={`/series/${seriesId}/issues/${issue.id}/read`}
-                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                     onClick={() => setOpenDropdown(null)}
                   >
                     Read Mode
                   </Link>
-                  <div className="border-t border-[var(--border)] my-1" />
+                  <div className="dropdown-separator my-1" />
                   <button
                     onClick={() => { setIsShortcutsOpen(true); setOpenDropdown(null) }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] flex items-center justify-between"
+                    className="dropdown-item justify-between"
                   >
                     <span>Keyboard Shortcuts</span>
-                    <span className="text-xs text-[var(--text-muted)] font-mono">?</span>
+                    <span className="text-xs opacity-40 font-mono">?</span>
                   </button>
                 </div>
               )}
@@ -952,45 +952,45 @@ function IssueEditorContent({
                 TOOLS
               </button>
               {openDropdown === 'navigate' && (
-                <div className="absolute right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 w-44 z-50">
+                <div className="dropdown-panel absolute right-0 top-full mt-1 py-1 w-44 z-50">
                   <Link
                     href={`/series/${seriesId}/issues/${issue.id}/import`}
-                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                     onClick={() => setOpenDropdown(null)}
                   >
                     Import Script
                   </Link>
                   <Link
                     href={`/series/${seriesId}/issues/${issue.id}/weave`}
-                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                     onClick={() => setOpenDropdown(null)}
                   >
                     Weave
                   </Link>
                   <Link
                     href={`/series/${seriesId}/issues/${issue.id}/scene-analytics`}
-                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                     onClick={() => setOpenDropdown(null)}
                   >
                     Analytics
                   </Link>
                   <Link
                     href={`/series/${seriesId}/issues/${issue.id}/rhythm`}
-                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                     onClick={() => setOpenDropdown(null)}
                   >
                     Rhythm
                   </Link>
                   <Link
                     href={`/series/${seriesId}/guide?issue=${issue.id}`}
-                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                     onClick={() => setOpenDropdown(null)}
                   >
                     Guide
                   </Link>
                   <Link
                     href={`/series/${seriesId}/issues/${issue.id}/history`}
-                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                     onClick={() => setOpenDropdown(null)}
                   >
                     History
@@ -1008,7 +1008,7 @@ function IssueEditorContent({
                 EXPORT
               </button>
               {openDropdown === 'export' && (
-                <div className="absolute right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 w-36 z-50">
+                <div className="dropdown-panel absolute right-0 top-full mt-1 py-1 w-36 z-50">
                   <button
                     onClick={async () => {
                       setOpenDropdown(null)
@@ -1020,7 +1020,7 @@ function IssueEditorContent({
                         console.error('PDF export error:', error)
                       }
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                   >
                     PDF
                   </button>
@@ -1035,7 +1035,7 @@ function IssueEditorContent({
                         console.error('Doc export error:', error)
                       }
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                   >
                     Word Doc
                   </button>
@@ -1050,7 +1050,7 @@ function IssueEditorContent({
                         console.error('TXT export error:', error)
                       }
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    className="dropdown-item"
                   >
                     Plain Text
                   </button>

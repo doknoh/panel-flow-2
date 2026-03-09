@@ -128,6 +128,7 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
 export default function PageEditor({ page, pageContext, characters, locations, scenePages = [], onUpdate, setSaveStatus }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null) // tracks "shotType-{panelId}" or "captionType-{captionId}"
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
   const [mentionState, setMentionState] = useState<{
     panelId: string
@@ -145,6 +146,14 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   const { showToast } = useToast()
   const { isOnline, queueChange, pendingChanges: offlinePending } = useOffline()
   const { recordAction, startTextEdit, endTextEdit } = useUndo()
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    if (!openDropdown) return
+    const handleClick = () => setOpenDropdown(null)
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [openDropdown])
 
   // DnD sensors
   const sensors = useSensors(
@@ -1272,25 +1281,48 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             <CommentButton entityType="panel" entityId={panel.id} />
                           </div>
                           <div className="flex items-center gap-2">
-                            <select
-                              data-panel-field="2"
-                              value={panel.shot_type || ''}
-                              onChange={(e) => {
-                                updatePanelField(panel.id, 'shot_type', e.target.value)
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
-                              className="bg-[var(--bg-tertiary)] border border-[var(--border)] px-2 py-1 type-micro"
-                            >
-                              <option value="">SHOT TYPE</option>
-                              <option value="wide">WIDE</option>
-                              <option value="medium">MEDIUM</option>
-                              <option value="close">CLOSE-UP</option>
-                              <option value="extreme_close">EXTREME CU</option>
-                              <option value="bird">BIRD&apos;S EYE</option>
-                              <option value="worm">WORM&apos;S EYE</option>
-                              <option value="pov">POV</option>
-                            </select>
+                            <div className="relative" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                data-panel-field="2"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setOpenDropdown(openDropdown === `shot-${panel.id}` ? null : `shot-${panel.id}`)
+                                }}
+                                onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
+                                className="type-micro px-2 py-1 bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center gap-1 hover:bg-[var(--bg-secondary)] transition-colors"
+                              >
+                                {panel.shot_type
+                                  ? { wide: 'WIDE', medium: 'MEDIUM', close: 'CLOSE-UP', extreme_close: 'EXTREME CU', bird: "BIRD'S EYE", worm: "WORM'S EYE", pov: 'POV' }[panel.shot_type] || 'SHOT TYPE'
+                                  : 'SHOT TYPE'}
+                                <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                              </button>
+                              {openDropdown === `shot-${panel.id}` && (
+                                <div className="dropdown-panel absolute right-0 top-full mt-1 z-50 min-w-[140px] py-1" onClick={(e) => e.stopPropagation()}>
+                                  {[
+                                    { value: '', label: 'SHOT TYPE' },
+                                    { value: 'wide', label: 'WIDE' },
+                                    { value: 'medium', label: 'MEDIUM' },
+                                    { value: 'close', label: 'CLOSE-UP' },
+                                    { value: 'extreme_close', label: 'EXTREME CU' },
+                                    { value: 'bird', label: "BIRD'S EYE" },
+                                    { value: 'worm', label: "WORM'S EYE" },
+                                    { value: 'pov', label: 'POV' },
+                                  ].map((opt) => (
+                                    <button
+                                      key={opt.value}
+                                      onClick={() => {
+                                        updatePanelField(panel.id, 'shot_type', opt.value)
+                                        setOpenDropdown(null)
+                                      }}
+                                      className={`dropdown-item ${panel.shot_type === opt.value || (!panel.shot_type && opt.value === '') ? 'active' : ''}`}
+                                    >
+                                      {(panel.shot_type === opt.value || (!panel.shot_type && opt.value === '')) && <span className="mr-1.5 text-xs">✓</span>}
+                                      {opt.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             <button
                               onClick={(e) => { e.stopPropagation(); deletePanel(panel.id) }}
                               className="type-micro text-[var(--text-disabled)] hover:text-[var(--color-error)]"
@@ -1355,7 +1387,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                               {/* @mention dropdown */}
                               {mentionState && mentionState.panelId === panel.id && filteredMentionCharacters.length > 0 && (
                                 <div
-                                  className="absolute z-50 mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 min-w-[180px] max-h-[200px] overflow-y-auto"
+                                  className="dropdown-panel absolute z-50 mt-1 py-1 min-w-[180px] max-h-[200px] overflow-y-auto"
                                 >
                                   {filteredMentionCharacters.map((char, idx) => (
                                     <button
@@ -1364,10 +1396,8 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         e.preventDefault()
                                         insertMention(panel.id, char)
                                       }}
-                                      className={`w-full px-3 py-1.5 text-left text-sm flex items-center gap-2 ${
-                                        idx === mentionIndex
-                                          ? 'bg-[var(--color-primary)]/20 text-[var(--text-primary)]'
-                                          : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
+                                      className={`dropdown-item ${
+                                        idx === mentionIndex ? 'active bg-white/[0.12]' : ''
                                       }`}
                                     >
                                       <span className="font-medium">{char.name}</span>
@@ -1415,48 +1445,102 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   .map((dialogue, dIdx) => (
                                     <div key={dialogue.id} data-dialogue-id={dialogue.id} className="bg-[var(--bg-tertiary)] rounded p-3 space-y-2">
                                       <div className="flex gap-2">
-                                        <select
-                                          data-panel-field={`${10 + dIdx * 2}`}
-                                          value={dialogue.character_id || ''}
-                                          onChange={(e) => {
-                                            const newValue = e.target.value || null
-                                            // Sync local state for accordion safety
-                                            setPanels(prev => prev.map(p => ({
-                                              ...p,
-                                              dialogue_blocks: (p.dialogue_blocks || []).map(d =>
-                                                d.id === dialogue.id ? { ...d, character_id: newValue } : d
-                                              )
-                                            })))
-                                            updateDialogue(dialogue.id, 'character_id', e.target.value)
-                                          }}
-                                          className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex-1"
-                                        >
-                                          <option value="">Select Character</option>
-                                          {characters.map((char) => (
-                                            <option key={char.id} value={char.id}>{char.name}</option>
-                                          ))}
-                                        </select>
-                                        <select
-                                          value={dialogue.dialogue_type}
-                                          onChange={(e) => {
-                                            // Sync local state
-                                            setPanels(prev => prev.map(p => ({
-                                              ...p,
-                                              dialogue_blocks: (p.dialogue_blocks || []).map(d =>
-                                                d.id === dialogue.id ? { ...d, dialogue_type: e.target.value } : d
-                                              )
-                                            })))
-                                            updateDialogue(dialogue.id, 'dialogue_type', e.target.value)
-                                          }}
-                                          className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
-                                        >
-                                          <option value="dialogue">Dialogue</option>
-                                          <option value="thought">Thought</option>
-                                          <option value="whisper">Whisper</option>
-                                          <option value="shout">Shout</option>
-                                          <option value="off_panel">Off-Panel</option>
-                                          <option value="electronic">Electronic</option>
-                                        </select>
+                                        {/* Character select — custom dropdown */}
+                                        <div className="relative flex-1">
+                                          <button
+                                            data-panel-field={`${10 + dIdx * 2}`}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              setOpenDropdown(openDropdown === `char-${dialogue.id}` ? null : `char-${dialogue.id}`)
+                                            }}
+                                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center justify-between gap-1 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                                          >
+                                            <span className={dialogue.character_id ? '' : 'text-[var(--text-muted)]'}>
+                                              {dialogue.character_id ? characters.find(c => c.id === dialogue.character_id)?.name || 'Unknown' : 'Select Character'}
+                                            </span>
+                                            <svg className="w-2.5 h-2.5 opacity-40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                          </button>
+                                          {openDropdown === `char-${dialogue.id}` && (
+                                            <div className="dropdown-panel absolute left-0 top-full mt-1 z-50 min-w-[160px] max-w-[220px] py-1 max-h-[240px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                              <button
+                                                onClick={() => {
+                                                  setPanels(prev => prev.map(p => ({
+                                                    ...p,
+                                                    dialogue_blocks: (p.dialogue_blocks || []).map(d =>
+                                                      d.id === dialogue.id ? { ...d, character_id: null } : d
+                                                    )
+                                                  })))
+                                                  updateDialogue(dialogue.id, 'character_id', '')
+                                                  setOpenDropdown(null)
+                                                }}
+                                                className={`dropdown-item ${!dialogue.character_id ? 'active' : ''}`}
+                                              >
+                                                Select Character
+                                              </button>
+                                              <div className="dropdown-separator my-1" />
+                                              {characters.map((char) => (
+                                                <button
+                                                  key={char.id}
+                                                  onClick={() => {
+                                                    setPanels(prev => prev.map(p => ({
+                                                      ...p,
+                                                      dialogue_blocks: (p.dialogue_blocks || []).map(d =>
+                                                        d.id === dialogue.id ? { ...d, character_id: char.id } : d
+                                                      )
+                                                    })))
+                                                    updateDialogue(dialogue.id, 'character_id', char.id)
+                                                    setOpenDropdown(null)
+                                                  }}
+                                                  className={`dropdown-item ${dialogue.character_id === char.id ? 'active' : ''}`}
+                                                >
+                                                  {char.name}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                        {/* Dialogue type — custom dropdown */}
+                                        <div className="relative">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              setOpenDropdown(openDropdown === `dlgtype-${dialogue.id}` ? null : `dlgtype-${dialogue.id}`)
+                                            }}
+                                            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors"
+                                          >
+                                            <span>{({dialogue: 'Dialogue', thought: 'Thought', whisper: 'Whisper', shout: 'Shout', off_panel: 'Off-Panel', electronic: 'Electronic'} as Record<string, string>)[dialogue.dialogue_type] || 'Dialogue'}</span>
+                                            <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                          </button>
+                                          {openDropdown === `dlgtype-${dialogue.id}` && (
+                                            <div className="dropdown-panel absolute right-0 top-full mt-1 z-50 min-w-[130px] py-1" onClick={(e) => e.stopPropagation()}>
+                                              {[
+                                                { value: 'dialogue', label: 'Dialogue' },
+                                                { value: 'thought', label: 'Thought' },
+                                                { value: 'whisper', label: 'Whisper' },
+                                                { value: 'shout', label: 'Shout' },
+                                                { value: 'off_panel', label: 'Off-Panel' },
+                                                { value: 'electronic', label: 'Electronic' },
+                                              ].map(opt => (
+                                                <button
+                                                  key={opt.value}
+                                                  onClick={() => {
+                                                    setPanels(prev => prev.map(p => ({
+                                                      ...p,
+                                                      dialogue_blocks: (p.dialogue_blocks || []).map(d =>
+                                                        d.id === dialogue.id ? { ...d, dialogue_type: opt.value } : d
+                                                      )
+                                                    })))
+                                                    updateDialogue(dialogue.id, 'dialogue_type', opt.value)
+                                                    setOpenDropdown(null)
+                                                  }}
+                                                  className={`dropdown-item ${dialogue.dialogue_type === opt.value ? 'active' : ''}`}
+                                                >
+                                                  {opt.label}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
                                         <button
                                           onClick={() => deleteDialogue(dialogue.id, panel.id)}
                                           className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
@@ -1528,25 +1612,46 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   .map((caption, cIdx) => (
                                     <div key={caption.id} className="bg-[var(--bg-tertiary)] rounded p-3 space-y-2">
                                       <div className="flex gap-2">
-                                        <select
-                                          value={caption.caption_type}
-                                          onChange={(e) => {
-                                            // Sync local state
-                                            setPanels(prev => prev.map(p => ({
-                                              ...p,
-                                              captions: (p.captions || []).map(c =>
-                                                c.id === caption.id ? { ...c, caption_type: e.target.value } : c
-                                              )
-                                            })))
-                                            updateCaption(caption.id, 'caption_type', e.target.value)
-                                          }}
-                                          className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
-                                        >
-                                          <option value="narrative">Narrative</option>
-                                          <option value="location">Location</option>
-                                          <option value="time">Time</option>
-                                          <option value="editorial">Editorial</option>
-                                        </select>
+                                        <div className="relative" onClick={(e) => e.stopPropagation()}>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              setOpenDropdown(openDropdown === `cap-${caption.id}` ? null : `cap-${caption.id}`)
+                                            }}
+                                            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors"
+                                          >
+                                            {{ narrative: 'Narrative', location: 'Location', time: 'Time', editorial: 'Editorial' }[caption.caption_type] || 'Narrative'}
+                                            <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                          </button>
+                                          {openDropdown === `cap-${caption.id}` && (
+                                            <div className="dropdown-panel absolute left-0 top-full mt-1 z-50 min-w-[130px] py-1" onClick={(e) => e.stopPropagation()}>
+                                              {[
+                                                { value: 'narrative', label: 'Narrative' },
+                                                { value: 'location', label: 'Location' },
+                                                { value: 'time', label: 'Time' },
+                                                { value: 'editorial', label: 'Editorial' },
+                                              ].map((opt) => (
+                                                <button
+                                                  key={opt.value}
+                                                  onClick={() => {
+                                                    setPanels(prev => prev.map(p => ({
+                                                      ...p,
+                                                      captions: (p.captions || []).map(c =>
+                                                        c.id === caption.id ? { ...c, caption_type: opt.value } : c
+                                                      )
+                                                    })))
+                                                    updateCaption(caption.id, 'caption_type', opt.value)
+                                                    setOpenDropdown(null)
+                                                  }}
+                                                  className={`dropdown-item ${caption.caption_type === opt.value ? 'active' : ''}`}
+                                                >
+                                                  {caption.caption_type === opt.value && <span className="mr-1.5 text-xs">✓</span>}
+                                                  {opt.label}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
                                         <button
                                           onClick={() => deleteCaption(caption.id, panel.id)}
                                           className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2 ml-auto"

@@ -180,7 +180,7 @@ export default function PageTypeSelector({
         {/* Dropdown */}
         {isDropdownOpen && (
           <div
-            className="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 min-w-[180px] py-1"
+            className="dropdown-panel absolute top-full left-0 mt-1 z-50 min-w-[180px] py-1"
             onClick={(e) => e.stopPropagation()}
           >
             {pageTypes.map((type) => (
@@ -189,17 +189,17 @@ export default function PageTypeSelector({
                 onClick={() => handleTypeSelect(type.value)}
                 className={`w-full px-3 py-2 text-left flex items-center gap-3 transition-colors ${
                   type.value === currentType
-                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
-                    : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
+                    ? 'active bg-white/[0.08]'
+                    : 'hover:bg-white/[0.08] text-[#d8d8ec]'
                 }`}
               >
                 <span className="text-xl w-6 text-center">{type.icon}</span>
                 <div>
                   <div className="text-sm font-medium">{type.label}</div>
-                  <div className="text-xs text-[var(--text-muted)]">{type.description}</div>
+                  <div className="text-xs opacity-50">{type.description}</div>
                 </div>
                 {type.value === currentType && (
-                  <svg className="w-4 h-4 ml-auto text-[var(--color-primary)]" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 ml-auto text-[#a0a0ff]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 )}
