@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/ui/Header'
+import AllowedUsersManager from './AllowedUsersManager'
 
 interface SeriesWithRole {
   id: string
@@ -122,6 +123,9 @@ export default async function DashboardPage() {
             </Link>
           </div>
         )}
+
+        {/* Admin: App Access Management */}
+        <AllowedUsersManager currentUserEmail={user.email || ''} />
       </main>
     </div>
   )
