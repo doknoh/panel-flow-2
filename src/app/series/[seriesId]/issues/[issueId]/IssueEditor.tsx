@@ -813,7 +813,7 @@ function IssueEditorContent({
               ←
             </Link>
             <span className="text-xl font-black tracking-tight shrink-0">ISSUE #{String(issue.number).padStart(2, '0')}</span>
-            <span className="type-separator hidden sm:inline shrink-0">//</span>
+            <span className="type-separator hidden sm:inline shrink-0">{'\/\/'}</span>
             {isEditingTitle ? (
               <input
                 ref={titleInputRef}

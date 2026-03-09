@@ -32,7 +32,7 @@ export default function Header({
               >
                 {backLabel}
               </Link>
-              <span className="type-separator">//</span>
+              <span className="type-separator">{'\/\/'}</span>
             </>
           )}
           <h1 className="font-black tracking-tight text-[var(--text-primary)] text-lg sm:text-xl uppercase">{title}</h1>

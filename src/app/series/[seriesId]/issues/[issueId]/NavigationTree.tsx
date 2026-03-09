@@ -1358,7 +1358,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-secondary)] cursor-pointer group">
                 <span className="type-micro text-[var(--text-muted)]">[+]</span>
                 <span className="type-struct-num">{String(act.number).padStart(2, '0')}.00</span>
-                <span className="type-separator">//</span>
+                <span className="type-separator">{'\/\/'}</span>
                 <span className="type-label flex-1">{act.name || `ACT ${act.number}`}</span>
               </div>
             </div>
@@ -1392,7 +1392,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                         {expandedActs.has(act.id) ? '[-]' : '[+]'}
                       </span>
                       <span className="type-struct-num">{String(act.number).padStart(2, '0')}.00</span>
-                      <span className="type-separator">//</span>
+                      <span className="type-separator">{'\/\/'}</span>
                       {editingActId === act.id ? (
                         <input
                           ref={editInputRef}

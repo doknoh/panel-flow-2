@@ -25,10 +25,10 @@ function getDeliveryTag(block: any): string {
 }
 
 function getPanelSizeLabel(panel: any): string {
-  if (panel.panel_size === 'FULL_PAGE') return '// Splash'
-  if (panel.panel_size === 'HALF') return '// Half'
-  if (panel.panel_size === 'THIRD') return '// Third'
-  if (panel.panel_size === 'INSET') return '// Inset'
+  if (panel.panel_size === 'FULL_PAGE') return '//Splash'
+  if (panel.panel_size === 'HALF') return '//Half'
+  if (panel.panel_size === 'THIRD') return '//Third'
+  if (panel.panel_size === 'INSET') return '//Inset'
   if (panel.camera) return `// ${panel.camera}`
   return ''
 }

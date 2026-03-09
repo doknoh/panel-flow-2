@@ -1870,7 +1870,7 @@ export default function ScriptView({
                 >
                   ›
                 </button>
-                <span className="type-separator">//</span>
+                <span className="type-separator">{'\/\/'}</span>
                 <button
                   onClick={addPage}
                   className="hover:text-[var(--color-success)] transition-colors"
@@ -2204,7 +2204,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
         </div>
         {block.actName && block.sceneName && (
           <div className="type-meta mt-1">
-            {block.actName} <span className="type-separator">//</span> {block.sceneName}
+            {block.actName} <span className="type-separator">{'\/\/'}</span> {block.sceneName}
           </div>
         )}
       </div>
@@ -2217,7 +2217,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
       <div className="mt-5 group/panel border-l-2 border-[var(--text-secondary)] pl-3">
         <div className="flex items-center gap-2 mb-1">
           <span className="type-label text-[var(--text-primary)]">PNL {block.panelNumber}</span>
-          <span className="type-separator">//</span>
+          <span className="type-separator">{'\/\/'}</span>
           <span className="type-label">VISUAL</span>
           <button
             onClick={onDeletePanel}

@@ -120,11 +120,11 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
           <>
             <span>
               PG: {String(selectedPage.page_number).padStart(2, '0')}
-              <span className="type-separator">//</span>
+              <span className="type-separator">{'\/\/'}</span>
               PNL: {stats.pagePanels}
-              <span className="type-separator">//</span>
+              <span className="type-separator">{'\/\/'}</span>
               WRD: {stats.pageWords.toLocaleString()}
-              <span className="type-separator">//</span>
+              <span className="type-separator">{'\/\/'}</span>
               CHR: {stats.pageCharacters.toLocaleString()}
             </span>
           </>
@@ -165,12 +165,12 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
       <div className="flex items-center gap-3">
         <span>
           ISSUE: {stats.totalPages} PGS
-          <span className="type-separator">//</span>
+          <span className="type-separator">{'\/\/'}</span>
           {stats.totalPanels} PNLS
-          <span className="type-separator">//</span>
+          <span className="type-separator">{'\/\/'}</span>
           {stats.issueWords.toLocaleString()} WRDS
         </span>
-        <span className="type-separator">//</span>
+        <span className="type-separator">{'\/\/'}</span>
         <span
           role="status"
           aria-live="polite"

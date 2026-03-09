@@ -113,7 +113,7 @@ export default function BlueprintReference({
         {pageCharacters.length === 0 && (
           <div className="bp-context-card">
             <div className="bp-card-header">
-              <span>CHR // NONE</span>
+              <span>CHR {'\/\/'} NONE</span>
               <span>--</span>
             </div>
             <div className="bp-card-content" style={{ color: 'var(--bp-ink-light)' }}>

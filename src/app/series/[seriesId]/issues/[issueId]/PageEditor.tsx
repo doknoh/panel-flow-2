@@ -1135,13 +1135,13 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           </span>
           {pageContext.scene.plotline_name && (
             <>
-              <span className="type-separator">//</span>
+              <span className="type-separator">{'\/\/'}</span>
               <span className="text-[var(--text-secondary)]">{pageContext.scene.plotline_name}</span>
             </>
           )}
           {pageContext.pagePositionInScene && pageContext.scene.total_pages && (
             <>
-              <span className="type-separator">//</span>
+              <span className="type-separator">{'\/\/'}</span>
               <span>{pageContext.pagePositionInScene} OF {pageContext.scene.total_pages} IN SCENE</span>
             </>
           )}
@@ -1238,7 +1238,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             >
                               PNL {panel.panel_number}
                             </span>
-                            <span className="type-separator">//</span>
+                            <span className="type-separator">{'\/\/'}</span>
                             <span className="type-label">VISUAL</span>
                             {/* Word Count */}
                             <span className="type-micro" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -1288,7 +1288,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             {(panel.dialogue_blocks?.length > 0 || panel.captions?.length > 0) && (
                               <div className="type-micro mt-1">
                                 {panel.dialogue_blocks?.length > 0 && <span>{panel.dialogue_blocks.length} DLG</span>}
-                                {panel.dialogue_blocks?.length > 0 && panel.captions?.length > 0 && <span className="type-separator">//</span>}
+                                {panel.dialogue_blocks?.length > 0 && panel.captions?.length > 0 && <span className="type-separator">{'\/\/'}</span>}
                                 {panel.captions?.length > 0 && <span>{panel.captions.length} CAP</span>}
                               </div>
                             )}

@@ -1698,7 +1698,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               {chatMessages.length === 0 && !streamingText ? (
                 <div className="text-center py-6 px-4">
                   <p className="type-label mb-2">
-                    STRUCT_AI <span className="type-separator">//</span> PARTNER
+                    STRUCT_AI <span className="type-separator">{'\/\/'}</span> PARTNER
                   </p>
                   <p className="type-meta mb-4">
                     Your editor knows the full project — characters, plotlines, script, and structure.
