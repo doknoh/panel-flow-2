@@ -474,6 +474,8 @@ function IssueEditorContent({
   const [isZenMode, setIsZenMode] = useState(false)
   const [isScriptView, setIsScriptView] = useState(false)
   const [isQuickNavOpen, setIsQuickNavOpen] = useState(false)
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
+  const [isRightCollapsed, setIsRightCollapsed] = useState(false)
   const [peekPageId, setPeekPageId] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<'view' | 'navigate' | 'export' | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -727,6 +729,20 @@ function IssueEditorContent({
       if (isMod && e.key === '.') {
         e.preventDefault()
         setIsZoomPanelOpen(!isZoomPanelOpen)
+        return
+      }
+
+      // Cmd/Ctrl + [ to toggle left panel
+      if (isMod && e.key === '[') {
+        e.preventDefault()
+        setIsLeftCollapsed(prev => !prev)
+        return
+      }
+
+      // Cmd/Ctrl + ] to toggle right panel
+      if (isMod && e.key === ']') {
+        e.preventDefault()
+        setIsRightCollapsed(prev => !prev)
         return
       }
 
@@ -1079,6 +1095,10 @@ function IssueEditorContent({
           rightMaxWidth={500}
           defaultLeftWidth={256}
           defaultRightWidth={320}
+          isLeftCollapsed={isLeftCollapsed}
+          isRightCollapsed={isRightCollapsed}
+          onLeftCollapseChange={setIsLeftCollapsed}
+          onRightCollapseChange={setIsRightCollapsed}
           leftPanel={
             <div className="h-full border-r border-[var(--border)]">
               <NavigationTree
