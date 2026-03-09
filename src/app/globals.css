@@ -70,6 +70,11 @@
   --tracking-label: 0.06em;
   --tracking-data: 0.1em;
 
+  /* Easing curves — named for intent */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-micro: cubic-bezier(0.25, 0.1, 0.25, 1.0);
+
   /* Legacy support */
   --background: var(--bg-primary);
   --foreground: var(--text-primary);
@@ -182,7 +187,6 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  transition: background-color 0.2s ease, color 0.2s ease;
   /* Blueprint grid background */
   background-image:
     linear-gradient(var(--border) 1px, transparent 1px),
@@ -207,12 +211,13 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 6px;
-  transition: all 150ms ease-out;
+  transition: all 200ms var(--ease-out-expo);
 }
 
 .card:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--text-primary) 8%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--text-primary) 10%, transparent);
+  transform: translateY(-2px);
 }
 
 .card-elevated {
@@ -220,12 +225,13 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   box-shadow: var(--shadow-md);
-  transition: all 150ms ease-out;
+  transition: all 200ms var(--ease-out-expo);
 }
 
 .card-elevated:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 12%, transparent);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  transform: translateY(-2px);
 }
 
 /* Inputs — soft rounding with enhanced focus */
@@ -234,14 +240,14 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text-primary);
-  transition: all 150ms ease-out;
+  transition: all 120ms var(--ease-micro);
 }
 
 .input:focus,
 .input:focus-visible {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 1px var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent);
   background: var(--bg-elevated);
 }
 
@@ -255,11 +261,11 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  transition: all 150ms ease-out;
+  transition: all 120ms var(--ease-micro);
 }
 
 .btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.97) translateY(0);
 }
 
 .btn-primary {
@@ -269,6 +275,8 @@ body {
 
 .btn-primary:hover {
   background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 .btn-secondary {
@@ -279,6 +287,8 @@ body {
 
 .btn-secondary:hover {
   background: var(--border);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-ghost {
@@ -308,11 +318,16 @@ body {
 }
 
 @keyframes scale-in {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from { transform: scale(0.96) translateY(4px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-/* --- Polish keyframes (from Deirdre's World Builder) --- */
+@keyframes stagger-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Polish keyframes --- */
 
 @keyframes shimmer-sweep {
   0% { transform: translateX(-100%); }
@@ -345,8 +360,15 @@ body {
 }
 
 @keyframes drag-overlay-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
+  0% { opacity: 0; transform: scale(0.95); }
+  60% { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes drop-settle {
+  0% { transform: scale(1.03); }
+  50% { transform: scale(0.98); }
+  100% { transform: scale(1); }
 }
 
 @keyframes page-enter {
@@ -354,18 +376,24 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes save-confirm {
+  0% { transform: scale(1); }
+  40% { transform: scale(2.5); }
+  100% { transform: scale(1); }
+}
+
 /* --- Animation utility classes --- */
 
 .animate-slide-in {
-  animation: slide-in 0.2s ease-out;
+  animation: slide-in 0.2s var(--ease-out-expo);
 }
 
 .animate-fade-in {
-  animation: fade-in 0.15s ease-out;
+  animation: fade-in 0.15s var(--ease-out-expo);
 }
 
 .animate-scale-in {
-  animation: scale-in 0.15s ease-out;
+  animation: scale-in 0.2s var(--ease-out-expo);
 }
 
 .animate-shimmer {
@@ -373,7 +401,7 @@ body {
 }
 
 .animate-toast-in {
-  animation: toast-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: toast-in 300ms var(--ease-out-expo);
 }
 
 .animate-toast-out {
@@ -381,7 +409,7 @@ body {
 }
 
 .animate-message-arrive {
-  animation: message-arrive 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: message-arrive 300ms var(--ease-out-expo);
 }
 
 .animate-selection-pulse {
@@ -389,18 +417,59 @@ body {
 }
 
 .animate-insertion-line {
-  animation: insertion-line-in 200ms ease-out;
+  animation: insertion-line-in 200ms var(--ease-out-expo);
 }
 
 .animate-drag-overlay {
-  animation: drag-overlay-in 150ms ease-out;
+  animation: drag-overlay-in 200ms var(--ease-spring);
+}
+
+.animate-drop-settle {
+  animation: drop-settle 250ms var(--ease-spring);
+}
+
+.animate-save-confirm {
+  animation: save-confirm 400ms var(--ease-spring);
+}
+
+/* --- Modal entrance animations --- */
+
+.modal-backdrop {
+  animation: fade-in 150ms var(--ease-out-expo);
+}
+
+.modal-dialog {
+  animation: scale-in 200ms var(--ease-out-expo);
+}
+
+/* --- Expand/collapse animation via grid-template-rows --- */
+
+.collapse-target {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms var(--ease-out-expo);
+  overflow: hidden;
+}
+
+.collapse-target.expanded {
+  grid-template-rows: 1fr;
+}
+
+.collapse-target > * {
+  min-height: 0;
+}
+
+/* --- Smooth textarea auto-resize --- */
+
+.textarea-smooth {
+  transition: height 150ms var(--ease-micro);
 }
 
 /* --- Staggered entrance animation --- */
 
 .stagger-children > * {
   opacity: 0;
-  animation: fade-in 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: stagger-up 300ms var(--ease-out-expo) forwards;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
 .stagger-children > *:nth-child(2) { animation-delay: 30ms; }
@@ -648,13 +717,26 @@ h1, h2, h3, h4 {
   height: 2px;
   background: var(--color-primary);
   transform-origin: left;
-  animation: insertion-line-in 200ms ease-out;
+  animation: insertion-line-in 200ms var(--ease-out-expo);
 }
 
 /* Dragging overlay */
 .drag-overlay {
-  animation: drag-overlay-in 150ms ease-out;
+  animation: drag-overlay-in 200ms var(--ease-spring);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 15%, transparent);
+}
+
+/* ============================================
+   THEME CROSSFADE
+   ============================================ */
+
+/* Only active during explicit user toggle — prevents flash on page load */
+html[data-theme-transitioning],
+html[data-theme-transitioning] * {
+  transition: background-color 300ms var(--ease-out-expo),
+              color 300ms var(--ease-out-expo),
+              border-color 300ms var(--ease-out-expo),
+              box-shadow 300ms var(--ease-out-expo) !important;
 }
 
 /* ============================================

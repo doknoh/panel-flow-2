@@ -892,9 +892,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
           >
             {label}
             {key === 'alerts' && activeAlerts.length > 0 && (
-              <span className="absolute -top-0.5 right-0 w-3.5 h-3.5 bg-[var(--color-warning)] text-black type-micro font-bold flex items-center justify-center" style={{ fontSize: '8px' }}>
-                {activeAlerts.length}
-              </span>
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-warning)]" aria-label={`${activeAlerts.length} alerts`} />
             )}
           </button>
         ))}

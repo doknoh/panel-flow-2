@@ -109,12 +109,12 @@ export default function GraduationModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm modal-backdrop"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="Graduate idea" className="relative bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="Graduate idea" className="relative bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden modal-dialog">
         {/* Header */}
         <div className="px-6 py-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between">

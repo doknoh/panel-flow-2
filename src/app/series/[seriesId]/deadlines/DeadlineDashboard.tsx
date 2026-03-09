@@ -379,9 +379,9 @@ function DeadlineEditor({
   const [targetPages, setTargetPages] = useState(issue.target_page_count?.toString() || '22')
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 modal-backdrop" onClick={onClose}>
       <div
-        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md"
+        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md modal-dialog"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">

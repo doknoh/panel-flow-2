@@ -211,12 +211,12 @@ export default function PageTypeSelector({
 
       {/* Linking Modal */}
       {isLinkingModalOpen && pendingType && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => {
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 modal-backdrop" onClick={() => {
           setIsLinkingModalOpen(false)
           setPendingType(null)
         }}>
           <div
-            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl w-full max-w-md mx-4 shadow-2xl"
+            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl w-full max-w-md mx-4 shadow-2xl modal-dialog"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-[var(--border)]">

@@ -155,11 +155,11 @@ export default function CommandPalette({ seriesId, issueId }: CommandPaletteProp
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex items-start justify-center pt-[12vh] z-50"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[12vh] z-50 modal-backdrop"
       onClick={() => setIsOpen(false)}
     >
       <div
-        className="w-full max-w-lg mx-4 rounded-xl overflow-hidden shadow-2xl border border-[var(--border)]"
+        className="w-full max-w-lg mx-4 rounded-xl overflow-hidden shadow-2xl border border-[var(--border)] modal-dialog"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
         onClick={(e) => e.stopPropagation()}
       >

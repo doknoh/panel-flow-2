@@ -390,8 +390,8 @@ export default function SeriesTimeline({ series, onRefresh }: SeriesTimelineProp
 
       {/* Assignment Editor Modal */}
       {editingAssignment && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 max-w-sm w-full">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 modal-backdrop">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 max-w-sm w-full modal-dialog">
             <h3 className="font-bold mb-4">
               Edit Plotline Assignment
             </h3>

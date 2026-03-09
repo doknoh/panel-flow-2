@@ -400,14 +400,14 @@ export default function SeriesWeaveClient({
                           {/* Edit modal */}
                           {isEditing && (
                             <div
-                              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+                              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center modal-backdrop"
                               onClick={(e) => {
                                 if (e.target === e.currentTarget) {
                                   setEditingCell(null)
                                 }
                               }}
                             >
-                              <div className="bg-[var(--bg-secondary)] rounded-lg p-4 w-full max-w-md mx-4 border border-[var(--border)]">
+                              <div className="bg-[var(--bg-secondary)] rounded-lg p-4 w-full max-w-md mx-4 border border-[var(--border)] modal-dialog">
                                 <div className="flex items-center justify-between mb-4">
                                   <div className="flex items-center gap-2">
                                     <div

@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext'
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -13,6 +14,8 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverEvent,
+  DragOverlay,
+  CollisionDetection,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -53,7 +56,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.7 : 1,
+    opacity: isDragging ? 0.3 : 1,
     zIndex: isDragging ? 50 : undefined,
   }
 
@@ -62,7 +65,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
       ref={setNodeRef}
       style={style}
       className={isDragging
-        ? 'ring-2 ring-[var(--color-primary)] scale-[1.02] shadow-lg bg-[var(--bg-secondary)] animate-drag-overlay'
+        ? 'ring-1 ring-[var(--border-strong)] ring-dashed bg-[var(--bg-secondary)]'
         : 'transition-all duration-150 ease-out'
       }
       {...attributes}
@@ -112,6 +115,14 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  // Custom collision detection: prefer pointerWithin (precise for nested layouts),
+  // fall back to closestCenter when pointer isn't directly over any droppable
+  const hierarchyAwareCollision: CollisionDetection = useCallback((args) => {
+    const pointerCollisions = pointerWithin(args)
+    if (pointerCollisions.length > 0) return pointerCollisions
+    return closestCenter(args)
+  }, [])
 
   // Helper functions for finding item locations in the tree
   const findPageLocation = (pageId: string): { actId: string; sceneId: string; page: any } | null => {
@@ -725,9 +736,22 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     // Then persist to database
     const supabase = createClient()
     const updates = reordered.map((act, index) =>
-      supabase.from('acts').update({ sort_order: index + 1 }).eq('id', act.id)
+      supabase.from('acts').update({ sort_order: index + 1 }).eq('id', act.id).select('id, sort_order')
     )
-    await Promise.all(updates)
+    const results = await Promise.all(updates)
+    const errors = results.filter(r => r.error)
+    const successCount = results.filter(r => r.data && r.data.length > 0).length
+
+    if (errors.length > 0) {
+      showToast(`Failed to reorder acts: ${errors[0].error?.message}`, 'error')
+      await onRefresh()
+      return
+    }
+    if (successCount === 0) {
+      showToast('No acts were updated - check permissions', 'error')
+      await onRefresh()
+      return
+    }
     showToast('Acts reordered', 'success')
   }
 
@@ -757,9 +781,22 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     // Then persist to database
     const supabase = createClient()
     const updates = reordered.map((scene: any, index: number) =>
-      supabase.from('scenes').update({ sort_order: index + 1 }).eq('id', scene.id)
+      supabase.from('scenes').update({ sort_order: index + 1 }).eq('id', scene.id).select('id, sort_order')
     )
-    await Promise.all(updates)
+    const results = await Promise.all(updates)
+    const errors = results.filter(r => r.error)
+    const successCount = results.filter(r => r.data && r.data.length > 0).length
+
+    if (errors.length > 0) {
+      showToast(`Failed to reorder scenes: ${errors[0].error?.message}`, 'error')
+      await onRefresh()
+      return
+    }
+    if (successCount === 0) {
+      showToast('No scenes were updated - check permissions', 'error')
+      await onRefresh()
+      return
+    }
     showToast('Scenes reordered', 'success')
   }
 
@@ -827,7 +864,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     showToast(`Reordered ${successCount} pages`, 'success')
   }
 
-  const movePageToScene = async (pageId: string, targetSceneId: string) => {
+  const movePageToScene = async (pageId: string, targetSceneId: string, insertBeforePageId?: string) => {
     const supabase = createClient()
 
     // Get target scene to calculate new sort_order
@@ -839,14 +876,21 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       return
     }
 
-    // New sort_order is at the end of the target scene
-    const newSortOrder = (targetScene.pages?.length || 0) + 1
+    const existingPages = [...(targetScene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
+    // Calculate insertion index: before the target page, or at end
+    let insertIndex = existingPages.length // default: append to end
+    if (insertBeforePageId) {
+      const targetIdx = existingPages.findIndex((p: any) => p.id === insertBeforePageId)
+      if (targetIdx !== -1) insertIndex = targetIdx
+    }
+
+    // Move the page into the list at the insertion point
     const { error, data } = await supabase
       .from('pages')
       .update({
         scene_id: targetSceneId,
-        sort_order: newSortOrder,
+        sort_order: insertIndex + 1, // temporary, will be recalculated
       })
       .eq('id', pageId)
       .select('id, scene_id, sort_order')
@@ -868,7 +912,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       return
     }
 
-    // Optimistic update - move the page in local state immediately
+    // Optimistic update - move the page in local state at the correct position
     setIssue((prev: any) => {
       // Find and remove the page from its current scene
       let movedPage: any = null
@@ -877,29 +921,45 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         scenes: (a.scenes || []).map((s: any) => {
           const pageInScene = (s.pages || []).find((p: any) => p.id === pageId)
           if (pageInScene) {
-            movedPage = { ...pageInScene, scene_id: targetSceneId, sort_order: newSortOrder }
+            movedPage = { ...pageInScene, scene_id: targetSceneId }
             return { ...s, pages: s.pages.filter((p: any) => p.id !== pageId) }
           }
           return s
         }),
       }))
 
-      // Add the page to the target scene
+      // Insert the page at the correct position in the target scene
       if (movedPage) {
         return {
           ...prev,
           acts: updatedActs.map((a: any) => ({
             ...a,
-            scenes: (a.scenes || []).map((s: any) =>
-              s.id === targetSceneId
-                ? { ...s, pages: [...(s.pages || []), movedPage] }
-                : s
-            ),
+            scenes: (a.scenes || []).map((s: any) => {
+              if (s.id !== targetSceneId) return s
+              const sorted = [...(s.pages || [])].sort((x: any, y: any) => x.sort_order - y.sort_order)
+              sorted.splice(insertIndex, 0, movedPage)
+              // Recalculate sort_order for all pages in this scene
+              const renumbered = sorted.map((p: any, i: number) => ({ ...p, sort_order: i + 1 }))
+              return { ...s, pages: renumbered }
+            }),
           })),
         }
       }
       return prev
     })
+
+    // Recalculate sort_order for all pages in the target scene in the database
+    // (the moved page may have displaced others)
+    const refreshedScene = issue.acts?.flatMap((a: any) => a.scenes || [])
+      .find((s: any) => s.id === targetSceneId)
+    if (refreshedScene) {
+      const allPages = [...(refreshedScene.pages || [])].filter((p: any) => p.id !== pageId)
+      allPages.splice(insertIndex, 0, { id: pageId })
+      const sortUpdates = allPages.map((p: any, i: number) =>
+        supabase.from('pages').update({ sort_order: i + 1 }).eq('id', p.id)
+      )
+      await Promise.all(sortUpdates)
+    }
 
     // Expand the target scene so user can see the moved page
     setExpandedScenes(new Set([...expandedScenes, targetSceneId]))
@@ -917,7 +977,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   }
 
   // Move scene to a different act
-  const moveSceneToAct = async (sceneId: string, targetActId: string) => {
+  const moveSceneToAct = async (sceneId: string, targetActId: string, insertBeforeSceneId?: string) => {
     const supabase = createClient()
     const sourceLocation = findSceneLocation(sceneId)
     if (!sourceLocation) {
@@ -928,30 +988,42 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     // If same act, do nothing
     if (sourceLocation.actId === targetActId) return
 
-    // Get target act to calculate new sort_order
+    // Get target act to calculate insertion position
     const targetAct = (issue.acts || []).find((a: any) => a.id === targetActId)
     if (!targetAct) {
       showToast('Target act not found', 'error')
       return
     }
 
-    // New sort_order is at the end of the target act
-    const newSortOrder = ((targetAct.scenes || []).length || 0) + 1
+    const existingScenes = [...(targetAct.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
-    const { error } = await supabase
+    // Calculate insertion index: before the target scene, or at end
+    let insertIndex = existingScenes.length // default: append to end
+    if (insertBeforeSceneId) {
+      const targetIdx = existingScenes.findIndex((s: any) => s.id === insertBeforeSceneId)
+      if (targetIdx !== -1) insertIndex = targetIdx
+    }
+
+    const { error, data } = await supabase
       .from('scenes')
       .update({
         act_id: targetActId,
-        sort_order: newSortOrder,
+        sort_order: insertIndex + 1,
       })
       .eq('id', sceneId)
+      .select('id, act_id, sort_order')
 
     if (error) {
       showToast(`Failed to move scene: ${error.message}`, 'error')
       return
     }
 
-    // Optimistic update - move the scene in local state
+    if (!data || data.length === 0) {
+      showToast('Move failed - no rows updated (check permissions)', 'error')
+      return
+    }
+
+    // Optimistic update - move the scene in local state at the correct position
     setIssue((prev: any) => {
       let movedScene: any = null
       // Remove from source act
@@ -959,26 +1031,37 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         if (a.id === sourceLocation.actId) {
           movedScene = (a.scenes || []).find((s: any) => s.id === sceneId)
           if (movedScene) {
-            movedScene = { ...movedScene, act_id: targetActId, sort_order: newSortOrder }
+            movedScene = { ...movedScene, act_id: targetActId }
           }
           return { ...a, scenes: (a.scenes || []).filter((s: any) => s.id !== sceneId) }
         }
         return a
       })
 
-      // Add to target act
+      // Insert at the correct position in the target act
       if (movedScene) {
         return {
           ...prev,
-          acts: updatedActs.map((a: any) =>
-            a.id === targetActId
-              ? { ...a, scenes: [...(a.scenes || []), movedScene] }
-              : a
-          ),
+          acts: updatedActs.map((a: any) => {
+            if (a.id !== targetActId) return a
+            const sorted = [...(a.scenes || [])].sort((x: any, y: any) => x.sort_order - y.sort_order)
+            sorted.splice(insertIndex, 0, movedScene)
+            // Recalculate sort_order for all scenes in this act
+            const renumbered = sorted.map((s: any, i: number) => ({ ...s, sort_order: i + 1 }))
+            return { ...a, scenes: renumbered }
+          }),
         }
       }
       return prev
     })
+
+    // Recalculate sort_order for all scenes in the target act in the database
+    const allScenes = [...existingScenes.filter((s: any) => s.id !== sceneId)]
+    allScenes.splice(insertIndex, 0, { id: sceneId })
+    const sortUpdates = allScenes.map((s: any, i: number) =>
+      supabase.from('scenes').update({ sort_order: i + 1 }).eq('id', s.id)
+    )
+    await Promise.all(sortUpdates)
 
     // Expand the target act
     setExpandedActs(new Set([...expandedActs, targetActId]))
@@ -1079,8 +1162,8 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           // Same act - reorder scenes
           await handleSceneDragEnd(sourceLocation.actId, event)
         } else {
-          // Different act - move scene to that act
-          await moveSceneToAct(activeId, overLocation.actId)
+          // Different act - move scene to that act, inserting at the hovered scene's position
+          await moveSceneToAct(activeId, overLocation.actId, overId)
         }
       } else if (overType === 'act') {
         // Dropping on an act header - move to that act
@@ -1101,8 +1184,8 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           // Same scene - reorder pages
           await handlePageDragEnd(sourceLocation.sceneId, event)
         } else {
-          // Different scene - move page to that scene
-          await movePageToScene(activeId, overLocation.sceneId)
+          // Different scene - move page to that scene, inserting at the hovered page's position
+          await movePageToScene(activeId, overLocation.sceneId, overId)
         }
       } else if (overType === 'scene') {
         // Dropping on a scene header - move to that scene (append at end)
@@ -1255,7 +1338,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         <DndContext
           id="unified-navigation-dnd"
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={hierarchyAwareCollision}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleUnifiedDragEnd}
@@ -1307,7 +1390,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                       </div>
 
                       {/* Expanded Act Content */}
-                      {expandedActs.has(act.id) && (
+                      <div className={`collapse-target ${expandedActs.has(act.id) ? 'expanded' : ''}`}>
                         <div>
                           <SortableContext items={sortedScenes.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
                             {sortedScenes.map((scene: any) => {
@@ -1354,7 +1437,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                     </div>
 
                                     {/* Expanded Scene Content - Pages */}
-                                    {expandedScenes.has(scene.id) && (
+                                    <div className={`collapse-target ${expandedScenes.has(scene.id) ? 'expanded' : ''}`}>
                                       <div>
                                         <SortableContext items={sortedPages.map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
                                           {sortedPages.map((page: any) => {
@@ -1461,7 +1544,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                           + Add Page
                                         </button>
                                       </div>
-                                    )}
+                                    </div>
                                   </div>
                                 </SortableItem>
                               )
@@ -1479,13 +1562,45 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                             + Add Scene
                           </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </SortableItem>
                 )
               })}
             </div>
           </SortableContext>
+          <DragOverlay dropAnimation={null}>
+            {activeDragItem && (() => {
+              const { id, type } = activeDragItem
+              if (type === 'act') {
+                const act = (issue.acts || []).find((a: any) => a.id === id)
+                return (
+                  <div className="px-3 py-2 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg text-sm font-extrabold uppercase tracking-tight text-[var(--text-primary)]">
+                    {act?.name || 'Act'}
+                  </div>
+                )
+              }
+              if (type === 'scene') {
+                const loc = findSceneLocation(id)
+                const plotline = loc?.scene?.plotline_id ? plotlines.find(p => p.id === loc.scene.plotline_id) : null
+                return (
+                  <div className="px-3 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg flex items-center gap-2">
+                    {plotline && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: plotline.color }} />}
+                    <span className="type-label text-[var(--text-primary)]">{loc?.scene?.title || 'Scene'}</span>
+                  </div>
+                )
+              }
+              if (type === 'page') {
+                const pos = pagePositionMap.get(id)
+                return (
+                  <div className="px-3 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg type-label text-[var(--text-primary)] tabular-nums">
+                    Page {pos || '?'}
+                  </div>
+                )
+              }
+              return null
+            })()}
+          </DragOverlay>
         </DndContext>
       )}
 

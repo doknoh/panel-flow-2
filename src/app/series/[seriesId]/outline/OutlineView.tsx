@@ -542,8 +542,8 @@ Return this exact JSON structure:
 
       {/* Diff View Modal */}
       {showDiffView && proposedOutlines.length > 0 && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 modal-backdrop">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col modal-dialog">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
               <h2 className="text-xl font-bold">Review Proposed Outline Changes</h2>
               <div className="flex items-center gap-3">

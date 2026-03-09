@@ -155,8 +155,21 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   // Auto-resize a textarea to fit its content
   const autoResize = useCallback((el: HTMLTextAreaElement | null) => {
     if (!el) return
-    el.style.height = 'auto'
-    el.style.height = Math.max(el.scrollHeight, 36) + 'px'
+    if (!el.dataset.initialized) {
+      // First render: set immediately, no animation
+      el.style.height = 'auto'
+      el.style.height = Math.max(el.scrollHeight, 36) + 'px'
+      el.dataset.initialized = 'true'
+      return
+    }
+    // Subsequent: measure without visual flash, then animate
+    const currentHeight = el.offsetHeight
+    el.style.height = '0px'
+    const naturalHeight = Math.max(el.scrollHeight, 36)
+    el.style.height = currentHeight + 'px'
+    requestAnimationFrame(() => {
+      el.style.height = naturalHeight + 'px'
+    })
   }, [])
 
   // Calculate word count for a panel
@@ -1178,7 +1191,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           </div>
           <button
             onClick={addPanel}
-            className="type-micro bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-3 py-1.5 text-white border border-[var(--color-primary)]"
+            className="type-micro px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all duration-150"
           >
             [+ ADD PANEL]
           </button>
@@ -1193,7 +1206,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           </p>
           <button
             onClick={addPanel}
-            className="type-micro bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-5 py-2.5 font-medium transition-colors border border-[var(--color-primary)]"
+            className="type-micro px-5 py-2.5 font-medium transition-all duration-150 border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             [+ CREATE FIRST PANEL]
           </button>
@@ -1305,7 +1318,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                         )}
 
                         {/* Full Editor — visible when this panel is active or no panel is focused */}
-                        {!isCollapsed && (
+                        <div className={`collapse-target ${!isCollapsed ? 'expanded' : ''}`}>
                           <div className="p-4 space-y-4">
                             {/* Visual Description */}
                             <div>
@@ -1333,7 +1346,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   handleVisualDescriptionBlur(panel)
                                 }}
                                 placeholder="Describe what the reader sees... (type @ to mention a character)"
-                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none"
+                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none textarea-smooth"
                                 style={{ minHeight: '60px' }}
                               />
                               {/* @mention dropdown */}
@@ -1470,7 +1483,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         }}
                                         onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
                                         placeholder="Enter dialogue..."
-                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none"
+                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none textarea-smooth"
                                         style={{ minHeight: '36px' }}
                                       />
                                       {/* Word count warning for dialogue balloon */}
@@ -1560,7 +1573,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         }}
                                         onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
                                         placeholder="Enter caption text..."
-                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none"
+                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none textarea-smooth"
                                         style={{ minHeight: '36px' }}
                                       />
                                     </div>
@@ -1633,12 +1646,12 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                 onBlur={() => handleOtherFieldBlur(panel, 'notes')}
                                 onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
                                 placeholder="Additional notes for the artist..."
-                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none"
+                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none textarea-smooth"
                                 style={{ minHeight: '36px' }}
                               />
                             </div>
                           </div>
-                        )}
+                        </div>
                       </div>
                     )}
                   </SortablePanelCard>

@@ -211,7 +211,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex items-start justify-center pt-[10vh] z-50"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] z-50 modal-backdrop"
       onClick={onClose}
     >
       <div
@@ -219,7 +219,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
         role="dialog"
         aria-modal="true"
         aria-label={`Share ${seriesTitle}`}
-        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
+        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col modal-dialog"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

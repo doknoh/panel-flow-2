@@ -89,13 +89,13 @@ export default function JumpToPageModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-[15vh] z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh] z-50 modal-backdrop" onClick={onClose}>
       <div
         ref={focusTrapRef}
         role="dialog"
         aria-modal="true"
         aria-label="Jump to page"
-        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-md mx-4 shadow-2xl overflow-hidden"
+        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-md mx-4 shadow-2xl overflow-hidden modal-dialog"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
