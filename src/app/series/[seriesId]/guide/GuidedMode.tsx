@@ -55,6 +55,11 @@ const TOOL_DISPLAY: Record<string, { icon: string; label: string; color: string 
   draft_panel_description: { icon: '🎨', label: 'Draft Panel', color: 'var(--color-success)' },
   add_dialogue: { icon: '💬', label: 'Add Dialogue', color: 'var(--color-primary)' },
   save_project_note: { icon: '📌', label: 'Save Note', color: 'var(--color-warning)' },
+  generate_power_rankings: { icon: '🏆', label: 'Power Rankings', color: 'var(--accent-hover)' },
+  track_character_state: { icon: '🎭', label: 'Track Character State', color: 'var(--color-primary)' },
+  continuity_check: { icon: '🔍', label: 'Continuity Check', color: 'var(--color-error)' },
+  extract_outline: { icon: '📋', label: 'Extract Outline', color: 'var(--color-info)' },
+  draft_scene_summary: { icon: '📄', label: 'Scene Summary', color: 'var(--color-success)' },
 }
 
 function getToolSummary(toolName: string, input: Record<string, unknown>): string {
@@ -79,6 +84,16 @@ function getToolSummary(toolName: string, input: Record<string, unknown>): strin
       return `Add dialogue for ${input.speaker_name}`
     case 'save_project_note':
       return `Save project note`
+    case 'generate_power_rankings':
+      return `Analyze and rank ${(input.issueIds as string[] || []).length} issues`
+    case 'track_character_state':
+      return `Track state: ${input.emotional_state || 'character state'}`
+    case 'continuity_check':
+      return `Run ${input.scope || 'issue'}-level continuity check`
+    case 'extract_outline':
+      return `Extract outline from script`
+    case 'draft_scene_summary':
+      return `Summarize scene content`
     default:
       return toolName.replace(/_/g, ' ')
   }

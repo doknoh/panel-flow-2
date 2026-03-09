@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface Panel {
   id: string
@@ -232,14 +233,11 @@ export default function IssueGrid({ issues: initialIssues, seriesId }: { issues:
 
   if (issues.length === 0) {
     return (
-      <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
-        <div className="text-5xl mb-4 opacity-30">📚</div>
-        <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">No issues yet</h3>
-        <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto">
-          Create your first issue to start writing your graphic novel.
-          Each issue can contain multiple acts, scenes, and pages.
-        </p>
-      </div>
+      <EmptyState
+        icon="📚"
+        title="No issues yet"
+        description="Create your first issue to start writing your graphic novel. Each issue can contain multiple acts, scenes, and pages."
+      />
     )
   }
 

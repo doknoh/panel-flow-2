@@ -21,11 +21,12 @@ async function withTimeout<T>(
 /**
  * Assemble writer-specific context for adaptive prompt assembly.
  * Fetches the writer profile, recent conversation summaries,
- * and active personality preset.
+ * active personality preset, and series metadata for project-specific awareness.
  */
 export async function assembleWriterContext(
   userId: string,
   seriesId: string,
+  issueId?: string,
 ): Promise<WriterContext> {
   const supabase = await createClient()
   const context: WriterContext = {}
@@ -88,6 +89,96 @@ export async function assembleWriterContext(
     }
   } catch {
     // No preset set
+  }
+
+  // Fetch series metadata for project-specific awareness in the system prompt
+  try {
+    const seriesContext: WriterContext['seriesContext'] = {}
+
+    const { data: series } = await withTimeout(
+      supabase
+        .from('series')
+        .select('title, central_theme, logline, visual_grammar, rules')
+        .eq('id', seriesId)
+        .single(),
+      DB_TIMEOUT,
+    )
+
+    if (series) {
+      const s = series as { title: string; central_theme?: string; logline?: string; visual_grammar?: string; rules?: string }
+      seriesContext.title = s.title
+      seriesContext.centralTheme = s.central_theme || undefined
+      seriesContext.logline = s.logline || undefined
+      seriesContext.visualGrammar = s.visual_grammar || undefined
+      seriesContext.rules = s.rules || undefined
+    }
+
+    // Fetch character names for system prompt awareness
+    const { data: characters } = await withTimeout(
+      supabase
+        .from('characters')
+        .select('display_name')
+        .eq('series_id', seriesId)
+        .limit(30),
+      DB_TIMEOUT,
+    )
+
+    if (characters && (characters as unknown[]).length > 0) {
+      const charList = characters as Array<{ display_name: string }>
+      seriesContext.characterCount = charList.length
+      seriesContext.characterNames = charList.map(c => c.display_name)
+    }
+
+    // Fetch plotline names
+    const { data: plotlines } = await withTimeout(
+      supabase
+        .from('plotlines')
+        .select('name')
+        .eq('series_id', seriesId),
+      DB_TIMEOUT,
+    )
+
+    if (plotlines && (plotlines as unknown[]).length > 0) {
+      seriesContext.plotlineNames = (plotlines as Array<{ name: string }>).map(p => p.name)
+    }
+
+    // Fetch issue count
+    const { count: issueCount } = await withTimeout(
+      supabase
+        .from('issues')
+        .select('id', { count: 'exact', head: true })
+        .eq('series_id', seriesId),
+      DB_TIMEOUT,
+    )
+
+    seriesContext.issueCount = issueCount || 0
+
+    // Fetch current issue metadata if provided
+    if (issueId) {
+      const { data: issue } = await withTimeout(
+        supabase
+          .from('issues')
+          .select('number, title, themes, motifs')
+          .eq('id', issueId)
+          .single(),
+        DB_TIMEOUT,
+      )
+
+      if (issue) {
+        const i = issue as { number: number; title: string; themes?: string; motifs?: string }
+        seriesContext.currentIssueNumber = i.number
+        seriesContext.currentIssueTitle = i.title
+        seriesContext.currentIssueThemes = i.themes || undefined
+        seriesContext.currentIssueMotifs = i.motifs || undefined
+      }
+    }
+
+    // Only set if we got meaningful data
+    if (seriesContext.title) {
+      context.seriesContext = seriesContext
+    }
+  } catch {
+    // Series metadata fetch failed — non-critical, continue without it
   }
 
   return context
@@ -331,6 +422,33 @@ export async function assembleContext(
 
     // Build full script text for the issue
     await assembleScriptText(supabase, issueId, context)
+
+    // Fetch brief summaries of OTHER issues in the same series for cross-issue awareness
+    try {
+      const { data: otherIssues } = await withTimeout(
+        supabase
+          .from('issues')
+          .select('id, number, title, summary, status')
+          .eq('series_id', seriesId)
+          .neq('id', issueId)
+          .order('number'),
+        DB_TIMEOUT,
+      )
+
+      if (otherIssues && (otherIssues as unknown[]).length > 0) {
+        context.otherIssues = (otherIssues as Array<{
+          id: string; number: number; title: string; summary?: string; status: string
+        }>).map(i => ({
+          id: i.id,
+          number: i.number,
+          title: i.title,
+          summary: i.summary || undefined,
+          status: i.status,
+        }))
+      }
+    } catch {
+      // Non-critical — continue without cross-issue context
+    }
   }
 
   // Current page context
@@ -459,9 +577,10 @@ async function assembleScriptText(
 
   // Cap at 300k characters
   const MAX_SCRIPT_CHARS = 300000
-  if (scriptText.length > MAX_SCRIPT_CHARS) {
+  const fullLength = scriptText.length
+  if (fullLength > MAX_SCRIPT_CHARS) {
     scriptText = scriptText.substring(0, MAX_SCRIPT_CHARS) +
-      '\n\n[Script truncated due to length — earlier pages shown in full]'
+      `\n\n[Note: Script text was truncated due to length. The full script contains ${fullLength.toLocaleString()} characters but only the first ${MAX_SCRIPT_CHARS.toLocaleString()} were included. Later pages may be missing from context.]`
   }
 
   if (scriptText.trim()) {

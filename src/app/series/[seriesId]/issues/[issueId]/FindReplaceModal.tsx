@@ -27,8 +27,22 @@ export default function FindReplaceModal({
   const [matches, setMatches] = useState<SearchMatch[]>([])
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
   const [isReplacing, setIsReplacing] = useState(false)
+  const [showReplaceAllConfirm, setShowReplaceAllConfirm] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
+
+  // Dragging state
+  const [position, setPosition] = useState({ x: -1, y: 80 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // Initialize position on first open (right-aligned)
+  useEffect(() => {
+    if (isOpen && position.x === -1) {
+      setPosition({ x: window.innerWidth - 480 - 16, y: 80 })
+    }
+  }, [isOpen, position.x])
 
   // Focus search input when modal opens
   useEffect(() => {
@@ -56,7 +70,11 @@ export default function FindReplaceModal({
       if (!isOpen) return
 
       if (e.key === 'Escape') {
-        onClose()
+        if (showReplaceAllConfirm) {
+          setShowReplaceAllConfirm(false)
+        } else {
+          onClose()
+        }
       } else if (e.key === 'Enter') {
         if (e.shiftKey) {
           handlePrevious()
@@ -75,7 +93,41 @@ export default function FindReplaceModal({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, matches, currentMatchIndex])
+  }, [isOpen, matches, currentMatchIndex, showReplaceAllConfirm])
+
+  // Drag handlers
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('[data-drag-handle]')) return
+
+    setIsDragging(true)
+    const rect = panelRef.current?.getBoundingClientRect()
+    if (rect) {
+      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({
+        x: Math.max(0, Math.min(window.innerWidth - 480, e.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragOffset.current.y)),
+      })
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDragging])
 
   const handleNext = useCallback(() => {
     if (matches.length === 0) return
@@ -161,6 +213,7 @@ export default function FindReplaceModal({
     if (matches.length === 0 || !replaceTerm) return
 
     setIsReplacing(true)
+    setShowReplaceAllConfirm(false)
     const supabase = createClient()
     let replacedCount = 0
 
@@ -228,121 +281,143 @@ export default function FindReplaceModal({
   const currentMatch = matches[currentMatchIndex]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      {/* Modal */}
-      <div className="relative bg-[var(--bg-secondary)] rounded-lg shadow-xl w-full max-w-2xl border border-[var(--border)]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold">Find and Replace</h2>
+    <>
+      {/* Floating panel - no backdrop, allows editing underneath */}
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-label="Find and Replace"
+        className="fixed z-50 bg-[var(--bg-secondary)] rounded-lg shadow-xl w-[460px] border border-[var(--border)]"
+        style={{
+          left: position.x,
+          top: position.y,
+          cursor: isDragging ? 'grabbing' : undefined,
+        }}
+        onMouseDown={handleDragStart}
+      >
+        {/* Draggable header */}
+        <div
+          data-drag-handle
+          className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)] cursor-grab active:cursor-grabbing select-none"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">Find & Replace</span>
+            {matches.length > 0 && (
+              <span className="text-xs text-[var(--text-muted)] font-mono">
+                {currentMatchIndex + 1}/{matches.length}
+              </span>
+            )}
+            {searchTerm && matches.length === 0 && (
+              <span className="text-xs text-[var(--text-muted)]">No matches</span>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xl leading-none"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-lg leading-none px-1"
+            aria-label="Close find and replace"
           >
-            ×
+            x
           </button>
         </div>
 
-        {/* Search inputs */}
-        <div className="p-4 space-y-3">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-sm text-[var(--text-secondary)] mb-1">Find</label>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search text..."
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--color-primary)]"
-              />
-            </div>
-            <div className="flex items-end gap-2">
-              <button
-                onClick={handlePrevious}
-                disabled={matches.length === 0}
-                className="px-3 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Previous (Shift+Enter)"
-              >
-                ↑
-              </button>
-              <button
-                onClick={handleNext}
-                disabled={matches.length === 0}
-                className="px-3 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Next (Enter)"
-              >
-                ↓
-              </button>
-            </div>
+        {/* Compact search area */}
+        <div className="p-3 space-y-2">
+          {/* Find row */}
+          <div className="flex gap-1.5 items-center">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Find..."
+              className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)]"
+            />
+            <button
+              onClick={handlePrevious}
+              disabled={matches.length === 0}
+              className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Previous (Shift+Enter)"
+              aria-label="Previous match"
+            >
+              ↑
+            </button>
+            <button
+              onClick={handleNext}
+              disabled={matches.length === 0}
+              className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Next (Enter)"
+              aria-label="Next match"
+            >
+              ↓
+            </button>
           </div>
 
-          <div>
-            <label className="block text-sm text-[var(--text-secondary)] mb-1">Replace with</label>
+          {/* Replace row */}
+          <div className="flex gap-1.5 items-center">
             <input
               type="text"
               value={replaceTerm}
               onChange={(e) => setReplaceTerm(e.target.value)}
-              placeholder="Replacement text..."
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--color-primary)]"
+              placeholder="Replace..."
+              className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)]"
             />
+            <button
+              onClick={handleReplaceCurrent}
+              disabled={matches.length === 0 || !replaceTerm || isReplacing}
+              className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              title="Replace current match"
+            >
+              Replace
+            </button>
+            <button
+              onClick={() => setShowReplaceAllConfirm(true)}
+              disabled={matches.length === 0 || !replaceTerm || isReplacing}
+              className="px-2 py-1.5 bg-[var(--color-primary)] hover:opacity-90 rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              title="Replace all matches"
+            >
+              All ({matches.length})
+            </button>
           </div>
 
-          {/* Options */}
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
+          {/* Options row */}
+          <div className="flex gap-3 pt-0.5">
+            <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={matchCase}
                 onChange={(e) => setMatchCase(e.target.checked)}
-                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                className="w-3.5 h-3.5 rounded border-[var(--border)] bg-[var(--bg-tertiary)]"
               />
-              Match case
+              Case
             </label>
-            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
+            <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={wholeWord}
                 onChange={(e) => setWholeWord(e.target.checked)}
-                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                className="w-3.5 h-3.5 rounded border-[var(--border)] bg-[var(--bg-tertiary)]"
               />
               Whole word
             </label>
           </div>
         </div>
 
-        {/* Results count */}
-        <div className="px-4 py-2 bg-[var(--bg-tertiary)]/50 border-t border-b border-[var(--border)]">
-          {matches.length > 0 ? (
-            <span className="text-sm text-[var(--text-secondary)]">
-              {currentMatchIndex + 1} of {matches.length} matches
-            </span>
-          ) : searchTerm ? (
-            <span className="text-sm text-[var(--text-secondary)]">No matches found</span>
-          ) : (
-            <span className="text-sm text-[var(--text-secondary)]">Enter search term</span>
-          )}
-        </div>
-
         {/* Current match preview */}
         {currentMatch && (
-          <div className="p-4 border-b border-[var(--border)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">
-              Act {currentMatch.actNumber} • Page {currentMatch.pageNumber} • Panel {currentMatch.panelNumber}
-              <span className="text-[var(--text-muted)] mx-1">•</span>
+          <div className="px-3 pb-3 border-t border-[var(--border)] pt-2">
+            <div className="text-[10px] text-[var(--text-muted)] mb-1">
+              Act {currentMatch.actNumber} / Page {currentMatch.pageNumber} / Panel {currentMatch.panelNumber}
+              <span className="mx-1">-</span>
               {currentMatch.fieldName}
             </div>
-            <div className="text-sm bg-[var(--bg-tertiary)] rounded p-2 font-mono break-words">
+            <div className="text-xs bg-[var(--bg-tertiary)] rounded px-2 py-1.5 font-mono break-words leading-relaxed">
               {(() => {
                 const { before, match, after } = highlightMatch(
                   currentMatch.text,
                   currentMatch.matchStart,
                   currentMatch.matchEnd
                 )
-                // Truncate for display
-                const maxContext = 50
+                const maxContext = 40
                 const displayBefore = before.length > maxContext ? '...' + before.slice(-maxContext) : before
                 const displayAfter = after.length > maxContext ? after.slice(0, maxContext) + '...' : after
                 return (
@@ -356,33 +431,37 @@ export default function FindReplaceModal({
             </div>
           </div>
         )}
+      </div>
 
-        {/* Actions */}
-        <div className="p-4 flex justify-between">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          >
-            Close
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={handleReplaceCurrent}
-              disabled={matches.length === 0 || !replaceTerm || isReplacing}
-              className="px-4 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Replace
-            </button>
-            <button
-              onClick={handleReplaceAll}
-              disabled={matches.length === 0 || !replaceTerm || isReplacing}
-              className="px-4 py-2 bg-[var(--color-primary)] hover:opacity-90 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Replace All ({matches.length})
-            </button>
+      {/* Replace All confirmation dialog */}
+      {showReplaceAllConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowReplaceAllConfirm(false)} />
+          <div className="relative bg-[var(--bg-secondary)] rounded-lg shadow-xl border border-[var(--border)] p-5 max-w-sm w-full mx-4">
+            <h3 className="text-sm font-semibold mb-2">Replace All?</h3>
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
+              This will replace <strong>{matches.length}</strong> occurrence{matches.length !== 1 ? 's' : ''} of
+              {' '}<span className="font-mono text-[var(--color-warning)]">&quot;{searchTerm}&quot;</span> with
+              {' '}<span className="font-mono text-[var(--color-primary)]">&quot;{replaceTerm}&quot;</span>.
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowReplaceAllConfirm(false)}
+                className="px-3 py-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReplaceAll}
+                className="px-3 py-1.5 text-sm bg-[var(--color-primary)] hover:opacity-90 rounded"
+              >
+                Replace All
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   )
 }

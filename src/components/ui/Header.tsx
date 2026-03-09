@@ -28,20 +28,20 @@ export default function Header({
             <>
               <Link
                 href={backHref}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="type-meta text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 {backLabel}
               </Link>
-              <span className="text-[var(--text-muted)]">/</span>
+              <span className="type-separator">//</span>
             </>
           )}
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--text-primary)]">{title}</h1>
+          <h1 className="font-black tracking-tight text-[var(--text-primary)] text-lg sm:text-xl uppercase">{title}</h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           {children}
           <ThemeToggle />
           {userEmail && (
-            <span className="text-[var(--text-secondary)] text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
+            <span className="type-micro text-[var(--text-muted)] truncate max-w-[120px] sm:max-w-none">
               {userEmail}
             </span>
           )}
@@ -49,7 +49,7 @@ export default function Header({
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"
+                className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"
               >
                 Sign out
               </button>

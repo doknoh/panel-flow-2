@@ -1040,7 +1040,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     onUpdate()
   }
 
-  // Handle drag end for panel reordering
+  // Handle drag end for panel reordering (with undo support)
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -1049,8 +1049,21 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     const newIndex = panels.findIndex(p => p.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
 
+    // Save previous order for undo
+    const previousOrder = panels.map(p => ({ id: p.id, panel_number: p.panel_number }))
+
     const reordered = arrayMove(panels, oldIndex, newIndex).map((p, i) => ({ ...p, panel_number: i + 1 }))
     setPanels(reordered)
+
+    // Record undo action before persisting
+    const newOrder = reordered.map(p => ({ id: p.id, panel_number: p.panel_number }))
+    recordAction({
+      type: 'panel_reorder',
+      pageId: page.id,
+      previousOrder,
+      newOrder,
+      description: `Reorder panels on page ${page.page_number}`,
+    })
 
     // Persist new order
     setSaveStatus('saving')
@@ -1068,37 +1081,76 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     }
   }
 
+  // Tab navigation between panel fields
+  // Uses Alt+ArrowDown / Alt+ArrowUp to move between fields within a panel
+  const handleFieldTabNavigation = useCallback((e: React.KeyboardEvent, panelId: string) => {
+    if (!e.altKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
+    const isReverse = e.key === 'ArrowUp'
+
+    e.preventDefault()
+    const panelContainer = document.querySelector(`[data-panel-id="${panelId}"]`)
+    if (!panelContainer) return
+
+    // Gather all focusable fields in order within the panel
+    const fields = Array.from(
+      panelContainer.querySelectorAll<HTMLElement>('[data-panel-field]')
+    ).sort((a, b) => {
+      const orderA = parseInt(a.getAttribute('data-panel-field') || '0', 10)
+      const orderB = parseInt(b.getAttribute('data-panel-field') || '0', 10)
+      return orderA - orderB
+    })
+
+    if (fields.length === 0) return
+
+    const currentField = document.activeElement as HTMLElement
+    const currentIndex = fields.indexOf(currentField)
+
+    let nextIndex: number
+    if (isReverse) {
+      // Alt+ArrowUp: go to previous field
+      nextIndex = currentIndex <= 0 ? fields.length - 1 : currentIndex - 1
+    } else {
+      // Alt+ArrowDown: go to next field
+      nextIndex = currentIndex >= fields.length - 1 ? 0 : currentIndex + 1
+    }
+
+    fields[nextIndex]?.focus()
+  }, [])
+
   // Compute page orientation
   const pageOrientation = page.page_number % 2 === 0 ? 'left' : 'right'
 
   return (
-    <div className="p-6">
-      {/* Context breadcrumb — "Page 12 (left) • Act II • Tracy subplot • 4 of 6 pages in scene" */}
+    <div className="p-6 relative">
+      {/* Page watermark */}
+      <div className="page-watermark" aria-hidden="true">
+        {String(page.page_number).padStart(2, '0')}
+      </div>
+
+      {/* Context breadcrumb */}
       {pageContext && (
-        <div className="mb-2 text-xs text-[var(--text-muted)] flex items-center gap-1.5 font-mono">
-          <span className="text-[var(--text-secondary)] font-semibold">
-            Page {page.page_number}
+        <div className="mb-3 type-meta flex items-center gap-1.5">
+          <span className="text-[var(--text-secondary)]">
+            {pageContext.act.name || `ACT ${pageContext.act.sort_order + 1}`}
           </span>
-          <span className="text-[var(--text-muted)]">({pageOrientation})</span>
-          <span className="text-[var(--text-muted)]">•</span>
-          <span className="text-[var(--text-secondary)]">{pageContext.act.name || `Act ${pageContext.act.sort_order + 1}`}</span>
           {pageContext.scene.plotline_name && (
             <>
-              <span className="text-[var(--text-muted)]">•</span>
+              <span className="type-separator">//</span>
               <span className="text-[var(--text-secondary)]">{pageContext.scene.plotline_name}</span>
             </>
           )}
           {pageContext.pagePositionInScene && pageContext.scene.total_pages && (
             <>
-              <span className="text-[var(--text-muted)]">•</span>
-              <span>{pageContext.pagePositionInScene} of {pageContext.scene.total_pages} in scene</span>
+              <span className="type-separator">//</span>
+              <span>{pageContext.pagePositionInScene} OF {pageContext.scene.total_pages} IN SCENE</span>
             </>
           )}
         </div>
       )}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold">Page {page.page_number}</h2>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <h2 className="type-display">PAGE {String(page.page_number).padStart(2, '0')}</h2>
+          <span className="type-meta text-[var(--text-muted)]">({pageOrientation.toUpperCase()})</span>
           <PageTypeSelector
             pageId={page.id}
             currentType={page.page_type || 'SINGLE'}
@@ -1108,43 +1160,42 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           />
           <CommentButton entityType="page" entityId={page.id} />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-xs text-[var(--text-muted)] space-x-3">
-            <span>⌘S save</span>
-            <span>⌘↵ panel</span>
-            <span>⌘D dialog</span>
-            <span>⌘⇧D sfx</span>
+        <div className="flex items-center gap-4">
+          <div className="type-micro text-[var(--text-disabled)] space-x-3">
+            <span>⌘S SAVE</span>
+            <span>⌘↵ PANEL</span>
+            <span>⌘D DLG</span>
+            <span>⌘⇧D SFX</span>
           </div>
           <button
             onClick={addPanel}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-3 py-1.5 rounded text-sm text-white"
+            className="type-micro bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-3 py-1.5 text-white border border-[var(--color-primary)]"
           >
-            + Add Panel
+            [+ ADD PANEL]
           </button>
         </div>
       </div>
 
       {panels.length === 0 ? (
-        <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)] border-dashed rounded-lg">
-          <div className="text-4xl mb-4 opacity-30">🎬</div>
-          <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">Ready to create your first panel</h3>
-          <p className="text-sm text-[var(--text-muted)] mb-6 max-w-sm mx-auto">
+        <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)] border-dashed">
+          <h3 className="type-section text-[var(--text-secondary)] mb-2">No panels yet</h3>
+          <p className="type-meta mb-6 max-w-sm mx-auto">
             Panels are the building blocks of your comic. Add visual descriptions, dialogue, captions, and sound effects.
           </p>
           <button
             onClick={addPanel}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+            className="type-micro bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-5 py-2.5 font-medium transition-colors border border-[var(--color-primary)]"
           >
-            + Create First Panel
+            [+ CREATE FIRST PANEL]
           </button>
-          <p className="text-xs text-[var(--text-muted)] mt-4">
-            or press <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded font-mono">⌘</kbd> + <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded font-mono">↵</kbd>
+          <p className="type-micro mt-4">
+            or press <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] font-mono">⌘</kbd> + <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] font-mono">↵</kbd>
           </p>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={panels.map(p => p.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
+            <div className="space-y-6">
               {panels.map((panel) => {
                 const isActive = editingPanel === panel.id
                 const isAnyActive = editingPanel !== null
@@ -1155,6 +1206,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                   <SortablePanelCard key={panel.id} id={panel.id}>
                     {(dragListeners) => (
                       <div
+                        data-panel-id={panel.id}
                         className={`bg-[var(--bg-secondary)] border rounded-lg overflow-hidden transition-all duration-150 ${
                           isActive
                             ? 'border-l-4 border-l-[var(--color-primary)] border-t-[var(--border)] border-r-[var(--border)] border-b-[var(--border)] shadow-md'
@@ -1171,50 +1223,54 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             {/* Drag Handle */}
                             <span
                               {...dragListeners}
-                              className="cursor-grab active:cursor-grabbing text-[var(--text-muted)] hover:text-[var(--text-secondary)] select-none"
+                              className="cursor-grab active:cursor-grabbing text-[var(--text-disabled)] hover:text-[var(--text-muted)] select-none font-mono text-[9px]"
                               title="Drag to reorder"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              ⠿
+                              ::
                             </span>
                             <span
-                              className="font-semibold cursor-pointer"
+                              className="type-label cursor-pointer text-[var(--text-primary)]"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setEditingPanel(isActive ? null : panel.id)
                               }}
                             >
-                              Panel {panel.panel_number}
+                              PNL {panel.panel_number}
                             </span>
-                            {/* Word Count Badge */}
-                            <span className="text-[10px] bg-[var(--bg-primary)] text-[var(--text-muted)] px-1.5 py-0.5 rounded-full font-mono tabular-nums">
-                              {wordCount}w
+                            <span className="type-separator">//</span>
+                            <span className="type-label">VISUAL</span>
+                            {/* Word Count */}
+                            <span className="type-micro" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {wordCount}W
                             </span>
                             <CommentButton entityType="panel" entityId={panel.id} />
                           </div>
                           <div className="flex items-center gap-2">
                             <select
+                              data-panel-field="2"
                               value={panel.shot_type || ''}
                               onChange={(e) => {
                                 updatePanelField(panel.id, 'shot_type', e.target.value)
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
+                              onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
+                              className="bg-[var(--bg-tertiary)] border border-[var(--border)] px-2 py-1 type-micro"
                             >
-                              <option value="">Shot Type</option>
-                              <option value="wide">Wide Shot</option>
-                              <option value="medium">Medium Shot</option>
-                              <option value="close">Close-Up</option>
-                              <option value="extreme_close">Extreme Close-Up</option>
-                              <option value="bird">Bird&apos;s Eye</option>
-                              <option value="worm">Worm&apos;s Eye</option>
+                              <option value="">SHOT TYPE</option>
+                              <option value="wide">WIDE</option>
+                              <option value="medium">MEDIUM</option>
+                              <option value="close">CLOSE-UP</option>
+                              <option value="extreme_close">EXTREME CU</option>
+                              <option value="bird">BIRD&apos;S EYE</option>
+                              <option value="worm">WORM&apos;S EYE</option>
                               <option value="pov">POV</option>
                             </select>
                             <button
                               onClick={(e) => { e.stopPropagation(); deletePanel(panel.id) }}
-                              className="text-[var(--text-muted)] hover:text-[var(--color-error)] text-sm"
+                              className="type-micro text-[var(--text-disabled)] hover:text-[var(--color-error)]"
                             >
-                              Delete
+                              [DEL]
                             </button>
                           </div>
                         </div>
@@ -1230,10 +1286,10 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                               <p className="text-sm text-[var(--text-disabled)] italic">No description yet</p>
                             )}
                             {(panel.dialogue_blocks?.length > 0 || panel.captions?.length > 0) && (
-                              <div className="text-[10px] text-[var(--text-muted)] mt-1 font-mono">
-                                {panel.dialogue_blocks?.length > 0 && <span>{panel.dialogue_blocks.length} dialogue</span>}
-                                {panel.dialogue_blocks?.length > 0 && panel.captions?.length > 0 && <span> · </span>}
-                                {panel.captions?.length > 0 && <span>{panel.captions.length} caption{panel.captions.length !== 1 ? 's' : ''}</span>}
+                              <div className="type-micro mt-1">
+                                {panel.dialogue_blocks?.length > 0 && <span>{panel.dialogue_blocks.length} DLG</span>}
+                                {panel.dialogue_blocks?.length > 0 && panel.captions?.length > 0 && <span className="type-separator">//</span>}
+                                {panel.captions?.length > 0 && <span>{panel.captions.length} CAP</span>}
                               </div>
                             )}
                           </div>
@@ -1244,11 +1300,12 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                           <div className="p-4 space-y-4">
                             {/* Visual Description */}
                             <div>
-                              <label className="block text-sm text-[var(--text-secondary)] mb-1">
-                                Visual Description
-                                <span className="text-[var(--text-muted)] font-normal ml-2">(character names auto-capitalize)</span>
+                              <label className="block type-label mb-1">
+                                VISUAL DESCRIPTION
+                                <span className="type-micro ml-2">(names auto-capitalize)</span>
                               </label>
                               <textarea
+                                data-panel-field="1"
                                 value={panel.visual_description || ''}
                                 ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)) }}
                                 onFocus={() => handleTextFieldFocus(panel.id, 'visual_description', panel.visual_description)}
@@ -1257,7 +1314,10 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   autoResize(e.target)
                                   handleDescriptionInput(e, panel.id)
                                 }}
-                                onKeyDown={(e) => handleDescriptionKeyDown(e, panel.id)}
+                                onKeyDown={(e) => {
+                                  handleDescriptionKeyDown(e, panel.id)
+                                  handleFieldTabNavigation(e, panel.id)
+                                }}
                                 onBlur={() => {
                                   // Delay to allow mention click
                                   setTimeout(() => setMentionState(null), 150)
@@ -1299,21 +1359,39 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             {/* Dialogue Blocks */}
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm text-[var(--text-secondary)]">Dialogue</label>
+                                <div className="flex items-center gap-2">
+                                  <label className="type-label">DIALOGUE</label>
+                                  {/* Total panel dialogue word count warning */}
+                                  {(() => {
+                                    const totalDialogueWords = (panel.dialogue_blocks || []).reduce(
+                                      (sum, d) => sum + countWords(d.text), 0
+                                    )
+                                    return totalDialogueWords > 50 ? (
+                                      <span className="text-[10px] font-mono text-[var(--color-error)]">
+                                        {totalDialogueWords}w total - too text-heavy!
+                                      </span>
+                                    ) : totalDialogueWords > 40 ? (
+                                      <span className="text-[10px] font-mono text-[var(--color-warning)]">
+                                        {totalDialogueWords}w total
+                                      </span>
+                                    ) : null
+                                  })()}
+                                </div>
                                 <button
                                   onClick={() => addDialogue(panel.id)}
-                                  className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                  className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                                 >
-                                  + Add Dialogue
+                                  [+ DLG]
                                 </button>
                               </div>
                               <div className="space-y-2">
                                 {(panel.dialogue_blocks || [])
                                   .sort((a, b) => a.sort_order - b.sort_order)
-                                  .map((dialogue) => (
+                                  .map((dialogue, dIdx) => (
                                     <div key={dialogue.id} data-dialogue-id={dialogue.id} className="bg-[var(--bg-tertiary)] rounded p-3 space-y-2">
                                       <div className="flex gap-2">
                                         <select
+                                          data-panel-field={`${10 + dIdx * 2}`}
                                           value={dialogue.character_id || ''}
                                           onChange={(e) => {
                                             const newValue = e.target.value || null
@@ -1362,6 +1440,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         </button>
                                       </div>
                                       <textarea
+                                        data-panel-field={`${11 + dIdx * 2}`}
                                         defaultValue={dialogue.text}
                                         ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)) }}
                                         onFocus={(e) => { focusStartValueRef.current = e.target.value }}
@@ -1380,10 +1459,28 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                           const newText = e.target.value
                                           updateDialogue(dialogue.id, 'text', newText, focusStartValueRef.current)
                                         }}
+                                        onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
                                         placeholder="Enter dialogue..."
                                         className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none"
                                         style={{ minHeight: '36px' }}
                                       />
+                                      {/* Word count warning for dialogue balloon */}
+                                      {(() => {
+                                        const dialogueWordCount = countWords(dialogue.text)
+                                        return dialogueWordCount > 0 ? (
+                                          <div className={`text-[10px] font-mono mt-1 flex items-center gap-1 ${
+                                            dialogueWordCount > 30
+                                              ? 'text-[var(--color-error)]'
+                                              : dialogueWordCount > 25
+                                                ? 'text-[var(--color-warning)]'
+                                                : 'text-[var(--text-muted)]'
+                                          }`}>
+                                            <span>{dialogueWordCount}w</span>
+                                            {dialogueWordCount > 30 && <span>- balloon overflow</span>}
+                                            {dialogueWordCount > 25 && dialogueWordCount <= 30 && <span>- getting full</span>}
+                                          </div>
+                                        ) : null
+                                      })()}
                                     </div>
                                   ))}
                               </div>
@@ -1392,18 +1489,18 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             {/* Captions */}
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm text-[var(--text-secondary)]">Captions</label>
+                                <label className="type-label">CAPTIONS</label>
                                 <button
                                   onClick={() => addCaption(panel.id)}
-                                  className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                  className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                                 >
-                                  + Add Caption
+                                  [+ CAP]
                                 </button>
                               </div>
                               <div className="space-y-2">
                                 {(panel.captions || [])
                                   .sort((a, b) => a.sort_order - b.sort_order)
-                                  .map((caption) => (
+                                  .map((caption, cIdx) => (
                                     <div key={caption.id} className="bg-[var(--bg-tertiary)] rounded p-3 space-y-2">
                                       <div className="flex gap-2">
                                         <select
@@ -1433,6 +1530,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         </button>
                                       </div>
                                       <textarea
+                                        data-panel-field={`${100 + cIdx}`}
                                         defaultValue={caption.text}
                                         ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)) }}
                                         onFocus={(e) => { focusStartValueRef.current = e.target.value }}
@@ -1451,6 +1549,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                           const newText = e.target.value
                                           updateCaption(caption.id, 'text', newText, focusStartValueRef.current)
                                         }}
+                                        onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
                                         placeholder="Enter caption text..."
                                         className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none"
                                         style={{ minHeight: '36px' }}
@@ -1463,23 +1562,25 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             {/* Sound Effects */}
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm text-[var(--text-secondary)]">Sound Effects</label>
+                                <label className="type-label">SFX</label>
                                 <button
                                   onClick={() => addSoundEffect(panel.id)}
-                                  className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                  className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                                 >
-                                  + Add SFX
+                                  [+ SFX]
                                 </button>
                               </div>
                               <div className="space-y-2">
                                 {(panel.sound_effects || [])
                                   .sort((a, b) => a.sort_order - b.sort_order)
-                                  .map((sfx) => (
+                                  .map((sfx, sIdx) => (
                                     <div key={sfx.id} className="bg-[var(--bg-tertiary)] rounded p-3 flex gap-2 items-center">
                                       <input
+                                        data-panel-field={`${200 + sIdx}`}
                                         type="text"
                                         defaultValue={sfx.text}
                                         onFocus={(e) => { focusStartValueRef.current = e.target.value }}
+                                        onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
                                         onInput={(e) => {
                                           // Sync local state live for word count badge
                                           const newText = (e.target as HTMLInputElement).value
@@ -1495,7 +1596,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                           updateSoundEffect(sfx.id, newText, focusStartValueRef.current)
                                         }}
                                         placeholder="CRASH!, BANG!, WHOOSH!..."
-                                        className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm font-bold uppercase focus:border-[var(--color-primary)] focus:outline-none"
+                                        className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] px-2 py-1 text-sm font-bold uppercase italic text-[var(--color-error)] focus:border-[var(--color-primary)] focus:outline-none"
                                       />
                                       <button
                                         onClick={() => deleteSoundEffect(sfx.id, panel.id)}
@@ -1510,8 +1611,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
 
                             {/* Panel Notes */}
                             <div>
-                              <label className="block text-sm text-[var(--text-secondary)] mb-1">Artist Notes (Optional)</label>
+                              <label className="block type-label mb-1">ARTIST NOTES</label>
                               <textarea
+                                data-panel-field="300"
                                 value={panel.notes || ''}
                                 ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)) }}
                                 onFocus={() => handleTextFieldFocus(panel.id, 'notes', panel.notes)}
@@ -1520,6 +1622,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   autoResize(e.target)
                                 }}
                                 onBlur={() => handleOtherFieldBlur(panel, 'notes')}
+                                onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
                                 placeholder="Additional notes for the artist..."
                                 className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none"
                                 style={{ minHeight: '36px' }}

@@ -47,6 +47,27 @@
   --shadow-md: 0 2px 8px rgba(30, 30, 128, 0.08);
   --shadow-lg: 0 4px 16px rgba(30, 30, 128, 0.10);
 
+  /* Type scale — augmented fourth (1.414) */
+  --type-display: 2.827rem;
+  --type-title: 2rem;
+  --type-section: 1.414rem;
+  --type-body: 1rem;
+  --type-label: 0.75rem;
+  --type-meta: 0.625rem;
+  --type-micro: 0.5625rem;
+
+  /* Type weights */
+  --weight-display: 900;
+  --weight-heading: 700;
+  --weight-body: 400;
+  --weight-light: 300;
+
+  /* Letter spacing */
+  --tracking-display: -0.02em;
+  --tracking-section: -0.01em;
+  --tracking-label: 0.05em;
+  --tracking-data: 0.08em;
+
   /* Legacy support */
   --background: var(--bg-primary);
   --foreground: var(--text-primary);
@@ -479,6 +500,139 @@ h1, h2, h3, h4 {
 /* Blueprint strong borders (for major dividers like nav) */
 .bp-border-strong {
   border-color: var(--text-primary);
+}
+
+/* ============================================
+   TYPE SCALE UTILITY CLASSES
+   ============================================ */
+
+/* Display — 45px page numbers: "PAGE 04" */
+.type-display {
+  font-family: var(--font-sans);
+  font-size: var(--type-display);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+/* Title — 32px issue headers: "ISSUE #2" */
+.type-title {
+  font-family: var(--font-sans);
+  font-size: var(--type-title);
+  font-weight: var(--weight-heading);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+/* Section — 23px act/scene labels */
+.type-section {
+  font-family: var(--font-sans);
+  font-size: var(--type-section);
+  font-weight: var(--weight-heading);
+  letter-spacing: var(--tracking-section);
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+/* Label — 12px panel labels: "PNL 1 // VISUAL" */
+.type-label {
+  font-family: var(--font-sans);
+  font-size: var(--type-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+/* Meta — 10px status bar, timestamps */
+.type-meta {
+  font-family: var(--font-mono);
+  font-size: var(--type-meta);
+  font-weight: var(--weight-body);
+  letter-spacing: var(--tracking-data);
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Micro — 9px badges, kbd hints */
+.type-micro {
+  font-family: var(--font-mono);
+  font-size: var(--type-micro);
+  font-weight: var(--weight-body);
+  letter-spacing: var(--tracking-data);
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Speaker — dialogue character names */
+.type-speaker {
+  font-family: var(--font-sans);
+  font-size: var(--type-label);
+  font-weight: var(--weight-heading);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* Console — AI terminal text */
+.type-console {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: var(--weight-body);
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Structural numbering — "01.02" act/scene prefix */
+.type-struct-num {
+  font-family: var(--font-mono);
+  font-size: var(--type-label);
+  font-weight: var(--weight-light);
+  letter-spacing: var(--tracking-data);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Separator — // dividers */
+.type-separator {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-light);
+  color: var(--text-muted);
+  margin-inline: 0.5em;
+  user-select: none;
+}
+
+/* Page watermark — giant background page number */
+.page-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-sans);
+  font-size: 12rem;
+  font-weight: var(--weight-display);
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+  opacity: 0.03;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+}
+
+.dark .page-watermark,
+[data-theme="dark"] .page-watermark {
+  opacity: 0.05;
 }
 
 /* ============================================

@@ -1330,25 +1330,24 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   return (
     <div className="p-3">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-sm text-[var(--text-secondary)] uppercase tracking-wide">Structure</h3>
+        <h3 className="type-label">Structure</h3>
         <button
           onClick={addAct}
-          className="text-xs bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded active:scale-[0.97] transition-all duration-150 ease-out"
+          className="type-micro border border-[var(--border)] hover:border-[var(--border-strong)] px-2 py-0.5 active:scale-[0.97] transition-all duration-150 ease-out"
         >
-          + Act
+          [+ ACT]
         </button>
       </div>
 
       {sortedActs.length === 0 ? (
         <div className="text-center py-8 px-4">
-          <div className="text-3xl mb-3 opacity-30">📖</div>
-          <p className="text-sm text-[var(--text-secondary)] mb-2">Start your story structure</p>
-          <p className="text-xs text-[var(--text-muted)] mb-4">Acts organize your issue into beginning, middle, and end.</p>
+          <p className="type-label mb-2">No structure yet</p>
+          <p className="type-meta mb-4">Acts organize your issue into beginning, middle, and end.</p>
           <button
             onClick={addAct}
-            className="text-xs bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] px-3 py-1.5 rounded active:scale-[0.97] transition-all duration-150 ease-out"
+            className="type-micro border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out"
           >
-            + Create First Act
+            [+ CREATE FIRST ACT]
           </button>
         </div>
       ) : !isMounted ? (
@@ -1356,9 +1355,11 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         <div className="space-y-1">
           {sortedActs.map((act: any) => (
             <div key={act.id}>
-              <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] cursor-pointer group">
-                <span className="text-[var(--text-muted)] text-xs">▶</span>
-                <span className="font-medium text-sm flex-1">{act.name || `Act ${act.number}`}</span>
+              <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-secondary)] cursor-pointer group">
+                <span className="type-micro text-[var(--text-muted)]">[+]</span>
+                <span className="type-struct-num">{String(act.number).padStart(2, '0')}.00</span>
+                <span className="type-separator">//</span>
+                <span className="type-label flex-1">{act.name || `ACT ${act.number}`}</span>
               </div>
             </div>
           ))}
@@ -1384,12 +1385,14 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                       }`}
                       onClick={() => !editingActId && toggleAct(act.id)}
                     >
-                      <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" title="Drag to reorder">
-                        ⋮⋮
+                      <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity font-mono text-[9px]" title="Drag to reorder">
+                        ::
                       </span>
-                      <span className="text-[var(--text-muted)] text-xs">
-                        {expandedActs.has(act.id) ? '▼' : '▶'}
+                      <span className="type-micro text-[var(--text-muted)]">
+                        {expandedActs.has(act.id) ? '[-]' : '[+]'}
                       </span>
+                      <span className="type-struct-num">{String(act.number).padStart(2, '0')}.00</span>
+                      <span className="type-separator">//</span>
                       {editingActId === act.id ? (
                         <input
                           ref={editInputRef}
@@ -1399,18 +1402,18 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                           onBlur={() => saveActTitle(act.id)}
                           onKeyDown={(e) => handleEditKeyDown(e, () => saveActTitle(act.id))}
                           onClick={(e) => e.stopPropagation()}
-                          className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1 py-0.5 text-sm font-medium focus:border-[var(--color-primary)] focus:outline-none"
+                          className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 type-label focus:border-[var(--color-primary)] focus:outline-none"
                           autoFocus
                         />
                       ) : (
                         <span
-                          className="font-medium text-sm flex-1 cursor-text"
+                          className="type-label flex-1 cursor-text"
                           onDoubleClick={(e) => {
                             e.stopPropagation()
                             startEditingAct(act.id, act.name || `Act ${act.number}`)
                           }}
                         >
-                          {act.name || `Act ${act.number}`}
+                          {act.name || `ACT ${act.number}`}
                         </span>
                       )}
                       <button
@@ -1418,24 +1421,24 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                           e.stopPropagation()
                           startEditingAct(act.id, act.name || `Act ${act.number}`)
                         }}
-                        className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
+                        className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
                         title="Rename act"
                       >
-                        ✎
+                        [REN]
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); addScene(act.id) }}
-                        className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
+                        className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
                         title="Add scene"
                       >
-                        +
+                        [+SCN]
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteAct(act.id, act.name || `Act ${act.number}`) }}
-                        className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--color-error)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
+                        className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--color-error)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
                         title="Delete act"
                       >
-                        ×
+                        [DEL]
                       </button>
                     </div>
 
@@ -1557,11 +1560,11 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                   }`}
                                   onClick={() => !editingSceneId && toggleScene(scene.id)}
                                 >
-                                    <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity text-xs" title="Drag to reorder">
-                                      ⋮⋮
+                                    <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity font-mono text-[9px]" title="Drag to reorder">
+                                      ::
                                     </span>
-                                    <span className="text-[var(--text-muted)] text-xs">
-                                      {expandedScenes.has(scene.id) ? '▼' : '▶'}
+                                    <span className="type-micro text-[var(--text-muted)]">
+                                      {expandedScenes.has(scene.id) ? '[-]' : '[+]'}
                                     </span>
                                     {/* Plotline color indicator */}
                                     <button
@@ -1569,7 +1572,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                         e.stopPropagation()
                                         setEditingScenePlotline(editingScenePlotline === scene.id ? null : scene.id)
                                       }}
-                                      className="w-3 h-3 rounded-full flex-shrink-0 border border-[var(--border)] hover:border-[var(--border)] active:scale-[0.97] transition-all duration-150 ease-out"
+                                      className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-[var(--border)] hover:border-[var(--border-strong)] active:scale-[0.97] transition-all duration-150 ease-out"
                                       style={{ backgroundColor: scene.plotline?.color || 'transparent' }}
                                       title={scene.plotline?.name || 'No plotline assigned'}
                                     />
@@ -1582,18 +1585,18 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                         onBlur={() => saveSceneTitle(scene.id)}
                                         onKeyDown={(e) => handleEditKeyDown(e, () => saveSceneTitle(scene.id))}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1 py-0.5 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+                                        className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 type-meta focus:border-[var(--color-primary)] focus:outline-none"
                                         autoFocus
                                       />
                                     ) : (
                                       <span
-                                        className="text-sm text-[var(--text-secondary)] flex-1 truncate cursor-text"
+                                        className="type-meta text-[var(--text-secondary)] flex-1 truncate cursor-text"
                                         onDoubleClick={(e) => {
                                           e.stopPropagation()
                                           startEditingScene(scene.id, scene.title || 'Untitled Scene')
                                         }}
                                       >
-                                        {scene.title || 'Untitled Scene'}
+                                        {scene.title || 'UNTITLED SCENE'}
                                       </span>
                                     )}
                                     <button
@@ -1601,24 +1604,24 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                         e.stopPropagation()
                                         startEditingScene(scene.id, scene.title || 'Untitled Scene')
                                       }}
-                                      className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
+                                      className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
                                       title="Rename scene"
                                     >
-                                      ✎
+                                      [REN]
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); addPage(scene.id) }}
-                                      className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
+                                      className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
                                       title="Add page"
                                     >
-                                      +
+                                      [+PG]
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); deleteScene(scene.id, scene.title || 'Untitled Scene', scene.pages?.length || 0) }}
-                                      className="opacity-0 group-hover:opacity-100 text-xs text-[var(--text-secondary)] hover:text-[var(--color-error)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
+                                      className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--color-error)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
                                       title="Delete scene"
                                     >
-                                      ×
+                                      [DEL]
                                     </button>
                                   </div>
                                   {/* Scene Summary */}
@@ -1769,14 +1772,14 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                               <div>
                                                 <div
                                                   onClick={() => !editingPageId && onSelectPage(page.id)}
-                                                  className={`px-2 py-1 rounded cursor-grab active:cursor-grabbing text-sm flex items-center gap-1 group/page ${
+                                                  className={`px-2 py-1 cursor-grab active:cursor-grabbing type-micro flex items-center gap-1 group/page ${
                                                     selectedPageId === page.id
                                                       ? 'bg-[var(--color-primary)] text-white'
-                                                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'
+                                                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
                                                   }`}
                                                 >
-                                                  <span className={`text-xs opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)]'}`} title="Drag to reorder">
-                                                    ⋮⋮
+                                                  <span className={`font-mono text-[9px] opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-white/50' : 'text-[var(--text-disabled)]'}`} title="Drag to reorder">
+                                                    ::
                                                   </span>
                                                   {editingPageId === page.id ? (
                                                     <input
@@ -1787,7 +1790,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       onBlur={() => savePageTitle(page.id)}
                                                       onKeyDown={(e) => handleEditKeyDown(e, () => savePageTitle(page.id))}
                                                       onClick={(e) => e.stopPropagation()}
-                                                      className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-1 py-0.5 text-xs focus:border-[var(--color-primary)] focus:outline-none"
+                                                      className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 type-micro focus:border-[var(--color-primary)] focus:outline-none"
                                                       autoFocus
                                                     />
                                                   ) : (
@@ -1806,39 +1809,39 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       e.stopPropagation()
                                                       startEditingPage(page.id, page.title || '')
                                                     }}
-                                                    className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 active:scale-[0.97] transition-all duration-150 ease-out ${
+                                                    className={`opacity-0 group-hover/page:opacity-100 type-micro px-0.5 active:scale-[0.97] transition-all duration-150 ease-out ${
                                                       selectedPageId === page.id
-                                                        ? 'text-[var(--color-primary)] hover:text-[var(--text-primary)]'
-                                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                                        ? 'text-white/60 hover:text-white'
+                                                        : 'text-[var(--text-disabled)] hover:text-[var(--text-primary)]'
                                                     }`}
                                                     title="Rename page"
                                                   >
-                                                    ✎
+                                                    REN
                                                   </button>
                                                   <button
                                                     onClick={(e) => {
                                                       e.stopPropagation()
                                                       setMovingPageId(movingPageId === page.id ? null : page.id)
                                                     }}
-                                                    className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 active:scale-[0.97] transition-all duration-150 ease-out ${
+                                                    className={`opacity-0 group-hover/page:opacity-100 type-micro px-0.5 active:scale-[0.97] transition-all duration-150 ease-out ${
                                                       selectedPageId === page.id
-                                                        ? 'text-[var(--color-primary)] hover:text-[var(--text-primary)]'
-                                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                                        ? 'text-white/60 hover:text-white'
+                                                        : 'text-[var(--text-disabled)] hover:text-[var(--text-primary)]'
                                                     }`}
                                                     title="Move to scene"
                                                   >
-                                                    ↗
+                                                    MOV
                                                   </button>
                                                   <button
                                                     onClick={(e) => { e.stopPropagation(); deletePage(page.id, pagePositionMap.get(page.id) || page.page_number) }}
-                                                    className={`opacity-0 group-hover/page:opacity-100 text-xs px-1 active:scale-[0.97] transition-all duration-150 ease-out ${
+                                                    className={`opacity-0 group-hover/page:opacity-100 type-micro px-0.5 active:scale-[0.97] transition-all duration-150 ease-out ${
                                                       selectedPageId === page.id
-                                                        ? 'text-[var(--color-primary)] hover:text-[var(--color-error)]'
-                                                        : 'text-[var(--text-muted)] hover:text-[var(--color-error)]'
+                                                        ? 'text-white/60 hover:text-[var(--color-error)]'
+                                                        : 'text-[var(--text-disabled)] hover:text-[var(--color-error)]'
                                                     }`}
                                                     title="Delete page"
                                                   >
-                                                    ×
+                                                    DEL
                                                   </button>
                                                 </div>
                                                 {/* Move to scene dropdown */}

@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     // Assemble context for continuation
     const [context, writerContext] = await Promise.all([
       assembleContext(seriesId, issueId, pageId),
-      assembleWriterContext(user.id, seriesId),
+      assembleWriterContext(user.id, seriesId, issueId),
     ])
     const rawContextString = buildContextString(context)
     const systemPrompt = buildSystemPrompt(mode, writerContext)

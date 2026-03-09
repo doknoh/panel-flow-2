@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CanvasItemData, Character, Location } from './CanvasClient'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface GraduationModalProps {
   item: CanvasItemData
@@ -37,6 +38,7 @@ export default function GraduationModal({
   const [newDescription, setNewDescription] = useState(item.content || '')
 
   const supabase = createClient()
+  const focusTrapRef = useFocusTrap(true)
 
   const handleSelectType = (type: GraduationType) => {
     setGraduationType(type)
@@ -112,7 +114,7 @@ export default function GraduationModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="Graduate idea" className="relative bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between">
@@ -128,6 +130,7 @@ export default function GraduationModal({
             <button
               onClick={onClose}
               className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              aria-label="Close graduation modal"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

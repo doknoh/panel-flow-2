@@ -70,12 +70,12 @@ export default async function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl font-semibold">Your Projects</h2>
+          <h2 className="type-title">YOUR PROJECTS</h2>
           <Link
             href="/series/new"
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-4 py-2 rounded-lg font-medium active:scale-[0.97] transition-all duration-150 ease-out text-center sm:text-left"
+            className="type-label px-4 py-2 border border-[var(--border)] hover:border-[var(--text-primary)] bg-transparent text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out text-center sm:text-left"
           >
-            + New Series
+            [+ NEW SERIES]
           </Link>
         </div>
 
@@ -88,37 +88,37 @@ export default async function DashboardPage() {
                 className="block bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-lg font-semibold">{series.title}</h3>
+                  <h3 className="text-lg font-bold tracking-tight">{series.title}</h3>
                   {series.role !== 'owner' && (
-                    <span className={`text-xs px-2 py-0.5 border flex-shrink-0 font-semibold uppercase ${
+                    <span className={`type-micro px-2 py-0.5 border flex-shrink-0 ${
                       series.role === 'editor'
-                        ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/30'
+                        ? 'text-[var(--color-primary)] border-[var(--color-primary)]/30'
                         : series.role === 'commenter'
-                        ? 'bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/30'
-                        : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] border-[var(--border)]'
+                        ? 'text-[var(--color-warning)] border-[var(--color-warning)]/30'
+                        : 'text-[var(--text-muted)] border-[var(--border)]'
                     }`}>
-                      {series.role === 'editor' ? 'Editor' : series.role === 'commenter' ? 'Commenter' : 'Viewer'}
+                      {series.role === 'editor' ? 'EDITOR' : series.role === 'commenter' ? 'COMMENTER' : 'VIEWER'}
                     </span>
                   )}
                 </div>
                 {series.logline && (
                   <p className="text-[var(--text-secondary)] text-sm line-clamp-2">{series.logline}</p>
                 )}
-                <p className="text-[var(--text-muted)] text-xs mt-4">
-                  Updated {new Date(series.updated_at).toLocaleDateString()}
+                <p className="type-micro text-[var(--text-muted)] mt-4">
+                  UPDATED {new Date(series.updated_at).toLocaleDateString().toUpperCase()}
                 </p>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
-            <h3 className="text-xl font-medium mb-2">No projects yet</h3>
-            <p className="text-[var(--text-secondary)] mb-6">Create your first comic series to get started</p>
+          <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)]">
+            <h3 className="type-section mb-2">NO PROJECTS YET</h3>
+            <p className="type-meta text-[var(--text-secondary)] mb-6">Create your first comic series to get started</p>
             <Link
               href="/series/new"
-              className="inline-block bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-6 py-3 rounded-lg font-medium active:scale-[0.97] transition-all duration-150 ease-out"
+              className="type-label inline-block px-6 py-3 border border-[var(--border)] hover:border-[var(--text-primary)] text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
             >
-              Create Your First Series
+              [+ CREATE SERIES]
             </Link>
           </div>
         )}

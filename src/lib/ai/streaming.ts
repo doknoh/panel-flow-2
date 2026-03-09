@@ -54,13 +54,27 @@ export function createSSEEncoder() {
 // STREAM GENERATOR → READABLE STREAM
 // ============================================
 
+const KEEPALIVE_INTERVAL_MS = 15_000
+
 export function createStreamFromGenerator(
   generator: AsyncGenerator<StreamEvent, void, unknown>
 ): ReadableStream<Uint8Array> {
   const sse = createSSEEncoder()
+  const encoder = new TextEncoder()
+  // SSE comment line as keepalive — ignored by SSE parsers but keeps connection alive
+  const keepaliveBytes = encoder.encode(':\n\n')
 
   return new ReadableStream({
     async start(controller) {
+      // Set up keepalive ping interval
+      const keepaliveTimer = setInterval(() => {
+        try {
+          controller.enqueue(keepaliveBytes)
+        } catch {
+          // Controller may be closed — ignore
+        }
+      }, KEEPALIVE_INTERVAL_MS)
+
       try {
         for await (const event of generator) {
           switch (event.type) {
@@ -83,6 +97,7 @@ export function createStreamFromGenerator(
         const message = error instanceof Error ? error.message : 'Unknown error'
         controller.enqueue(sse.encodeError(message))
       } finally {
+        clearInterval(keepaliveTimer)
         controller.close()
       }
     },

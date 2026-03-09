@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean
@@ -39,6 +40,8 @@ const shortcuts = [
 ]
 
 export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsModalProps) {
+  const focusTrapRef = useFocusTrap(isOpen)
+
   // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -55,6 +58,10 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
       <div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Keyboard Shortcuts"
         className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-lg mx-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -63,6 +70,7 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
           <button
             onClick={onClose}
             className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1"
+            aria-label="Close keyboard shortcuts"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>

@@ -11,7 +11,9 @@ import { saveAs } from 'file-saver'
 
 interface DialogueBlock {
   character_id: string | null
+  speaker_name: string | null
   dialogue_type: string
+  modifier: string | null
   text: string
   sort_order: number
 }
@@ -66,12 +68,70 @@ interface Issue {
   acts: Act[]
 }
 
-export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
+/**
+ * Build the dialogue type suffix based on the spec format.
+ *
+ * Mapping:
+ *   'dialogue'    -> no suffix (standard)
+ *   'voice_over'  -> ' (V.O.)'
+ *   'off_panel'   -> ' (O.S.)'
+ *   'thought'     -> ' (THINKS)'
+ *   'whisper'     -> ' [WHISPERS]'
+ *   'shout'       -> ' [SHOUTS]'
+ *   'electronic'  -> ' (ELECTRONIC)'
+ */
+function getDialogueSuffix(dialogueType: string): string {
+  switch (dialogueType) {
+    case 'voice_over':
+    case 'radio':
+      return ' (V.O.)'
+    case 'off_panel':
+      return ' (O.S.)'
+    case 'thought':
+      return ' (THINKS)'
+    case 'whisper':
+      return ' [WHISPERS]'
+    case 'shout':
+      return ' [SHOUTS]'
+    case 'electronic':
+      return ' (ELECTRONIC)'
+    default:
+      return ''
+  }
+}
+
+/**
+ * Auto-capitalize character names in visual descriptions.
+ * Scans for known character display names and replaces them
+ * with their UPPERCASE equivalents.
+ */
+function autoCapitalizeCharacterNames(text: string, characterNames: string[]): string {
+  if (!text || characterNames.length === 0) return text
+
+  let result = text
+  for (const name of characterNames) {
+    if (!name) continue
+    // Match the name as a whole word (case-insensitive), replace with uppercase
+    const regex = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
+    result = result.replace(regex, name.toUpperCase())
+  }
+  return result
+}
+
+export async function exportIssueToDocx(
+  issue: Issue,
+  includeNotes = false,
+  options?: {
+    authorName?: string
+    characterNames?: string[]
+  }
+) {
   const characterMap = new Map(issue.series.characters.map(c => [c.id, c.name]))
+  const charNames = options?.characterNames || issue.series.characters.map(c => c.name)
 
   const children: Paragraph[] = []
 
-  // Title
+  // Title - spec format: "[SERIES TITLE] - ISSUE #[NUMBER]"
   children.push(
     new Paragraph({
       children: [
@@ -86,7 +146,24 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
     })
   )
 
-  // Issue title if exists
+  // Author line - spec format: "By [Author Name]"
+  const authorName = options?.authorName
+  if (authorName) {
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `By ${authorName}`,
+            size: 24, // 12pt
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+      })
+    )
+  }
+
+  // Chapter line - spec format: "CHAPTER [NUMBER]: [ISSUE TITLE]"
   if (issue.title) {
     children.push(
       new Paragraph({
@@ -103,7 +180,7 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
     )
   }
 
-  // Summary
+  // Summary - spec format: "TL;DR SUMMARY" heading
   if (issue.summary) {
     children.push(
       new Paragraph({
@@ -171,7 +248,7 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
         // Determine page orientation (odd = right, even = left)
         const orientation = page.page_number % 2 === 1 ? 'right' : 'left'
 
-        // Page header
+        // Page header - spec format: "PAGE [N] ([orientation])"
         children.push(
           new Paragraph({
             children: [
@@ -185,10 +262,13 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
           })
         )
 
-        // Sort panels
+        // Sort panels and restart panel numbering at 1 per page
         const sortedPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
 
-        for (const panel of sortedPanels) {
+        sortedPanels.forEach((panel, panelIndex) => {
+          // Panel numbers restart at 1 per page per spec
+          const displayPanelNumber = panelIndex + 1
+
           // Panel header with shot type
           const shotType = panel.shot_type
             ? ` ${panel.shot_type.replace('_', ' ').toUpperCase()}.`
@@ -198,7 +278,7 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
             new Paragraph({
               children: [
                 new TextRun({
-                  text: `PANEL ${panel.panel_number}:`,
+                  text: `PANEL ${displayPanelNumber}:`,
                   bold: true,
                   size: 22,
                 }),
@@ -211,13 +291,14 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
             })
           )
 
-          // Visual description
+          // Visual description with auto-capitalized character names
           if (panel.visual_description) {
+            const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
             children.push(
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: panel.visual_description,
+                    text: capitalizedDesc,
                     size: 22,
                   }),
                 ],
@@ -257,29 +338,27 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
           // Dialogue blocks
           const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a, b) => a.sort_order - b.sort_order)
           for (const dialogue of sortedDialogue) {
-            const characterName = dialogue.character_id
-              ? (characterMap.get(dialogue.character_id) || 'UNKNOWN').toUpperCase()
-              : 'UNKNOWN'
+            // Use speaker_name if available, otherwise look up from character map
+            const characterName = dialogue.speaker_name
+              ? dialogue.speaker_name.toUpperCase()
+              : dialogue.character_id
+                ? (characterMap.get(dialogue.character_id) || 'UNKNOWN').toUpperCase()
+                : 'UNKNOWN'
 
-            // Build dialogue type suffix
-            let dialogueSuffix = ''
-            if (dialogue.dialogue_type === 'thought') {
-              dialogueSuffix = ' (THINKS)'
-            } else if (dialogue.dialogue_type === 'whisper') {
-              dialogueSuffix = ' (WHISPERS)'
-            } else if (dialogue.dialogue_type === 'shout') {
-              dialogueSuffix = ' (SHOUTS)'
-            } else if (dialogue.dialogue_type === 'off_panel') {
-              dialogueSuffix = ' (O.S.)'
-            } else if (dialogue.dialogue_type === 'electronic') {
-              dialogueSuffix = ' (ELECTRONIC)'
+            // Build dialogue type suffix per spec format
+            const dialogueSuffix = getDialogueSuffix(dialogue.dialogue_type)
+
+            // Add modifier/instruction in bracket format if present and type is standard dialogue
+            let modifierSuffix = ''
+            if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') {
+              modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]`
             }
 
             children.push(
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: `${characterName}${dialogueSuffix}: `,
+                    text: `${characterName}${dialogueSuffix}${modifierSuffix}: `,
                     bold: true,
                     size: 22,
                   }),
@@ -334,12 +413,12 @@ export async function exportIssueToDocx(issue: Issue, includeNotes = false) {
               })
             )
           }
-        }
+        })
       }
     }
   }
 
-  // End of issue
+  // End of issue - spec format: "END OF ISSUE #[NUMBER]"
   children.push(
     new Paragraph({
       children: [

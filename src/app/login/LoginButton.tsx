@@ -79,7 +79,9 @@ export default function LoginButton() {
     <div className="space-y-4">
       {/* Email + Password form */}
       <form onSubmit={handleEmailAuth} className="space-y-3">
+        <label htmlFor="login-email" className="sr-only">Email address</label>
         <input
+          id="login-email"
           type="email"
           placeholder="Email address"
           value={email}
@@ -87,7 +89,9 @@ export default function LoginButton() {
           required
           className="w-full py-3 px-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
         />
+        <label htmlFor="login-password" className="sr-only">Password</label>
         <input
+          id="login-password"
           type="password"
           placeholder="Password"
           value={password}

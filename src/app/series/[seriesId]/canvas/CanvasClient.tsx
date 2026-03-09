@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import CanvasItem from './CanvasItem'
 import GraduationModal from './GraduationModal'
+import EmptyState from '@/components/ui/EmptyState'
 
 // Types
 export type ItemType = 'character' | 'theme' | 'visual' | 'scenario' | 'dialogue' | 'conflict' | 'world'
@@ -438,20 +439,13 @@ export default function CanvasClient({
       {/* Canvas grid */}
       <main className="max-w-7xl mx-auto px-4 py-6">
         {filteredItems.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">💭</div>
-            <h2 className="text-xl font-medium text-[var(--text-secondary)] mb-2">Your canvas is empty</h2>
-            <p className="text-[var(--text-muted)] mb-6">
-              Start dumping ideas here—characters, themes, visuals, what-ifs. <br />
-              They can graduate to structured entities when ready.
-            </p>
-            <button
-              onClick={() => setIsCreating(true)}
-              className="px-6 py-3 bg-[var(--color-primary)] hover:opacity-90 rounded-lg font-medium active:scale-[0.97] transition-all duration-150 ease-out"
-            >
-              + Add Your First Idea
-            </button>
-          </div>
+          <EmptyState
+            icon="💭"
+            title="Your canvas is empty"
+            description="Start dumping ideas here -- characters, themes, visuals, what-ifs. They can graduate to structured entities when ready."
+            actionLabel="+ Add Your First Idea"
+            onAction={() => setIsCreating(true)}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredItems.map(item => (

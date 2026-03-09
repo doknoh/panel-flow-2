@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import EmptyState from '@/components/ui/EmptyState'
 
 type NoteType = 'OPEN_QUESTION' | 'DECISION' | 'AI_INSIGHT' | 'GENERAL'
 
@@ -259,12 +260,21 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
 
       {/* Notes List */}
       {filteredNotes.length === 0 ? (
-        <div className="text-center py-12 text-[var(--text-muted)]">
-          {notes.length === 0
-            ? 'No notes yet. Click "+ Add Note" to create one.'
-            : 'No notes match your filters.'
-          }
-        </div>
+        notes.length === 0 ? (
+          <EmptyState
+            icon="📝"
+            title="No notes yet"
+            description="Capture open questions, decisions, and AI insights as you work."
+            actionLabel="+ Add Note"
+            onAction={() => setIsCreating(true)}
+          />
+        ) : (
+          <EmptyState
+            icon="🔍"
+            title="No matching notes"
+            description="No notes match your current filters. Try adjusting the type or status filter."
+          />
+        )
       ) : (
         <div className="space-y-3">
           {filteredNotes.map(note => {
@@ -285,6 +295,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                         ? 'bg-[var(--color-success)] border-[var(--color-success)] text-[var(--text-primary)]'
                         : 'border-[var(--text-muted)] hover:border-[var(--text-muted)]'
                     }`}
+                    aria-label={note.resolved ? 'Mark as unresolved' : 'Mark as resolved'}
                   >
                     {note.resolved && (
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -351,6 +362,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                         }}
                         className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1"
                         title="Edit"
+                        aria-label="Edit note"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -360,6 +372,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                         onClick={() => deleteNote(note.id)}
                         className="text-[var(--text-muted)] hover:text-[var(--color-error)] p-1"
                         title="Delete"
+                        aria-label="Delete note"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

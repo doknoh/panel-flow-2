@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import ImageUploader, { ImageAttachment } from '@/components/ImageUploader'
 import { useEntityImages } from '@/hooks/useEntityImages'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface Location {
   id: string
@@ -277,20 +278,13 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
       {(isCreating || editingId) && renderForm()}
 
       {locations.length === 0 && !isCreating ? (
-        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
-          <div className="text-5xl mb-4 opacity-30">🏛️</div>
-          <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">No locations yet</h3>
-          <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto mb-6">
-            Locations appear in autocomplete when describing panel settings.
-            Define their visual details to maintain consistency across scenes.
-          </p>
-          <button
-            onClick={startCreate}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
-          >
-            Create Your First Location
-          </button>
-        </div>
+        <EmptyState
+          icon="🏛️"
+          title="No locations yet"
+          description="Locations appear in autocomplete when describing panel settings. Define their visual details to maintain consistency across scenes."
+          actionLabel="Create Your First Location"
+          onAction={startCreate}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {locations.map((location) => (

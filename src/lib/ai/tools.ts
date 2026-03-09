@@ -248,6 +248,112 @@ export const EDITOR_TOOLS: Anthropic.Tool[] = [
       required: ['content'],
     },
   },
+
+  // ============================================
+  // PHASE 3: ANALYTICS & INTELLIGENCE TOOLS
+  // ============================================
+
+  {
+    name: 'generate_power_rankings',
+    description:
+      'Analyze multiple issues and rank them by quality across structural coherence, character voice consistency, theme resonance, page turn effectiveness, dialogue efficiency, and visual description clarity. Returns structured script data for each issue so you can provide a detailed comparative analysis.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        issueIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'The issue IDs to analyze and compare. Provide at least 2.',
+        },
+      },
+      required: ['issueIds'],
+    },
+  },
+  {
+    name: 'track_character_state',
+    description:
+      'Record a character\'s emotional and plot state at a specific point in the story. Use after discussing a character\'s arc or state in a particular issue. The writer should confirm the interpretation before saving.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        characterId: {
+          type: 'string',
+          description: 'The character ID from the project context',
+        },
+        issueId: {
+          type: 'string',
+          description: 'The issue where this state applies',
+        },
+        emotional_state: {
+          type: 'string',
+          description: 'The character\'s emotional state (e.g., "desperate but determined", "quietly furious", "hopeful with reservations")',
+        },
+        plot_position: {
+          type: 'string',
+          description: 'Where the character stands in terms of agency and safety (e.g., "in control", "out of control", "trapped", "rising")',
+        },
+        summary: {
+          type: 'string',
+          description: 'One sentence summarizing this character\'s state and arc position in this issue',
+        },
+      },
+      required: ['characterId', 'issueId', 'emotional_state', 'plot_position', 'summary'],
+    },
+  },
+  {
+    name: 'continuity_check',
+    description:
+      'Run a continuity check across an issue or the entire series. Returns script content and structure data so you can analyze for potential continuity issues: character knowledge gaps, location inconsistencies, timeline breaks, and emotional reactions without setup.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        seriesId: {
+          type: 'string',
+          description: 'The series ID to check',
+        },
+        scope: {
+          type: 'string',
+          enum: ['issue', 'series'],
+          description: 'Whether to check a single issue or the entire series',
+        },
+        issueId: {
+          type: 'string',
+          description: 'Required when scope is "issue" — the specific issue to check',
+        },
+      },
+      required: ['seriesId', 'scope'],
+    },
+  },
+  {
+    name: 'extract_outline',
+    description:
+      'Generate an outline from existing script content for a specific issue. Returns the full script text and structure so you can produce a structured outline with act breaks, scene summaries, and page allocations.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        issueId: {
+          type: 'string',
+          description: 'The issue to extract an outline from',
+        },
+      },
+      required: ['issueId'],
+    },
+  },
+  {
+    name: 'draft_scene_summary',
+    description:
+      'Summarize a scene\'s content based on its pages, panels, dialogue, and captions. Returns the scene data so you can provide a concise summary of what happens.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        sceneId: {
+          type: 'string',
+          description: 'The scene ID to summarize',
+        },
+      },
+      required: ['sceneId'],
+    },
+  },
 ]
 
 // ============================================
@@ -469,13 +575,13 @@ export async function executeToolCall(
         // Get next order for dialogue blocks in this panel
         const { data: maxDialogue } = await supabase
           .from('dialogue_blocks')
-          .select('order')
+          .select('sort_order')
           .eq('panel_id', input.panelId as string)
-          .order('order', { ascending: false })
+          .order('sort_order', { ascending: false })
           .limit(1)
           .single()
 
-        const nextOrder = ((maxDialogue as { order: number } | null)?.order ?? 0) + 1
+        const nextOrder = ((maxDialogue as { sort_order: number } | null)?.sort_order ?? 0) + 1
 
         const { data, error } = await supabase
           .from('dialogue_blocks')
@@ -483,8 +589,8 @@ export async function executeToolCall(
             panel_id: input.panelId as string,
             speaker_name: input.speaker_name as string,
             text: input.text as string,
-            delivery_type: (input.delivery_type as string) || 'STANDARD',
-            order: nextOrder,
+            dialogue_type: (input.delivery_type as string) || 'dialogue',
+            sort_order: nextOrder,
             balloon_number: 1,
           })
           .select('id')
@@ -517,6 +623,443 @@ export async function executeToolCall(
           result: 'Saved project note',
           entityId: data.id,
           entityType: 'project_note',
+        }
+      }
+
+      // ============================================
+      // PHASE 3: ANALYTICS & INTELLIGENCE EXECUTORS
+      // ============================================
+
+      case 'generate_power_rankings': {
+        const issueIds = input.issueIds as string[]
+        if (!issueIds || issueIds.length < 2) {
+          return { success: false, result: 'Need at least 2 issue IDs to compare' }
+        }
+
+        const issueData: Array<{ id: string; number: number; title: string; summary?: string; scriptText: string }> = []
+
+        for (const id of issueIds) {
+          const { data: issue } = await supabase
+            .from('issues')
+            .select('id, number, title, summary')
+            .eq('id', id)
+            .single()
+
+          if (!issue) continue
+          const i = issue as { id: string; number: number; title: string; summary?: string }
+
+          // Build script text for this issue
+          let scriptText = ''
+          const { data: acts } = await supabase
+            .from('acts')
+            .select('id, number')
+            .eq('issue_id', id)
+            .order('number')
+
+          if (acts) {
+            for (const act of acts as Array<{ id: string; number: number }>) {
+              const { data: scenes } = await supabase
+                .from('scenes')
+                .select('id, title, sort_order')
+                .eq('act_id', act.id)
+                .order('sort_order')
+
+              if (!scenes) continue
+              for (const scene of scenes as Array<{ id: string; title?: string; sort_order: number }>) {
+                scriptText += `\n--- Scene: ${scene.title || 'Untitled'} (Act ${act.number}) ---\n`
+                const { data: pages } = await supabase
+                  .from('pages')
+                  .select('id, page_number, orientation, sort_order')
+                  .eq('scene_id', scene.id)
+                  .order('sort_order')
+
+                if (!pages) continue
+                for (const page of pages as Array<{ id: string; page_number: number; orientation: string }>) {
+                  scriptText += `PAGE ${page.page_number} (${page.orientation?.toLowerCase() || 'right'})\n`
+                  const { data: panels } = await supabase
+                    .from('panels')
+                    .select('id, sort_order, visual_description, sfx')
+                    .eq('page_id', page.id)
+                    .order('sort_order')
+
+                  if (!panels) continue
+                  for (const panel of panels as Array<{ id: string; sort_order: number; visual_description?: string; sfx?: string }>) {
+                    scriptText += `PANEL ${panel.sort_order}: ${panel.visual_description || '(No description)'}\n`
+                    const { data: dialogue } = await supabase
+                      .from('dialogue_blocks')
+                      .select('speaker_name, text, dialogue_type, sort_order')
+                      .eq('panel_id', panel.id)
+                      .order('sort_order')
+                    if (dialogue) {
+                      for (const d of dialogue as Array<{ speaker_name?: string; text: string; dialogue_type: string }>) {
+                        const speaker = d.speaker_name || 'UNKNOWN'
+                        const delivery = d.dialogue_type !== 'dialogue' ? ` (${d.dialogue_type})` : ''
+                        scriptText += `${speaker}${delivery}: ${d.text}\n`
+                      }
+                    }
+                    const { data: captions } = await supabase
+                      .from('captions')
+                      .select('text, sort_order')
+                      .eq('panel_id', panel.id)
+                      .order('sort_order')
+                    if (captions) {
+                      for (const cap of captions as Array<{ text: string }>) {
+                        scriptText += `CAP: ${cap.text}\n`
+                      }
+                    }
+                    if (panel.sfx) scriptText += `SFX: ${panel.sfx}\n`
+                    scriptText += '\n'
+                  }
+                }
+              }
+            }
+          }
+
+          issueData.push({
+            id: i.id,
+            number: i.number,
+            title: i.title,
+            summary: i.summary || undefined,
+            scriptText: scriptText.substring(0, 50000), // Cap each issue
+          })
+        }
+
+        const resultText = issueData.map(issue =>
+          `## Issue #${issue.number}: "${issue.title}"\n${issue.summary ? `Summary: ${issue.summary}\n` : ''}\n${issue.scriptText}`
+        ).join('\n\n---\n\n')
+
+        return {
+          success: true,
+          result: `Power rankings data for ${issueData.length} issues:\n\n${resultText}`,
+        }
+      }
+
+      case 'track_character_state': {
+        const { data, error } = await supabase
+          .from('character_states')
+          .upsert({
+            character_id: input.characterId as string,
+            issue_id: input.issueId as string,
+            emotional_state: input.emotional_state as string,
+            plot_position: input.plot_position as string,
+            arc_summary: input.summary as string,
+          }, {
+            onConflict: 'character_id,issue_id',
+          })
+          .select('id')
+          .single()
+
+        if (error) return { success: false, result: error.message }
+        return {
+          success: true,
+          result: `Tracked character state for this issue`,
+          entityId: data.id,
+          entityType: 'character_state',
+        }
+      }
+
+      case 'continuity_check': {
+        const scope = input.scope as string
+        const targetSeriesId = input.seriesId as string || seriesId
+        let report = ''
+
+        if (scope === 'issue') {
+          const targetIssueId = input.issueId as string
+          if (!targetIssueId) return { success: false, result: 'issueId is required when scope is "issue"' }
+
+          // Fetch issue metadata
+          const { data: issue } = await supabase
+            .from('issues')
+            .select('number, title')
+            .eq('id', targetIssueId)
+            .single()
+
+          if (!issue) return { success: false, result: 'Issue not found' }
+          const i = issue as { number: number; title: string }
+          report += `Continuity check for Issue #${i.number}: "${i.title}"\n\n`
+
+          // Fetch all characters in the series
+          const { data: characters } = await supabase
+            .from('characters')
+            .select('id, display_name, relationships, arc_notes')
+            .eq('series_id', targetSeriesId)
+
+          if (characters) {
+            report += `Characters in series: ${(characters as Array<{ display_name: string }>).map(c => c.display_name).join(', ')}\n\n`
+          }
+
+          // Fetch the issue structure and script
+          const { data: acts } = await supabase
+            .from('acts')
+            .select('id, number, name')
+            .eq('issue_id', targetIssueId)
+            .order('number')
+
+          if (acts) {
+            for (const act of acts as Array<{ id: string; number: number; name?: string }>) {
+              report += `### Act ${act.number}${act.name ? `: ${act.name}` : ''}\n`
+              const { data: scenes } = await supabase
+                .from('scenes')
+                .select('id, title, plotline_id, sort_order')
+                .eq('act_id', act.id)
+                .order('sort_order')
+
+              if (scenes) {
+                for (const scene of scenes as Array<{ id: string; title?: string; sort_order: number }>) {
+                  report += `Scene: ${scene.title || 'Untitled'}\n`
+                  const { data: pages } = await supabase
+                    .from('pages')
+                    .select('id, page_number, sort_order')
+                    .eq('scene_id', scene.id)
+                    .order('sort_order')
+
+                  if (pages) {
+                    for (const page of pages as Array<{ id: string; page_number: number }>) {
+                      const { data: panels } = await supabase
+                        .from('panels')
+                        .select('id, sort_order, visual_description')
+                        .eq('page_id', page.id)
+                        .order('sort_order')
+
+                      if (panels) {
+                        for (const panel of panels as Array<{ id: string; sort_order: number; visual_description?: string }>) {
+                          report += `  Page ${page.page_number}, Panel ${panel.sort_order}: ${panel.visual_description || '(empty)'}\n`
+                          const { data: dialogue } = await supabase
+                            .from('dialogue_blocks')
+                            .select('speaker_name, text, dialogue_type')
+                            .eq('panel_id', panel.id)
+                            .order('sort_order')
+                          if (dialogue) {
+                            for (const d of dialogue as Array<{ speaker_name?: string; text: string }>) {
+                              report += `    ${d.speaker_name || 'UNKNOWN'}: ${d.text}\n`
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          // Series scope — fetch summaries of all issues
+          const { data: issues } = await supabase
+            .from('issues')
+            .select('id, number, title, summary')
+            .eq('series_id', targetSeriesId)
+            .order('number')
+
+          if (issues) {
+            report += `Series continuity check across ${(issues as unknown[]).length} issues:\n\n`
+            for (const issue of issues as Array<{ id: string; number: number; title: string; summary?: string }>) {
+              report += `Issue #${issue.number}: "${issue.title}" — ${issue.summary || 'No summary'}\n`
+            }
+          }
+
+          // Fetch all characters
+          const { data: characters } = await supabase
+            .from('characters')
+            .select('id, display_name, relationships, arc_notes, first_appearance')
+            .eq('series_id', targetSeriesId)
+
+          if (characters) {
+            report += `\nCharacters:\n`
+            for (const c of characters as Array<{ display_name: string; relationships?: string; arc_notes?: string; first_appearance?: string }>) {
+              report += `- ${c.display_name}${c.first_appearance ? ` (first: ${c.first_appearance})` : ''}${c.arc_notes ? ` — Arc: ${c.arc_notes}` : ''}\n`
+            }
+          }
+
+          // Fetch character states across issues
+          const { data: states } = await supabase
+            .from('character_states')
+            .select('character_id, issue_id, emotional_state, plot_position, arc_summary')
+            .order('issue_id')
+
+          if (states && (states as unknown[]).length > 0) {
+            report += `\nCharacter States Across Issues:\n`
+            for (const s of states as Array<{ character_id: string; issue_id: string; emotional_state: string; plot_position: string; arc_summary: string }>) {
+              report += `- Character ${s.character_id} in Issue ${s.issue_id}: ${s.emotional_state} / ${s.plot_position} — ${s.arc_summary}\n`
+            }
+          }
+        }
+
+        // Cap the report
+        if (report.length > 100000) {
+          report = report.substring(0, 100000) + '\n\n[Report truncated due to length]'
+        }
+
+        return {
+          success: true,
+          result: report,
+        }
+      }
+
+      case 'extract_outline': {
+        const targetIssueId = input.issueId as string
+
+        const { data: issue } = await supabase
+          .from('issues')
+          .select('id, number, title, summary, themes, stakes, motifs')
+          .eq('id', targetIssueId)
+          .single()
+
+        if (!issue) return { success: false, result: 'Issue not found' }
+        const i = issue as { id: string; number: number; title: string; summary?: string; themes?: string; stakes?: string; motifs?: string }
+
+        let outlineData = `Issue #${i.number}: "${i.title}"\n`
+        if (i.summary) outlineData += `Summary: ${i.summary}\n`
+        if (i.themes) outlineData += `Themes: ${i.themes}\n`
+        if (i.stakes) outlineData += `Stakes: ${i.stakes}\n`
+        if (i.motifs) outlineData += `Motifs: ${i.motifs}\n`
+        outlineData += '\n'
+
+        const { data: acts } = await supabase
+          .from('acts')
+          .select('id, number, name, beat_summary')
+          .eq('issue_id', targetIssueId)
+          .order('number')
+
+        if (acts) {
+          for (const act of acts as Array<{ id: string; number: number; name?: string; beat_summary?: string }>) {
+            outlineData += `## Act ${act.number}${act.name ? `: ${act.name}` : ''}\n`
+            if (act.beat_summary) outlineData += `Beat Summary: ${act.beat_summary}\n`
+
+            const { data: scenes } = await supabase
+              .from('scenes')
+              .select('id, title, plotline_id, notes, sort_order')
+              .eq('act_id', act.id)
+              .order('sort_order')
+
+            if (scenes) {
+              for (const scene of scenes as Array<{ id: string; title?: string; plotline_id?: string; notes?: string }>) {
+                outlineData += `  - Scene: ${scene.title || 'Untitled'}\n`
+                if (scene.notes) outlineData += `    Notes: ${scene.notes}\n`
+
+                // Count pages and panels
+                const { count: pageCount } = await supabase
+                  .from('pages')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('scene_id', scene.id)
+
+                outlineData += `    Pages: ${pageCount || 0}\n`
+
+                // Get a brief summary of what happens in this scene
+                const { data: pages } = await supabase
+                  .from('pages')
+                  .select('id, page_number, sort_order')
+                  .eq('scene_id', scene.id)
+                  .order('sort_order')
+
+                if (pages) {
+                  for (const page of pages as Array<{ id: string; page_number: number }>) {
+                    const { data: panels } = await supabase
+                      .from('panels')
+                      .select('visual_description, sort_order')
+                      .eq('page_id', page.id)
+                      .order('sort_order')
+
+                    if (panels) {
+                      for (const panel of panels as Array<{ visual_description?: string; sort_order: number }>) {
+                        if (panel.visual_description) {
+                          outlineData += `    P${page.page_number}.${panel.sort_order}: ${panel.visual_description}\n`
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            outlineData += '\n'
+          }
+        }
+
+        // Cap output
+        if (outlineData.length > 80000) {
+          outlineData = outlineData.substring(0, 80000) + '\n\n[Data truncated due to length]'
+        }
+
+        return {
+          success: true,
+          result: outlineData,
+        }
+      }
+
+      case 'draft_scene_summary': {
+        const targetSceneId = input.sceneId as string
+
+        const { data: scene } = await supabase
+          .from('scenes')
+          .select('id, title, notes, sort_order')
+          .eq('id', targetSceneId)
+          .single()
+
+        if (!scene) return { success: false, result: 'Scene not found' }
+        const s = scene as { id: string; title?: string; notes?: string }
+
+        let sceneData = `Scene: ${s.title || 'Untitled'}\n`
+        if (s.notes) sceneData += `Notes: ${s.notes}\n`
+        sceneData += '\n'
+
+        const { data: pages } = await supabase
+          .from('pages')
+          .select('id, page_number, orientation, sort_order')
+          .eq('scene_id', targetSceneId)
+          .order('sort_order')
+
+        if (pages) {
+          for (const page of pages as Array<{ id: string; page_number: number; orientation: string }>) {
+            sceneData += `PAGE ${page.page_number} (${page.orientation?.toLowerCase() || 'right'})\n`
+
+            const { data: panels } = await supabase
+              .from('panels')
+              .select('id, sort_order, visual_description, camera, sfx')
+              .eq('page_id', page.id)
+              .order('sort_order')
+
+            if (panels) {
+              for (const panel of panels as Array<{ id: string; sort_order: number; visual_description?: string; camera?: string; sfx?: string }>) {
+                sceneData += `PANEL ${panel.sort_order}: ${panel.visual_description || '(No description)'}\n`
+                if (panel.camera) sceneData += `[Camera: ${panel.camera}]\n`
+
+                const { data: dialogue } = await supabase
+                  .from('dialogue_blocks')
+                  .select('speaker_name, text, dialogue_type, sort_order')
+                  .eq('panel_id', panel.id)
+                  .order('sort_order')
+
+                if (dialogue) {
+                  for (const d of dialogue as Array<{ speaker_name?: string; text: string; dialogue_type: string }>) {
+                    const speaker = d.speaker_name || 'UNKNOWN'
+                    const delivery = d.dialogue_type !== 'dialogue' ? ` (${d.dialogue_type})` : ''
+                    sceneData += `${speaker}${delivery}: ${d.text}\n`
+                  }
+                }
+
+                const { data: captions } = await supabase
+                  .from('captions')
+                  .select('text, sort_order')
+                  .eq('panel_id', panel.id)
+                  .order('sort_order')
+
+                if (captions) {
+                  for (const cap of captions as Array<{ text: string }>) {
+                    sceneData += `CAP: ${cap.text}\n`
+                  }
+                }
+
+                if (panel.sfx) sceneData += `SFX: ${panel.sfx}\n`
+                sceneData += '\n'
+              }
+            }
+          }
+        }
+
+        return {
+          success: true,
+          result: sceneData,
+          entityId: targetSceneId,
+          entityType: 'scene',
         }
       }
 

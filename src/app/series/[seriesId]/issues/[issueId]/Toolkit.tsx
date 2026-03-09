@@ -90,6 +90,11 @@ const TOOL_DISPLAY: Record<string, { icon: string; label: string; color: string 
   draft_panel_description: { icon: '🎨', label: 'Draft Panel', color: 'var(--color-success)' },
   add_dialogue: { icon: '💬', label: 'Add Dialogue', color: 'var(--color-primary)' },
   save_project_note: { icon: '📌', label: 'Save Note', color: 'var(--color-warning)' },
+  generate_power_rankings: { icon: '🏆', label: 'Power Rankings', color: 'var(--accent-hover)' },
+  track_character_state: { icon: '🎭', label: 'Track Character State', color: 'var(--color-primary)' },
+  continuity_check: { icon: '🔍', label: 'Continuity Check', color: 'var(--color-error)' },
+  extract_outline: { icon: '📋', label: 'Extract Outline', color: 'var(--color-info)' },
+  draft_scene_summary: { icon: '📄', label: 'Scene Summary', color: 'var(--color-success)' },
 }
 
 function getToolSummary(toolName: string, input: Record<string, unknown>): string {
@@ -114,6 +119,16 @@ function getToolSummary(toolName: string, input: Record<string, unknown>): strin
       return `Add dialogue for ${input.speaker_name}`
     case 'save_project_note':
       return `Save project note`
+    case 'generate_power_rankings':
+      return `Analyze and rank ${(input.issueIds as string[] || []).length} issues`
+    case 'track_character_state':
+      return `Track state: ${input.emotional_state || 'character state'}`
+    case 'continuity_check':
+      return `Run ${input.scope || 'issue'}-level continuity check`
+    case 'extract_outline':
+      return `Extract outline from script`
+    case 'draft_scene_summary':
+      return `Summarize scene content`
     default:
       return toolName.replace(/_/g, ' ')
   }
@@ -856,82 +871,33 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   return (
     <div className="p-4 h-full flex flex-col">
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-4 bg-[var(--bg-tertiary)] rounded-lg p-1 shrink-0">
-        <button
-          onClick={() => setActiveTab('context')}
-          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
-            activeTab === 'context'
-              ? 'bg-[var(--bg-tertiary)] text-white'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          Context
-        </button>
-        <button
-          onClick={() => setActiveTab('characters')}
-          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
-            activeTab === 'characters'
-              ? 'bg-[var(--bg-tertiary)] text-white'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          Chars
-        </button>
-        <button
-          onClick={() => setActiveTab('locations')}
-          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
-            activeTab === 'locations'
-              ? 'bg-[var(--bg-tertiary)] text-white'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          Locs
-        </button>
-        <button
-          onClick={() => setActiveTab('visuals')}
-          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
-            activeTab === 'visuals'
-              ? 'bg-emerald-600 text-white'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          Pics
-        </button>
-        <button
-          onClick={() => setActiveTab('alerts')}
-          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors relative ${
-            activeTab === 'alerts'
-              ? 'bg-[var(--bg-tertiary)] text-white'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          Alerts
-          {activeAlerts.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--color-warning)] text-black text-[10px] font-bold rounded-full flex items-center justify-center">
-              {activeAlerts.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('pacing')}
-          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
-            activeTab === 'pacing'
-              ? 'bg-[var(--accent-hover)] text-white'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          Pace
-        </button>
-        <button
-          onClick={() => setActiveTab('ai')}
-          className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
-            activeTab === 'ai'
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          AI
-        </button>
+      <div className="flex gap-0 mb-4 border-b border-[var(--border)] shrink-0">
+        {([
+          { key: 'context', label: 'CTX' },
+          { key: 'characters', label: 'CHAR' },
+          { key: 'locations', label: 'LOC' },
+          { key: 'visuals', label: 'VIS' },
+          { key: 'alerts', label: 'ALRT' },
+          { key: 'pacing', label: 'PACE' },
+          { key: 'ai', label: 'AI' },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`flex-1 py-2 px-1 type-micro transition-colors relative ${
+              activeTab === key
+                ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            {label}
+            {key === 'alerts' && activeAlerts.length > 0 && (
+              <span className="absolute -top-0.5 right-0 w-3.5 h-3.5 bg-[var(--color-warning)] text-black type-micro font-bold flex items-center justify-center" style={{ fontSize: '8px' }}>
+                {activeAlerts.length}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Content Area */}
@@ -941,24 +907,24 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
           <div className="space-y-4 overflow-y-auto">
             {/* Issue Stats */}
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-[var(--bg-tertiary)] rounded p-3">
-                <div className="text-2xl font-bold">{issue.acts?.length || 0}</div>
-                <div className="text-xs text-[var(--text-secondary)]">Acts</div>
+              <div className="bg-[var(--bg-tertiary)] p-3">
+                <div className="text-3xl font-black">{issue.acts?.length || 0}</div>
+                <div className="type-micro">ACTS</div>
               </div>
-              <div className="bg-[var(--bg-tertiary)] rounded p-3">
-                <div className="text-2xl font-bold">{totalPages}</div>
-                <div className="text-xs text-[var(--text-secondary)]">Pages</div>
+              <div className="bg-[var(--bg-tertiary)] p-3">
+                <div className="text-3xl font-black">{totalPages}</div>
+                <div className="type-micro">PAGES</div>
               </div>
-              <div className="bg-[var(--bg-tertiary)] rounded p-3">
-                <div className="text-2xl font-bold">{totalPanels}</div>
-                <div className="text-xs text-[var(--text-secondary)]">Panels</div>
+              <div className="bg-[var(--bg-tertiary)] p-3">
+                <div className="text-3xl font-black">{totalPanels}</div>
+                <div className="type-micro">PANELS</div>
               </div>
             </div>
 
             {/* Issue Context */}
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-sm">Issue Context</h3>
+                <h3 className="type-label">ISSUE CONTEXT</h3>
                 <button
                   onClick={() => setIsEditingContext(!isEditingContext)}
                   className="text-xs text-[var(--color-primary)] hover:opacity-80"
@@ -1149,7 +1115,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
             {/* Status */}
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-              <h3 className="font-semibold text-sm mb-3">Status</h3>
+              <h3 className="type-label mb-3">STATUS</h3>
               <select
                 value={localStatus}
                 onChange={async (e) => {
@@ -1441,7 +1407,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               /* Location List View */
               <>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Series Locations</h3>
+                  <h3 className="type-label">SERIES LOCATIONS</h3>
                 </div>
                 {localLocations.length === 0 ? (
                   <p className="text-[var(--text-muted)] text-sm text-center py-4">
@@ -1604,7 +1570,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
         {activeTab === 'alerts' && (
           <div className="space-y-3 overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm text-[var(--text-secondary)]">Continuity Alerts</h3>
+              <h3 className="type-label">CONTINUITY ALERTS</h3>
               {dismissedAlerts.size > 0 && (
                 <button
                   onClick={clearDismissed}
@@ -1731,15 +1697,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             <div className="flex-1 overflow-y-auto space-y-3 mb-3">
               {chatMessages.length === 0 && !streamingText ? (
                 <div className="text-center py-6 px-4">
-                  <div className="text-3xl mb-3 opacity-30">✍️</div>
-                  <p className="text-[var(--text-secondary)] text-sm mb-2">
-                    AI Creative Partner
+                  <p className="type-label mb-2">
+                    STRUCT_AI <span className="type-separator">//</span> PARTNER
                   </p>
-                  <p className="text-[var(--text-muted)] text-xs mb-4">
+                  <p className="type-meta mb-4">
                     Your editor knows the full project — characters, plotlines, script, and structure.
                     It can create characters, save ideas to canvas, draft panels, and more.
                   </p>
-                  <div className="text-xs text-[var(--text-muted)] space-y-1.5 text-left bg-[var(--bg-tertiary)]/50 rounded-lg p-3">
+                  <div className="type-meta space-y-1.5 text-left bg-[var(--bg-tertiary)]/50 p-3">
                     <p>&bull; &quot;What should this scene accomplish?&quot;</p>
                     <p>&bull; &quot;Help me work out the act breaks&quot;</p>
                     <p>&bull; &quot;Draft a tense establishing shot for this page&quot;</p>
@@ -1757,10 +1722,10 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                           : 'bg-[var(--bg-tertiary)] mr-2 p-3'
                       }`}
                     >
-                      <p className="text-xs text-[var(--text-muted)] mb-1">
-                        {msg.role === 'user' ? 'You' : 'AI Creative Partner'}
+                      <p className="type-micro mb-1">
+                        {msg.role === 'user' ? 'YOU' : 'SYSTEM_AI'}
                       </p>
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      <p className="type-console whitespace-pre-wrap">{msg.content}</p>
 
                       {/* Tool Proposals */}
                       {msg.toolProposals && msg.toolProposals.length > 0 && (

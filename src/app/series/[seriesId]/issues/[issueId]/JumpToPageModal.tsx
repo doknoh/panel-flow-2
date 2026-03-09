@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface Page {
   id: string
@@ -27,6 +28,7 @@ export default function JumpToPageModal({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const focusTrapRef = useFocusTrap(isOpen)
 
   // Filter pages based on search
   const filteredPages = pages.filter(page => {
@@ -89,6 +91,10 @@ export default function JumpToPageModal({
   return (
     <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-[15vh] z-50" onClick={onClose}>
       <div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Jump to page"
         className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-md mx-4 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -101,6 +107,7 @@ export default function JumpToPageModal({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Jump to page... (type page number or scene name)"
             className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
+            aria-label="Search pages by number or scene name"
           />
         </div>
 

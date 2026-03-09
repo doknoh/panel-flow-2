@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface Plotline {
   id: string
@@ -217,6 +218,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
                 }`}
                 style={{ backgroundColor: color.value }}
                 title={color.name}
+                aria-label={`Select ${color.name} color`}
               />
             ))}
           </div>
@@ -276,20 +278,13 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
       {(isCreating || editingId) && renderForm()}
 
       {plotlines.length === 0 && !isCreating ? (
-        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
-          <div className="text-5xl mb-4 opacity-30">🧵</div>
-          <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">No plotlines yet</h3>
-          <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto mb-6">
-            Plotlines help track narrative threads across your series.
-            Assign them to scenes and visualize how your story weaves together.
-          </p>
-          <button
-            onClick={startCreate}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
-          >
-            Create Your First Plotline
-          </button>
-        </div>
+        <EmptyState
+          icon="🧵"
+          title="No plotlines yet"
+          description="Plotlines help track narrative threads across your series. Assign them to scenes and visualize how your story weaves together."
+          actionLabel="Create Your First Plotline"
+          onAction={startCreate}
+        />
       ) : (
         <div className="space-y-3">
           {plotlines.map((plotline) => (

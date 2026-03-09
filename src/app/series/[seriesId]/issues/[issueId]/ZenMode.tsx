@@ -44,6 +44,14 @@ interface Character {
   name: string
 }
 
+interface SceneContext {
+  actName: string
+  sceneName: string
+  plotlineName?: string | null
+  pagePositionInScene?: number
+  totalPagesInScene?: number
+}
+
 interface ZenModeProps {
   page: {
     id: string
@@ -52,6 +60,7 @@ interface ZenModeProps {
   }
   characters: Character[]
   pagePosition: string // e.g., "Page 5 of 22"
+  sceneContext?: SceneContext | null
   onExit: () => void
   onSave: () => void
   onNavigate: (direction: 'prev' | 'next') => void
@@ -61,6 +70,7 @@ export default function ZenMode({
   page,
   characters,
   pagePosition,
+  sceneContext,
   onExit,
   onSave,
   onNavigate,
@@ -291,6 +301,19 @@ export default function ZenMode({
             Page {page.page_number} • Panel {currentPanel.panel_number}
           </span>
           <span className="text-[var(--text-secondary)]">{pagePosition}</span>
+          {sceneContext && (
+            <span className="text-[var(--text-muted)] text-xs">
+              {sceneContext.actName} / {sceneContext.sceneName}
+              {sceneContext.plotlineName && (
+                <span className="text-[var(--color-primary)] ml-1">({sceneContext.plotlineName})</span>
+              )}
+              {sceneContext.pagePositionInScene != null && sceneContext.totalPagesInScene != null && (
+                <span className="ml-1">
+                  [{sceneContext.pagePositionInScene}/{sceneContext.totalPagesInScene} in scene]
+                </span>
+              )}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-4">
           {hasChanges && (
@@ -325,6 +348,27 @@ export default function ZenMode({
               />
             ))}
           </div>
+
+          {/* Characters present in current panel */}
+          {(() => {
+            // Collect character names from dialogue blocks in this panel
+            const charIds = new Set<string>()
+            for (const d of currentPanel.dialogue_blocks) {
+              if (d.character?.id) charIds.add(d.character.id)
+              else if (d.character_id) charIds.add(d.character_id)
+            }
+            // Resolve names from the characters list
+            const presentChars = characters.filter(c => charIds.has(c.id))
+            if (presentChars.length === 0) return null
+            return (
+              <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+                <span className="uppercase tracking-wider text-[10px]">Characters:</span>
+                {presentChars.map(c => (
+                  <span key={c.id} className="text-[var(--color-primary)] font-medium">{c.name}</span>
+                ))}
+              </div>
+            )
+          })()}
 
           {/* Previous panel context (faded) */}
           {currentPanelIndex > 0 && panels[currentPanelIndex - 1] && (

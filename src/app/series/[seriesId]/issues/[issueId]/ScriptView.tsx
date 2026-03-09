@@ -1852,7 +1852,7 @@ export default function ScriptView({
 
             {/* Page navigation */}
             {scope === 'page' && (
-              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <div className="flex items-center gap-2 type-meta">
                 <button
                   onClick={() => navigateToPage('prev')}
                   className="hover:text-[var(--text-primary)] disabled:opacity-30"
@@ -1861,7 +1861,7 @@ export default function ScriptView({
                   ‹
                 </button>
                 <span>
-                  Page {getPagePositionInfo.currentPageNum} of {getPagePositionInfo.totalPages}
+                  PG {getPagePositionInfo.currentPageNum} OF {getPagePositionInfo.totalPages}
                 </span>
                 <button
                   onClick={() => navigateToPage('next')}
@@ -1870,20 +1870,20 @@ export default function ScriptView({
                 >
                   ›
                 </button>
-                <span className="text-[var(--text-disabled)] mx-1">|</span>
+                <span className="type-separator">//</span>
                 <button
                   onClick={addPage}
                   className="hover:text-[var(--color-success)] transition-colors"
                   title="Add new page"
                 >
-                  + Page
+                  [+PG]
                 </button>
                 <button
                   onClick={deletePage}
                   className="hover:text-[var(--color-error)] transition-colors"
                   title="Delete current page"
                 >
-                  − Page
+                  [-PG]
                 </button>
               </div>
             )}
@@ -1896,7 +1896,7 @@ export default function ScriptView({
         <div className="max-w-4xl mx-auto px-6 py-8">
           {blocks.length === 0 ? (
             <div className="text-center text-[var(--text-muted)] py-20">
-              <p className="text-lg">No content to display</p>
+              <p className="type-section">No content to display</p>
               <p className="text-sm mt-2">Add pages and panels in the Issue Editor first</p>
             </div>
           ) : (
@@ -2196,13 +2196,15 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Page header - non-editable
   if (block.type === 'page-header') {
     return (
-      <div className="mt-8 first:mt-0 mb-4">
-        <div className="text-[var(--text-primary)] font-bold text-lg">
-          {block.content}
+      <div className="mt-10 first:mt-0 mb-4">
+        <div className="border-b-2 border-[var(--text-primary)] pb-1 mb-1">
+          <div className="text-2xl font-black tracking-tight text-[var(--text-primary)] uppercase">
+            {block.content}
+          </div>
         </div>
         {block.actName && block.sceneName && (
-          <div className="text-[var(--text-muted)] text-xs mt-1">
-            {block.actName} › {block.sceneName}
+          <div className="type-meta mt-1">
+            {block.actName} <span className="type-separator">//</span> {block.sceneName}
           </div>
         )}
       </div>
@@ -2212,15 +2214,17 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Visual description (with panel header)
   if (block.type === 'visual') {
     return (
-      <div className="mt-4 group/panel">
-        <div className="flex items-center gap-2 text-[var(--text-secondary)] text-sm mb-1">
-          <span>PANEL {block.panelNumber}:</span>
+      <div className="mt-5 group/panel border-l-2 border-[var(--text-secondary)] pl-3">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="type-label text-[var(--text-primary)]">PNL {block.panelNumber}</span>
+          <span className="type-separator">//</span>
+          <span className="type-label">VISUAL</span>
           <button
             onClick={onDeletePanel}
             className="opacity-0 group-hover/panel:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1"
             title="Delete this panel"
           >
-            ×
+            x
           </button>
         </div>
         <div className="relative">
@@ -2233,7 +2237,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Describe what we see in this panel... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-[var(--text-primary)] font-medium resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 -ml-2 min-h-[60px] leading-relaxed overflow-hidden"
+            className="w-full bg-transparent text-[var(--text-primary)] font-medium resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 min-h-[60px] leading-relaxed overflow-hidden"
             style={{ caretColor: 'var(--text-primary)' }}
           />
           {/* Word count indicator - memoized for performance */}
@@ -2285,10 +2289,19 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
 
   // Dialogue
   if (block.type === 'dialogue') {
+    // Build attribution label from dialogue type
+    const typeLabel = block.dialogueType === 'radio' || block.dialogueType === 'voice_over' ? ' (V.O.)'
+      : block.dialogueType === 'off_panel' ? ' (O.S.)'
+      : block.dialogueType === 'whisper' ? ' [WHISPERS]'
+      : block.dialogueType === 'thought' ? ' (THINKS)'
+      : block.dialogueType === 'shout' ? ' [SHOUTS]'
+      : block.dialogueType === 'electronic' ? ' (ELECTRONIC)'
+      : ''
+
     return (
-      <div className="mt-3 ml-16 group/dialogue">
-        <div className="text-center relative">
-          <div className="inline-flex items-center gap-1">
+      <div className="mt-3 ml-8 group/dialogue border-l-2 border-[var(--color-primary)]/40 pl-3">
+        <div className="relative">
+          <div className="flex items-center gap-1.5 mb-0.5">
             <CharacterAutocomplete
               characters={characters}
               selectedId={block.characterId || null}
@@ -2300,12 +2313,15 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
               value={block.dialogueType || null}
               onChange={(newType) => onDialogueTypeChange?.(newType)}
             />
+            {typeLabel && (
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">{typeLabel}</span>
+            )}
             <button
               onClick={onDeleteDialogue}
               className="opacity-0 group-hover/dialogue:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1 ml-1"
               title="Delete this dialogue"
             >
-              ×
+              x
             </button>
           </div>
         </div>
@@ -2319,7 +2335,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Dialogue... (Cmd+B bold, Cmd+I italic)"
-            className="w-full max-w-md mx-auto block bg-transparent text-[var(--text-primary)] font-medium resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 text-center min-h-[40px] leading-relaxed overflow-hidden"
+            className="w-full bg-transparent text-[var(--text-primary)] font-medium resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 min-h-[40px] leading-relaxed overflow-hidden"
             style={{ caretColor: 'var(--text-primary)' }}
           />
           {/* Word count indicator - memoized for performance */}
@@ -2372,9 +2388,9 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Caption
   if (block.type === 'caption') {
     return (
-      <div className="mt-3 ml-4 group/caption">
+      <div className="mt-3 ml-8 group/caption border-l-2 border-[var(--color-warning)]/40 pl-3">
         <div className="flex items-center gap-1 mb-1">
-          <span className="text-[var(--color-warning)] text-xs uppercase tracking-wider">CAPTION</span>
+          <span className="text-[var(--color-warning)] text-xs uppercase tracking-wider font-mono font-bold">CAP</span>
           <TypeSelector
             type="caption"
             value={block.captionType || null}
@@ -2451,9 +2467,9 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Sound effect
   if (block.type === 'sfx') {
     return (
-      <div className="mt-2 ml-4 group/sfx">
+      <div className="mt-2 ml-8 group/sfx border-l-2 border-[var(--accent-hover)]/40 pl-3">
         <div className="flex items-center gap-2">
-          <span className="text-[var(--accent-hover)] text-xs uppercase tracking-wider">SFX:</span>
+          <span className="text-[var(--accent-hover)] text-xs uppercase tracking-wider font-mono font-bold">SFX:</span>
           <input
             ref={(el) => registerRef(el)}
             type="text"
