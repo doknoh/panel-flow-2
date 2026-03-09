@@ -2034,7 +2034,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       {contextMenu && (
         <div
           ref={contextMenuRef}
-          className="fixed z-50 bg-[var(--bg-elevated)] border border-[var(--border)] shadow-lg py-1 min-w-[160px]"
+          className="dropdown-panel fixed z-50 py-1 min-w-[160px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           {/* Rename - available for all types */}
@@ -2043,7 +2043,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               startEditing(contextMenu.id, contextMenu.title)
               closeContextMenu()
             }}
-            className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+            className="dropdown-item text-xs"
           >
             Rename
           </button>
@@ -2059,7 +2059,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                 }
                 closeContextMenu()
               }}
-              className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+              className="dropdown-item text-xs"
             >
               Duplicate
             </button>
@@ -2072,7 +2072,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                 addPageAfter(contextMenu.id)
                 closeContextMenu()
               }}
-              className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+              className="dropdown-item text-xs"
             >
               Add Page Below
             </button>
@@ -2083,7 +2083,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                 addSceneAfter(contextMenu.id)
                 closeContextMenu()
               }}
-              className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+              className="dropdown-item text-xs"
             >
               Add Scene Below
             </button>
@@ -2097,13 +2097,13 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               onMouseLeave={() => setContextSubmenu(null)}
             >
               <button
-                className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors flex items-center justify-between"
+                className="dropdown-item text-xs justify-between"
               >
                 <span>Move to Act</span>
-                <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />
+                <ChevronRight className="w-3 h-3 opacity-40" />
               </button>
               {contextSubmenu === 'move-to-act' && (
-                <div className="absolute left-full top-0 bg-[var(--bg-elevated)] border border-[var(--border)] shadow-lg py-1 min-w-[140px]">
+                <div className="dropdown-panel absolute left-full top-0 py-1 min-w-[140px]">
                   {sortedActs.map((act: any) => {
                     const sceneLocation = findSceneLocation(contextMenu.id)
                     const isCurrent = sceneLocation?.actId === act.id
@@ -2117,10 +2117,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                           closeContextMenu()
                         }}
                         disabled={isCurrent}
-                        className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                        className={`dropdown-item text-xs ${
                           isCurrent
-                            ? 'text-[var(--text-disabled)] cursor-default'
-                            : 'cursor-pointer hover:bg-[var(--bg-secondary)]'
+                            ? 'opacity-40 cursor-default'
+                            : ''
                         }`}
                       >
                         {act.name || `Act ${act.number}`}
@@ -2141,13 +2141,13 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               onMouseLeave={() => setContextSubmenu(null)}
             >
               <button
-                className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors flex items-center justify-between"
+                className="dropdown-item text-xs justify-between"
               >
                 <span>Move to Scene</span>
-                <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />
+                <ChevronRight className="w-3 h-3 opacity-40" />
               </button>
               {contextSubmenu === 'move-to-scene' && (
-                <div className="absolute left-full top-0 bg-[var(--bg-elevated)] border border-[var(--border)] shadow-lg py-1 min-w-[180px] max-h-64 overflow-y-auto">
+                <div className="dropdown-panel absolute left-full top-0 py-1 min-w-[180px] max-h-64 overflow-y-auto">
                   {sortedActs.map((act: any) => {
                     const actScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
                     return actScenes.map((scene: any) => {
@@ -2163,13 +2163,13 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                             closeContextMenu()
                           }}
                           disabled={isCurrent}
-                          className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                          className={`dropdown-item text-xs ${
                             isCurrent
-                              ? 'text-[var(--text-disabled)] cursor-default'
-                              : 'cursor-pointer hover:bg-[var(--bg-secondary)]'
+                              ? 'opacity-40 cursor-default'
+                              : ''
                           }`}
                         >
-                          <span className="text-[var(--text-muted)]">{act.name || `Act ${act.number}`} &rarr; </span>
+                          <span className="opacity-50">{act.name || `Act ${act.number}`} &rarr; </span>
                           {scene.title || 'Untitled Scene'}
                           {isCurrent && ' (current)'}
                         </button>
@@ -2182,7 +2182,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           )}
 
           {/* Separator */}
-          <div className="my-1 border-t border-[var(--border)]" />
+          <div className="dropdown-separator my-1" />
 
           {/* Delete */}
           <button
@@ -2199,7 +2199,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               }
               closeContextMenu()
             }}
-            className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] text-[var(--color-error)] transition-colors"
+            className="dropdown-item text-xs !text-red-400 hover:!text-red-300"
           >
             Delete
           </button>
