@@ -207,6 +207,8 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     if (!contextMenu) return
 
     const handleClickOutside = (e: MouseEvent) => {
+      // Ignore clicks on three-dot trigger buttons — let their onClick handle the toggle
+      if ((e.target as HTMLElement).closest?.('[data-context-trigger]')) return
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
         setContextMenu(null)
         setContextSubmenu(null)
@@ -1768,11 +1770,11 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                         )}
                         <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{actPageCount} pg</span>
                         <button
+                          data-context-trigger
                           onPointerDown={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation()
-                            if (contextMenu?.id === act.id) {
+                            if (contextMenu?.id === act.id && contextMenu?.type === 'act') {
                               closeContextMenu()
                             } else {
                               const rect = e.currentTarget.getBoundingClientRect()
@@ -1833,11 +1835,11 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                       )}
                                       <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{scenePageCount} pg</span>
                                       <button
+                                        data-context-trigger
                                         onPointerDown={(e) => e.stopPropagation()}
-                                        onMouseDown={(e) => e.stopPropagation()}
                                         onClick={(e) => {
                                           e.stopPropagation()
-                                          if (contextMenu?.id === scene.id) {
+                                          if (contextMenu?.id === scene.id && contextMenu?.type === 'scene') {
                                             closeContextMenu()
                                           } else {
                                             const rect = e.currentTarget.getBoundingClientRect()
@@ -1892,11 +1894,11 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                     {panelCount} pnl
                                                   </span>
                                                   <button
+                                                    data-context-trigger
                                                     onPointerDown={(e) => e.stopPropagation()}
-                                                    onMouseDown={(e) => e.stopPropagation()}
                                                     onClick={(e) => {
                                                       e.stopPropagation()
-                                                      if (contextMenu?.id === page.id) {
+                                                      if (contextMenu?.id === page.id && contextMenu?.type === 'page') {
                                                         closeContextMenu()
                                                       } else {
                                                         const rect = e.currentTarget.getBoundingClientRect()
