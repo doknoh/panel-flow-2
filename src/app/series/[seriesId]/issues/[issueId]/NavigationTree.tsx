@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { useUndo } from '@/contexts/UndoContext'
+import { fetchPageDeepData, fetchSceneDeepData, fetchActDeepData } from '@/lib/undoHelpers'
 import {
   DndContext,
   closestCenter,
@@ -99,6 +101,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const pageSummaryInputRef = useRef<HTMLTextAreaElement>(null)
   const { showToast } = useToast()
+  const { recordAction } = useUndo()
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
   useEffect(() => {
@@ -249,8 +252,19 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const itemType = getItemType(editingItemId)
     const id = editingItemId
 
+    // Capture old value for undo
+    let oldValue = ''
+    if (itemType === 'act') {
+      oldValue = issue.acts?.find((a: any) => a.id === id)?.name || ''
+    } else if (itemType === 'scene') {
+      oldValue = issue.acts?.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === id)?.title || ''
+    } else if (itemType === 'page') {
+      oldValue = issue.acts?.flatMap((a: any) => (a.scenes || []).flatMap((s: any) => s.pages || [])).find((p: any) => p.id === id)?.title || ''
+    }
+
     try {
       const supabase = createClient()
+      const field = itemType === 'act' ? 'name' : 'title'
 
       if (itemType === 'act') {
         const { error } = await supabase
@@ -268,6 +282,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               a.id === id ? { ...a, name: trimmedTitle } : a
             ),
           }))
+          if (oldValue !== trimmedTitle) {
+            recordAction({ type: 'rename', entityType: 'act', entityId: id, field, oldValue, newValue: trimmedTitle, description: `Rename act` })
+          }
         }
       } else if (itemType === 'scene') {
         const { error } = await supabase
@@ -288,6 +305,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               ),
             })),
           }))
+          if (oldValue !== trimmedTitle) {
+            recordAction({ type: 'rename', entityType: 'scene', entityId: id, field, oldValue, newValue: trimmedTitle, description: `Rename scene` })
+          }
         }
       } else if (itemType === 'page') {
         const { error } = await supabase
@@ -311,6 +331,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               })),
             })),
           }))
+          if (oldValue !== trimmedTitle) {
+            recordAction({ type: 'rename', entityType: 'page', entityId: id, field, oldValue, newValue: trimmedTitle, description: `Rename page` })
+          }
         }
       }
     } catch (err) {
@@ -329,6 +352,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   }
 
   const savePageSummary = async (pageId: string) => {
+    // Capture old value for undo
+    const oldSummary = issue.acts?.flatMap((a: any) => (a.scenes || []).flatMap((s: any) => s.pages || []))
+      .find((p: any) => p.id === pageId)?.page_summary || null
+
     try {
       const supabase = createClient()
       const trimmedSummary = editingPageSummary.trim() || null
@@ -352,6 +379,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             })),
           })),
         }))
+        if (oldSummary !== trimmedSummary) {
+          recordAction({ type: 'page_summary_update', pageId, oldValue: oldSummary, newValue: trimmedSummary, description: 'Update page summary' })
+        }
       }
     } catch (err) {
       showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
@@ -450,6 +480,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         next.add(newAct.id)
         return next
       })
+      recordAction({ type: 'act_add', actId: newAct.id, issueId: issue.id, data: { number: actNumber, sort_order: actNumber }, description: 'Add act' })
     }
   }
 
@@ -462,23 +493,29 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     )
     if (!confirmed) return
 
-    // Optimistic delete FIRST
+    // Deep-fetch full nested data BEFORE delete for undo
+    const supabase = createClient()
+    let deepData: any = null
+    try {
+      deepData = await fetchActDeepData(supabase, actId)
+    } catch (e) {
+      console.error('Failed to fetch act data for undo:', e)
+    }
+
+    const { error } = await supabase.from('acts').delete().eq('id', actId)
+    if (error) {
+      showToast(`Failed to delete act: ${error.message}`, 'error')
+      return
+    }
+
+    // Optimistic delete after DB success
     setIssue((prev: any) => ({
       ...prev,
       acts: prev.acts.filter((a: any) => a.id !== actId),
     }))
 
-    const supabase = createClient()
-    const { error } = await supabase.from('acts').delete().eq('id', actId)
-    if (error) {
-      // Rollback on error
-      if (act) {
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: [...prev.acts, act].sort((a: any, b: any) => a.sort_order - b.sort_order),
-        }))
-      }
-      showToast(`Failed to delete act: ${error.message}`, 'error')
+    if (deepData) {
+      recordAction({ type: 'act_delete', actId, issueId: issue.id, data: deepData, description: `Delete "${actTitle}"` })
     }
   }
 
@@ -488,19 +525,31 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     )
     if (!confirmed) return
 
-    // Find the scene for potential rollback
-    let deletedScene: any = null
+    // Find the parent act
     let parentActId: string | null = null
     for (const act of issue.acts || []) {
-      const scene = (act.scenes || []).find((s: any) => s.id === sceneId)
-      if (scene) {
-        deletedScene = scene
+      if ((act.scenes || []).find((s: any) => s.id === sceneId)) {
         parentActId = act.id
         break
       }
     }
 
-    // Optimistic delete FIRST
+    // Deep-fetch full nested data BEFORE delete for undo
+    const supabase = createClient()
+    let deepData: any = null
+    try {
+      deepData = await fetchSceneDeepData(supabase, sceneId)
+    } catch (e) {
+      console.error('Failed to fetch scene data for undo:', e)
+    }
+
+    const { error } = await supabase.from('scenes').delete().eq('id', sceneId)
+    if (error) {
+      showToast(`Failed to delete scene: ${error.message}`, 'error')
+      return
+    }
+
+    // Optimistic delete after DB success
     setIssue((prev: any) => ({
       ...prev,
       acts: prev.acts.map((a: any) => ({
@@ -509,21 +558,8 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       })),
     }))
 
-    const supabase = createClient()
-    const { error } = await supabase.from('scenes').delete().eq('id', sceneId)
-    if (error) {
-      // Rollback on error
-      if (deletedScene && parentActId) {
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) =>
-            a.id === parentActId
-              ? { ...a, scenes: [...(a.scenes || []), deletedScene].sort((x: any, y: any) => x.sort_order - y.sort_order) }
-              : a
-          ),
-        }))
-      }
-      showToast(`Failed to delete scene: ${error.message}`, 'error')
+    if (deepData && parentActId) {
+      recordAction({ type: 'scene_delete', sceneId, actId: parentActId, data: deepData, description: `Delete "${sceneTitle}"` })
     }
   }
 
@@ -531,22 +567,34 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const confirmed = window.confirm(`Delete Page ${pageNumber}?\n\nThis will permanently delete all panels on this page.`)
     if (!confirmed) return
 
-    // Find the page for potential rollback
-    let deletedPage: any = null
+    // Find parent scene
     let parentSceneId: string | null = null
     for (const act of issue.acts || []) {
       for (const scene of act.scenes || []) {
-        const page = (scene.pages || []).find((p: any) => p.id === pageId)
-        if (page) {
-          deletedPage = page
+        if ((scene.pages || []).find((p: any) => p.id === pageId)) {
           parentSceneId = scene.id
           break
         }
       }
-      if (deletedPage) break
+      if (parentSceneId) break
     }
 
-    // Optimistic delete FIRST
+    // Deep-fetch full nested data BEFORE delete for undo
+    const supabase = createClient()
+    let deepData: any = null
+    try {
+      deepData = await fetchPageDeepData(supabase, pageId)
+    } catch (e) {
+      console.error('Failed to fetch page data for undo:', e)
+    }
+
+    const { error } = await supabase.from('pages').delete().eq('id', pageId)
+    if (error) {
+      showToast(`Failed to delete page: ${error.message}`, 'error')
+      return
+    }
+
+    // Optimistic delete after DB success
     if (selectedPageId === pageId) {
       onSelectPage('')
     }
@@ -561,24 +609,8 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       })),
     }))
 
-    const supabase = createClient()
-    const { error } = await supabase.from('pages').delete().eq('id', pageId)
-    if (error) {
-      // Rollback on error
-      if (deletedPage && parentSceneId) {
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) => ({
-            ...a,
-            scenes: (a.scenes || []).map((s: any) =>
-              s.id === parentSceneId
-                ? { ...s, pages: [...(s.pages || []), deletedPage].sort((x: any, y: any) => x.sort_order - y.sort_order) }
-                : s
-            ),
-          })),
-        }))
-      }
-      showToast(`Failed to delete page: ${error.message}`, 'error')
+    if (deepData && parentSceneId) {
+      recordAction({ type: 'page_delete', pageId, sceneId: parentSceneId, data: deepData, description: `Delete Page ${pageNumber}` })
     }
   }
 
@@ -634,6 +666,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             : a
         ),
       }))
+      recordAction({ type: 'scene_add', sceneId: newScene.id, actId, data: { title: `Scene ${sceneCount + 1}`, sort_order: sceneCount + 1 }, description: 'Add scene' })
     }
   }
 
@@ -708,6 +741,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         })),
       }))
       onSelectPage(newPage.id)
+      recordAction({ type: 'page_add', pageId: newPage.id, sceneId, data: { page_number: pageNumber, sort_order: pagesInScene + 1 }, description: 'Add page' })
     }
   }
 
@@ -800,6 +834,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
 
     showToast('Page duplicated', 'success')
+    recordAction({ type: 'page_duplicate', newPageId: newPage.id, sourcePageId: pageId, sceneId, description: 'Duplicate page' })
     await onRefresh()
     onSelectPage(newPage.id)
   }
@@ -905,6 +940,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     const pageCount = sortedPages.length
     showToast(`Scene duplicated with ${pageCount} page${pageCount !== 1 ? 's' : ''}`, 'success')
+    recordAction({ type: 'scene_duplicate', newSceneId: newScene.id, sourceSceneId: sceneId, actId, description: 'Duplicate scene' })
     await onRefresh()
   }
 
@@ -943,6 +979,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
 
     showToast('Page added', 'success')
+    if (newPage) {
+      recordAction({ type: 'page_add', pageId: newPage.id, sceneId, data: { page_number: allPages.length + 1, sort_order: sourcePage.sort_order + 1 }, description: 'Add page' })
+    }
     await onRefresh()
     if (newPage) onSelectPage(newPage.id)
   }
@@ -979,6 +1018,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
 
     showToast('Scene added', 'success')
+    if (newScene) {
+      recordAction({ type: 'scene_add', sceneId: newScene.id, actId, data: { title: `Scene ${sceneCount + 1}`, sort_order: sourceScene.sort_order + 1 }, description: 'Add scene' })
+    }
     await onRefresh()
     if (newScene) {
       setExpandedScenes(new Set([...expandedScenes, newScene.id]))
@@ -992,6 +1034,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     if (!over || active.id === over.id) return
 
     const sortedActsLocal = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
+    const previousOrder = sortedActsLocal.map((a) => ({ id: a.id, sort_order: a.sort_order }))
     const oldIndex = sortedActsLocal.findIndex((a) => a.id === active.id)
     const newIndex = sortedActsLocal.findIndex((a) => a.id === over.id)
 
@@ -1026,6 +1069,8 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       await onRefresh()
       return
     }
+    const newOrder = reorderedWithSortOrder.map((a) => ({ id: a.id, sort_order: a.sort_order }))
+    recordAction({ type: 'act_reorder', issueId: issue.id, previousOrder, newOrder, description: 'Reorder acts' })
     showToast('Acts reordered', 'success')
   }
 
@@ -1035,6 +1080,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     const act = issue.acts?.find((a: any) => a.id === actId)
     const sortedScenes = [...(act?.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+    const previousOrder = sortedScenes.map((s: any) => ({ id: s.id, sort_order: s.sort_order }))
     const oldIndex = sortedScenes.findIndex((s: any) => s.id === active.id)
     const newIndex = sortedScenes.findIndex((s: any) => s.id === over.id)
 
@@ -1071,6 +1117,8 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       await onRefresh()
       return
     }
+    const newOrder = reorderedWithSortOrder.map((s: any) => ({ id: s.id, sort_order: s.sort_order }))
+    recordAction({ type: 'scene_reorder', actId, previousOrder, newOrder, description: 'Reorder scenes' })
     showToast('Scenes reordered', 'success')
   }
 
@@ -1083,6 +1131,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     const scene = issue.acts?.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === sceneId)
     const sortedPages = [...(scene?.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+    const previousOrder = sortedPages.map((p: any) => ({ id: p.id, sort_order: p.sort_order }))
     const oldIndex = sortedPages.findIndex((p: any) => p.id === active.id)
     const newIndex = sortedPages.findIndex((p: any) => p.id === over.id)
 
@@ -1124,7 +1173,6 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     if (errors.length > 0) {
       showToast(`Failed to update ${errors.length} page(s): ${errors[0].error?.message}`, 'error')
-      // Revert optimistic update on error by refreshing
       await onRefresh()
       return
     }
@@ -1135,11 +1183,32 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       return
     }
 
+    const newOrder = reorderedWithSortOrder.map((p: any) => ({ id: p.id, sort_order: p.sort_order }))
+    recordAction({ type: 'page_reorder', sceneId, previousOrder, newOrder, description: 'Reorder pages' })
     showToast(`Reordered ${successCount} pages`, 'success')
   }
 
   const movePageToScene = async (pageId: string, targetSceneId: string, insertBeforePageId?: string) => {
     const supabase = createClient()
+
+    // Get source scene info for undo
+    let fromSceneId: string | null = null
+    let fromSortOrder = 0
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        const page = (scene.pages || []).find((p: any) => p.id === pageId)
+        if (page) {
+          fromSceneId = scene.id
+          fromSortOrder = page.sort_order
+          break
+        }
+      }
+      if (fromSceneId) break
+    }
+    const fromScenePreviousOrders = fromSceneId
+      ? (issue.acts?.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === fromSceneId)?.pages || [])
+          .map((p: any) => ({ id: p.id, sort_order: p.sort_order }))
+      : []
 
     // Get target scene to calculate new sort_order
     const targetScene = issue.acts?.flatMap((a: any) => a.scenes || [])
@@ -1150,6 +1219,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       return
     }
 
+    const toScenePreviousOrders = (targetScene.pages || []).map((p: any) => ({ id: p.id, sort_order: p.sort_order }))
     const existingPages = [...(targetScene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
     // Calculate insertion index: before the target page, or at end
@@ -1246,6 +1316,21 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
     showToast('Page moved successfully', 'success')
 
+    // Record undo action for page move
+    if (fromSceneId) {
+      recordAction({
+        type: 'page_move',
+        pageId,
+        fromSceneId,
+        toSceneId: targetSceneId,
+        fromSortOrder,
+        toSortOrder: insertIndex + 1,
+        fromScenePreviousOrders,
+        toScenePreviousOrders,
+        description: 'Move page',
+      })
+    }
+
     // Refresh to ensure state is fully synced after move
     await onRefresh()
   }
@@ -1262,6 +1347,13 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     // If same act, do nothing
     if (sourceLocation.actId === targetActId) return
 
+    // Capture source scene's sort_order for undo
+    const fromActId = sourceLocation.actId
+    const sourceAct = (issue.acts || []).find((a: any) => a.id === fromActId)
+    const sourceScene = (sourceAct?.scenes || []).find((s: any) => s.id === sceneId)
+    const fromSortOrder = sourceScene?.sort_order ?? 0
+    const fromActPreviousOrders = (sourceAct?.scenes || []).map((s: any) => ({ id: s.id, sort_order: s.sort_order }))
+
     // Get target act to calculate insertion position
     const targetAct = (issue.acts || []).find((a: any) => a.id === targetActId)
     if (!targetAct) {
@@ -1269,6 +1361,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       return
     }
 
+    const toActPreviousOrders = (targetAct.scenes || []).map((s: any) => ({ id: s.id, sort_order: s.sort_order }))
     const existingScenes = [...(targetAct.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
     // Calculate insertion index: before the target scene, or at end
@@ -1340,6 +1433,19 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     // Expand the target act
     setExpandedActs(new Set([...expandedActs, targetActId]))
     showToast('Scene moved successfully', 'success')
+
+    // Record undo action for scene move
+    recordAction({
+      type: 'scene_move',
+      sceneId,
+      fromActId,
+      toActId: targetActId,
+      fromSortOrder,
+      toSortOrder: insertIndex + 1,
+      fromActPreviousOrders,
+      toActPreviousOrders,
+      description: 'Move scene',
+    })
 
     // Refresh to ensure state is fully synced after move
     await onRefresh()
