@@ -591,9 +591,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const supabase = createClient()
     const { data: newPage, error } = await supabase.from('pages').insert({
       scene_id: sceneId,
-      page_number: pageNumber,
       sort_order: pagesInScene + 1,
-      // No title - will display as just "(position)"
     }).select().single()
 
     if (error) {

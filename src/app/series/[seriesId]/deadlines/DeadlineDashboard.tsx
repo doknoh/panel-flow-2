@@ -38,7 +38,6 @@ interface Issue {
   status: string
   deadline: string | null
   target_page_count: number | null
-  production_status: string | null
   acts: Array<{
     id: string
     scenes: Array<{

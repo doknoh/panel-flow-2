@@ -24,7 +24,6 @@ export default async function DeadlinesPage({ params }: { params: Promise<{ seri
         status,
         deadline,
         target_page_count,
-        production_status,
         acts (
           id,
           scenes (

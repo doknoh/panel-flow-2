@@ -678,12 +678,12 @@ export async function executeToolCall(
                   scriptText += `PAGE ${page.page_number} (${page.orientation?.toLowerCase() || 'right'})\n`
                   const { data: panels } = await supabase
                     .from('panels')
-                    .select('id, sort_order, visual_description, sfx')
+                    .select('id, sort_order, visual_description, sound_effects(text, sort_order)')
                     .eq('page_id', page.id)
                     .order('sort_order')
 
                   if (!panels) continue
-                  for (const panel of panels as Array<{ id: string; sort_order: number; visual_description?: string; sfx?: string }>) {
+                  for (const panel of panels as Array<{ id: string; sort_order: number; visual_description?: string; sound_effects?: Array<{ text: string }> }>) {
                     scriptText += `PANEL ${panel.sort_order}: ${panel.visual_description || '(No description)'}\n`
                     const { data: dialogue } = await supabase
                       .from('dialogue_blocks')
@@ -707,7 +707,11 @@ export async function executeToolCall(
                         scriptText += `CAP: ${cap.text}\n`
                       }
                     }
-                    if (panel.sfx) scriptText += `SFX: ${panel.sfx}\n`
+                    if (panel.sound_effects) {
+                      for (const sfx of (panel.sound_effects as Array<{ text: string }>)) {
+                        scriptText += `SFX: ${sfx.text}\n`
+                      }
+                    }
                     scriptText += '\n'
                   }
                 }
@@ -1013,12 +1017,12 @@ export async function executeToolCall(
 
             const { data: panels } = await supabase
               .from('panels')
-              .select('id, sort_order, visual_description, camera, sfx')
+              .select('id, sort_order, visual_description, camera, sound_effects(text, sort_order)')
               .eq('page_id', page.id)
               .order('sort_order')
 
             if (panels) {
-              for (const panel of panels as Array<{ id: string; sort_order: number; visual_description?: string; camera?: string; sfx?: string }>) {
+              for (const panel of panels as Array<{ id: string; sort_order: number; visual_description?: string; camera?: string; sound_effects?: Array<{ text: string }> }>) {
                 sceneData += `PANEL ${panel.sort_order}: ${panel.visual_description || '(No description)'}\n`
                 if (panel.camera) sceneData += `[Camera: ${panel.camera}]\n`
 
@@ -1048,7 +1052,11 @@ export async function executeToolCall(
                   }
                 }
 
-                if (panel.sfx) sceneData += `SFX: ${panel.sfx}\n`
+                if (panel.sound_effects) {
+                  for (const sfx of (panel.sound_effects as Array<{ text: string }>)) {
+                    sceneData += `SFX: ${sfx.text}\n`
+                  }
+                }
                 sceneData += '\n'
               }
             }

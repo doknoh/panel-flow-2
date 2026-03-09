@@ -853,7 +853,6 @@ ${pageContent}`,
           .from('pages')
           .insert({
             scene_id: sceneId,
-            page_number: parsedPage.number,
             sort_order: i + 1,
           })
           .select()
@@ -867,7 +866,6 @@ ${pageContent}`,
             .from('panels')
             .insert({
               page_id: page.id,
-              panel_number: parsedPanel.number,
               sort_order: parsedPanel.number,
               visual_description: parsedPanel.visualDescription,
             })

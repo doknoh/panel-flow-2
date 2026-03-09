@@ -619,7 +619,6 @@ function IssueEditorContent({
     const supabase = createClient()
     const { data: newPage, error } = await supabase.from('pages').insert({
       scene_id: sceneId,
-      page_number: pageNumber,
       sort_order: pagesInScene + 1,
       title: `Page ${pageNumber}`,
     }).select().single()

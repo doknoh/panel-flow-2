@@ -936,7 +936,6 @@ export default function ScriptView({
       .from('panels')
       .insert({
         page_id: pageId,
-        panel_number: panelNumber,
         sort_order: sortOrder,
         visual_description: '',
       })
@@ -963,7 +962,6 @@ export default function ScriptView({
       panelId: data.id,
       pageId,
       data: {
-        panel_number: panelNumber,
         sort_order: sortOrder,
         visual_description: '',
       },
@@ -1204,7 +1202,6 @@ export default function ScriptView({
     const fullPanelData = {
       id: panelId,
       page_id: visualBlock.pageId,
-      panel_number: visualBlock.panelNumber,
       visual_description: visualBlock.content,
       sort_order: visualBlock.sortOrder,
       dialogue_blocks: dialogueBlocks,
@@ -1287,7 +1284,6 @@ export default function ScriptView({
       .from('pages')
       .insert({
         scene_id: sceneId,
-        page_number: newPageNumber,
         sort_order: newSortOrder,
       })
       .select()
@@ -1303,7 +1299,6 @@ export default function ScriptView({
       .from('panels')
       .insert({
         page_id: newPage.id,
-        panel_number: 1,
         sort_order: 1,
         visual_description: '',
       })
@@ -1323,7 +1318,6 @@ export default function ScriptView({
       pageId: newPage.id,
       sceneId,
       data: {
-        page_number: newPageNumber,
         sort_order: newSortOrder,
         panelId: newPanel?.id,
       },

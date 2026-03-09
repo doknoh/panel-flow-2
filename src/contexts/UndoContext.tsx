@@ -122,8 +122,8 @@ interface PanelDeleteAction extends BaseAction {
 interface PanelReorderAction extends BaseAction {
   type: 'panel_reorder'
   pageId: string
-  previousOrder: { id: string; panel_number: number }[]
-  newOrder: { id: string; panel_number: number }[]
+  previousOrder: { id: string; sort_order: number }[]
+  newOrder: { id: string; sort_order: number }[]
 }
 
 export type UndoAction =
@@ -561,8 +561,8 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
         const reorderAction = action as PanelReorderAction
         if (reorderAction.previousOrder) {
           await Promise.all(
-            reorderAction.previousOrder.map(({ id, panel_number }) =>
-              supabase.from('panels').update({ sort_order: panel_number, panel_number }).eq('id', id)
+            reorderAction.previousOrder.map(({ id, sort_order }) =>
+              supabase.from('panels').update({ sort_order }).eq('id', id)
             )
           )
         }

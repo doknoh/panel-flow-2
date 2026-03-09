@@ -128,7 +128,7 @@ export default function BlueprintEditor({ issue, characters, selectedPageId }: B
                     {(panel.dialogue_blocks || [])
                       .sort((a: any, b: any) => (a.sort_order || a.order || 0) - (b.sort_order || b.order || 0))
                       .map((dlg: any) => {
-                        const speakerName = getCharacterDisplayName(dlg.character_id || dlg.speaker_id, characters, dlg)
+                        const speakerName = getCharacterDisplayName(dlg.character_id, characters, dlg)
                         const deliveryTag = getDeliveryTag(dlg)
                         const balloonSuffix = dlg.balloon_number && dlg.balloon_number > 1 ? ` ${dlg.balloon_number}` : ''
 
@@ -169,12 +169,7 @@ export default function BlueprintEditor({ issue, characters, selectedPageId }: B
                       </div>
                     ))}
 
-                    {/* Inline SFX field */}
-                    {panel.sfx && (
-                      <div className="bp-script-element bp-sfx">
-                        {panel.sfx}
-                      </div>
-                    )}
+                    {/* Inline SFX handled by sound_effects above */}
                   </div>
                 )
               })}

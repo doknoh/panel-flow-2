@@ -34,7 +34,6 @@ export default function BlueprintReference({
             }
             for (const dlg of panel.dialogue_blocks || []) {
               if (dlg.character_id) charIds.add(dlg.character_id)
-              if (dlg.speaker_id) charIds.add(dlg.speaker_id)
             }
           }
           if (charIds.size > 0) {

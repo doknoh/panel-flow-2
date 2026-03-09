@@ -61,6 +61,7 @@ interface SoundEffect {
 interface Panel {
   id: string
   panel_number: number
+  sort_order: number
   visual_description: string | null
   shot_type: string | null
   notes: string | null
@@ -371,6 +372,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     const optimisticPanel: Panel = {
       id: tempId,
       panel_number: panelNumber,
+      sort_order: panelNumber,
       visual_description: '',
       shot_type: null,
       notes: null,
@@ -387,7 +389,6 @@ export default function PageEditor({ page, pageContext, characters, locations, s
       .from('panels')
       .insert({
         page_id: page.id,
-        panel_number: panelNumber,
         sort_order: panelNumber,
         visual_description: '',
       })
@@ -1026,11 +1027,10 @@ export default function PageEditor({ page, pageContext, characters, locations, s
         panelId,
         pageId: page.id,
         data: {
-          panel_number: panel.panel_number,
           visual_description: panel.visual_description,
           shot_type: panel.shot_type,
           notes: panel.notes,
-          sort_order: panel.panel_number,
+          sort_order: panel.sort_order,
         },
         description: 'Delete panel',
       })
@@ -1050,13 +1050,13 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     if (oldIndex === -1 || newIndex === -1) return
 
     // Save previous order for undo
-    const previousOrder = panels.map(p => ({ id: p.id, panel_number: p.panel_number }))
+    const previousOrder = panels.map((p, i) => ({ id: p.id, sort_order: i + 1 }))
 
-    const reordered = arrayMove(panels, oldIndex, newIndex).map((p, i) => ({ ...p, panel_number: i + 1 }))
+    const reordered = arrayMove(panels, oldIndex, newIndex).map((p, i) => ({ ...p, sort_order: i + 1 }))
     setPanels(reordered)
 
     // Record undo action before persisting
-    const newOrder = reordered.map(p => ({ id: p.id, panel_number: p.panel_number }))
+    const newOrder = reordered.map(p => ({ id: p.id, sort_order: p.sort_order }))
     recordAction({
       type: 'panel_reorder',
       pageId: page.id,
@@ -1070,7 +1070,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     const supabase = createClient()
     try {
       await Promise.all(reordered.map((p, i) =>
-        supabase.from('panels').update({ sort_order: i + 1, panel_number: i + 1 }).eq('id', p.id)
+        supabase.from('panels').update({ sort_order: i + 1 }).eq('id', p.id)
       ))
       setSaveStatus('saved')
       onUpdate()

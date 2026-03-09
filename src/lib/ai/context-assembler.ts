@@ -513,7 +513,7 @@ async function assembleScriptText(
         const { data: panels } = await withTimeout(
           supabase
             .from('panels')
-            .select('id, order, visual_description, camera, sfx')
+            .select('id, order, visual_description, camera, sound_effects(text, sort_order)')
             .eq('page_id', page.id)
             .order('order'),
           DB_TIMEOUT,
@@ -522,7 +522,7 @@ async function assembleScriptText(
         if (!panels) continue
 
         for (const panel of panels as Array<{
-          id: string; order: number; visual_description?: string; camera?: string; sfx?: string
+          id: string; order: number; visual_description?: string; camera?: string; sound_effects?: Array<{ text: string; sort_order: number }>
         }>) {
           scriptText += `PANEL ${panel.order}: ${panel.visual_description || '(No description)'}\n`
           if (panel.camera) scriptText += `[Camera: ${panel.camera}]\n`
@@ -531,7 +531,7 @@ async function assembleScriptText(
           const { data: dialogue } = await withTimeout(
             supabase
               .from('dialogue_blocks')
-              .select('speaker_name, speaker_id, text, delivery_type, delivery_instruction, balloon_number, order')
+              .select('speaker_name, character_id, text, delivery_type, delivery_instruction, balloon_number, order')
               .eq('panel_id', panel.id)
               .order('order'),
             DB_TIMEOUT,
@@ -539,7 +539,7 @@ async function assembleScriptText(
 
           if (dialogue) {
             for (const d of dialogue as Array<{
-              speaker_name?: string; speaker_id?: string; text: string;
+              speaker_name?: string; character_id?: string; text: string;
               delivery_type: string; delivery_instruction?: string;
               balloon_number: number; order: number
             }>) {
@@ -568,7 +568,11 @@ async function assembleScriptText(
             }
           }
 
-          if (panel.sfx) scriptText += `SFX: ${panel.sfx}\n`
+          if (panel.sound_effects) {
+            for (const sfx of (panel.sound_effects as Array<{ text: string; sort_order: number }>)) {
+              scriptText += `SFX: ${sfx.text}\n`
+            }
+          }
           scriptText += '\n'
         }
       }
