@@ -133,11 +133,11 @@ export default function SessionDebrief({
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[12vh] z-50"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[12vh] z-50 modal-backdrop"
       onClick={onClose}
     >
       <div
-        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-xl mx-4 shadow-2xl overflow-hidden"
+        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-xl mx-4 shadow-2xl overflow-hidden modal-dialog"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

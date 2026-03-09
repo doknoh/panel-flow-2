@@ -136,7 +136,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         />
 
         {/* Quick Stats — Swiss big numbers */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 stagger-children">
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-lg">
             <div className="text-4xl font-black tabular-nums tracking-tighter leading-none">{issues?.length || 0}</div>
             <div className="type-micro text-[var(--text-muted)] mt-1">ISSUES</div>
@@ -167,7 +167,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         {/* Series Tools */}
         <div className="mb-8">
           <h2 className="type-section text-base mb-4">TOOLS</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 stagger-children">
             <Link
               href={`/series/${seriesId}/canvas`}
               className="bg-[var(--bg-secondary)] border border-[var(--color-warning)]/30 p-4 hover:border-[var(--color-warning)]/50 transition-colors group"
@@ -246,7 +246,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         {/* World Building */}
         <div>
           <h2 className="type-section text-base mb-4">WORLD BUILDING</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
             <Link
               href={`/series/${seriesId}/characters`}
               className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"

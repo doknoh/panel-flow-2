@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useRef, useEffect, useState } from 'react'
 import { useUndo } from '@/contexts/UndoContext'
 
 interface StatusBarProps {
@@ -21,6 +21,18 @@ function countCharacters(text: string | null | undefined): number {
 
 export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusBarProps) {
   const { canUndo, canRedo, undo, redo, undoStack, redoStack } = useUndo()
+  const prevSaveStatusRef = useRef(saveStatus)
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false)
+
+  // Detect saving → saved transition for micro-animation
+  useEffect(() => {
+    if (prevSaveStatusRef.current === 'saving' && saveStatus === 'saved') {
+      setShowSaveConfirm(true)
+      const timer = setTimeout(() => setShowSaveConfirm(false), 400)
+      return () => clearTimeout(timer)
+    }
+    prevSaveStatusRef.current = saveStatus
+  }, [saveStatus])
   const stats = useMemo(() => {
     let issueWords = 0
     let issueCharacters = 0
@@ -175,30 +187,25 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
           role="status"
           aria-live="polite"
           aria-label={`Save status: ${saveStatus === 'saved' ? 'All changes saved' : saveStatus === 'saving' ? 'Saving changes' : 'Unsaved changes'}`}
-          className={`flex items-center gap-1.5 ${
+          className={`flex items-center gap-1.5 transition-colors duration-200 ${
             saveStatus === 'saved' ? 'text-[var(--color-success)]' :
             saveStatus === 'saving' ? 'text-[var(--color-warning)]' :
             'text-[var(--color-error)]'
           }`}
         >
-          {saveStatus === 'saved' && (
-            <>
-              <span className="inline-block w-[3px] h-[3px] bg-[var(--color-success)]" aria-hidden="true" />
-              SYNC: SAVED
-            </>
-          )}
-          {saveStatus === 'saving' && (
-            <>
-              <span className="inline-block w-[3px] h-[3px] bg-[var(--color-warning)] animate-pulse" aria-hidden="true" />
-              SYNC: ACTIVE
-            </>
-          )}
-          {saveStatus === 'unsaved' && (
-            <>
-              <span className="inline-block w-[3px] h-[3px] bg-[var(--color-error)]" aria-hidden="true" />
-              SYNC: PENDING
-            </>
-          )}
+          <span
+            className={`inline-block w-[3px] h-[3px] transition-colors duration-200 ${
+              showSaveConfirm ? 'animate-save-confirm' : ''
+            } ${
+              saveStatus === 'saved' ? 'bg-[var(--color-success)]' :
+              saveStatus === 'saving' ? 'bg-[var(--color-warning)] animate-pulse' :
+              'bg-[var(--color-error)]'
+            }`}
+            aria-hidden="true"
+          />
+          {saveStatus === 'saved' ? 'SYNC: SAVED' :
+           saveStatus === 'saving' ? 'SYNC: ACTIVE' :
+           'SYNC: PENDING'}
         </span>
       </div>
     </div>

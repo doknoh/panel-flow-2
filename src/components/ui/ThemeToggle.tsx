@@ -20,7 +20,8 @@ export default function ThemeToggle({ className = '', showLabel = false }: Theme
       {resolvedTheme === 'dark' ? (
         // Sun icon for switching to light
         <svg
-          className="w-5 h-5 text-[var(--text-secondary)]"
+          key="sun"
+          className="w-5 h-5 text-[var(--text-secondary)] animate-scale-in"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -35,7 +36,8 @@ export default function ThemeToggle({ className = '', showLabel = false }: Theme
       ) : (
         // Moon icon for switching to dark
         <svg
-          className="w-5 h-5 text-[var(--text-secondary)]"
+          key="moon"
+          className="w-5 h-5 text-[var(--text-secondary)] animate-scale-in"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

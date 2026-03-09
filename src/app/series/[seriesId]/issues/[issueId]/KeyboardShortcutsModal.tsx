@@ -56,13 +56,13 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 modal-backdrop" onClick={onClose}>
       <div
         ref={focusTrapRef}
         role="dialog"
         aria-modal="true"
         aria-label="Keyboard Shortcuts"
-        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-lg mx-4 shadow-2xl"
+        className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-lg mx-4 shadow-2xl modal-dialog"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">

@@ -133,7 +133,7 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
   }
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out group relative">
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--text-primary)_10%,transparent)] hover:-translate-y-0.5 transition-all duration-200 group relative">
       <Link
         href={`/series/${seriesId}/issues/${issue.id}`}
         className="absolute inset-0 rounded-lg"

@@ -24,12 +24,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   }
 
-  // Apply theme to document
-  const applyTheme = (resolvedTheme: 'light' | 'dark') => {
+  // Apply theme immediately (no transition — for initial load)
+  const applyThemeImmediate = (resolved: 'light' | 'dark') => {
     const root = document.documentElement
     root.classList.remove('light', 'dark')
-    root.classList.add(resolvedTheme)
-    root.setAttribute('data-theme', resolvedTheme)
+    root.classList.add(resolved)
+    root.setAttribute('data-theme', resolved)
+  }
+
+  // Apply theme with crossfade transition (for user toggle)
+  const applyThemeAnimated = (resolved: 'light' | 'dark') => {
+    const root = document.documentElement
+    root.setAttribute('data-theme-transitioning', '')
+    root.classList.remove('light', 'dark')
+    root.classList.add(resolved)
+    root.setAttribute('data-theme', resolved)
+    setTimeout(() => {
+      root.removeAttribute('data-theme-transitioning')
+    }, 350)
   }
 
   // Initialize theme from localStorage
@@ -40,7 +52,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const resolved = initialTheme === 'system' ? getSystemTheme() : initialTheme
     setResolvedTheme(resolved)
-    applyTheme(resolved)
+    applyThemeImmediate(resolved)
 
     setMounted(true)
   }, [])
@@ -55,7 +67,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (theme === 'system') {
         const newResolved = getSystemTheme()
         setResolvedTheme(newResolved)
-        applyTheme(newResolved)
+        applyThemeAnimated(newResolved)
       }
     }
 
@@ -69,7 +81,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const resolved = newTheme === 'system' ? getSystemTheme() : newTheme
     setResolvedTheme(resolved)
-    applyTheme(resolved)
+    applyThemeAnimated(resolved)
   }
 
   const toggleTheme = () => {

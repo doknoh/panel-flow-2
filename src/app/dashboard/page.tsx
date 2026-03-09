@@ -85,7 +85,7 @@ export default async function DashboardPage() {
               <Link
                 key={series.id}
                 href={`/series/${series.id}`}
-                className="block bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
+                className="block bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 hover:border-[var(--border-strong)] hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--text-primary)_10%,transparent)] hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-xl font-extrabold tracking-tighter">{series.title}</h3>
