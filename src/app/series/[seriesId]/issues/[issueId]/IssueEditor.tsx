@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import NavigationTree from './NavigationTree'
@@ -57,8 +57,29 @@ interface Issue {
   acts: any[]
 }
 
+// Recompute page_number for all pages based on their structural position
+function stampPageNumbers<T extends { acts?: any[] }>(issueData: T): T {
+  let pagePosition = 1
+  return {
+    ...issueData,
+    acts: (issueData.acts || []).map((act: any) => ({
+      ...act,
+      scenes: (act.scenes || []).map((scene: any) => ({
+        ...scene,
+        pages: (scene.pages || []).map((page: any) => {
+          const stamped = { ...page, page_number: pagePosition }
+          pagePosition++
+          return stamped
+        })
+      }))
+    }))
+  }
+}
+
 export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: Issue; seriesId: string }) {
-  const [issue, setIssue] = useState(initialIssue)
+  const [issueRaw, setIssue] = useState(initialIssue)
+  // Derive issue with correct page_number values computed from structural position
+  const issue = useMemo(() => stampPageNumbers(issueRaw), [issueRaw])
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
@@ -81,7 +102,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
           const page = scene.pages[pageIndex]
           return {
             page,
-            act: { id: act.id, name: act.name, sort_order: act.sort_order },
+            act: { id: act.id, name: act.name, number: act.number, sort_order: act.sort_order },
             scene: {
               id: scene.id,
               name: scene.title || scene.name,

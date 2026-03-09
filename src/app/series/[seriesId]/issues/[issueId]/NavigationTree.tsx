@@ -79,6 +79,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   const [isMounted, setIsMounted] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingItemTitle, setEditingItemTitle] = useState('')
+  const [editingPageSummaryId, setEditingPageSummaryId] = useState<string | null>(null)
+  const [editingPageSummary, setEditingPageSummary] = useState('')
+  const [summarizingPageIds, setSummarizingPageIds] = useState<Set<string>>(new Set())
   const [activeDragItem, setActiveDragItem] = useState<{
     id: string
     type: 'act' | 'scene' | 'page'
@@ -91,6 +94,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   const [contextSubmenu, setContextSubmenu] = useState<'move-to-act' | 'move-to-scene' | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
+  const pageSummaryInputRef = useRef<HTMLTextAreaElement>(null)
   const { showToast } = useToast()
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
@@ -303,6 +307,74 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
     setEditingItemId(null)
+  }
+
+  // --- Page summary editing (separate from title editing) ---
+
+  const startEditingPageSummary = (pageId: string, currentSummary: string) => {
+    setEditingPageSummaryId(pageId)
+    setEditingPageSummary(currentSummary || '')
+    setTimeout(() => pageSummaryInputRef.current?.focus(), 0)
+  }
+
+  const savePageSummary = async (pageId: string) => {
+    try {
+      const supabase = createClient()
+      const trimmedSummary = editingPageSummary.trim() || null
+      const { error } = await supabase
+        .from('pages')
+        .update({ page_summary: trimmedSummary })
+        .eq('id', pageId)
+
+      if (error) {
+        showToast(`Failed to save summary: ${error.message}`, 'error')
+      } else {
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) => ({
+            ...a,
+            scenes: (a.scenes || []).map((s: any) => ({
+              ...s,
+              pages: (s.pages || []).map((p: any) =>
+                p.id === pageId ? { ...p, page_summary: trimmedSummary } : p
+              ),
+            })),
+          })),
+        }))
+      }
+    } catch (err) {
+      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
+    }
+    setEditingPageSummaryId(null)
+  }
+
+  const generatePageSummary = async (pageId: string) => {
+    setSummarizingPageIds(prev => new Set(prev).add(pageId))
+    try {
+      const res = await fetch(`/api/pages/${pageId}/summarize`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok && data.summary) {
+        setIssue((prev: any) => ({
+          ...prev,
+          acts: prev.acts.map((a: any) => ({
+            ...a,
+            scenes: (a.scenes || []).map((s: any) => ({
+              ...s,
+              pages: (s.pages || []).map((p: any) =>
+                p.id === pageId ? { ...p, page_summary: data.summary } : p
+              ),
+            })),
+          })),
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to generate page summary:', err)
+    }
+    setSummarizingPageIds(prev => {
+      const next = new Set(prev)
+      next.delete(pageId)
+      return next
+    })
   }
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
@@ -1321,6 +1393,58 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                     {panelCount} pnl
                                                   </span>
                                                 </div>
+                                                {/* Page Summary */}
+                                                {editingPageSummaryId === page.id ? (
+                                                  <div className="ml-10 mt-0.5 mb-1">
+                                                    <textarea
+                                                      ref={pageSummaryInputRef}
+                                                      value={editingPageSummary}
+                                                      onChange={(e) => setEditingPageSummary(e.target.value)}
+                                                      onBlur={() => savePageSummary(page.id)}
+                                                      onKeyDown={(e) => {
+                                                        e.stopPropagation()
+                                                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); savePageSummary(page.id) }
+                                                        if (e.key === 'Escape') setEditingPageSummaryId(null)
+                                                      }}
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-xs focus:border-[var(--color-primary)] focus:outline-none resize-none"
+                                                      rows={1}
+                                                      placeholder="Page summary..."
+                                                    />
+                                                  </div>
+                                                ) : page.page_summary ? (
+                                                  <div
+                                                    className="ml-10 mt-0.5 mb-1 cursor-pointer group/pagesummary"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      startEditingPageSummary(page.id, page.page_summary)
+                                                    }}
+                                                  >
+                                                    <p className={`text-xs italic line-clamp-1 ${
+                                                      summarizingPageIds.has(page.id)
+                                                        ? 'text-[var(--color-primary)] animate-pulse'
+                                                        : 'text-[var(--text-muted)] group-hover/pagesummary:text-[var(--text-secondary)]'
+                                                    }`}>
+                                                      {page.page_summary}
+                                                    </p>
+                                                  </div>
+                                                ) : (page.panels || []).length > 0 ? (
+                                                  <div
+                                                    className="ml-10 mt-0.5 mb-1 cursor-pointer"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      generatePageSummary(page.id)
+                                                    }}
+                                                  >
+                                                    <p className={`text-xs italic ${
+                                                      summarizingPageIds.has(page.id)
+                                                        ? 'text-[var(--color-primary)] animate-pulse'
+                                                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                                                    }`}>
+                                                      {summarizingPageIds.has(page.id) ? '✦ Summarizing...' : '✦ Summarize'}
+                                                    </p>
+                                                  </div>
+                                                ) : null}
                                               </SortableItem>
                                             )
                                           })}
