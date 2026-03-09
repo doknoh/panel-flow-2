@@ -711,6 +711,280 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
   }
 
+  // --- Duplicate handlers ---
+
+  const duplicatePage = async (pageId: string) => {
+    const supabase = createClient()
+    const location = findPageLocation(pageId)
+    if (!location) { showToast('Page not found', 'error'); return }
+    const { sceneId } = location
+
+    // Fetch full page data with panels, dialogue, captions from DB
+    const { data: sourcePage, error: fetchError } = await supabase
+      .from('pages')
+      .select('*, panels(*, dialogue_blocks(*), captions(*))')
+      .eq('id', pageId)
+      .single()
+
+    if (fetchError || !sourcePage) {
+      showToast(`Failed to fetch page: ${fetchError?.message}`, 'error')
+      return
+    }
+
+    // Bump sort_order for all subsequent pages in this scene
+    const scene = issue.acts?.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === sceneId)
+    const pagesAfter = (scene?.pages || []).filter((p: any) => p.sort_order > sourcePage.sort_order)
+    if (pagesAfter.length > 0) {
+      await Promise.all(pagesAfter.map((p: any) =>
+        supabase.from('pages').update({ sort_order: p.sort_order + 1 }).eq('id', p.id)
+      ))
+    }
+
+    // Insert the new page
+    const { data: newPage, error: pageError } = await supabase.from('pages').insert({
+      scene_id: sceneId,
+      page_number: sourcePage.page_number,
+      sort_order: sourcePage.sort_order + 1,
+      title: sourcePage.title ? `${sourcePage.title} (copy)` : null,
+      page_type: sourcePage.page_type,
+      template: sourcePage.template,
+      notes_to_artist: sourcePage.notes_to_artist,
+      page_summary: sourcePage.page_summary,
+    }).select().single()
+
+    if (pageError || !newPage) {
+      showToast(`Failed to duplicate page: ${pageError?.message}`, 'error')
+      await onRefresh()
+      return
+    }
+
+    // Deep copy panels with their dialogue blocks and captions
+    for (const panel of (sourcePage.panels || []).sort((a: any, b: any) => a.order - b.order)) {
+      const { data: newPanel } = await supabase.from('panels').insert({
+        page_id: newPage.id,
+        order: panel.order,
+        visual_description: panel.visual_description,
+        characters_present: panel.characters_present,
+        location_id: panel.location_id,
+        sfx: panel.sfx,
+        panel_size: panel.panel_size,
+        camera: panel.camera,
+        notes_to_artist: panel.notes_to_artist,
+        internal_notes: panel.internal_notes,
+      }).select().single()
+
+      if (newPanel) {
+        // Copy dialogue blocks
+        for (const dlg of (panel.dialogue_blocks || []).sort((a: any, b: any) => a.order - b.order)) {
+          await supabase.from('dialogue_blocks').insert({
+            panel_id: newPanel.id,
+            order: dlg.order,
+            speaker_id: dlg.speaker_id,
+            speaker_name: dlg.speaker_name,
+            delivery_type: dlg.delivery_type,
+            delivery_instruction: dlg.delivery_instruction,
+            balloon_number: dlg.balloon_number,
+            text: dlg.text,
+          })
+        }
+        // Copy captions
+        for (const cap of (panel.captions || []).sort((a: any, b: any) => a.order - b.order)) {
+          await supabase.from('captions').insert({
+            panel_id: newPanel.id,
+            order: cap.order,
+            type: cap.type,
+            text: cap.text,
+          })
+        }
+      }
+    }
+
+    showToast('Page duplicated', 'success')
+    await onRefresh()
+    onSelectPage(newPage.id)
+  }
+
+  const duplicateScene = async (sceneId: string) => {
+    const supabase = createClient()
+    const location = findSceneLocation(sceneId)
+    if (!location) { showToast('Scene not found', 'error'); return }
+    const { actId } = location
+
+    // Fetch full scene data with pages, panels, dialogue, captions
+    const { data: sourceScene, error: fetchError } = await supabase
+      .from('scenes')
+      .select('*, pages(*, panels(*, dialogue_blocks(*), captions(*)))')
+      .eq('id', sceneId)
+      .single()
+
+    if (fetchError || !sourceScene) {
+      showToast(`Failed to fetch scene: ${fetchError?.message}`, 'error')
+      return
+    }
+
+    // Bump sort_order for all subsequent scenes in this act
+    const act = (issue.acts || []).find((a: any) => a.id === actId)
+    const scenesAfter = (act?.scenes || []).filter((s: any) => s.sort_order > sourceScene.sort_order)
+    if (scenesAfter.length > 0) {
+      await Promise.all(scenesAfter.map((s: any) =>
+        supabase.from('scenes').update({ sort_order: s.sort_order + 1 }).eq('id', s.id)
+      ))
+    }
+
+    // Insert the new scene
+    const { data: newScene, error: sceneError } = await supabase.from('scenes').insert({
+      act_id: actId,
+      title: sourceScene.title ? `${sourceScene.title} (copy)` : 'Untitled Scene (copy)',
+      sort_order: sourceScene.sort_order + 1,
+      plotline_id: sourceScene.plotline_id,
+      location_id: sourceScene.location_id,
+      target_page_count: sourceScene.target_page_count,
+      notes: sourceScene.notes,
+    }).select().single()
+
+    if (sceneError || !newScene) {
+      showToast(`Failed to duplicate scene: ${sceneError?.message}`, 'error')
+      await onRefresh()
+      return
+    }
+
+    // Deep copy all pages with their panels, dialogue, and captions
+    const sortedPages = (sourceScene.pages || []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+    for (const page of sortedPages) {
+      const { data: newPage } = await supabase.from('pages').insert({
+        scene_id: newScene.id,
+        page_number: page.page_number,
+        sort_order: page.sort_order,
+        title: page.title,
+        page_type: page.page_type,
+        template: page.template,
+        notes_to_artist: page.notes_to_artist,
+        page_summary: page.page_summary,
+      }).select().single()
+
+      if (newPage) {
+        for (const panel of (page.panels || []).sort((a: any, b: any) => a.order - b.order)) {
+          const { data: newPanel } = await supabase.from('panels').insert({
+            page_id: newPage.id,
+            order: panel.order,
+            visual_description: panel.visual_description,
+            characters_present: panel.characters_present,
+            location_id: panel.location_id,
+            sfx: panel.sfx,
+            panel_size: panel.panel_size,
+            camera: panel.camera,
+            notes_to_artist: panel.notes_to_artist,
+            internal_notes: panel.internal_notes,
+          }).select().single()
+
+          if (newPanel) {
+            for (const dlg of (panel.dialogue_blocks || []).sort((a: any, b: any) => a.order - b.order)) {
+              await supabase.from('dialogue_blocks').insert({
+                panel_id: newPanel.id,
+                order: dlg.order,
+                speaker_id: dlg.speaker_id,
+                speaker_name: dlg.speaker_name,
+                delivery_type: dlg.delivery_type,
+                delivery_instruction: dlg.delivery_instruction,
+                balloon_number: dlg.balloon_number,
+                text: dlg.text,
+              })
+            }
+            for (const cap of (panel.captions || []).sort((a: any, b: any) => a.order - b.order)) {
+              await supabase.from('captions').insert({
+                panel_id: newPanel.id,
+                order: cap.order,
+                type: cap.type,
+                text: cap.text,
+              })
+            }
+          }
+        }
+      }
+    }
+
+    const pageCount = sortedPages.length
+    showToast(`Scene duplicated with ${pageCount} page${pageCount !== 1 ? 's' : ''}`, 'success')
+    await onRefresh()
+  }
+
+  const addPageAfter = async (pageId: string) => {
+    const location = findPageLocation(pageId)
+    if (!location) return
+    const { sceneId } = location
+    const scene = issue.acts?.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === sceneId)
+    const sourcePage = (scene?.pages || []).find((p: any) => p.id === pageId)
+    if (!sourcePage) return
+
+    const supabase = createClient()
+
+    // Bump sort_order for all subsequent pages
+    const pagesAfter = (scene?.pages || []).filter((p: any) => p.sort_order > sourcePage.sort_order)
+    if (pagesAfter.length > 0) {
+      await Promise.all(pagesAfter.map((p: any) =>
+        supabase.from('pages').update({ sort_order: p.sort_order + 1 }).eq('id', p.id)
+      ))
+    }
+
+    const allPages = issue.acts?.flatMap((a: any) =>
+      a.scenes?.flatMap((s: any) => s.pages || []) || []
+    ) || []
+
+    const { data: newPage, error } = await supabase.from('pages').insert({
+      scene_id: sceneId,
+      page_number: allPages.length + 1,
+      sort_order: sourcePage.sort_order + 1,
+    }).select().single()
+
+    if (error) {
+      showToast(`Failed to add page: ${error.message}`, 'error')
+      await onRefresh()
+      return
+    }
+
+    showToast('Page added', 'success')
+    await onRefresh()
+    if (newPage) onSelectPage(newPage.id)
+  }
+
+  const addSceneAfter = async (sceneId: string) => {
+    const location = findSceneLocation(sceneId)
+    if (!location) return
+    const { actId } = location
+    const act = (issue.acts || []).find((a: any) => a.id === actId)
+    const sourceScene = (act?.scenes || []).find((s: any) => s.id === sceneId)
+    if (!sourceScene) return
+
+    const supabase = createClient()
+
+    // Bump sort_order for subsequent scenes
+    const scenesAfter = (act?.scenes || []).filter((s: any) => s.sort_order > sourceScene.sort_order)
+    if (scenesAfter.length > 0) {
+      await Promise.all(scenesAfter.map((s: any) =>
+        supabase.from('scenes').update({ sort_order: s.sort_order + 1 }).eq('id', s.id)
+      ))
+    }
+
+    const sceneCount = act?.scenes?.length || 0
+    const { data: newScene, error } = await supabase.from('scenes').insert({
+      act_id: actId,
+      title: `Scene ${sceneCount + 1}`,
+      sort_order: sourceScene.sort_order + 1,
+    }).select().single()
+
+    if (error) {
+      showToast(`Failed to add scene: ${error.message}`, 'error')
+      await onRefresh()
+      return
+    }
+
+    showToast('Scene added', 'success')
+    await onRefresh()
+    if (newScene) {
+      setExpandedScenes(new Set([...expandedScenes, newScene.id]))
+    }
+  }
+
   // --- Drag-and-drop handlers ---
 
   const handleActDragEnd = async (event: DragEndEvent) => {
@@ -1387,6 +1661,20 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                           </span>
                         )}
                         <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{actPageCount} pg</span>
+                        <button
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setContextMenu({ x: rect.left, y: rect.bottom, type: 'act', id: act.id, title: act.name || `Act ${act.number}` })
+                            setContextSubmenu(null)
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-tertiary)] transition-opacity text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                          aria-label="Act options"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+                        </button>
                       </div>
 
                       {/* Expanded Act Content */}
@@ -1434,6 +1722,20 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                         </span>
                                       )}
                                       <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{scenePageCount} pg</span>
+                                      <button
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          const rect = e.currentTarget.getBoundingClientRect()
+                                          setContextMenu({ x: rect.left, y: rect.bottom, type: 'scene', id: scene.id, title: scene.title || 'Untitled Scene' })
+                                          setContextSubmenu(null)
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-tertiary)] transition-opacity text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                                        aria-label="Scene options"
+                                      >
+                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+                                      </button>
                                     </div>
 
                                     {/* Expanded Scene Content - Pages */}
@@ -1475,6 +1777,24 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                   <span className={`type-micro tabular-nums ${isSelected ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
                                                     {panelCount} pnl
                                                   </span>
+                                                  <button
+                                                    onPointerDown={(e) => e.stopPropagation()}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      const rect = e.currentTarget.getBoundingClientRect()
+                                                      setContextMenu({ x: rect.left, y: rect.bottom, type: 'page', id: page.id, title: page.title || '' })
+                                                      setContextSubmenu(null)
+                                                    }}
+                                                    className={`opacity-0 group-hover:opacity-100 p-0.5 transition-opacity ${
+                                                      isSelected
+                                                        ? 'hover:bg-white/20 text-white/60 hover:text-white'
+                                                        : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                                                    }`}
+                                                    aria-label="Page options"
+                                                  >
+                                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+                                                  </button>
                                                 </div>
                                                 {/* Page Summary */}
                                                 {editingPageSummaryId === page.id ? (
@@ -1621,6 +1941,47 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           >
             Rename
           </button>
+
+          {/* Duplicate - for scenes and pages */}
+          {(contextMenu.type === 'scene' || contextMenu.type === 'page') && (
+            <button
+              onClick={() => {
+                if (contextMenu.type === 'page') {
+                  duplicatePage(contextMenu.id)
+                } else {
+                  duplicateScene(contextMenu.id)
+                }
+                closeContextMenu()
+              }}
+              className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              Duplicate
+            </button>
+          )}
+
+          {/* Add Below - for scenes and pages */}
+          {contextMenu.type === 'page' && (
+            <button
+              onClick={() => {
+                addPageAfter(contextMenu.id)
+                closeContextMenu()
+              }}
+              className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              Add Page Below
+            </button>
+          )}
+          {contextMenu.type === 'scene' && (
+            <button
+              onClick={() => {
+                addSceneAfter(contextMenu.id)
+                closeContextMenu()
+              }}
+              className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              Add Scene Below
+            </button>
+          )}
 
           {/* Move to Act - only for scenes */}
           {contextMenu.type === 'scene' && (
