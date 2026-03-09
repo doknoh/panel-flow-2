@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from './ToastContext'
+import { restorePageDeep, restoreSceneDeep, restoreActDeep } from '@/lib/undoHelpers'
 
 // Action types for all undoable operations
 export type UndoActionType =
@@ -18,19 +19,30 @@ export type UndoActionType =
   | 'sfx_delete'
   | 'panel_add'
   | 'panel_delete'
+  | 'panel_reorder'
   | 'page_add'
   | 'page_delete'
   | 'scene_add'
   | 'scene_delete'
   | 'act_add'
   | 'act_delete'
-  | 'panel_reorder'
+  | 'rename'
+  | 'page_reorder'
+  | 'scene_reorder'
+  | 'act_reorder'
+  | 'page_move'
+  | 'scene_move'
+  | 'page_duplicate'
+  | 'scene_duplicate'
+  | 'page_summary_update'
 
 interface BaseAction {
   type: UndoActionType
   timestamp: number
   description: string
 }
+
+// --- Panel operations ---
 
 interface PanelFieldAction extends BaseAction {
   type: 'panel_field_update'
@@ -59,7 +71,7 @@ interface DialogueDeleteAction extends BaseAction {
   type: 'dialogue_delete'
   dialogueId: string
   panelId: string
-  data: any // Full dialogue data for restoration
+  data: any
 }
 
 interface CaptionAddAction extends BaseAction {
@@ -116,7 +128,7 @@ interface PanelDeleteAction extends BaseAction {
   type: 'panel_delete'
   panelId: string
   pageId: string
-  data: any // Full panel data including dialogue/captions for restoration
+  data: any // Full panel data including dialogue/captions/sfx for restoration
 }
 
 interface PanelReorderAction extends BaseAction {
@@ -124,6 +136,137 @@ interface PanelReorderAction extends BaseAction {
   pageId: string
   previousOrder: { id: string; panel_number: number }[]
   newOrder: { id: string; panel_number: number }[]
+}
+
+// --- Page operations ---
+
+interface PageAddAction extends BaseAction {
+  type: 'page_add'
+  pageId: string
+  sceneId: string
+  data: any
+}
+
+interface PageDeleteAction extends BaseAction {
+  type: 'page_delete'
+  pageId: string
+  sceneId: string
+  data: any // Full page data with nested panels/dialogue/captions/sfx
+}
+
+// --- Scene operations ---
+
+interface SceneAddAction extends BaseAction {
+  type: 'scene_add'
+  sceneId: string
+  actId: string
+  data: any
+}
+
+interface SceneDeleteAction extends BaseAction {
+  type: 'scene_delete'
+  sceneId: string
+  actId: string
+  data: any // Full scene data with nested pages
+}
+
+// --- Act operations ---
+
+interface ActAddAction extends BaseAction {
+  type: 'act_add'
+  actId: string
+  issueId: string
+  data: any
+}
+
+interface ActDeleteAction extends BaseAction {
+  type: 'act_delete'
+  actId: string
+  issueId: string
+  data: any // Full act data with nested scenes
+}
+
+// --- Rename ---
+
+interface RenameAction extends BaseAction {
+  type: 'rename'
+  entityType: 'act' | 'scene' | 'page'
+  entityId: string
+  field: string
+  oldValue: string
+  newValue: string
+}
+
+// --- Reorder operations ---
+
+interface PageReorderAction extends BaseAction {
+  type: 'page_reorder'
+  sceneId: string
+  previousOrder: { id: string; sort_order: number }[]
+  newOrder: { id: string; sort_order: number }[]
+}
+
+interface SceneReorderAction extends BaseAction {
+  type: 'scene_reorder'
+  actId: string
+  previousOrder: { id: string; sort_order: number }[]
+  newOrder: { id: string; sort_order: number }[]
+}
+
+interface ActReorderAction extends BaseAction {
+  type: 'act_reorder'
+  issueId: string
+  previousOrder: { id: string; sort_order: number }[]
+  newOrder: { id: string; sort_order: number }[]
+}
+
+// --- Move operations ---
+
+interface PageMoveAction extends BaseAction {
+  type: 'page_move'
+  pageId: string
+  fromSceneId: string
+  toSceneId: string
+  fromSortOrder: number
+  toSortOrder: number
+  fromScenePreviousOrders: { id: string; sort_order: number }[]
+  toScenePreviousOrders: { id: string; sort_order: number }[]
+}
+
+interface SceneMoveAction extends BaseAction {
+  type: 'scene_move'
+  sceneId: string
+  fromActId: string
+  toActId: string
+  fromSortOrder: number
+  toSortOrder: number
+  fromActPreviousOrders: { id: string; sort_order: number }[]
+  toActPreviousOrders: { id: string; sort_order: number }[]
+}
+
+// --- Duplicate operations ---
+
+interface PageDuplicateAction extends BaseAction {
+  type: 'page_duplicate'
+  newPageId: string
+  sourcePageId: string
+  sceneId: string
+}
+
+interface SceneDuplicateAction extends BaseAction {
+  type: 'scene_duplicate'
+  newSceneId: string
+  sourceSceneId: string
+  actId: string
+}
+
+// --- Page summary ---
+
+interface PageSummaryUpdateAction extends BaseAction {
+  type: 'page_summary_update'
+  pageId: string
+  oldValue: string | null
+  newValue: string | null
 }
 
 export type UndoAction =
@@ -140,6 +283,21 @@ export type UndoAction =
   | PanelAddAction
   | PanelDeleteAction
   | PanelReorderAction
+  | PageAddAction
+  | PageDeleteAction
+  | SceneAddAction
+  | SceneDeleteAction
+  | ActAddAction
+  | ActDeleteAction
+  | RenameAction
+  | PageReorderAction
+  | SceneReorderAction
+  | ActReorderAction
+  | PageMoveAction
+  | SceneMoveAction
+  | PageDuplicateAction
+  | SceneDuplicateAction
+  | PageSummaryUpdateAction
 
 // Helper type for recording actions without timestamp
 type RecordableAction = {
@@ -335,229 +493,135 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
     const supabase = createClient()
 
     switch (action.type) {
+      // === Panel field updates ===
       case 'panel_field_update': {
         const { error } = await supabase
           .from('panels')
           .update({ [action.field]: action.oldValue })
           .eq('id', action.panelId)
-
         if (error) throw error
-
-        // Return the reverse action for redo
-        return {
-          ...action,
-          oldValue: action.newValue,
-          newValue: action.oldValue,
-        }
+        return { ...action, oldValue: action.newValue, newValue: action.oldValue }
       }
 
+      // === Dialogue operations ===
       case 'dialogue_add': {
-        // Undo add = delete
-        const { error } = await supabase
-          .from('dialogue_blocks')
-          .delete()
-          .eq('id', action.dialogueId)
-
+        const { error } = await supabase.from('dialogue_blocks').delete().eq('id', action.dialogueId)
         if (error) throw error
-
         return {
-          type: 'dialogue_delete',
-          dialogueId: action.dialogueId,
-          panelId: action.panelId,
-          data: action.data,
-          timestamp: Date.now(),
-          description: 'Delete dialogue',
+          type: 'dialogue_delete', dialogueId: action.dialogueId, panelId: action.panelId,
+          data: action.data, timestamp: Date.now(), description: 'Delete dialogue',
         }
       }
-
       case 'dialogue_delete': {
-        // Undo delete = restore
-        const { error } = await supabase
-          .from('dialogue_blocks')
-          .insert({
-            id: action.dialogueId,
-            panel_id: action.panelId,
-            ...action.data,
-          })
-
+        const { error } = await supabase.from('dialogue_blocks').insert({
+          id: action.dialogueId, panel_id: action.panelId, ...action.data,
+        })
         if (error) throw error
-
         return {
-          type: 'dialogue_add',
-          dialogueId: action.dialogueId,
-          panelId: action.panelId,
-          data: action.data,
-          timestamp: Date.now(),
-          description: 'Add dialogue',
+          type: 'dialogue_add', dialogueId: action.dialogueId, panelId: action.panelId,
+          data: action.data, timestamp: Date.now(), description: 'Add dialogue',
         }
       }
-
       case 'dialogue_update': {
-        const { error } = await supabase
-          .from('dialogue_blocks')
-          .update({ [action.field]: action.oldValue })
-          .eq('id', action.dialogueId)
-
+        const { error } = await supabase.from('dialogue_blocks')
+          .update({ [action.field]: action.oldValue }).eq('id', action.dialogueId)
         if (error) throw error
-
-        return {
-          ...action,
-          oldValue: action.newValue,
-          newValue: action.oldValue,
-        }
+        return { ...action, oldValue: action.newValue, newValue: action.oldValue }
       }
 
+      // === Caption operations ===
       case 'caption_add': {
-        const { error } = await supabase
-          .from('captions')
-          .delete()
-          .eq('id', action.captionId)
-
+        const { error } = await supabase.from('captions').delete().eq('id', action.captionId)
         if (error) throw error
-
         return {
-          type: 'caption_delete',
-          captionId: action.captionId,
-          panelId: action.panelId,
-          data: action.data,
-          timestamp: Date.now(),
-          description: 'Delete caption',
+          type: 'caption_delete', captionId: action.captionId, panelId: action.panelId,
+          data: action.data, timestamp: Date.now(), description: 'Delete caption',
         }
       }
-
       case 'caption_delete': {
-        const { error } = await supabase
-          .from('captions')
-          .insert({
-            id: action.captionId,
-            panel_id: action.panelId,
-            ...action.data,
-          })
-
+        const { error } = await supabase.from('captions').insert({
+          id: action.captionId, panel_id: action.panelId, ...action.data,
+        })
         if (error) throw error
-
         return {
-          type: 'caption_add',
-          captionId: action.captionId,
-          panelId: action.panelId,
-          data: action.data,
-          timestamp: Date.now(),
-          description: 'Add caption',
+          type: 'caption_add', captionId: action.captionId, panelId: action.panelId,
+          data: action.data, timestamp: Date.now(), description: 'Add caption',
         }
       }
-
       case 'caption_update': {
-        const { error } = await supabase
-          .from('captions')
-          .update({ [action.field]: action.oldValue })
-          .eq('id', action.captionId)
-
+        const { error } = await supabase.from('captions')
+          .update({ [action.field]: action.oldValue }).eq('id', action.captionId)
         if (error) throw error
-
-        return {
-          ...action,
-          oldValue: action.newValue,
-          newValue: action.oldValue,
-        }
+        return { ...action, oldValue: action.newValue, newValue: action.oldValue }
       }
 
+      // === SFX operations ===
       case 'sfx_add': {
-        const { error } = await supabase
-          .from('sound_effects')
-          .delete()
-          .eq('id', action.sfxId)
-
+        const { error } = await supabase.from('sound_effects').delete().eq('id', action.sfxId)
         if (error) throw error
-
         return {
-          type: 'sfx_delete',
-          sfxId: action.sfxId,
-          panelId: action.panelId,
-          data: action.data,
-          timestamp: Date.now(),
-          description: 'Delete sound effect',
+          type: 'sfx_delete', sfxId: action.sfxId, panelId: action.panelId,
+          data: action.data, timestamp: Date.now(), description: 'Delete sound effect',
         }
       }
-
       case 'sfx_delete': {
-        const { error } = await supabase
-          .from('sound_effects')
-          .insert({
-            id: action.sfxId,
-            panel_id: action.panelId,
-            ...action.data,
-          })
-
+        const { error } = await supabase.from('sound_effects').insert({
+          id: action.sfxId, panel_id: action.panelId, ...action.data,
+        })
         if (error) throw error
-
         return {
-          type: 'sfx_add',
-          sfxId: action.sfxId,
-          panelId: action.panelId,
-          data: action.data,
-          timestamp: Date.now(),
-          description: 'Add sound effect',
+          type: 'sfx_add', sfxId: action.sfxId, panelId: action.panelId,
+          data: action.data, timestamp: Date.now(), description: 'Add sound effect',
         }
       }
-
       case 'sfx_update': {
-        const { error } = await supabase
-          .from('sound_effects')
-          .update({ text: action.oldValue })
-          .eq('id', action.sfxId)
-
+        const { error } = await supabase.from('sound_effects')
+          .update({ text: action.oldValue }).eq('id', action.sfxId)
         if (error) throw error
-
-        return {
-          ...action,
-          oldValue: action.newValue,
-          newValue: action.oldValue,
-        }
+        return { ...action, oldValue: action.newValue, newValue: action.oldValue }
       }
 
+      // === Panel add/delete/reorder ===
       case 'panel_add': {
-        // Delete the panel (and cascade will handle children)
-        const { error } = await supabase
-          .from('panels')
-          .delete()
-          .eq('id', action.panelId)
-
+        const { error } = await supabase.from('panels').delete().eq('id', action.panelId)
         if (error) throw error
-
         return {
-          type: 'panel_delete',
-          panelId: action.panelId,
-          pageId: action.pageId,
-          data: action.data,
-          timestamp: Date.now(),
-          description: 'Delete panel',
+          type: 'panel_delete', panelId: action.panelId, pageId: action.pageId,
+          data: action.data, timestamp: Date.now(), description: 'Delete panel',
         }
       }
-
       case 'panel_delete': {
-        // Restore the panel
-        const { error } = await supabase
-          .from('panels')
-          .insert({
-            id: action.panelId,
-            page_id: action.pageId,
-            ...action.data,
-          })
-
+        // Restore the panel — extract children data
+        const { dialogue_blocks, captions, sound_effects, ...panelFields } = action.data
+        const { error } = await supabase.from('panels').insert({
+          id: action.panelId, page_id: action.pageId, ...panelFields,
+        })
         if (error) throw error
 
+        // Restore children if present
+        if (dialogue_blocks?.length) {
+          for (const dlg of dialogue_blocks) {
+            const { character, ...dlgFields } = dlg
+            await supabase.from('dialogue_blocks').insert({ ...dlgFields, panel_id: action.panelId })
+          }
+        }
+        if (captions?.length) {
+          for (const cap of captions) {
+            await supabase.from('captions').insert({ ...cap, panel_id: action.panelId })
+          }
+        }
+        if (sound_effects?.length) {
+          for (const sfx of sound_effects) {
+            await supabase.from('sound_effects').insert({ ...sfx, panel_id: action.panelId })
+          }
+        }
+
         return {
-          type: 'panel_add',
-          panelId: action.panelId,
-          pageId: action.pageId,
-          data: action.data,
-          timestamp: Date.now(),
-          description: 'Add panel',
+          type: 'panel_add', panelId: action.panelId, pageId: action.pageId,
+          data: action.data, timestamp: Date.now(), description: 'Add panel',
         }
       }
-
       case 'panel_reorder': {
-        // Restore previous panel order
         const reorderAction = action as PanelReorderAction
         if (reorderAction.previousOrder) {
           await Promise.all(
@@ -566,15 +630,201 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
             )
           )
         }
-
         return {
-          type: 'panel_reorder' as const,
-          pageId: reorderAction.pageId,
-          previousOrder: reorderAction.newOrder,
-          newOrder: reorderAction.previousOrder,
-          timestamp: Date.now(),
-          description: 'Reorder panels',
+          type: 'panel_reorder' as const, pageId: reorderAction.pageId,
+          previousOrder: reorderAction.newOrder, newOrder: reorderAction.previousOrder,
+          timestamp: Date.now(), description: 'Reorder panels',
         }
+      }
+
+      // === Page add/delete ===
+      case 'page_add': {
+        const a = action as PageAddAction
+        const { error } = await supabase.from('pages').delete().eq('id', a.pageId)
+        if (error) throw error
+        return {
+          type: 'page_delete', pageId: a.pageId, sceneId: a.sceneId,
+          data: a.data, timestamp: Date.now(), description: 'Delete page',
+        }
+      }
+      case 'page_delete': {
+        const a = action as PageDeleteAction
+        await restorePageDeep(supabase, { id: a.pageId, ...a.data }, a.sceneId)
+        return {
+          type: 'page_add', pageId: a.pageId, sceneId: a.sceneId,
+          data: a.data, timestamp: Date.now(), description: 'Add page',
+        }
+      }
+
+      // === Scene add/delete ===
+      case 'scene_add': {
+        const a = action as SceneAddAction
+        const { error } = await supabase.from('scenes').delete().eq('id', a.sceneId)
+        if (error) throw error
+        return {
+          type: 'scene_delete', sceneId: a.sceneId, actId: a.actId,
+          data: { ...a.data, pages: [] }, timestamp: Date.now(), description: 'Delete scene',
+        }
+      }
+      case 'scene_delete': {
+        const a = action as SceneDeleteAction
+        await restoreSceneDeep(supabase, { id: a.sceneId, ...a.data }, a.actId)
+        return {
+          type: 'scene_add', sceneId: a.sceneId, actId: a.actId,
+          data: a.data, timestamp: Date.now(), description: 'Add scene',
+        }
+      }
+
+      // === Act add/delete ===
+      case 'act_add': {
+        const a = action as ActAddAction
+        const { error } = await supabase.from('acts').delete().eq('id', a.actId)
+        if (error) throw error
+        return {
+          type: 'act_delete', actId: a.actId, issueId: a.issueId,
+          data: { ...a.data, scenes: [] }, timestamp: Date.now(), description: 'Delete act',
+        }
+      }
+      case 'act_delete': {
+        const a = action as ActDeleteAction
+        await restoreActDeep(supabase, { id: a.actId, ...a.data }, a.issueId)
+        return {
+          type: 'act_add', actId: a.actId, issueId: a.issueId,
+          data: a.data, timestamp: Date.now(), description: 'Add act',
+        }
+      }
+
+      // === Rename ===
+      case 'rename': {
+        const a = action as RenameAction
+        const table = a.entityType === 'act' ? 'acts'
+          : a.entityType === 'scene' ? 'scenes' : 'pages'
+        const { error } = await supabase.from(table)
+          .update({ [a.field]: a.oldValue }).eq('id', a.entityId)
+        if (error) throw error
+        return { ...a, oldValue: a.newValue, newValue: a.oldValue }
+      }
+
+      // === Page reorder ===
+      case 'page_reorder': {
+        const a = action as PageReorderAction
+        await Promise.all(
+          a.previousOrder.map(({ id, sort_order }) =>
+            supabase.from('pages').update({ sort_order }).eq('id', id)
+          )
+        )
+        return {
+          type: 'page_reorder' as const, sceneId: a.sceneId,
+          previousOrder: a.newOrder, newOrder: a.previousOrder,
+          timestamp: Date.now(), description: 'Reorder pages',
+        }
+      }
+
+      // === Scene reorder ===
+      case 'scene_reorder': {
+        const a = action as SceneReorderAction
+        await Promise.all(
+          a.previousOrder.map(({ id, sort_order }) =>
+            supabase.from('scenes').update({ sort_order }).eq('id', id)
+          )
+        )
+        return {
+          type: 'scene_reorder' as const, actId: a.actId,
+          previousOrder: a.newOrder, newOrder: a.previousOrder,
+          timestamp: Date.now(), description: 'Reorder scenes',
+        }
+      }
+
+      // === Act reorder ===
+      case 'act_reorder': {
+        const a = action as ActReorderAction
+        await Promise.all(
+          a.previousOrder.map(({ id, sort_order }) =>
+            supabase.from('acts').update({ sort_order }).eq('id', id)
+          )
+        )
+        return {
+          type: 'act_reorder' as const, issueId: a.issueId,
+          previousOrder: a.newOrder, newOrder: a.previousOrder,
+          timestamp: Date.now(), description: 'Reorder acts',
+        }
+      }
+
+      // === Page move ===
+      case 'page_move': {
+        const a = action as PageMoveAction
+        // Move page back to original scene
+        const { error } = await supabase.from('pages')
+          .update({ scene_id: a.fromSceneId, sort_order: a.fromSortOrder })
+          .eq('id', a.pageId)
+        if (error) throw error
+
+        // Restore sort_orders in both scenes
+        await Promise.all([
+          ...a.fromScenePreviousOrders.map(({ id, sort_order }) =>
+            supabase.from('pages').update({ sort_order }).eq('id', id)
+          ),
+          ...a.toScenePreviousOrders.map(({ id, sort_order }) =>
+            supabase.from('pages').update({ sort_order }).eq('id', id)
+          ),
+        ])
+        return {
+          type: 'page_move' as const, pageId: a.pageId,
+          fromSceneId: a.toSceneId, toSceneId: a.fromSceneId,
+          fromSortOrder: a.toSortOrder, toSortOrder: a.fromSortOrder,
+          fromScenePreviousOrders: a.toScenePreviousOrders,
+          toScenePreviousOrders: a.fromScenePreviousOrders,
+          timestamp: Date.now(), description: 'Move page',
+        }
+      }
+
+      // === Scene move ===
+      case 'scene_move': {
+        const a = action as SceneMoveAction
+        const { error } = await supabase.from('scenes')
+          .update({ act_id: a.fromActId, sort_order: a.fromSortOrder })
+          .eq('id', a.sceneId)
+        if (error) throw error
+
+        await Promise.all([
+          ...a.fromActPreviousOrders.map(({ id, sort_order }) =>
+            supabase.from('scenes').update({ sort_order }).eq('id', id)
+          ),
+          ...a.toActPreviousOrders.map(({ id, sort_order }) =>
+            supabase.from('scenes').update({ sort_order }).eq('id', id)
+          ),
+        ])
+        return {
+          type: 'scene_move' as const, sceneId: a.sceneId,
+          fromActId: a.toActId, toActId: a.fromActId,
+          fromSortOrder: a.toSortOrder, toSortOrder: a.fromSortOrder,
+          fromActPreviousOrders: a.toActPreviousOrders,
+          toActPreviousOrders: a.fromActPreviousOrders,
+          timestamp: Date.now(), description: 'Move scene',
+        }
+      }
+
+      // === Duplicate operations (undo = delete the copy, non-redoable) ===
+      case 'page_duplicate': {
+        const a = action as PageDuplicateAction
+        const { error } = await supabase.from('pages').delete().eq('id', a.newPageId)
+        if (error) throw error
+        return null // Non-redoable
+      }
+      case 'scene_duplicate': {
+        const a = action as SceneDuplicateAction
+        const { error } = await supabase.from('scenes').delete().eq('id', a.newSceneId)
+        if (error) throw error
+        return null // Non-redoable
+      }
+
+      // === Page summary update ===
+      case 'page_summary_update': {
+        const a = action as PageSummaryUpdateAction
+        const { error } = await supabase.from('pages')
+          .update({ page_summary: a.oldValue }).eq('id', a.pageId)
+        if (error) throw error
+        return { ...a, oldValue: a.newValue, newValue: a.oldValue }
       }
 
       default:

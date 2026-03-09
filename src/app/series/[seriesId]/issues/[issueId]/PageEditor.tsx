@@ -1053,6 +1053,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           shot_type: panel.shot_type,
           notes: panel.notes,
           sort_order: panel.panel_number,
+          dialogue_blocks: panel.dialogue_blocks || [],
+          captions: panel.captions || [],
+          sound_effects: panel.sound_effects || [],
         },
         description: 'Delete panel',
       })
