@@ -200,11 +200,11 @@ body {
    COMPONENT BASE STYLES
    ============================================ */
 
-/* Cards — Blueprint sharp corners with hover elevation */
+/* Cards — soft rounding with hover elevation */
 .card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: 6px;
   transition: all 150ms ease-out;
 }
 
@@ -216,7 +216,7 @@ body {
 .card-elevated {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: 6px;
   box-shadow: var(--shadow-md);
   transition: all 150ms ease-out;
 }
@@ -226,11 +226,11 @@ body {
   box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 12%, transparent);
 }
 
-/* Inputs — Blueprint sharp corners with enhanced focus */
+/* Inputs — soft rounding with enhanced focus */
 .input {
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: 6px;
   color: var(--text-primary);
   transition: all 150ms ease-out;
 }
@@ -247,9 +247,9 @@ body {
   color: var(--text-muted);
 }
 
-/* Buttons — Blueprint sharp corners with press depression */
+/* Buttons — soft rounding with press depression */
 .btn {
-  border-radius: 0;
+  border-radius: 6px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -446,7 +446,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--text-primary);
-  border-radius: 0;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -472,12 +472,7 @@ body {
    BLUEPRINT GLOBAL OVERRIDES
    ============================================ */
 
-/* Sharp corners everywhere — override all Tailwind rounded-* utilities */
-.rounded-sm, .rounded, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl {
-  border-radius: 0 !important;
-}
-
-/* Keep rounded-full for avatars, spinners, and dots */
+/* Soft rounding — let Tailwind classes work naturally */
 .rounded-full {
   border-radius: 9999px !important;
 }

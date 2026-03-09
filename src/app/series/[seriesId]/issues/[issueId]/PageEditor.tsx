@@ -88,7 +88,7 @@ interface Page {
 
 interface PageContext {
   page: any
-  act: { id: string; name: string; sort_order: number }
+  act: { id: string; name: string; number?: number; sort_order: number }
   scene: { id: string; name: string; sort_order: number; plotline_name?: string | null; total_pages?: number }
   pagePositionInScene?: number
 }
@@ -137,6 +137,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   } | null>(null)
   const [mentionIndex, setMentionIndex] = useState(0)
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const summarizeTimerRef = useRef<NodeJS.Timeout | null>(null)
   const lastPageIdRef = useRef<string | null>(null)
   const optimisticIdsRef = useRef<Set<string>>(new Set())
   const pendingFocusRef = useRef<string | null>(null)
@@ -233,12 +234,20 @@ export default function PageEditor({ page, pageContext, characters, locations, s
       await Promise.all(updates)
       setPendingChanges(new Map())
       setSaveStatus('saved')
+
+      // Auto-regenerate page summary after panel save
+      if (summarizeTimerRef.current) clearTimeout(summarizeTimerRef.current)
+      summarizeTimerRef.current = setTimeout(() => {
+        fetch(`/api/pages/${page.id}/summarize`, { method: 'POST' })
+          .then(() => onUpdate())
+          .catch(() => {})
+      }, 3000)
     } catch (error) {
       console.error('Error saving panels:', error)
       setSaveStatus('unsaved')
       showToast('Failed to save changes', 'error')
     }
-  }, [pendingChanges, setSaveStatus, showToast, isOnline, queueChange])
+  }, [pendingChanges, setSaveStatus, showToast, isOnline, queueChange, page.id, onUpdate])
 
   // Auto-save with 2 second debounce
   const scheduleAutoSave = useCallback(() => {
@@ -1131,7 +1140,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
       {pageContext && (
         <div className="mb-3 type-meta flex items-center gap-1.5">
           <span className="text-[var(--text-secondary)]">
-            {pageContext.act.name || `ACT ${pageContext.act.sort_order + 1}`}
+            {pageContext.act.name || `ACT ${pageContext.act.number ?? (pageContext.act.sort_order + 1)}`}
           </span>
           {pageContext.scene.plotline_name && (
             <>

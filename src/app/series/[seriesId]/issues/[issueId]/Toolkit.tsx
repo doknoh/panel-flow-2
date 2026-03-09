@@ -30,7 +30,7 @@ interface ContinuityAlert {
 
 interface PageContext {
   page: any
-  act: { id: string; name: string; sort_order: number; title?: string; intention?: string; beat_summary?: string }
+  act: { id: string; name: string; number?: number; sort_order: number; title?: string; intention?: string; beat_summary?: string }
   scene: { id: string; name: string; sort_order: number; title?: string; intention?: string; scene_summary?: string }
 }
 
@@ -1680,7 +1680,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               <div className="mb-3 shrink-0 text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] rounded px-3 py-2">
                 <span className="text-[var(--text-secondary)]">Working on:</span>{' '}
                 <span className="text-[var(--text-secondary)]">
-                  {selectedPageContext.act.name || `Act ${selectedPageContext.act.sort_order + 1}`}
+                  {selectedPageContext.act.name || `Act ${selectedPageContext.act.number ?? (selectedPageContext.act.sort_order + 1)}`}
                 </span>
                 {' › '}
                 <span className="text-[var(--text-secondary)]">
