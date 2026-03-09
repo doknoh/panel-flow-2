@@ -15,7 +15,7 @@
   /* Text hierarchy — Blueprint ink */
   --text-primary: #1e1e80;
   --text-secondary: #5a5a9e;
-  --text-muted: #8888b0;
+  --text-muted: #6b6b9e;
   --text-disabled: #a0a0c0;
 
   /* Borders — Blueprint lines */
@@ -82,7 +82,7 @@
 
   --text-primary: #e8e8f4;
   --text-secondary: #b0b0d0;
-  --text-muted: #8080a8;
+  --text-muted: #9090b8;
   --text-disabled: #606088;
 
   --border: #3a3a7a;
@@ -124,7 +124,7 @@
 
     --text-primary: #e8e8f4;
     --text-secondary: #b0b0d0;
-    --text-muted: #8080a8;
+    --text-muted: #9090b8;
     --text-disabled: #606088;
 
     --border: #3a3a7a;
@@ -554,7 +554,7 @@ h1, h2, h3, h4 {
 .type-meta {
   font-family: var(--font-mono);
   font-size: var(--type-meta);
-  font-weight: var(--weight-body);
+  font-weight: 500;
   letter-spacing: var(--tracking-data);
   text-transform: uppercase;
   line-height: 1.4;
@@ -565,7 +565,7 @@ h1, h2, h3, h4 {
 .type-micro {
   font-family: var(--font-mono);
   font-size: var(--type-micro);
-  font-weight: var(--weight-body);
+  font-weight: 500;
   letter-spacing: var(--tracking-data);
   text-transform: uppercase;
   line-height: 1.4;
@@ -588,7 +588,7 @@ h1, h2, h3, h4 {
 .type-console {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-weight: var(--weight-body);
+  font-weight: 500;
   letter-spacing: 0.01em;
   line-height: 1.6;
   color: var(--text-secondary);
@@ -598,7 +598,7 @@ h1, h2, h3, h4 {
 .type-struct-num {
   font-family: var(--font-mono);
   font-size: var(--type-label);
-  font-weight: var(--weight-light);
+  font-weight: 500;
   letter-spacing: var(--tracking-data);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
@@ -607,7 +607,7 @@ h1, h2, h3, h4 {
 /* Separator — // dividers */
 .type-separator {
   font-family: var(--font-mono);
-  font-weight: var(--weight-light);
+  font-weight: 500;
   color: var(--text-muted);
   margin-inline: 0.5em;
   user-select: none;
