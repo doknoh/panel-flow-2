@@ -23,6 +23,8 @@ const shortcuts = [
     { keys: ['⌘', '⇧', 'Z'], description: 'Redo' },
     { keys: ['⌘', 'F'], description: 'Find & Replace' },
     { keys: ['⌘', '.'], description: 'Context Zoom panel' },
+    { keys: ['⌘', '['], description: 'Toggle left panel' },
+    { keys: ['⌘', ']'], description: 'Toggle right panel' },
     { keys: ['⌘', '⇧', '↵'], description: 'Zen Mode (distraction-free)' },
     { keys: ['?'], description: 'Show keyboard shortcuts' },
   ]},
