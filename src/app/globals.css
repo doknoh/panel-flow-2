@@ -47,26 +47,28 @@
   --shadow-md: 0 2px 8px rgba(30, 30, 128, 0.08);
   --shadow-lg: 0 4px 16px rgba(30, 30, 128, 0.10);
 
-  /* Type scale — augmented fourth (1.414) */
-  --type-display: 2.827rem;
-  --type-title: 2rem;
-  --type-section: 1.414rem;
+  /* Type scale — Swiss-inspired, high contrast hierarchy */
+  --type-display: 3.5rem;
+  --type-title: 2.25rem;
+  --type-section: 1.5rem;
   --type-body: 1rem;
   --type-label: 0.75rem;
   --type-meta: 0.625rem;
   --type-micro: 0.5625rem;
 
-  /* Type weights */
+  /* Type weights — assertive hierarchy */
   --weight-display: 900;
-  --weight-heading: 700;
+  --weight-heading: 800;
+  --weight-subheading: 700;
   --weight-body: 400;
   --weight-light: 300;
 
-  /* Letter spacing */
-  --tracking-display: -0.02em;
-  --tracking-section: -0.01em;
-  --tracking-label: 0.05em;
-  --tracking-data: 0.08em;
+  /* Letter spacing — tight headlines, open labels (Swiss contrast) */
+  --tracking-display: -0.04em;
+  --tracking-title: -0.035em;
+  --tracking-section: -0.025em;
+  --tracking-label: 0.06em;
+  --tracking-data: 0.1em;
 
   /* Legacy support */
   --background: var(--bg-primary);
@@ -247,12 +249,12 @@ body {
   color: var(--text-muted);
 }
 
-/* Buttons — soft rounding with press depression */
+/* Buttons — Swiss bold, tight tracking */
 .btn {
   border-radius: 6px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   transition: all 150ms ease-out;
 }
 
@@ -477,18 +479,19 @@ body {
   border-radius: 9999px !important;
 }
 
-/* Blueprint uppercase headers */
+/* Swiss uppercase headers — tight tracking for density */
 h1, h2, h3, h4 {
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
+  font-weight: 800;
 }
 
-/* Blueprint section labels */
+/* Swiss section labels — wide-tracked, commanding */
 .bp-label {
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.08em;
   color: var(--text-secondary);
 }
 
@@ -501,55 +504,55 @@ h1, h2, h3, h4 {
    TYPE SCALE UTILITY CLASSES
    ============================================ */
 
-/* Display — 45px page numbers: "PAGE 04" */
+/* Display — 56px page numbers: "PAGE 01" — Swiss dense, maximum impact */
 .type-display {
   font-family: var(--font-sans);
   font-size: var(--type-display);
   font-weight: var(--weight-display);
   letter-spacing: var(--tracking-display);
   text-transform: uppercase;
-  line-height: 1;
+  line-height: 0.9;
   color: var(--text-primary);
 }
 
-/* Title — 32px issue headers: "ISSUE #2" */
+/* Title — 36px issue headers: "ISSUE #2" — tight, authoritative */
 .type-title {
   font-family: var(--font-sans);
   font-size: var(--type-title);
   font-weight: var(--weight-heading);
-  letter-spacing: var(--tracking-display);
+  letter-spacing: var(--tracking-title);
   text-transform: uppercase;
-  line-height: 1.1;
+  line-height: 1;
   color: var(--text-primary);
 }
 
-/* Section — 23px act/scene labels */
+/* Section — 24px act/scene labels — commanding but secondary */
 .type-section {
   font-family: var(--font-sans);
   font-size: var(--type-section);
   font-weight: var(--weight-heading);
   letter-spacing: var(--tracking-section);
   text-transform: uppercase;
-  line-height: 1.2;
+  line-height: 1.1;
   color: var(--text-primary);
 }
 
-/* Label — 12px panel labels: "PNL 1 // VISUAL" */
+/* Label — 12px section labels: "STRUCTURE" — wide-tracked Swiss small caps */
 .type-label {
   font-family: var(--font-sans);
   font-size: var(--type-label);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   line-height: 1.4;
   color: var(--text-secondary);
 }
 
-/* Meta — 10px status bar, timestamps */
+/* Meta — 10px status bar, timestamps — monospace data */
 .type-meta {
   font-family: var(--font-mono);
   font-size: var(--type-meta);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: var(--tracking-data);
   text-transform: uppercase;
   line-height: 1.4;
@@ -560,14 +563,14 @@ h1, h2, h3, h4 {
 .type-micro {
   font-family: var(--font-mono);
   font-size: var(--type-micro);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: var(--tracking-data);
   text-transform: uppercase;
   line-height: 1.4;
   color: var(--text-muted);
 }
 
-/* Speaker — dialogue character names */
+/* Speaker — dialogue character names — bold, centered */
 .type-speaker {
   font-family: var(--font-sans);
   font-size: var(--type-label);
@@ -593,7 +596,7 @@ h1, h2, h3, h4 {
 .type-struct-num {
   font-family: var(--font-mono);
   font-size: var(--type-label);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: var(--tracking-data);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
@@ -602,7 +605,7 @@ h1, h2, h3, h4 {
 /* Separator — // dividers */
 .type-separator {
   font-family: var(--font-mono);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
   margin-inline: 0.5em;
   user-select: none;
@@ -615,9 +618,9 @@ h1, h2, h3, h4 {
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: var(--font-sans);
-  font-size: 12rem;
+  font-size: 14rem;
   font-weight: var(--weight-display);
-  letter-spacing: 0.1em;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
   opacity: 0.03;
   pointer-events: none;

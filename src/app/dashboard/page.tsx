@@ -88,7 +88,7 @@ export default async function DashboardPage() {
                 className="block bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-lg font-bold tracking-tight">{series.title}</h3>
+                  <h3 className="text-xl font-extrabold tracking-tighter">{series.title}</h3>
                   {series.role !== 'owner' && (
                     <span className={`type-micro px-2 py-0.5 border flex-shrink-0 ${
                       series.role === 'editor'

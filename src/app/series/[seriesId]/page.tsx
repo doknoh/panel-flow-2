@@ -135,30 +135,30 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           readOnly={!canEdit}
         />
 
-        {/* Quick Stats */}
+        {/* Quick Stats — Swiss big numbers */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
-            <div className="text-3xl font-black tabular-nums">{issues?.length || 0}</div>
-            <div className="type-micro text-[var(--text-muted)]">ISSUES</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-lg">
+            <div className="text-4xl font-black tabular-nums tracking-tighter leading-none">{issues?.length || 0}</div>
+            <div className="type-micro text-[var(--text-muted)] mt-1">ISSUES</div>
           </div>
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
-            <div className="text-3xl font-black tabular-nums">{counts.characters}</div>
-            <div className="type-micro text-[var(--text-muted)]">CHARACTERS</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-lg">
+            <div className="text-4xl font-black tabular-nums tracking-tighter leading-none">{counts.characters}</div>
+            <div className="type-micro text-[var(--text-muted)] mt-1">CHARACTERS</div>
           </div>
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
-            <div className="text-3xl font-black tabular-nums">{counts.locations}</div>
-            <div className="type-micro text-[var(--text-muted)]">LOCATIONS</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-lg">
+            <div className="text-4xl font-black tabular-nums tracking-tighter leading-none">{counts.locations}</div>
+            <div className="type-micro text-[var(--text-muted)] mt-1">LOCATIONS</div>
           </div>
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
-            <div className="text-3xl font-black tabular-nums">{counts.plotlines}</div>
-            <div className="type-micro text-[var(--text-muted)]">PLOTLINES</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-lg">
+            <div className="text-4xl font-black tabular-nums tracking-tighter leading-none">{counts.plotlines}</div>
+            <div className="type-micro text-[var(--text-muted)] mt-1">PLOTLINES</div>
           </div>
         </div>
 
         {/* Issues Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="type-label">ISSUES</h2>
+            <h2 className="type-section text-base">ISSUES</h2>
             {canEdit && <CreateIssueButton seriesId={seriesId} issueCount={issues?.length || 0} />}
           </div>
           <IssueGrid issues={issues || []} seriesId={seriesId} />
@@ -166,7 +166,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
         {/* Series Tools */}
         <div className="mb-8">
-          <h2 className="type-label mb-4">TOOLS</h2>
+          <h2 className="type-section text-base mb-4">TOOLS</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Link
               href={`/series/${seriesId}/canvas`}
@@ -245,7 +245,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
         {/* World Building */}
         <div>
-          <h2 className="type-label mb-4">WORLD BUILDING</h2>
+          <h2 className="type-section text-base mb-4">WORLD BUILDING</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link
               href={`/series/${seriesId}/characters`}

@@ -141,7 +141,7 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
       />
 
       <div className="flex items-start justify-between mb-2 relative">
-        <span className="text-2xl font-bold text-[var(--text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+        <span className="text-3xl font-black tracking-tighter text-[var(--text-primary)] group-hover:text-[var(--color-primary)] transition-colors leading-none">
           #{issue.number}
         </span>
         <span className={`text-xs px-2 py-1 rounded border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}>
@@ -172,7 +172,7 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
         ) : (
           <button
             onClick={handleTitleClick}
-            className="font-medium text-[var(--text-primary)] line-clamp-1 text-left w-full hover:text-[var(--color-primary)] active:scale-[0.97] transition-all duration-150 ease-out flex items-center gap-1 group/title"
+            className="font-bold text-[var(--text-primary)] line-clamp-1 text-left w-full hover:text-[var(--color-primary)] active:scale-[0.97] transition-all duration-150 ease-out flex items-center gap-1 group/title"
           >
             {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
             <svg className="w-3 h-3 opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

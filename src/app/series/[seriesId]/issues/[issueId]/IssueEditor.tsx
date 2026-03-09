@@ -833,7 +833,7 @@ function IssueEditorContent({
             <Link href={`/series/${seriesId}`} className="type-meta text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0" aria-label="Back to series">
               ←
             </Link>
-            <span className="text-xl font-black tracking-tight shrink-0">ISSUE #{String(issue.number).padStart(2, '0')}</span>
+            <span className="text-2xl font-black tracking-[-0.04em] shrink-0 leading-none">ISSUE #{String(issue.number).padStart(2, '0')}</span>
             <span className="type-separator hidden sm:inline shrink-0">{'\/\/'}</span>
             {isEditingTitle ? (
               <input

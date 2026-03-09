@@ -1242,7 +1242,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               <div key={act.id}>
                 <div className="flex items-center gap-2 px-2 py-2 hover:bg-[var(--bg-secondary)] cursor-pointer transition-colors">
                   <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedActs.has(act.id) ? 'rotate-90' : ''}`} />
-                  <span className="text-sm font-bold uppercase tracking-wide text-[var(--text-primary)] flex-1">
+                  <span className="text-sm font-extrabold uppercase tracking-tight text-[var(--text-primary)] flex-1">
                     {act.name || `Act ${act.number}`}
                   </span>
                   <span className="type-micro tabular-nums text-[var(--text-muted)]">{actPageCount} pg</span>
@@ -1289,12 +1289,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                             onBlur={() => saveTitle()}
                             onKeyDown={handleEditKeyDown}
                             onClick={(e) => e.stopPropagation()}
-                            className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 text-sm font-bold uppercase tracking-wide focus:border-[var(--color-primary)] focus:outline-none"
+                            className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 text-sm font-extrabold uppercase tracking-tight focus:border-[var(--color-primary)] focus:outline-none"
                             autoFocus
                           />
                         ) : (
                           <span
-                            className="text-sm font-bold uppercase tracking-wide text-[var(--text-primary)] flex-1"
+                            className="text-sm font-extrabold uppercase tracking-tight text-[var(--text-primary)] flex-1"
                             onDoubleClick={(e) => {
                               e.stopPropagation()
                               startEditing(act.id, act.name || `Act ${act.number}`)
@@ -1336,12 +1336,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                           onBlur={() => saveTitle()}
                                           onKeyDown={handleEditKeyDown}
                                           onClick={(e) => e.stopPropagation()}
-                                          className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 text-xs font-medium focus:border-[var(--color-primary)] focus:outline-none"
+                                          className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 text-xs font-bold focus:border-[var(--color-primary)] focus:outline-none"
                                           autoFocus
                                         />
                                       ) : (
                                         <span
-                                          className="text-xs font-medium text-[var(--text-secondary)] flex-1 truncate"
+                                          className="text-xs font-bold text-[var(--text-secondary)] flex-1 truncate"
                                           onDoubleClick={(e) => {
                                             e.stopPropagation()
                                             startEditing(scene.id, scene.title || 'Untitled Scene')
