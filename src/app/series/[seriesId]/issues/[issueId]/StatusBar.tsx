@@ -101,16 +101,40 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
     }
   }, [issue, selectedPageId])
 
+  // Compute global page numbers from sort order (not stale DB values)
+  const pageNumberMap = useMemo(() => {
+    const map = new Map<string, number>()
+    let position = 1
+    const sortedActs = [...(issue.acts || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+    for (const act of sortedActs) {
+      const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+      for (const scene of sortedScenes) {
+        const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+        for (const page of sortedPages) {
+          map.set(page.id, position)
+          position++
+        }
+      }
+    }
+    return map
+  }, [issue])
+
   const selectedPage = useMemo(() => {
     if (!selectedPageId) return null
     for (const act of issue.acts || []) {
       for (const scene of act.scenes || []) {
         const page = scene.pages?.find((p: any) => p.id === selectedPageId)
-        if (page) return page
+        if (page) {
+          const computed = pageNumberMap.get(page.id)
+          if (computed !== undefined) {
+            return { ...page, page_number: computed }
+          }
+          return page
+        }
       }
     }
     return null
-  }, [issue, selectedPageId])
+  }, [issue, selectedPageId, pageNumberMap])
 
   return (
     <div className="h-8 bg-[var(--bg-primary)] border-t border-[var(--text-primary)] px-4 flex items-center justify-between type-meta shrink-0" style={{ fontVariantNumeric: 'tabular-nums' }}>

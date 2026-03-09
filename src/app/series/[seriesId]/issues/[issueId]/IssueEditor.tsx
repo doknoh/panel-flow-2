@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import NavigationTree from './NavigationTree'
@@ -71,7 +71,48 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const lastSnapshotRef = useRef<string>('')
   const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Compute global page numbers from sort order (source of truth).
+  // The database page_number can be stale after reorders/imports,
+  // so we always derive it from the tree structure and inject it
+  // into a corrected copy of the issue data that all components read.
+  const pageNumberMap = useMemo(() => {
+    const map = new Map<string, number>()
+    let position = 1
+    const sortedActs = [...(issue.acts || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+    for (const act of sortedActs) {
+      const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+      for (const scene of sortedScenes) {
+        const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+        for (const page of sortedPages) {
+          map.set(page.id, position)
+          position++
+        }
+      }
+    }
+    return map
+  }, [issue.acts])
+
+  // Issue with all page_number fields corrected to computed values.
+  // Pass this (not raw `issue`) to all child components for display.
+  const correctedIssue = useMemo(() => {
+    if (pageNumberMap.size === 0) return issue
+    return {
+      ...issue,
+      acts: (issue.acts || []).map((act: any) => ({
+        ...act,
+        scenes: (act.scenes || []).map((scene: any) => ({
+          ...scene,
+          pages: (scene.pages || []).map((page: any) => {
+            const computed = pageNumberMap.get(page.id)
+            return computed !== undefined ? { ...page, page_number: computed } : page
+          }),
+        })),
+      })),
+    }
+  }, [issue, pageNumberMap])
+
   // Find the selected page data along with its Act/Scene context
+  // Uses correctedIssue so page_number is always the computed global position
   const selectedPageContext = (() => {
     if (!selectedPageId) return null
     for (const act of (issue.acts || [])) {
@@ -356,7 +397,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   return (
     <UndoProvider onRefresh={refreshIssue}>
       <IssueEditorContent
-        issue={issue}
+        issue={correctedIssue}
         setIssue={setIssue}
         seriesId={seriesId}
         refreshKey={refreshKey}
@@ -469,12 +510,15 @@ function IssueEditorContent({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openDropdown])
 
-  // Get all pages in order for navigation
+  // Get all pages in order for navigation (using corrected page numbers)
   const allPages = React.useMemo(() => {
     const pages: { id: string; pageNumber: number; sceneId: string; actId: string }[] = []
-    for (const act of issue.acts || []) {
-      for (const scene of act.scenes || []) {
-        for (const page of scene.pages || []) {
+    const sortedActs = [...(issue.acts || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+    for (const act of sortedActs) {
+      const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+      for (const scene of sortedScenes) {
+        const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+        for (const page of sortedPages) {
           pages.push({
             id: page.id,
             pageNumber: page.page_number,
@@ -484,7 +528,6 @@ function IssueEditorContent({
         }
       }
     }
-    // Sort by act order, scene order, page number
     return pages
   }, [issue.acts])
 
@@ -506,7 +549,7 @@ function IssueEditorContent({
     return []
   }, [issue.acts, selectedPageContext?.scene?.id])
 
-  // Peek page data — find full page data for the peek overlay
+  // Peek page data — find full page data for the peek overlay (with corrected page number)
   const peekPageData = React.useMemo(() => {
     if (!peekPageId) return null
     for (const act of issue.acts || []) {
@@ -539,6 +582,7 @@ function IssueEditorContent({
 
   // Add a new page to a scene (for Cmd+P shortcut)
   const addPageToScene = useCallback(async (sceneId: string) => {
+    // Compute the next page number from the total count of existing pages
     const allPagesFlat = issue.acts?.flatMap((a: any) =>
       a.scenes?.flatMap((s: any) => s.pages || []) || []
     ) || []
