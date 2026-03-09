@@ -200,21 +200,36 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     return characterIds
   }, [issue.acts, selectedPageContext?.scene?.id])
 
-  // Split characters into "in scene" and "other" groups
-  const { sceneCharacters, otherCharacters } = useMemo(() => {
+  // Compute characters on the current page (from dialogue blocks)
+  const pageCharacterIds = useMemo(() => {
+    if (!selectedPageContext?.page?.panels) return new Set<string>()
+    const ids = new Set<string>()
+    for (const panel of selectedPageContext.page.panels) {
+      for (const dlg of panel.dialogue_blocks || []) {
+        if (dlg.character_id) ids.add(dlg.character_id)
+      }
+    }
+    return ids
+  }, [selectedPageContext?.page?.panels])
+
+  // Split characters into three groups: on page / in scene / other
+  const { pageCharacters, sceneCharacters, otherCharacters } = useMemo(() => {
+    const onPage: any[] = []
     const inScene: any[] = []
     const other: any[] = []
 
     for (const char of localCharacters) {
-      if (sceneCharacterIds.has(char.id)) {
+      if (pageCharacterIds.has(char.id)) {
+        onPage.push(char)
+      } else if (sceneCharacterIds.has(char.id)) {
         inScene.push(char)
       } else {
         other.push(char)
       }
     }
 
-    return { sceneCharacters: inScene, otherCharacters: other }
-  }, [localCharacters, sceneCharacterIds])
+    return { pageCharacters: onPage, sceneCharacters: inScene, otherCharacters: other }
+  }, [localCharacters, pageCharacterIds, sceneCharacterIds])
 
   // For locations, we could add scene-location associations later
   // For now, show all locations but could be filtered similarly
@@ -1257,7 +1272,34 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                   </p>
                 ) : (
                   <div className="space-y-4">
-                    {/* Characters in current scene */}
+                    {/* Characters on current page */}
+                    {pageCharacters.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-xs text-[var(--color-primary)] uppercase tracking-wide">On This Page</h3>
+                          <span className="text-xs text-[var(--color-primary)]/60">({pageCharacters.length})</span>
+                        </div>
+                        <div className="space-y-1">
+                          {pageCharacters.map((char: any) => (
+                            <button
+                              key={char.id}
+                              onClick={() => setSelectedCharacterId(char.id)}
+                              className="w-full text-left bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 rounded p-3 transition-colors group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-sm">{char.name}</div>
+                                <span className="text-[var(--color-primary)]/50 group-hover:text-[var(--color-primary)] transition-colors">→</span>
+                              </div>
+                              {char.role && (
+                                <div className="text-xs text-[var(--color-primary)]/70">{char.role}</div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Characters in current scene (but not on this page) */}
                     {sceneCharacters.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
@@ -1284,12 +1326,12 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       </div>
                     )}
 
-                    {/* Other characters */}
+                    {/* All other characters */}
                     {otherCharacters.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-semibold text-xs text-[var(--text-muted)] uppercase tracking-wide">
-                            {sceneCharacters.length > 0 ? 'Other Characters' : 'All Characters'}
+                            All Characters
                           </h3>
                           <span className="text-xs text-[var(--text-muted)]">({otherCharacters.length})</span>
                         </div>
@@ -1314,7 +1356,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     )}
 
                     {/* Empty state when no page selected */}
-                    {sceneCharacters.length === 0 && selectedPageContext && (
+                    {pageCharacters.length === 0 && sceneCharacters.length === 0 && selectedPageContext && (
                       <p className="text-xs text-[var(--text-muted)] italic text-center py-2">
                         No characters have dialogue in this scene yet
                       </p>
