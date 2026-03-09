@@ -35,7 +35,7 @@ export default function Header({
               <span className="type-separator">{'\/\/'}</span>
             </>
           )}
-          <h1 className="font-black tracking-tight text-[var(--text-primary)] text-lg sm:text-xl uppercase">{title}</h1>
+          <h1 className="font-black tracking-[-0.04em] text-[var(--text-primary)] text-xl sm:text-2xl uppercase leading-none">{title}</h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           {children}
