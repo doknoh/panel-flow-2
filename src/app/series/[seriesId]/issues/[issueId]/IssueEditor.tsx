@@ -872,7 +872,7 @@ function IssueEditorContent({
             {/* Direct access: Find */}
             <button
               onClick={() => setIsFindReplaceOpen(true)}
-              className="type-meta text-[var(--text-muted)] hover:text-[var(--text-primary)] hidden md:block active:scale-[0.97] transition-all duration-150 ease-out"
+              className="type-meta px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hidden md:block active:scale-[0.97] transition-all duration-150 ease-out"
               title="Find & Replace (⌘F)"
             >
               FIND
