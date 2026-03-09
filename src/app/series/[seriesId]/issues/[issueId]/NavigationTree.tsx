@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import {
@@ -22,6 +22,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { ChevronRight } from 'lucide-react'
 
 interface Plotline {
   id: string
@@ -76,33 +77,20 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   const [expandedActs, setExpandedActs] = useState<Set<string>>(new Set(issue.acts?.map((a: any) => a.id) || []))
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
   const [isMounted, setIsMounted] = useState(false)
-  const [editingScenePlotline, setEditingScenePlotline] = useState<string | null>(null)
-  const [editingActId, setEditingActId] = useState<string | null>(null)
-  const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
-  const [editingTitle, setEditingTitle] = useState('')
-  const [editingSceneSummaryId, setEditingSceneSummaryId] = useState<string | null>(null)
-  const [editingSummary, setEditingSummary] = useState('')
-  const [editingActBeatSummaryId, setEditingActBeatSummaryId] = useState<string | null>(null)
-  const [editingBeatSummary, setEditingBeatSummary] = useState('')
-  const [editingActIntentionId, setEditingActIntentionId] = useState<string | null>(null)
-  const [editingActIntention, setEditingActIntention] = useState('')
-  const [editingSceneIntentionId, setEditingSceneIntentionId] = useState<string | null>(null)
-  const [editingSceneIntention, setEditingSceneIntention] = useState('')
-  const [editingPageId, setEditingPageId] = useState<string | null>(null)
-  const [editingPageTitle, setEditingPageTitle] = useState('')
-  const [movingPageId, setMovingPageId] = useState<string | null>(null)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingItemTitle, setEditingItemTitle] = useState('')
   const [activeDragItem, setActiveDragItem] = useState<{
     id: string
     type: 'act' | 'scene' | 'page'
     sourceId: string
   } | null>(null)
   const [dragOverContainerId, setDragOverContainerId] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number; y: number; type: 'act' | 'scene' | 'page'; id: string; title: string
+  } | null>(null)
+  const [contextSubmenu, setContextSubmenu] = useState<'move-to-act' | 'move-to-scene' | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
-  const pageInputRef = useRef<HTMLInputElement>(null)
-  const summaryInputRef = useRef<HTMLTextAreaElement>(null)
-  const beatSummaryInputRef = useRef<HTMLTextAreaElement>(null)
-  const actIntentionRef = useRef<HTMLTextAreaElement>(null)
-  const sceneIntentionRef = useRef<HTMLTextAreaElement>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
@@ -186,324 +174,151 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     setExpandedScenes(newExpanded)
   }
 
-  // Start editing an act title
-  const startEditingAct = (actId: string, currentTitle: string) => {
-    setEditingActId(actId)
-    setEditingSceneId(null)
-    setEditingTitle(currentTitle)
-    setTimeout(() => editInputRef.current?.select(), 0)
-  }
-
-  // Start editing a scene title
-  const startEditingScene = (sceneId: string, currentTitle: string) => {
-    setEditingSceneId(sceneId)
-    setEditingActId(null)
-    setEditingTitle(currentTitle)
-    setTimeout(() => editInputRef.current?.select(), 0)
-  }
-
-  // Save act title (database column is 'name')
-  const saveActTitle = async (actId: string) => {
-    const trimmedTitle = editingTitle.trim()
-    if (!trimmedTitle) {
-      showToast('Act title cannot be empty', 'error')
-      return
+  // Auto-expand to show selected page
+  useEffect(() => {
+    if (!selectedPageId) return
+    const loc = findPageLocation(selectedPageId)
+    if (loc) {
+      setExpandedActs(prev => new Set([...prev, loc.actId]))
+      setExpandedScenes(prev => new Set([...prev, loc.sceneId]))
     }
+  }, [selectedPageId])
 
-    try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('acts')
-        .update({ name: trimmedTitle })
-        .eq('id', actId)
+  // Close context menu on click outside or Escape
+  useEffect(() => {
+    if (!contextMenu) return
 
-      if (error) {
-        console.error('Act title save error:', error)
-        showToast(`Failed to rename act: ${error.message}`, 'error')
-      } else {
-        // Optimistic update - update the act name in local state immediately
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) =>
-            a.id === actId ? { ...a, name: trimmedTitle } : a
-          ),
-        }))
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null)
+        setContextSubmenu(null)
       }
-    } catch (err) {
-      console.error('Unexpected error saving act title:', err)
-      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
-    setEditingActId(null)
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setContextMenu(null)
+        setContextSubmenu(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [contextMenu])
+
+  // --- Unified title editing ---
+
+  const startEditing = (id: string, title: string) => {
+    setEditingItemId(id)
+    setEditingItemTitle(title)
+    setTimeout(() => editInputRef.current?.select(), 0)
   }
 
-  // Save scene title
-  const saveSceneTitle = async (sceneId: string) => {
-    const trimmedTitle = editingTitle.trim()
+  const cancelEditing = () => {
+    setEditingItemId(null)
+    setEditingItemTitle('')
+  }
+
+  const saveTitle = async () => {
+    if (!editingItemId) return
+    const trimmedTitle = editingItemTitle.trim()
     if (!trimmedTitle) {
-      showToast('Scene title cannot be empty', 'error')
+      showToast('Title cannot be empty', 'error')
       return
     }
 
+    const itemType = getItemType(editingItemId)
+    const id = editingItemId
+
     try {
       const supabase = createClient()
-      const { error } = await supabase
-        .from('scenes')
-        .update({ title: trimmedTitle })
-        .eq('id', sceneId)
 
-      if (error) {
-        console.error('Scene title save error:', error)
-        showToast(`Failed to rename scene: ${error.message}`, 'error')
-      } else {
-        // Optimistic update - update the scene title in local state immediately
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) => ({
-            ...a,
-            scenes: (a.scenes || []).map((s: any) =>
-              s.id === sceneId ? { ...s, title: trimmedTitle } : s
+      if (itemType === 'act') {
+        const { error } = await supabase
+          .from('acts')
+          .update({ name: trimmedTitle })
+          .eq('id', id)
+
+        if (error) {
+          console.error('Act title save error:', error)
+          showToast(`Failed to rename act: ${error.message}`, 'error')
+        } else {
+          setIssue((prev: any) => ({
+            ...prev,
+            acts: prev.acts.map((a: any) =>
+              a.id === id ? { ...a, name: trimmedTitle } : a
             ),
-          })),
-        }))
-      }
-    } catch (err) {
-      console.error('Unexpected error saving scene title:', err)
-      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
-    }
-    setEditingSceneId(null)
-  }
+          }))
+        }
+      } else if (itemType === 'scene') {
+        const { error } = await supabase
+          .from('scenes')
+          .update({ title: trimmedTitle })
+          .eq('id', id)
 
-  // Start editing page title
-  const startEditingPage = (pageId: string, currentTitle: string) => {
-    setEditingPageId(pageId)
-    setEditingPageTitle(currentTitle)
-    setTimeout(() => pageInputRef.current?.select(), 0)
-  }
-
-  // Save page title
-  const savePageTitle = async (pageId: string) => {
-    const trimmedTitle = editingPageTitle.trim()
-    if (!trimmedTitle) {
-      showToast('Page title cannot be empty', 'error')
-      return
-    }
-
-    try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('pages')
-        .update({ title: trimmedTitle })
-        .eq('id', pageId)
-
-      if (error) {
-        console.error('Page title save error:', error)
-        showToast(`Failed to rename page: ${error.message}`, 'error')
-      } else {
-        // Optimistic update - update the page title in local state immediately
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) => ({
-            ...a,
-            scenes: (a.scenes || []).map((s: any) => ({
-              ...s,
-              pages: (s.pages || []).map((p: any) =>
-                p.id === pageId ? { ...p, title: trimmedTitle } : p
+        if (error) {
+          console.error('Scene title save error:', error)
+          showToast(`Failed to rename scene: ${error.message}`, 'error')
+        } else {
+          setIssue((prev: any) => ({
+            ...prev,
+            acts: prev.acts.map((a: any) => ({
+              ...a,
+              scenes: (a.scenes || []).map((s: any) =>
+                s.id === id ? { ...s, title: trimmedTitle } : s
               ),
             })),
-          })),
-        }))
+          }))
+        }
+      } else if (itemType === 'page') {
+        const { error } = await supabase
+          .from('pages')
+          .update({ title: trimmedTitle })
+          .eq('id', id)
+
+        if (error) {
+          console.error('Page title save error:', error)
+          showToast(`Failed to rename page: ${error.message}`, 'error')
+        } else {
+          setIssue((prev: any) => ({
+            ...prev,
+            acts: prev.acts.map((a: any) => ({
+              ...a,
+              scenes: (a.scenes || []).map((s: any) => ({
+                ...s,
+                pages: (s.pages || []).map((p: any) =>
+                  p.id === id ? { ...p, title: trimmedTitle } : p
+                ),
+              })),
+            })),
+          }))
+        }
       }
     } catch (err) {
-      console.error('Unexpected error saving page title:', err)
+      console.error('Unexpected error saving title:', err)
       showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
     }
-    setEditingPageId(null)
+    setEditingItemId(null)
   }
 
-  // Start editing scene summary
-  const startEditingSceneSummary = (sceneId: string, currentSummary: string) => {
-    setEditingSceneSummaryId(sceneId)
-    setEditingSummary(currentSummary || '')
-    setTimeout(() => summaryInputRef.current?.focus(), 0)
-  }
-
-  // Save scene summary
-  const saveSceneSummary = async (sceneId: string) => {
-    try {
-      const supabase = createClient()
-      const trimmedSummary = editingSummary.trim() || null
-      const { error } = await supabase
-        .from('scenes')
-        .update({ scene_summary: trimmedSummary })
-        .eq('id', sceneId)
-
-      if (error) {
-        console.error('Scene summary save error:', error)
-        showToast(`Failed to save summary: ${error.message}`, 'error')
-      } else {
-        // Optimistic update
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) => ({
-            ...a,
-            scenes: (a.scenes || []).map((s: any) =>
-              s.id === sceneId ? { ...s, scene_summary: trimmedSummary } : s
-            ),
-          })),
-        }))
-        showToast('Summary saved', 'success')
-      }
-    } catch (err) {
-      console.error('Unexpected error saving summary:', err)
-      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
-    }
-    setEditingSceneSummaryId(null)
-  }
-
-  // Start editing act beat summary
-  const startEditingActBeatSummary = (actId: string, currentBeatSummary: string) => {
-    setEditingActBeatSummaryId(actId)
-    setEditingBeatSummary(currentBeatSummary || '')
-    setTimeout(() => beatSummaryInputRef.current?.focus(), 0)
-  }
-
-  // Save act beat summary
-  const saveActBeatSummary = async (actId: string) => {
-    try {
-      const supabase = createClient()
-      const trimmedSummary = editingBeatSummary.trim() || null
-      const { error } = await supabase
-        .from('acts')
-        .update({ beat_summary: trimmedSummary })
-        .eq('id', actId)
-
-      if (error) {
-        console.error('Act beat summary save error:', error)
-        showToast(`Failed to save beat summary: ${error.message}`, 'error')
-      } else {
-        // Optimistic update
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) =>
-            a.id === actId ? { ...a, beat_summary: trimmedSummary } : a
-          ),
-        }))
-        showToast('Beat summary saved', 'success')
-      }
-    } catch (err) {
-      console.error('Unexpected error saving beat summary:', err)
-      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
-    }
-    setEditingActBeatSummaryId(null)
-  }
-
-  // Start editing act intention
-  const startEditingActIntention = (actId: string, currentIntention: string) => {
-    setEditingActIntentionId(actId)
-    setEditingActIntention(currentIntention || '')
-    setTimeout(() => actIntentionRef.current?.focus(), 0)
-  }
-
-  // Save act intention
-  const saveActIntention = async (actId: string) => {
-    try {
-      const supabase = createClient()
-      const trimmedIntention = editingActIntention.trim() || null
-      const { error } = await supabase
-        .from('acts')
-        .update({ intention: trimmedIntention })
-        .eq('id', actId)
-
-      if (error) {
-        console.error('Act intention save error:', error)
-        showToast(`Failed to save intention: ${error.message}`, 'error')
-      } else {
-        // Optimistic update
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) =>
-            a.id === actId ? { ...a, intention: trimmedIntention } : a
-          ),
-        }))
-        showToast('Intention saved', 'success')
-      }
-    } catch (err) {
-      console.error('Unexpected error saving act intention:', err)
-      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
-    }
-    setEditingActIntentionId(null)
-  }
-
-  // Start editing scene intention
-  const startEditingSceneIntention = (sceneId: string, currentIntention: string) => {
-    setEditingSceneIntentionId(sceneId)
-    setEditingSceneIntention(currentIntention || '')
-    setTimeout(() => sceneIntentionRef.current?.focus(), 0)
-  }
-
-  // Save scene intention
-  const saveSceneIntention = async (sceneId: string) => {
-    try {
-      const supabase = createClient()
-      const trimmedIntention = editingSceneIntention.trim() || null
-      const { error } = await supabase
-        .from('scenes')
-        .update({ intention: trimmedIntention })
-        .eq('id', sceneId)
-
-      if (error) {
-        console.error('Scene intention save error:', error)
-        showToast(`Failed to save intention: ${error.message}`, 'error')
-      } else {
-        // Optimistic update
-        setIssue((prev: any) => ({
-          ...prev,
-          acts: prev.acts.map((a: any) => ({
-            ...a,
-            scenes: (a.scenes || []).map((s: any) =>
-              s.id === sceneId ? { ...s, intention: trimmedIntention } : s
-            ),
-          })),
-        }))
-        showToast('Intention saved', 'success')
-      }
-    } catch (err) {
-      console.error('Unexpected error saving scene intention:', err)
-      showToast(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
-    }
-    setEditingSceneIntentionId(null)
-  }
-
-  // Cancel editing
-  const cancelEditing = () => {
-    setEditingActId(null)
-    setEditingSceneId(null)
-    setEditingTitle('')
-    setEditingSceneSummaryId(null)
-    setEditingSummary('')
-    setEditingActBeatSummaryId(null)
-    setEditingBeatSummary('')
-    setEditingActIntentionId(null)
-    setEditingActIntention('')
-    setEditingSceneIntentionId(null)
-    setEditingSceneIntention('')
-    setEditingPageId(null)
-    setEditingPageTitle('')
-  }
-
-  // Handle key press in edit input
-  const handleEditKeyDown = (e: React.KeyboardEvent, saveFunc: () => void) => {
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
     // Stop propagation to prevent dnd-kit from capturing keys (especially space)
     e.stopPropagation()
 
     if (e.key === 'Enter') {
       e.preventDefault()
-      saveFunc()
+      saveTitle()
     } else if (e.key === 'Escape') {
       e.preventDefault()
       cancelEditing()
     }
   }
+
+  // --- CRUD operations ---
 
   const addAct = async () => {
     const actNumber = (issue.acts?.length || 0) + 1
@@ -813,15 +628,17 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
   }
 
+  // --- Drag-and-drop handlers ---
+
   const handleActDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
-    const oldIndex = sortedActs.findIndex((a) => a.id === active.id)
-    const newIndex = sortedActs.findIndex((a) => a.id === over.id)
+    const sortedActsLocal = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
+    const oldIndex = sortedActsLocal.findIndex((a) => a.id === active.id)
+    const newIndex = sortedActsLocal.findIndex((a) => a.id === over.id)
 
-    const reordered = arrayMove(sortedActs, oldIndex, newIndex)
+    const reordered = arrayMove(sortedActsLocal, oldIndex, newIndex)
 
     // Optimistic update - update local state immediately
     const reorderedWithSortOrder = reordered.map((act, index) => ({
@@ -1022,7 +839,6 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       setExpandedActs(new Set([...expandedActs, targetAct.id]))
     }
     showToast('Page moved successfully', 'success')
-    setMovingPageId(null)
 
     // Refresh to ensure state is fully synced after move
     await onRefresh()
@@ -1267,36 +1083,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
   }
 
-  // Get all scenes for the move dropdown
-  const allScenes = issue.acts?.flatMap((act: any) =>
-    (act.scenes || []).map((scene: any) => ({
-      ...scene,
-      actTitle: act.name || `Act ${act.number}`,
-    }))
-  ) || []
-
-  const updateScenePlotline = async (sceneId: string, plotlineId: string | null) => {
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('scenes')
-      .update({ plotline_id: plotlineId })
-      .eq('id', sceneId)
-
-    if (!error) {
-      // Optimistic update - update the scene's plotline in local state
-      const plotline = plotlineId ? plotlines.find(p => p.id === plotlineId) : null
-      setIssue((prev: any) => ({
-        ...prev,
-        acts: prev.acts.map((a: any) => ({
-          ...a,
-          scenes: (a.scenes || []).map((s: any) =>
-            s.id === sceneId ? { ...s, plotline_id: plotlineId, plotline } : s
-          ),
-        })),
-      }))
-    }
-    setEditingScenePlotline(null)
-  }
+  // --- Computed values ---
 
   const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
 
@@ -1317,25 +1104,47 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     return map
   }, [sortedActs])
 
-  // Helper to get display name for a page: "Title (position)" or just "(position)"
+  // Helper to get display name for a page
   const getPageDisplayName = (page: any) => {
     const position = pagePositionMap.get(page.id) || '?'
     const hasCustomTitle = page.title && !page.title.match(/^Page \d+$/i)
     if (hasCustomTitle) {
-      return `${page.title} (${position})`
+      return `Page ${position}: ${page.title}`
     }
-    return `(${position})`
+    return `Page ${position}`
   }
+
+  // --- Context menu handlers ---
+
+  const handleContextMenu = (
+    e: React.MouseEvent,
+    type: 'act' | 'scene' | 'page',
+    id: string,
+    title: string
+  ) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, type, id, title })
+    setContextSubmenu(null)
+  }
+
+  const closeContextMenu = () => {
+    setContextMenu(null)
+    setContextSubmenu(null)
+  }
+
+  // --- Render ---
 
   return (
     <div className="p-3">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="type-label">Structure</h3>
+        <h3 className="type-label">STRUCTURE</h3>
         <button
           onClick={addAct}
-          className="type-micro border border-[var(--border)] hover:border-[var(--border-strong)] px-2 py-0.5 active:scale-[0.97] transition-all duration-150 ease-out"
+          className="type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+          title="Add act"
         >
-          [+ ACT]
+          + Act
         </button>
       </div>
 
@@ -1347,22 +1156,28 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             onClick={addAct}
             className="type-micro border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out"
           >
-            [+ CREATE FIRST ACT]
+            Create First Act
           </button>
         </div>
       ) : !isMounted ? (
         // Simple render during SSR to avoid hydration mismatch
-        <div className="space-y-1">
-          {sortedActs.map((act: any) => (
-            <div key={act.id}>
-              <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-secondary)] cursor-pointer group">
-                <span className="type-micro text-[var(--text-muted)]">[+]</span>
-                <span className="type-struct-num">{String(act.number).padStart(2, '0')}.00</span>
-                <span className="type-separator">{'\/\/'}</span>
-                <span className="type-label flex-1">{act.name || `ACT ${act.number}`}</span>
+        <div className="space-y-0.5">
+          {sortedActs.map((act: any) => {
+            const actPageCount = (act.scenes || []).reduce(
+              (sum: number, s: any) => sum + (s.pages?.length || 0), 0
+            )
+            return (
+              <div key={act.id}>
+                <div className="flex items-center gap-2 px-2 py-2 hover:bg-[var(--bg-secondary)] cursor-pointer transition-colors">
+                  <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedActs.has(act.id) ? 'rotate-90' : ''}`} />
+                  <span className="text-sm font-bold uppercase tracking-wide text-[var(--text-primary)] flex-1">
+                    {act.name || `Act ${act.number}`}
+                  </span>
+                  <span className="type-micro tabular-nums text-[var(--text-muted)]">{actPageCount} pg</span>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <DndContext
@@ -1374,515 +1189,315 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           onDragEnd={handleUnifiedDragEnd}
         >
           <SortableContext items={sortedActs.map(a => a.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-1">
-              {sortedActs.map((act: any) => (
-                <SortableItem key={act.id} id={act.id}>
-                  <div>
-                    {/* Act Header */}
-                    <div
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group ${
-                        dragOverContainerId === act.id && (activeDragItem?.type === 'scene' || activeDragItem?.type === 'page') ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                      }`}
-                      onClick={() => !editingActId && toggleAct(act.id)}
-                    >
-                      <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity font-mono text-[9px]" title="Drag to reorder">
-                        ::
-                      </span>
-                      <span className="type-micro text-[var(--text-muted)]">
-                        {expandedActs.has(act.id) ? '[-]' : '[+]'}
-                      </span>
-                      <span className="type-struct-num">{String(act.number).padStart(2, '0')}.00</span>
-                      <span className="type-separator">{'\/\/'}</span>
-                      {editingActId === act.id ? (
-                        <input
-                          ref={editInputRef}
-                          type="text"
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onBlur={() => saveActTitle(act.id)}
-                          onKeyDown={(e) => handleEditKeyDown(e, () => saveActTitle(act.id))}
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 type-label focus:border-[var(--color-primary)] focus:outline-none"
-                          autoFocus
-                        />
-                      ) : (
-                        <span
-                          className="type-label flex-1 cursor-text"
-                          onDoubleClick={(e) => {
-                            e.stopPropagation()
-                            startEditingAct(act.id, act.name || `Act ${act.number}`)
-                          }}
-                        >
-                          {act.name || `ACT ${act.number}`}
-                        </span>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          startEditingAct(act.id, act.name || `Act ${act.number}`)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
-                        title="Rename act"
-                      >
-                        [REN]
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); addScene(act.id) }}
-                        className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
-                        title="Add scene"
-                      >
-                        [+SCN]
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteAct(act.id, act.name || `Act ${act.number}`) }}
-                        className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--color-error)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
-                        title="Delete act"
-                      >
-                        [DEL]
-                      </button>
-                    </div>
+            <div className="space-y-0.5">
+              {sortedActs.map((act: any) => {
+                const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+                const actPageCount = sortedScenes.reduce(
+                  (sum: number, s: any) => sum + (s.pages?.length || 0), 0
+                )
 
-                    {/* Act Beat Summary */}
-                    {expandedActs.has(act.id) && (
-                      editingActBeatSummaryId === act.id ? (
-                        <div className="ml-4 mt-1 mb-2">
-                          <textarea
-                            ref={beatSummaryInputRef}
-                            value={editingBeatSummary}
-                            onChange={(e) => setEditingBeatSummary(e.target.value)}
-                            onBlur={() => saveActBeatSummary(act.id)}
-                            onKeyDown={(e) => {
-                              e.stopPropagation()
-                              if (e.key === 'Escape') {
-                                e.preventDefault()
-                                setEditingActBeatSummaryId(null)
-                              } else if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                saveActBeatSummary(act.id)
-                              }
-                            }}
-                            placeholder="Key beats in this act (not panel-level detail)..."
-                            className="w-full text-xs bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-secondary)] resize-none focus:border-[var(--color-primary)] focus:outline-none"
-                            rows={2}
+                return (
+                  <SortableItem key={act.id} id={act.id}>
+                    <div>
+                      {/* Act Header */}
+                      <div
+                        className={`flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
+                          dragOverContainerId === act.id && (activeDragItem?.type === 'scene' || activeDragItem?.type === 'page') ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
+                        }`}
+                        onClick={() => !editingItemId && toggleAct(act.id)}
+                        onContextMenu={(e) => handleContextMenu(e, 'act', act.id, act.name || `Act ${act.number}`)}
+                      >
+                        <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedActs.has(act.id) ? 'rotate-90' : ''}`} />
+                        {editingItemId === act.id ? (
+                          <input
+                            ref={editInputRef}
+                            type="text"
+                            value={editingItemTitle}
+                            onChange={(e) => setEditingItemTitle(e.target.value)}
+                            onBlur={() => saveTitle()}
+                            onKeyDown={handleEditKeyDown}
                             onClick={(e) => e.stopPropagation()}
+                            className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 text-sm font-bold uppercase tracking-wide focus:border-[var(--color-primary)] focus:outline-none"
+                            autoFocus
                           />
-                        </div>
-                      ) : act.beat_summary ? (
-                        <div
-                          className="ml-4 mt-0.5 mb-1 cursor-pointer group/beatsummary"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            startEditingActBeatSummary(act.id, act.beat_summary)
-                          }}
-                        >
-                          <p className="text-xs text-[var(--text-muted)] italic line-clamp-2 group-hover/beatsummary:text-[var(--text-secondary)]">
-                            {act.beat_summary}
-                          </p>
-                        </div>
-                      ) : (
-                        <div
-                          className="ml-4 mt-0.5 mb-1 cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            startEditingActBeatSummary(act.id, '')
-                          }}
-                        >
-                          <p className="text-xs text-[var(--text-muted)] italic hover:text-[var(--text-muted)]">
-                            + Add beat summary
-                          </p>
-                        </div>
-                      )
-                    )}
-
-                    {/* Act Intention */}
-                    {expandedActs.has(act.id) && (
-                      editingActIntentionId === act.id ? (
-                        <div className="ml-4 mt-1 mb-2">
-                          <textarea
-                            ref={actIntentionRef}
-                            value={editingActIntention}
-                            onChange={(e) => setEditingActIntention(e.target.value)}
-                            onBlur={() => saveActIntention(act.id)}
-                            onKeyDown={(e) => {
+                        ) : (
+                          <span
+                            className="text-sm font-bold uppercase tracking-wide text-[var(--text-primary)] flex-1"
+                            onDoubleClick={(e) => {
                               e.stopPropagation()
-                              if (e.key === 'Escape') {
-                                e.preventDefault()
-                                setEditingActIntentionId(null)
-                              } else if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                saveActIntention(act.id)
-                              }
+                              startEditing(act.id, act.name || `Act ${act.number}`)
                             }}
-                            placeholder="What this act needs to accomplish..."
-                            className="w-full text-xs bg-[var(--accent-hover)]/10 border border-[var(--accent-hover)]/30 rounded px-2 py-1 text-[var(--text-secondary)] resize-none focus:border-[var(--accent-hover)] focus:outline-none"
-                            rows={2}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                      ) : act.intention ? (
-                        <div
-                          className="ml-4 mt-0.5 mb-1 cursor-pointer group/actintention"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            startEditingActIntention(act.id, act.intention)
-                          }}
-                        >
-                          <p className="text-xs text-[var(--accent-hover)]/70 line-clamp-2 group-hover/actintention:text-[var(--accent-hover)]">
-                            → {act.intention}
-                          </p>
-                        </div>
-                      ) : (
-                        <div
-                          className="ml-4 mt-0.5 mb-1 cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            startEditingActIntention(act.id, '')
-                          }}
-                        >
-                          <p className="text-xs text-[var(--accent-hover)]/50 hover:text-[var(--accent-hover)]">
-                            + Add intention
-                          </p>
-                        </div>
-                      )
-                    )}
+                          >
+                            {act.name || `Act ${act.number}`}
+                          </span>
+                        )}
+                        <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{actPageCount} pg</span>
+                      </div>
 
-                    {/* Scenes */}
-                    {expandedActs.has(act.id) && (
-                      <div className="ml-4">
-                        <SortableContext items={(act.scenes || []).map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
-                          {(act.scenes || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((scene: any) => (
-                            <SortableItem key={scene.id} id={scene.id}>
-                              <div>
-                                {/* Scene Header */}
-                                <div
-                                  className={`flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing group ${
-                                    dragOverContainerId === scene.id && activeDragItem?.type === 'page' ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                                  }`}
-                                  onClick={() => !editingSceneId && toggleScene(scene.id)}
-                                >
-                                    <span className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity font-mono text-[9px]" title="Drag to reorder">
-                                      ::
-                                    </span>
-                                    <span className="type-micro text-[var(--text-muted)]">
-                                      {expandedScenes.has(scene.id) ? '[-]' : '[+]'}
-                                    </span>
-                                    {/* Plotline color indicator */}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setEditingScenePlotline(editingScenePlotline === scene.id ? null : scene.id)
-                                      }}
-                                      className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-[var(--border)] hover:border-[var(--border-strong)] active:scale-[0.97] transition-all duration-150 ease-out"
-                                      style={{ backgroundColor: scene.plotline?.color || 'transparent' }}
-                                      title={scene.plotline?.name || 'No plotline assigned'}
-                                    />
-                                    {editingSceneId === scene.id ? (
-                                      <input
-                                        ref={editInputRef}
-                                        type="text"
-                                        value={editingTitle}
-                                        onChange={(e) => setEditingTitle(e.target.value)}
-                                        onBlur={() => saveSceneTitle(scene.id)}
-                                        onKeyDown={(e) => handleEditKeyDown(e, () => saveSceneTitle(scene.id))}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 type-meta focus:border-[var(--color-primary)] focus:outline-none"
-                                        autoFocus
-                                      />
-                                    ) : (
-                                      <span
-                                        className="type-meta text-[var(--text-secondary)] flex-1 truncate cursor-text"
-                                        onDoubleClick={(e) => {
-                                          e.stopPropagation()
-                                          startEditingScene(scene.id, scene.title || 'Untitled Scene')
-                                        }}
-                                      >
-                                        {scene.title || 'UNTITLED SCENE'}
-                                      </span>
-                                    )}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        startEditingScene(scene.id, scene.title || 'Untitled Scene')
-                                      }}
-                                      className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
-                                      title="Rename scene"
-                                    >
-                                      [REN]
-                                    </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); addPage(scene.id) }}
-                                      className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
-                                      title="Add page"
-                                    >
-                                      [+PG]
-                                    </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); deleteScene(scene.id, scene.title || 'Untitled Scene', scene.pages?.length || 0) }}
-                                      className="opacity-0 group-hover:opacity-100 type-micro text-[var(--text-muted)] hover:text-[var(--color-error)] px-1 active:scale-[0.97] transition-all duration-150 ease-out"
-                                      title="Delete scene"
-                                    >
-                                      [DEL]
-                                    </button>
-                                  </div>
-                                  {/* Scene Summary */}
-                                  {editingSceneSummaryId === scene.id ? (
-                                    <div className="ml-6 mt-1 mb-2">
-                                      <textarea
-                                        ref={summaryInputRef}
-                                        value={editingSummary}
-                                        onChange={(e) => setEditingSummary(e.target.value)}
-                                        onBlur={() => saveSceneSummary(scene.id)}
-                                        onKeyDown={(e) => {
-                                          e.stopPropagation() // Prevent space/other keys from bubbling
-                                          if (e.key === 'Escape') {
-                                            e.preventDefault()
-                                            setEditingSceneSummaryId(null)
-                                          } else if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault()
-                                            saveSceneSummary(scene.id)
-                                          }
-                                        }}
-                                        placeholder="One-sentence scene summary..."
-                                        className="w-full text-xs bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-secondary)] resize-none focus:border-[var(--color-primary)] focus:outline-none"
-                                        rows={2}
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </div>
-                                  ) : scene.scene_summary ? (
-                                    <div
-                                      className="ml-6 mt-0.5 mb-1 cursor-pointer group/summary"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        startEditingSceneSummary(scene.id, scene.scene_summary)
-                                      }}
-                                    >
-                                      <p className="text-xs text-[var(--text-muted)] italic line-clamp-2 group-hover/summary:text-[var(--text-secondary)]">
-                                        {scene.scene_summary}
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      className="ml-6 mt-0.5 mb-1 cursor-pointer"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        startEditingSceneSummary(scene.id, '')
-                                      }}
-                                    >
-                                      <p className="text-xs text-[var(--text-muted)] italic hover:text-[var(--text-muted)]">
-                                        + Add summary
-                                      </p>
-                                    </div>
-                                  )}
+                      {/* Expanded Act Content */}
+                      {expandedActs.has(act.id) && (
+                        <div>
+                          <SortableContext items={sortedScenes.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
+                            {sortedScenes.map((scene: any) => {
+                              const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+                              const scenePageCount = sortedPages.length
 
-                                  {/* Scene Intention */}
-                                  {editingSceneIntentionId === scene.id ? (
-                                    <div className="ml-6 mt-1 mb-2">
-                                      <textarea
-                                        ref={sceneIntentionRef}
-                                        value={editingSceneIntention}
-                                        onChange={(e) => setEditingSceneIntention(e.target.value)}
-                                        onBlur={() => saveSceneIntention(scene.id)}
-                                        onKeyDown={(e) => {
-                                          e.stopPropagation()
-                                          if (e.key === 'Escape') {
-                                            e.preventDefault()
-                                            setEditingSceneIntentionId(null)
-                                          } else if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault()
-                                            saveSceneIntention(scene.id)
-                                          }
-                                        }}
-                                        placeholder="What this scene needs to accomplish..."
-                                        className="w-full text-xs bg-[var(--accent-hover)]/10 border border-[var(--accent-hover)]/30 rounded px-2 py-1 text-[var(--text-secondary)] resize-none focus:border-[var(--accent-hover)] focus:outline-none"
-                                        rows={2}
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </div>
-                                  ) : scene.intention ? (
+                              return (
+                                <SortableItem key={scene.id} id={scene.id}>
+                                  <div>
+                                    {/* Scene Header */}
                                     <div
-                                      className="ml-6 mt-0.5 mb-1 cursor-pointer group/sceneintention"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        startEditingSceneIntention(scene.id, scene.intention)
-                                      }}
+                                      className={`flex items-center gap-2 pl-6 pr-2 py-1.5 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
+                                        dragOverContainerId === scene.id && activeDragItem?.type === 'page' ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
+                                      }`}
+                                      style={{ borderLeft: `3px solid ${scene.plotline?.color || 'transparent'}` }}
+                                      onClick={() => !editingItemId && toggleScene(scene.id)}
+                                      onContextMenu={(e) => handleContextMenu(e, 'scene', scene.id, scene.title || 'Untitled Scene')}
                                     >
-                                      <p className="text-xs text-[var(--accent-hover)]/70 line-clamp-2 group-hover/sceneintention:text-[var(--accent-hover)]">
-                                        → {scene.intention}
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      className="ml-6 mt-0.5 mb-1 cursor-pointer"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        startEditingSceneIntention(scene.id, '')
-                                      }}
-                                    >
-                                      <p className="text-xs text-[var(--accent-hover)]/50 hover:text-[var(--accent-hover)]">
-                                        + Add intention
-                                      </p>
-                                    </div>
-                                  )}
-
-                                  {/* Plotline selector dropdown */}
-                                  {editingScenePlotline === scene.id && (
-                                    <div className="ml-6 mt-1 mb-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-2">
-                                      <div className="text-xs text-[var(--text-secondary)] mb-2">Assign plotline:</div>
-                                      <div className="space-y-1">
-                                        <button
-                                          onClick={(e) => {
+                                      <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedScenes.has(scene.id) ? 'rotate-90' : ''}`} />
+                                      {editingItemId === scene.id ? (
+                                        <input
+                                          ref={editInputRef}
+                                          type="text"
+                                          value={editingItemTitle}
+                                          onChange={(e) => setEditingItemTitle(e.target.value)}
+                                          onBlur={() => saveTitle()}
+                                          onKeyDown={handleEditKeyDown}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 text-xs font-medium focus:border-[var(--color-primary)] focus:outline-none"
+                                          autoFocus
+                                        />
+                                      ) : (
+                                        <span
+                                          className="text-xs font-medium text-[var(--text-secondary)] flex-1 truncate"
+                                          onDoubleClick={(e) => {
                                             e.stopPropagation()
-                                            updateScenePlotline(scene.id, null)
+                                            startEditing(scene.id, scene.title || 'Untitled Scene')
                                           }}
-                                          className={`w-full text-left text-xs px-2 py-1 rounded flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
-                                            !scene.plotline_id ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-tertiary)]'
-                                          }`}
                                         >
-                                          <span className="w-2 h-2 rounded-full border border-[var(--border)]" />
-                                          <span className="text-[var(--text-secondary)]">None</span>
-                                        </button>
-                                        {plotlines.map((plotline) => (
-                                          <button
-                                            key={plotline.id}
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              updateScenePlotline(scene.id, plotline.id)
-                                            }}
-                                            className={`w-full text-left text-xs px-2 py-1 rounded flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
-                                              scene.plotline?.id === plotline.id ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-tertiary)]'
-                                            }`}
-                                          >
-                                            <span
-                                              className="w-2 h-2 rounded-full flex-shrink-0"
-                                              style={{ backgroundColor: plotline.color }}
-                                            />
-                                            <span className="truncate">{plotline.name}</span>
-                                          </button>
-                                        ))}
-                                      </div>
+                                          {scene.title || 'Untitled Scene'}
+                                        </span>
+                                      )}
+                                      <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{scenePageCount} pg</span>
                                     </div>
-                                  )}
 
-                                  {/* Pages */}
-                                  {expandedScenes.has(scene.id) && (
-                                    <div className="ml-4">
-                                      <SortableContext items={(scene.pages || []).map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
-                                          {(scene.pages || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((page: any) => (
-                                            <SortableItem key={page.id} id={page.id}>
-                                              <div>
+                                    {/* Expanded Scene Content - Pages */}
+                                    {expandedScenes.has(scene.id) && (
+                                      <div>
+                                        <SortableContext items={sortedPages.map((p: any) => p.id)} strategy={verticalListSortingStrategy}>
+                                          {sortedPages.map((page: any) => {
+                                            const panelCount = page.panels?.length || 0
+                                            const isSelected = selectedPageId === page.id
+
+                                            return (
+                                              <SortableItem key={page.id} id={page.id}>
                                                 <div
-                                                  onClick={() => !editingPageId && onSelectPage(page.id)}
-                                                  className={`px-2 py-1 cursor-grab active:cursor-grabbing type-micro flex items-center gap-1 group/page ${
-                                                    selectedPageId === page.id
+                                                  onClick={() => !editingItemId && onSelectPage(page.id)}
+                                                  onContextMenu={(e) => handleContextMenu(e, 'page', page.id, page.title || '')}
+                                                  className={`flex items-center gap-2 pl-10 pr-2 py-1 cursor-pointer transition-colors group ${
+                                                    isSelected
                                                       ? 'bg-[var(--color-primary)] text-white'
                                                       : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
                                                   }`}
                                                 >
-                                                  <span className={`font-mono text-[9px] opacity-0 group-hover/page:opacity-100 transition-opacity ${selectedPageId === page.id ? 'text-white/50' : 'text-[var(--text-disabled)]'}`} title="Drag to reorder">
-                                                    ::
-                                                  </span>
-                                                  {editingPageId === page.id ? (
+                                                  {editingItemId === page.id ? (
                                                     <input
-                                                      ref={pageInputRef}
+                                                      ref={editInputRef}
                                                       type="text"
-                                                      value={editingPageTitle}
-                                                      onChange={(e) => setEditingPageTitle(e.target.value)}
-                                                      onBlur={() => savePageTitle(page.id)}
-                                                      onKeyDown={(e) => handleEditKeyDown(e, () => savePageTitle(page.id))}
+                                                      value={editingItemTitle}
+                                                      onChange={(e) => setEditingItemTitle(e.target.value)}
+                                                      onBlur={() => saveTitle()}
+                                                      onKeyDown={handleEditKeyDown}
                                                       onClick={(e) => e.stopPropagation()}
-                                                      className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 type-micro focus:border-[var(--color-primary)] focus:outline-none"
+                                                      className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 text-xs focus:border-[var(--color-primary)] focus:outline-none text-[var(--text-primary)]"
                                                       autoFocus
                                                     />
                                                   ) : (
-                                                    <span
-                                                      className="flex-1 truncate cursor-text"
-                                                      onDoubleClick={(e) => {
-                                                        e.stopPropagation()
-                                                        startEditingPage(page.id, page.title || '')
-                                                      }}
-                                                    >
+                                                    <span className="text-xs flex-1 truncate">
                                                       {getPageDisplayName(page)}
                                                     </span>
                                                   )}
-                                                  <button
-                                                    onClick={(e) => {
-                                                      e.stopPropagation()
-                                                      startEditingPage(page.id, page.title || '')
-                                                    }}
-                                                    className={`opacity-0 group-hover/page:opacity-100 type-micro px-0.5 active:scale-[0.97] transition-all duration-150 ease-out ${
-                                                      selectedPageId === page.id
-                                                        ? 'text-white/60 hover:text-white'
-                                                        : 'text-[var(--text-disabled)] hover:text-[var(--text-primary)]'
-                                                    }`}
-                                                    title="Rename page"
-                                                  >
-                                                    REN
-                                                  </button>
-                                                  <button
-                                                    onClick={(e) => {
-                                                      e.stopPropagation()
-                                                      setMovingPageId(movingPageId === page.id ? null : page.id)
-                                                    }}
-                                                    className={`opacity-0 group-hover/page:opacity-100 type-micro px-0.5 active:scale-[0.97] transition-all duration-150 ease-out ${
-                                                      selectedPageId === page.id
-                                                        ? 'text-white/60 hover:text-white'
-                                                        : 'text-[var(--text-disabled)] hover:text-[var(--text-primary)]'
-                                                    }`}
-                                                    title="Move to scene"
-                                                  >
-                                                    MOV
-                                                  </button>
-                                                  <button
-                                                    onClick={(e) => { e.stopPropagation(); deletePage(page.id, pagePositionMap.get(page.id) || page.page_number) }}
-                                                    className={`opacity-0 group-hover/page:opacity-100 type-micro px-0.5 active:scale-[0.97] transition-all duration-150 ease-out ${
-                                                      selectedPageId === page.id
-                                                        ? 'text-white/60 hover:text-[var(--color-error)]'
-                                                        : 'text-[var(--text-disabled)] hover:text-[var(--color-error)]'
-                                                    }`}
-                                                    title="Delete page"
-                                                  >
-                                                    DEL
-                                                  </button>
+                                                  <span className={`type-micro tabular-nums ${isSelected ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
+                                                    {panelCount} pnl
+                                                  </span>
                                                 </div>
-                                                {/* Move to scene dropdown */}
-                                                {movingPageId === page.id && (
-                                                  <div className="ml-4 mt-1 mb-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-2 max-h-48 overflow-y-auto">
-                                                    <div className="text-xs text-[var(--text-secondary)] mb-2">Move to scene:</div>
-                                                    <div className="space-y-1">
-                                                      {allScenes.filter((s: any) => s.id !== scene.id).map((targetScene: any) => (
-                                                        <button
-                                                          key={targetScene.id}
-                                                          onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            movePageToScene(page.id, targetScene.id)
-                                                          }}
-                                                          className="w-full text-left text-xs px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out"
-                                                        >
-                                                          <span className="text-[var(--text-muted)]">{targetScene.actTitle} →</span>
-                                                          <span className="truncate">{targetScene.title || 'Untitled Scene'}</span>
-                                                        </button>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </SortableItem>
-                                          ))}
+                                              </SortableItem>
+                                            )
+                                          })}
                                         </SortableContext>
-                                    </div>
-                                  )}
-                              </div>
-                            </SortableItem>
-                          ))}
-                        </SortableContext>
-                      </div>
-                    )}
-                  </div>
-                </SortableItem>
-              ))}
+
+                                        {/* Add Page link */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            addPage(scene.id)
+                                          }}
+                                          className="w-full text-left pl-10 pr-2 py-1 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                                        >
+                                          + Add Page
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </SortableItem>
+                              )
+                            })}
+                          </SortableContext>
+
+                          {/* Add Scene link */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              addScene(act.id)
+                            }}
+                            className="w-full text-left pl-6 pr-2 py-1.5 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                          >
+                            + Add Scene
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </SortableItem>
+                )
+              })}
             </div>
           </SortableContext>
         </DndContext>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-50 bg-[var(--bg-elevated)] border border-[var(--border)] shadow-lg py-1 min-w-[160px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          {/* Rename - available for all types */}
+          <button
+            onClick={() => {
+              startEditing(contextMenu.id, contextMenu.title)
+              closeContextMenu()
+            }}
+            className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+          >
+            Rename
+          </button>
+
+          {/* Move to Act - only for scenes */}
+          {contextMenu.type === 'scene' && (
+            <div
+              className="relative"
+              onMouseEnter={() => setContextSubmenu('move-to-act')}
+              onMouseLeave={() => setContextSubmenu(null)}
+            >
+              <button
+                className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors flex items-center justify-between"
+              >
+                <span>Move to Act</span>
+                <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />
+              </button>
+              {contextSubmenu === 'move-to-act' && (
+                <div className="absolute left-full top-0 bg-[var(--bg-elevated)] border border-[var(--border)] shadow-lg py-1 min-w-[140px]">
+                  {sortedActs.map((act: any) => {
+                    const sceneLocation = findSceneLocation(contextMenu.id)
+                    const isCurrent = sceneLocation?.actId === act.id
+                    return (
+                      <button
+                        key={act.id}
+                        onClick={() => {
+                          if (!isCurrent) {
+                            moveSceneToAct(contextMenu.id, act.id)
+                          }
+                          closeContextMenu()
+                        }}
+                        disabled={isCurrent}
+                        className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                          isCurrent
+                            ? 'text-[var(--text-disabled)] cursor-default'
+                            : 'cursor-pointer hover:bg-[var(--bg-secondary)]'
+                        }`}
+                      >
+                        {act.name || `Act ${act.number}`}
+                        {isCurrent && ' (current)'}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Move to Scene - only for pages */}
+          {contextMenu.type === 'page' && (
+            <div
+              className="relative"
+              onMouseEnter={() => setContextSubmenu('move-to-scene')}
+              onMouseLeave={() => setContextSubmenu(null)}
+            >
+              <button
+                className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors flex items-center justify-between"
+              >
+                <span>Move to Scene</span>
+                <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />
+              </button>
+              {contextSubmenu === 'move-to-scene' && (
+                <div className="absolute left-full top-0 bg-[var(--bg-elevated)] border border-[var(--border)] shadow-lg py-1 min-w-[180px] max-h-64 overflow-y-auto">
+                  {sortedActs.map((act: any) => {
+                    const actScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+                    return actScenes.map((scene: any) => {
+                      const pageLocation = findPageLocation(contextMenu.id)
+                      const isCurrent = pageLocation?.sceneId === scene.id
+                      return (
+                        <button
+                          key={scene.id}
+                          onClick={() => {
+                            if (!isCurrent) {
+                              movePageToScene(contextMenu.id, scene.id)
+                            }
+                            closeContextMenu()
+                          }}
+                          disabled={isCurrent}
+                          className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                            isCurrent
+                              ? 'text-[var(--text-disabled)] cursor-default'
+                              : 'cursor-pointer hover:bg-[var(--bg-secondary)]'
+                          }`}
+                        >
+                          <span className="text-[var(--text-muted)]">{act.name || `Act ${act.number}`} &rarr; </span>
+                          {scene.title || 'Untitled Scene'}
+                          {isCurrent && ' (current)'}
+                        </button>
+                      )
+                    })
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Separator */}
+          <div className="my-1 border-t border-[var(--border)]" />
+
+          {/* Delete */}
+          <button
+            onClick={() => {
+              if (contextMenu.type === 'act') {
+                deleteAct(contextMenu.id, contextMenu.title)
+              } else if (contextMenu.type === 'scene') {
+                const sceneLocation = findSceneLocation(contextMenu.id)
+                const scene = sceneLocation?.scene
+                deleteScene(contextMenu.id, contextMenu.title, scene?.pages?.length || 0)
+              } else if (contextMenu.type === 'page') {
+                const position = pagePositionMap.get(contextMenu.id) || 0
+                deletePage(contextMenu.id, position)
+              }
+              closeContextMenu()
+            }}
+            className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--bg-secondary)] text-[var(--color-error)] transition-colors"
+          >
+            Delete
+          </button>
+        </div>
       )}
     </div>
   )
