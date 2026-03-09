@@ -43,36 +43,57 @@ export default async function IssuePage({
     notFound()
   }
 
-  // Fetch acts/scenes/pages structure separately (avoids timeout on large issues)
-  const { data: actsData, error: actsError } = await supabase
-    .from('acts')
-    .select(`
-      *,
-      scenes (
+  // Fetch acts/scenes/pages structure and plotlines separately
+  // (avoids timeout on large issues and prevents FK join failures on plotline_id)
+  const [actsResult, plotlinesResult] = await Promise.all([
+    supabase
+      .from('acts')
+      .select(`
         *,
-        pages (
+        scenes (
           *,
-          panels (
+          pages (
             *,
-            dialogue_blocks (*, character:character_id (id, name)),
-            captions (*),
-            sound_effects (*)
+            panels (
+              *,
+              dialogue_blocks (*, character:character_id (id, name)),
+              captions (*),
+              sound_effects (*)
+            )
           )
         )
-      )
-    `)
-    .eq('issue_id', issueId)
-    .order('sort_order', { ascending: true })
+      `)
+      .eq('issue_id', issueId)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('plotlines')
+      .select('*')
+      .eq('series_id', seriesId)
+      .order('sort_order')
+  ])
 
-  if (actsError) {
-    console.error('Acts fetch error:', actsError)
-    // Don't 404, just provide empty acts - the editor can handle this
+  if (actsResult.error) {
+    console.error('Acts fetch error:', actsResult.error)
+  }
+
+  // Resolve plotline names onto scenes from separately-fetched plotlines
+  const actsData = actsResult.data || []
+  const plotlineMap = new Map((plotlinesResult.data || []).map(p => [p.id, p]))
+  for (const act of actsData) {
+    for (const scene of ((act as any).scenes || [])) {
+      scene.plotline = scene.plotline_id ? plotlineMap.get(scene.plotline_id) || null : null
+    }
+  }
+
+  // Merge plotlines into series data
+  if (plotlinesResult.data) {
+    (issueData as any).series.plotlines = plotlinesResult.data
   }
 
   // Combine the data
   const issue = {
     ...issueData,
-    acts: actsData || []
+    acts: actsData
   }
 
   return <IssueEditor issue={issue} seriesId={seriesId} />

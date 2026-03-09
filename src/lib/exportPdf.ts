@@ -3,7 +3,9 @@ import { parseMarkdownForPdf } from './markdown'
 
 interface DialogueBlock {
   character_id: string | null
+  speaker_name: string | null
   dialogue_type: string
+  modifier: string | null
   text: string
   sort_order: number
 }
@@ -57,7 +59,63 @@ interface Issue {
   acts: Act[]
 }
 
-export function exportIssueToPdf(issue: Issue) {
+/**
+ * Build the dialogue type suffix based on the spec format.
+ *
+ * Mapping:
+ *   'dialogue'    -> no suffix (standard)
+ *   'voice_over'  -> ' (V.O.)'
+ *   'off_panel'   -> ' (O.S.)'
+ *   'thought'     -> ' (THINKS)'
+ *   'whisper'     -> ' [WHISPERS]'
+ *   'shout'       -> ' [SHOUTS]'
+ *   'electronic'  -> ' (ELECTRONIC)'
+ */
+function getDialogueSuffix(dialogueType: string): string {
+  switch (dialogueType) {
+    case 'voice_over':
+    case 'radio':
+      return ' (V.O.)'
+    case 'off_panel':
+      return ' (O.S.)'
+    case 'thought':
+      return ' (THINKS)'
+    case 'whisper':
+      return ' [WHISPERS]'
+    case 'shout':
+      return ' [SHOUTS]'
+    case 'electronic':
+      return ' (ELECTRONIC)'
+    default:
+      return ''
+  }
+}
+
+/**
+ * Auto-capitalize character names in visual descriptions.
+ * Scans for known character display names and replaces them
+ * with their UPPERCASE equivalents.
+ */
+function autoCapitalizeCharacterNames(text: string, characterNames: string[]): string {
+  if (!text || characterNames.length === 0) return text
+
+  let result = text
+  for (const name of characterNames) {
+    if (!name) continue
+    // Match the name as a whole word (case-insensitive), replace with uppercase
+    const regex = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
+    result = result.replace(regex, name.toUpperCase())
+  }
+  return result
+}
+
+export function exportIssueToPdf(
+  issue: Issue,
+  options?: {
+    authorName?: string
+    characterNames?: string[]
+  }
+) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',
@@ -70,6 +128,7 @@ export function exportIssueToPdf(issue: Issue) {
   let y = margin
 
   const characterMap = new Map(issue.series.characters.map(c => [c.id, c.name]))
+  const charNames = options?.characterNames || issue.series.characters.map(c => c.name)
 
   const addText = (text: string, fontSize: number, isBold = false, indent = 0) => {
     doc.setFontSize(fontSize)
@@ -182,19 +241,36 @@ export function exportIssueToPdf(issue: Issue) {
     }
   }
 
-  // Title page
+  // Title page - spec format: "[SERIES TITLE] - ISSUE #[NUMBER]"
   doc.setFontSize(24)
   doc.setFont('helvetica', 'bold')
-  doc.text(issue.series.title, pageWidth / 2, 200, { align: 'center' })
+  doc.text(`${issue.series.title} - ISSUE #${issue.number}`, pageWidth / 2, 200, { align: 'center' })
 
-  doc.setFontSize(18)
-  doc.text(`Issue #${issue.number}${issue.title ? `: ${issue.title}` : ''}`, pageWidth / 2, 240, { align: 'center' })
+  // Author line - spec format: "By [Author Name]"
+  const authorName = options?.authorName
+  if (authorName) {
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`By ${authorName}`, pageWidth / 2, 230, { align: 'center' })
+  }
 
+  // Chapter line - spec format: "CHAPTER [NUMBER]: [ISSUE TITLE]"
+  if (issue.title) {
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`CHAPTER ${issue.number}: ${issue.title.toUpperCase()}`, pageWidth / 2, 260, { align: 'center' })
+  }
+
+  // Summary - spec format: "TL;DR SUMMARY" heading
   if (issue.summary) {
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('TL;DR SUMMARY', pageWidth / 2, 310, { align: 'center' })
+
     doc.setFontSize(12)
     doc.setFont('helvetica', 'normal')
     const summaryLines = doc.splitTextToSize(issue.summary, contentWidth)
-    let summaryY = 300
+    let summaryY = 340
     for (const line of summaryLines) {
       doc.text(line, pageWidth / 2, summaryY, { align: 'center' })
       summaryY += 18
@@ -227,21 +303,28 @@ export function exportIssueToPdf(issue: Issue) {
       const sortedPages = [...(scene.pages || [])].sort((a, b) => a.page_number - b.page_number)
 
       for (const page of sortedPages) {
-        // Page header
-        addText(`PAGE ${page.page_number}`, 12, true)
+        // Determine page orientation (odd = right, even = left)
+        const orientation = page.page_number % 2 === 1 ? 'right' : 'left'
+
+        // Page header - spec format: "PAGE [N] ([orientation])"
+        addText(`PAGE ${page.page_number} (${orientation})`, 12, true)
         addSpace(8)
 
-        // Sort panels
+        // Sort panels and restart panel numbering at 1 per page
         const sortedPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
 
-        for (const panel of sortedPanels) {
+        sortedPanels.forEach((panel, panelIndex) => {
+          // Panel numbers restart at 1 per page per spec
+          const displayPanelNumber = panelIndex + 1
+
           // Panel header with shot type
           const shotType = panel.shot_type ? ` (${panel.shot_type.replace('_', ' ').toUpperCase()})` : ''
-          addText(`Panel ${panel.panel_number}${shotType}`, 11, true, 20)
+          addText(`PANEL ${displayPanelNumber}:${shotType}`, 11, true, 20)
 
-          // Visual description (supports markdown bold/italic)
+          // Visual description with auto-capitalized character names (supports markdown bold/italic)
           if (panel.visual_description) {
-            addMarkdownText(panel.visual_description, 10, 40)
+            const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
+            addMarkdownText(capitalizedDesc, 10, 40)
           }
 
           addSpace(6)
@@ -249,27 +332,38 @@ export function exportIssueToPdf(issue: Issue) {
           // Captions first (they usually appear at top of panel)
           const sortedCaptions = [...(panel.captions || [])].sort((a, b) => a.sort_order - b.sort_order)
           for (const caption of sortedCaptions) {
-            const captionType = caption.caption_type.toUpperCase()
-            addText(`CAPTION (${captionType}):`, 10, true, 40)
+            const captionType = caption.caption_type === 'narrative' ? 'CAP' :
+              caption.caption_type === 'location' ? 'LOCATION' :
+              caption.caption_type === 'time' ? 'TIME' :
+              'CAP'
+            addText(`${captionType}:`, 10, true, 40)
             // Caption text supports markdown bold/italic
-            addMarkdownText(`"${caption.text}"`, 10, 60)
+            addMarkdownText(caption.text, 10, 60)
             addSpace(4)
           }
 
           // Dialogue blocks
           const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a, b) => a.sort_order - b.sort_order)
           for (const dialogue of sortedDialogue) {
-            const characterName = dialogue.character_id
-              ? characterMap.get(dialogue.character_id) || 'UNKNOWN'
-              : 'UNKNOWN'
+            // Use speaker_name if available, otherwise look up from character map
+            const characterName = dialogue.speaker_name
+              ? dialogue.speaker_name.toUpperCase()
+              : dialogue.character_id
+                ? (characterMap.get(dialogue.character_id) || 'UNKNOWN').toUpperCase()
+                : 'UNKNOWN'
 
-            const dialogueType = dialogue.dialogue_type !== 'dialogue'
-              ? ` (${dialogue.dialogue_type.toUpperCase()})`
-              : ''
+            // Build dialogue type suffix per spec format
+            const dialogueSuffix = getDialogueSuffix(dialogue.dialogue_type)
 
-            addText(`${characterName.toUpperCase()}${dialogueType}:`, 10, true, 40)
+            // Add modifier/instruction in bracket format if present and type is standard dialogue
+            let modifierSuffix = ''
+            if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') {
+              modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]`
+            }
+
+            addText(`${characterName}${dialogueSuffix}${modifierSuffix}:`, 10, true, 40)
             // Dialogue text supports markdown bold/italic for letterer
-            addMarkdownText(`"${dialogue.text}"`, 10, 60)
+            addMarkdownText(dialogue.text, 10, 60)
             addSpace(4)
           }
 
@@ -284,7 +378,7 @@ export function exportIssueToPdf(issue: Issue) {
           }
 
           addSpace(12)
-        }
+        })
 
         addSpace(16)
       }
@@ -292,6 +386,9 @@ export function exportIssueToPdf(issue: Issue) {
 
     addSpace(24)
   }
+
+  // End of issue - spec format: "END OF ISSUE #[NUMBER]"
+  addText(`END OF ISSUE #${issue.number}`, 14, true)
 
   // Save the PDF
   const filename = `${issue.series.title.replace(/[^a-z0-9]/gi, '_')}_Issue_${issue.number}.pdf`

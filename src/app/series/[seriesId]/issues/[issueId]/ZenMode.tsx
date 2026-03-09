@@ -44,6 +44,14 @@ interface Character {
   name: string
 }
 
+interface SceneContext {
+  actName: string
+  sceneName: string
+  plotlineName?: string | null
+  pagePositionInScene?: number
+  totalPagesInScene?: number
+}
+
 interface ZenModeProps {
   page: {
     id: string
@@ -52,6 +60,7 @@ interface ZenModeProps {
   }
   characters: Character[]
   pagePosition: string // e.g., "Page 5 of 22"
+  sceneContext?: SceneContext | null
   onExit: () => void
   onSave: () => void
   onNavigate: (direction: 'prev' | 'next') => void
@@ -61,6 +70,7 @@ export default function ZenMode({
   page,
   characters,
   pagePosition,
+  sceneContext,
   onExit,
   onSave,
   onNavigate,
@@ -69,6 +79,8 @@ export default function ZenMode({
   const [panels, setPanels] = useState<Panel[]>(page.panels || [])
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
+  const [sessionWordCount, setSessionWordCount] = useState(0)
+  const initialWordCountRef = useRef(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
@@ -80,6 +92,25 @@ export default function ZenMode({
     setPanels(page.panels || [])
     setCurrentPanelIndex(0)
   }, [page.id])
+
+  // Track initial word count on mount
+  useEffect(() => {
+    const totalWords = (page.panels || []).reduce((sum, p) => {
+      const desc = (p.visual_description || '').trim()
+      return sum + (desc ? desc.split(/\s+/).length : 0)
+    }, 0)
+    initialWordCountRef.current = totalWords
+  }, [])
+
+  // Update session word count when panels change
+  useEffect(() => {
+    const currentTotal = panels.reduce((sum, p) => {
+      const desc = (p.visual_description || '').trim()
+      return sum + (desc ? desc.split(/\s+/).length : 0)
+    }, 0)
+    const delta = currentTotal - initialWordCountRef.current
+    setSessionWordCount(Math.max(0, delta))
+  }, [panels])
 
   // Focus textarea on mount and panel change
   useEffect(() => {
@@ -270,6 +301,19 @@ export default function ZenMode({
             Page {page.page_number} • Panel {currentPanel.panel_number}
           </span>
           <span className="text-[var(--text-secondary)]">{pagePosition}</span>
+          {sceneContext && (
+            <span className="text-[var(--text-muted)] text-xs">
+              {sceneContext.actName} / {sceneContext.sceneName}
+              {sceneContext.plotlineName && (
+                <span className="text-[var(--color-primary)] ml-1">({sceneContext.plotlineName})</span>
+              )}
+              {sceneContext.pagePositionInScene != null && sceneContext.totalPagesInScene != null && (
+                <span className="ml-1">
+                  [{sceneContext.pagePositionInScene}/{sceneContext.totalPagesInScene} in scene]
+                </span>
+              )}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-4">
           {hasChanges && (
@@ -282,7 +326,7 @@ export default function ZenMode({
       </div>
 
       {/* Main writing area - centered with typewriter scroll */}
-      <div className="flex-1 flex items-center justify-center px-8 py-20">
+      <div className="flex-1 flex items-center justify-center px-8 py-20 overflow-y-auto">
         <div className="w-full max-w-2xl space-y-8">
           {/* Panel indicator */}
           <div className="flex items-center justify-center gap-2">
@@ -304,6 +348,35 @@ export default function ZenMode({
               />
             ))}
           </div>
+
+          {/* Characters present in current panel */}
+          {(() => {
+            // Collect character names from dialogue blocks in this panel
+            const charIds = new Set<string>()
+            for (const d of currentPanel.dialogue_blocks) {
+              if (d.character?.id) charIds.add(d.character.id)
+              else if (d.character_id) charIds.add(d.character_id)
+            }
+            // Resolve names from the characters list
+            const presentChars = characters.filter(c => charIds.has(c.id))
+            if (presentChars.length === 0) return null
+            return (
+              <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+                <span className="uppercase tracking-wider text-[10px]">Characters:</span>
+                {presentChars.map(c => (
+                  <span key={c.id} className="text-[var(--color-primary)] font-medium">{c.name}</span>
+                ))}
+              </div>
+            )
+          })()}
+
+          {/* Previous panel context (faded) */}
+          {currentPanelIndex > 0 && panels[currentPanelIndex - 1] && (
+            <div className="opacity-20 text-sm text-[var(--text-muted)] italic border-b border-[var(--border)] pb-4 line-clamp-3">
+              <span className="text-xs uppercase tracking-wider block mb-1">Panel {panels[currentPanelIndex - 1].panel_number}</span>
+              {panels[currentPanelIndex - 1].visual_description || 'No description'}
+            </div>
+          )}
 
           {/* Visual Description */}
           <div className="space-y-2">
@@ -369,11 +442,23 @@ export default function ZenMode({
               className="w-full bg-transparent text-[var(--text-muted)] text-sm leading-relaxed resize-none focus:outline-none placeholder:text-[var(--text-muted)] min-h-[60px]"
             />
           </div>
+
+          {/* Next panel context (faded) */}
+          {currentPanelIndex < panels.length - 1 && panels[currentPanelIndex + 1] && (
+            <div className="opacity-20 text-sm text-[var(--text-muted)] italic border-t border-[var(--border)] pt-4 line-clamp-3">
+              <span className="text-xs uppercase tracking-wider block mb-1">Panel {panels[currentPanelIndex + 1].panel_number}</span>
+              {panels[currentPanelIndex + 1].visual_description || 'No description'}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom hints - also fades */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-center text-[var(--text-secondary)] text-xs opacity-50 hover:opacity-100 transition-opacity">
+      {/* Bottom bar with word count and hints */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between text-[var(--text-secondary)] text-xs opacity-50 hover:opacity-100 transition-opacity">
+        {/* Session word count */}
+        <div className="text-[var(--text-muted)] font-mono">
+          +{sessionWordCount} words this session
+        </div>
         <div className="flex items-center gap-6">
           <span>
             <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">Tab</kbd> Next panel

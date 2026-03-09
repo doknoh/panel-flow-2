@@ -8,6 +8,7 @@ import Header from '@/components/ui/Header'
 import ShareButton from './collaboration/ShareButton'
 import CollaboratorAvatars from './collaboration/CollaboratorAvatars'
 import { Calendar } from 'lucide-react'
+import CommandPalette from '@/components/CommandPalette'
 
 export default async function SeriesPage({ params }: { params: Promise<{ seriesId: string }> }) {
   const { seriesId } = await params
@@ -45,11 +46,11 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Series Not Found</h1>
-          <p className="text-[var(--text-secondary)] mb-4">This series doesn&apos;t exist or you don&apos;t have access.</p>
-          <p className="text-[var(--text-muted)] text-xs mb-4">Debug: User={user?.id?.substring(0, 8)}... Error={seriesError?.message || 'none'}</p>
-          <Link href="/dashboard" className="text-[var(--color-primary)] hover:underline">
-            Back to Dashboard
+          <h1 className="type-title mb-2">SERIES NOT FOUND</h1>
+          <p className="type-meta text-[var(--text-secondary)] mb-4">This series doesn&apos;t exist or you don&apos;t have access.</p>
+          <p className="type-micro text-[var(--text-muted)] mb-4">DEBUG: USER={user?.id?.substring(0, 8)}... ERROR={seriesError?.message || 'none'}</p>
+          <Link href="/dashboard" className="type-meta text-[var(--color-primary)] hover:underline">
+            BACK TO DASHBOARD
           </Link>
         </div>
       </div>
@@ -95,10 +96,10 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         <div className="flex items-center gap-4">
           <Link
             href={`/series/${seriesId}/deadlines`}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg active:scale-[0.97] transition-all duration-150 ease-out"
+            className="type-micro flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] active:scale-[0.97] transition-all duration-150 ease-out"
           >
-            <Calendar className="w-4 h-4" />
-            Deadlines
+            <Calendar className="w-3.5 h-3.5" />
+            DEADLINES
           </Link>
           <CollaboratorAvatars seriesId={seriesId} />
           {isOwner && <ShareButton seriesId={seriesId} seriesTitle={series.title} />}
@@ -109,17 +110,17 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         {/* Role badge for collaborators */}
         {!isOwner && (
           <div className="mb-4 flex items-center gap-2">
-            <span className={`text-xs px-3 py-1 rounded-full ${
+            <span className={`type-micro px-3 py-1 border ${
               userRole === 'editor'
-                ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
+                ? 'text-[var(--color-primary)] border-[var(--color-primary)]/30'
                 : userRole === 'commenter'
-                ? 'bg-[var(--color-warning)]/20 text-[var(--color-warning)] border border-[var(--color-warning)]/30'
-                : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] border border-[var(--border)]'
+                ? 'text-[var(--color-warning)] border-[var(--color-warning)]/30'
+                : 'text-[var(--text-muted)] border-[var(--border)]'
             }`}>
-              {userRole === 'editor' ? '✏️ Editor Access' : userRole === 'commenter' ? '💬 Commenter Access' : '👁️ View Only'}
+              {userRole === 'editor' ? 'EDITOR ACCESS' : userRole === 'commenter' ? 'COMMENTER ACCESS' : 'VIEW ONLY'}
             </span>
-            <span className="text-xs text-[var(--text-muted)]">
-              You're collaborating on this series
+            <span className="type-micro text-[var(--text-muted)]">
+              COLLABORATING ON THIS SERIES
             </span>
           </div>
         )}
@@ -136,28 +137,28 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold">{issues?.length || 0}</div>
-            <div className="text-[var(--text-muted)] text-sm">Issues</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
+            <div className="text-3xl font-black tabular-nums">{issues?.length || 0}</div>
+            <div className="type-micro text-[var(--text-muted)]">ISSUES</div>
           </div>
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold">{counts.characters}</div>
-            <div className="text-[var(--text-muted)] text-sm">Characters</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
+            <div className="text-3xl font-black tabular-nums">{counts.characters}</div>
+            <div className="type-micro text-[var(--text-muted)]">CHARACTERS</div>
           </div>
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold">{counts.locations}</div>
-            <div className="text-[var(--text-muted)] text-sm">Locations</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
+            <div className="text-3xl font-black tabular-nums">{counts.locations}</div>
+            <div className="type-micro text-[var(--text-muted)]">LOCATIONS</div>
           </div>
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
-            <div className="text-2xl font-bold">{counts.plotlines}</div>
-            <div className="text-[var(--text-muted)] text-sm">Plotlines</div>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
+            <div className="text-3xl font-black tabular-nums">{counts.plotlines}</div>
+            <div className="type-micro text-[var(--text-muted)]">PLOTLINES</div>
           </div>
         </div>
 
         {/* Issues Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Issues</h2>
+            <h2 className="type-label">ISSUES</h2>
             {canEdit && <CreateIssueButton seriesId={seriesId} issueCount={issues?.length || 0} />}
           </div>
           <IssueGrid issues={issues || []} seriesId={seriesId} />
@@ -165,122 +166,125 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
         {/* Series Tools */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-[var(--text-secondary)]">Tools</h2>
+          <h2 className="type-label mb-4">TOOLS</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Link
               href={`/series/${seriesId}/canvas`}
-              className="bg-gradient-to-br from-[var(--color-warning)]/20 to-[var(--bg-secondary)] border border-[var(--color-warning)]/30 rounded-lg p-4 hover:border-[var(--color-warning)]/50 hover:from-[var(--color-warning)]/30 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--color-warning)]/30 p-4 hover:border-[var(--color-warning)]/50 transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">💭</div>
-              <h3 className="font-medium mb-1 text-[var(--color-warning)]">Canvas</h3>
-              <p className="text-[var(--color-warning)]/70 text-sm">Brainstorm fuzzy ideas</p>
+              <div className="type-micro text-[var(--color-warning)]/60 mb-2 group-hover:text-[var(--color-warning)] transition-colors">IDEA</div>
+              <h3 className="type-label text-[var(--color-warning)] mb-1">CANVAS</h3>
+              <p className="type-micro text-[var(--color-warning)]/70">Brainstorm fuzzy ideas</p>
             </Link>
             <Link
               href={`/series/${seriesId}/guide`}
-              className="bg-gradient-to-br from-[var(--accent-hover)]/20 to-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 rounded-lg p-4 hover:border-[var(--accent-hover)]/50 hover:from-[var(--accent-hover)]/30 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🎭</div>
-              <h3 className="font-medium mb-1 text-[var(--accent-hover)]">Guide</h3>
-              <p className="text-[var(--accent-hover)]/70 text-sm">AI-guided writing sessions</p>
+              <div className="type-micro text-[var(--accent-hover)]/60 mb-2 group-hover:text-[var(--accent-hover)] transition-colors">AI</div>
+              <h3 className="type-label text-[var(--accent-hover)] mb-1">GUIDE</h3>
+              <p className="type-micro text-[var(--accent-hover)]/70">AI-guided writing sessions</p>
             </Link>
             <Link
               href={`/series/${seriesId}/outline`}
-              className="bg-gradient-to-br from-[var(--accent-hover)]/20 to-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 rounded-lg p-4 hover:border-[var(--accent-hover)]/50 hover:from-[var(--accent-hover)]/30 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">📋</div>
-              <h3 className="font-medium mb-1 text-[var(--accent-hover)]">Series Outline</h3>
-              <p className="text-[var(--accent-hover)]/70 text-sm">Timeline view & plotline tracking</p>
+              <div className="type-micro text-[var(--accent-hover)]/60 mb-2 group-hover:text-[var(--accent-hover)] transition-colors">STRUCT</div>
+              <h3 className="type-label text-[var(--accent-hover)] mb-1">SERIES OUTLINE</h3>
+              <p className="type-micro text-[var(--accent-hover)]/70">Timeline view // plotline tracking</p>
             </Link>
             <Link
               href={`/series/${seriesId}/weave`}
-              className="bg-gradient-to-br from-[var(--color-error)]/20 to-[var(--bg-secondary)] border border-[var(--color-error)]/30 rounded-lg p-4 hover:border-[var(--color-error)]/50 hover:from-[var(--color-error)]/30 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--color-error)]/30 p-4 hover:border-[var(--color-error)]/50 transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🧬</div>
-              <h3 className="font-medium mb-1 text-[var(--color-error)]">Series Weave</h3>
-              <p className="text-[var(--color-error)]/70 text-sm">Plotlines across all issues</p>
+              <div className="type-micro text-[var(--color-error)]/60 mb-2 group-hover:text-[var(--color-error)] transition-colors">WEAVE</div>
+              <h3 className="type-label text-[var(--color-error)] mb-1">SERIES WEAVE</h3>
+              <p className="type-micro text-[var(--color-error)]/70">Plotlines across all issues</p>
             </Link>
             <Link
               href={`/series/${seriesId}/analytics`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📊</div>
-              <h3 className="font-medium mb-1">Analytics</h3>
-              <p className="text-[var(--text-muted)] text-sm">Stats, progress, and insights</p>
+              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">DATA</div>
+              <h3 className="type-label mb-1">ANALYTICS</h3>
+              <p className="type-micro text-[var(--text-muted)]">Stats, progress, and insights</p>
             </Link>
             <Link
               href={`/series/${seriesId}/sessions`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🕐</div>
-              <h3 className="font-medium mb-1">Session History</h3>
-              <p className="text-[var(--text-muted)] text-sm">Track progress and loose ends</p>
+              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">LOG</div>
+              <h3 className="type-label mb-1">SESSION HISTORY</h3>
+              <p className="type-micro text-[var(--text-muted)]">Track progress and loose ends</p>
             </Link>
             <Link
               href={`/series/${seriesId}/continuity`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🔍</div>
-              <h3 className="font-medium mb-1">Continuity Check</h3>
-              <p className="text-[var(--text-muted)] text-sm">Detect errors and inconsistencies</p>
+              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">CHECK</div>
+              <h3 className="type-label mb-1">CONTINUITY CHECK</h3>
+              <p className="type-micro text-[var(--text-muted)]">Detect errors and inconsistencies</p>
             </Link>
             <Link
               href={`/series/${seriesId}/patterns`}
-              className="bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--bg-secondary)] border border-[var(--color-primary)]/30 rounded-lg p-4 hover:border-[var(--color-primary)]/50 hover:from-[var(--color-primary)]/30 transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--color-primary)]/30 p-4 hover:border-[var(--color-primary)]/50 transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-80 group-hover:opacity-100 transition-opacity">🕸️</div>
-              <h3 className="font-medium mb-1 text-[var(--color-primary)]">Patterns</h3>
-              <p className="text-[var(--color-primary)]/70 text-sm">Cross-issue weaving</p>
+              <div className="type-micro text-[var(--color-primary)]/60 mb-2 group-hover:text-[var(--color-primary)] transition-colors">CROSS</div>
+              <h3 className="type-label text-[var(--color-primary)] mb-1">PATTERNS</h3>
+              <p className="type-micro text-[var(--color-primary)]/70">Cross-issue weaving</p>
             </Link>
             <Link
               href={`/series/${seriesId}/notes`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📝</div>
-              <h3 className="font-medium mb-1">Project Notes</h3>
-              <p className="text-[var(--text-muted)] text-sm">Questions, decisions, insights</p>
+              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">NOTE</div>
+              <h3 className="type-label mb-1">PROJECT NOTES</h3>
+              <p className="type-micro text-[var(--text-muted)]">Questions, decisions, insights</p>
             </Link>
           </div>
         </div>
 
         {/* World Building */}
         <div>
-          <h2 className="text-lg font-semibold mb-4 text-[var(--text-secondary)]">World Building</h2>
+          <h2 className="type-label mb-4">WORLD BUILDING</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link
               href={`/series/${seriesId}/characters`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">👤</div>
-              <h3 className="font-medium mb-1">Characters</h3>
-              <p className="text-[var(--text-muted)] text-sm">Manage character database</p>
+              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">CHAR</div>
+              <h3 className="type-label mb-1">CHARACTERS</h3>
+              <p className="type-micro text-[var(--text-muted)]">Manage character database</p>
             </Link>
             <Link
               href={`/series/${seriesId}/character-arcs`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">📈</div>
-              <h3 className="font-medium mb-1">Character Arcs</h3>
-              <p className="text-[var(--text-muted)] text-sm">Track emotional journeys</p>
+              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">ARC</div>
+              <h3 className="type-label mb-1">CHARACTER ARCS</h3>
+              <p className="type-micro text-[var(--text-muted)]">Track emotional journeys</p>
             </Link>
             <Link
               href={`/series/${seriesId}/locations`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🏛️</div>
-              <h3 className="font-medium mb-1">Locations</h3>
-              <p className="text-[var(--text-muted)] text-sm">Manage location database</p>
+              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">LOC</div>
+              <h3 className="type-label mb-1">LOCATIONS</h3>
+              <p className="type-micro text-[var(--text-muted)]">Manage location database</p>
             </Link>
             <Link
               href={`/series/${seriesId}/plotlines`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
             >
-              <div className="text-2xl mb-2 opacity-60 group-hover:opacity-100 transition-opacity">🧵</div>
-              <h3 className="font-medium mb-1">Plotlines</h3>
-              <p className="text-[var(--text-muted)] text-sm">Define narrative threads</p>
+              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">PLOT</div>
+              <h3 className="type-label mb-1">PLOTLINES</h3>
+              <p className="type-micro text-[var(--text-muted)]">Define narrative threads</p>
             </Link>
           </div>
         </div>
       </main>
+
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette seriesId={seriesId} />
     </div>
   )
 }

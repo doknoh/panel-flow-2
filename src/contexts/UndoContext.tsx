@@ -24,6 +24,7 @@ export type UndoActionType =
   | 'scene_delete'
   | 'act_add'
   | 'act_delete'
+  | 'panel_reorder'
 
 interface BaseAction {
   type: UndoActionType
@@ -118,6 +119,13 @@ interface PanelDeleteAction extends BaseAction {
   data: any // Full panel data including dialogue/captions for restoration
 }
 
+interface PanelReorderAction extends BaseAction {
+  type: 'panel_reorder'
+  pageId: string
+  previousOrder: { id: string; panel_number: number }[]
+  newOrder: { id: string; panel_number: number }[]
+}
+
 export type UndoAction =
   | PanelFieldAction
   | DialogueAddAction
@@ -131,6 +139,7 @@ export type UndoAction =
   | SfxDeleteAction
   | PanelAddAction
   | PanelDeleteAction
+  | PanelReorderAction
 
 // Helper type for recording actions without timestamp
 type RecordableAction = {
@@ -544,6 +553,27 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
           data: action.data,
           timestamp: Date.now(),
           description: 'Add panel',
+        }
+      }
+
+      case 'panel_reorder': {
+        // Restore previous panel order
+        const reorderAction = action as PanelReorderAction
+        if (reorderAction.previousOrder) {
+          await Promise.all(
+            reorderAction.previousOrder.map(({ id, panel_number }) =>
+              supabase.from('panels').update({ sort_order: panel_number, panel_number }).eq('id', id)
+            )
+          )
+        }
+
+        return {
+          type: 'panel_reorder' as const,
+          pageId: reorderAction.pageId,
+          previousOrder: reorderAction.newOrder,
+          newOrder: reorderAction.previousOrder,
+          timestamp: Date.now(),
+          description: 'Reorder panels',
         }
       }
 

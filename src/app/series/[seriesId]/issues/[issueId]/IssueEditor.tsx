@@ -22,6 +22,7 @@ import { exportIssueToTxt } from '@/lib/exportTxt'
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import CommandPalette from '@/components/CommandPalette'
 
 interface Plotline {
   id: string
@@ -83,7 +84,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
             act: { id: act.id, name: act.name, sort_order: act.sort_order },
             scene: {
               id: scene.id,
-              name: scene.name,
+              name: scene.title || scene.name,
               sort_order: scene.sort_order,
               plotline_name: scene.plotline?.name || null,
               total_pages: (scene.pages || []).length,
@@ -162,8 +163,9 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     // Add a small delay to ensure DB transaction is committed
     await new Promise(resolve => setTimeout(resolve, 150))
 
-    // Fetch issue data and plotlines separately to avoid PostgREST relationship issues
-    const [issueResult, plotlinesResult] = await Promise.all([
+    // Fetch issue structure and plotlines separately to avoid PostgREST FK join failures
+    // (plotline:plotline_id join can fail if any scene has a dangling FK reference)
+    const [issueResult, actsResult, plotlinesResult] = await Promise.all([
       supabase
         .from('issues')
         .select(`
@@ -173,26 +175,29 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
             title,
             characters (*),
             locations (*)
-          ),
-          acts (
-            *,
-            scenes (
-              *,
-              plotline:plotline_id (*),
-              pages (
-                *,
-                panels (
-                  *,
-                  dialogue_blocks (*, character:character_id (id, name)),
-                  captions (*),
-                  sound_effects (*)
-                )
-              )
-            )
           )
         `)
         .eq('id', initialIssue.id)
         .single(),
+      supabase
+        .from('acts')
+        .select(`
+          *,
+          scenes (
+            *,
+            pages (
+              *,
+              panels (
+                *,
+                dialogue_blocks (*, character:character_id (id, name)),
+                captions (*),
+                sound_effects (*)
+              )
+            )
+          )
+        `)
+        .eq('issue_id', initialIssue.id)
+        .order('sort_order', { ascending: true }),
       supabase
         .from('plotlines')
         .select('*')
@@ -202,14 +207,29 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
 
     const { data, error } = issueResult
 
-    // Merge plotlines into series data if both succeeded
-    if (data && plotlinesResult.data) {
-      data.series.plotlines = plotlinesResult.data
-    }
-
     if (error) {
       console.error('refreshIssue: FAILED to refresh issue:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint)
       return
+    }
+
+    // Merge acts and plotlines into issue data
+    if (data) {
+      data.acts = actsResult.data || []
+      if (plotlinesResult.data) {
+        data.series.plotlines = plotlinesResult.data
+      }
+
+      // Resolve plotline names onto scenes from the separately-fetched plotlines
+      const plotlineMap = new Map((plotlinesResult.data || []).map((p: any) => [p.id, p]))
+      for (const act of data.acts) {
+        for (const scene of (act.scenes || [])) {
+          scene.plotline = scene.plotline_id ? plotlineMap.get(scene.plotline_id) || null : null
+        }
+      }
+    }
+
+    if (actsResult.error) {
+      console.error('refreshIssue: FAILED to refresh acts:', actsResult.error.message)
     }
 
     if (data) {
@@ -434,6 +454,20 @@ function IssueEditorContent({
   const [isScriptView, setIsScriptView] = useState(false)
   const [isQuickNavOpen, setIsQuickNavOpen] = useState(false)
   const [peekPageId, setPeekPageId] = useState<string | null>(null)
+  const [openDropdown, setOpenDropdown] = useState<'view' | 'navigate' | 'export' | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!openDropdown) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openDropdown])
 
   // Get all pages in order for navigation
   const allPages = React.useMemo(() => {
@@ -775,11 +809,11 @@ function IssueEditorContent({
       <header className="border-b border-[var(--text-primary)] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
-            <Link href={`/series/${seriesId}`} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] shrink-0">
+            <Link href={`/series/${seriesId}`} className="type-meta text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0" aria-label="Back to series">
               ←
             </Link>
-            <span className="font-semibold shrink-0">Issue #{issue.number}</span>
-            <span className="text-[var(--text-secondary)] hidden sm:inline shrink-0">—</span>
+            <span className="text-xl font-black tracking-tight shrink-0">ISSUE #{String(issue.number).padStart(2, '0')}</span>
+            <span className="type-separator hidden sm:inline shrink-0">{'\/\/'}</span>
             {isEditingTitle ? (
               <input
                 ref={titleInputRef}
@@ -803,7 +837,7 @@ function IssueEditorContent({
                   setEditedTitle(issue.title || '')
                   setIsEditingTitle(true)
                 }}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden sm:inline truncate max-w-[300px] text-left group active:scale-[0.97] transition-all duration-150 ease-out"
+                className="font-light tracking-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden sm:inline truncate max-w-[300px] text-left group active:scale-[0.97] transition-all duration-150 ease-out"
                 title="Click to edit title"
               >
                 {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
@@ -813,140 +847,180 @@ function IssueEditorContent({
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2 md:gap-4">
-            <button
-              onClick={() => setIsShortcutsOpen(true)}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
-              title="Keyboard shortcuts (?)"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-                <path d="M6 8h.001"></path>
-                <path d="M10 8h.001"></path>
-                <path d="M14 8h.001"></path>
-                <path d="M18 8h.001"></path>
-                <path d="M8 12h.001"></path>
-                <path d="M12 12h.001"></path>
-                <path d="M16 12h.001"></path>
-                <path d="M7 16h10"></path>
-              </svg>
-            </button>
+          <div ref={dropdownRef} className="flex items-center gap-1.5 md:gap-2">
+            {/* Direct access: Find */}
             <button
               onClick={() => setIsFindReplaceOpen(true)}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:block active:scale-[0.97] transition-all duration-150 ease-out"
+              className="type-meta text-[var(--text-muted)] hover:text-[var(--text-primary)] hidden md:block active:scale-[0.97] transition-all duration-150 ease-out"
               title="Find & Replace (⌘F)"
             >
-              Find
+              FIND
             </button>
-            <button
-              onClick={() => setIsZoomPanelOpen(!isZoomPanelOpen)}
-              className={`text-sm hidden md:flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out ${isZoomPanelOpen ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-              title="Context Ladder (⌘.)"
-            >
-              📍 Zoom
-            </button>
-            <button
-              onClick={async () => {
-                // Refresh data before opening Zen mode to ensure panels are synced
-                await refreshIssue()
-                setIsZenMode(true)
-              }}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
-              title="Zen Mode (⌘⇧↵)"
-            >
-              🧘 Zen
-            </button>
-            <button
-              onClick={async () => {
-                // Refresh data before opening Script view to ensure content is synced
-                await refreshIssue()
-                setIsScriptView(true)
-              }}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden md:flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
-              title="Script View"
-            >
-              📜 Script
-            </button>
-            <Link
-              href={`/series/${seriesId}/issues/${issue.id}/import`}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
-            >
-              Import
-            </Link>
-            <Link
-              href={`/series/${seriesId}/issues/${issue.id}/weave`}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
-            >
-              Weave
-            </Link>
-            <Link
-              href={`/series/${seriesId}/issues/${issue.id}/scene-analytics`}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
-            >
-              Analytics
-            </Link>
-            <Link
-              href={`/series/${seriesId}/issues/${issue.id}/rhythm`}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
-            >
-              Rhythm
-            </Link>
-            <Link
-              href={`/series/${seriesId}/guide?issue=${issue.id}`}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
-            >
-              Guide
-            </Link>
-            <Link
-              href={`/series/${seriesId}/issues/${issue.id}/history`}
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden lg:block"
-            >
-              History
-            </Link>
-            <div className="flex items-center gap-1 md:gap-2">
+
+            {/* View dropdown */}
+            <div className="relative hidden md:block">
               <button
-                onClick={async () => {
-                  try {
-                    exportIssueToPdf(issue)
-                    showToast('PDF exported successfully', 'success')
-                  } catch (error) {
-                    showToast('Failed to export PDF', 'error')
-                    console.error('PDF export error:', error)
-                  }
-                }}
-                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded active:scale-[0.97] transition-all duration-150 ease-out"
+                onClick={() => setOpenDropdown(openDropdown === 'view' ? null : 'view')}
+                className={`type-meta px-2 py-1 active:scale-[0.97] transition-all duration-150 ease-out ${openDropdown === 'view' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
-                PDF
+                VIEW
               </button>
-              <button
-                onClick={async () => {
-                  try {
-                    await exportIssueToDocx(issue)
-                    showToast('Doc exported successfully', 'success')
-                  } catch (error) {
-                    showToast('Failed to export Doc', 'error')
-                    console.error('Doc export error:', error)
-                  }
-                }}
-                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded hidden sm:block active:scale-[0.97] transition-all duration-150 ease-out"
-              >
-                Doc
-              </button>
-              <button
-                onClick={() => {
-                  try {
-                    exportIssueToTxt(issue)
-                    showToast('TXT exported successfully', 'success')
-                  } catch (error) {
-                    showToast('Failed to export TXT', 'error')
-                    console.error('TXT export error:', error)
-                  }
-                }}
-                className="text-xs md:text-sm bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] px-2 md:px-3 py-1.5 rounded hidden sm:block active:scale-[0.97] transition-all duration-150 ease-out"
-              >
-                TXT
-              </button>
+              {openDropdown === 'view' && (
+                <div className="absolute right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 w-48 z-50">
+                  <button
+                    onClick={() => { setIsZoomPanelOpen(!isZoomPanelOpen); setOpenDropdown(null) }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] flex items-center justify-between ${isZoomPanelOpen ? 'text-[var(--color-primary)]' : ''}`}
+                  >
+                    <span>Zoom</span>
+                    <span className="text-xs text-[var(--text-muted)] font-mono">Cmd+.</span>
+                  </button>
+                  <button
+                    onClick={async () => { await refreshIssue(); setIsZenMode(true); setOpenDropdown(null) }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] flex items-center justify-between"
+                  >
+                    <span>Zen Mode</span>
+                    <span className="text-xs text-[var(--text-muted)] font-mono">Cmd+Shift+Enter</span>
+                  </button>
+                  <button
+                    onClick={async () => { await refreshIssue(); setIsScriptView(true); setOpenDropdown(null) }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                  >
+                    Script View
+                  </button>
+                  <Link
+                    href={`/series/${seriesId}/issues/${issue.id}/read`}
+                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    onClick={() => setOpenDropdown(null)}
+                  >
+                    Read Mode
+                  </Link>
+                  <div className="border-t border-[var(--border)] my-1" />
+                  <button
+                    onClick={() => { setIsShortcutsOpen(true); setOpenDropdown(null) }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] flex items-center justify-between"
+                  >
+                    <span>Keyboard Shortcuts</span>
+                    <span className="text-xs text-[var(--text-muted)] font-mono">?</span>
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Navigate dropdown */}
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => setOpenDropdown(openDropdown === 'navigate' ? null : 'navigate')}
+                className={`type-meta px-2 py-1 active:scale-[0.97] transition-all duration-150 ease-out ${openDropdown === 'navigate' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+              >
+                TOOLS
+              </button>
+              {openDropdown === 'navigate' && (
+                <div className="absolute right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 w-44 z-50">
+                  <Link
+                    href={`/series/${seriesId}/issues/${issue.id}/import`}
+                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    onClick={() => setOpenDropdown(null)}
+                  >
+                    Import Script
+                  </Link>
+                  <Link
+                    href={`/series/${seriesId}/issues/${issue.id}/weave`}
+                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    onClick={() => setOpenDropdown(null)}
+                  >
+                    Weave
+                  </Link>
+                  <Link
+                    href={`/series/${seriesId}/issues/${issue.id}/scene-analytics`}
+                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    onClick={() => setOpenDropdown(null)}
+                  >
+                    Analytics
+                  </Link>
+                  <Link
+                    href={`/series/${seriesId}/issues/${issue.id}/rhythm`}
+                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    onClick={() => setOpenDropdown(null)}
+                  >
+                    Rhythm
+                  </Link>
+                  <Link
+                    href={`/series/${seriesId}/guide?issue=${issue.id}`}
+                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    onClick={() => setOpenDropdown(null)}
+                  >
+                    Guide
+                  </Link>
+                  <Link
+                    href={`/series/${seriesId}/issues/${issue.id}/history`}
+                    className="block px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                    onClick={() => setOpenDropdown(null)}
+                  >
+                    History
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Export dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setOpenDropdown(openDropdown === 'export' ? null : 'export')}
+                className={`type-meta px-2 md:px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out border ${openDropdown === 'export' ? 'border-[var(--border-strong)] text-[var(--text-primary)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'}`}
+              >
+                EXPORT
+              </button>
+              {openDropdown === 'export' && (
+                <div className="absolute right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 w-36 z-50">
+                  <button
+                    onClick={async () => {
+                      setOpenDropdown(null)
+                      try {
+                        exportIssueToPdf(issue)
+                        showToast('PDF exported successfully', 'success')
+                      } catch (error) {
+                        showToast('Failed to export PDF', 'error')
+                        console.error('PDF export error:', error)
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                  >
+                    PDF
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setOpenDropdown(null)
+                      try {
+                        await exportIssueToDocx(issue)
+                        showToast('Doc exported successfully', 'success')
+                      } catch (error) {
+                        showToast('Failed to export Doc', 'error')
+                        console.error('Doc export error:', error)
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                  >
+                    Word Doc
+                  </button>
+                  <button
+                    onClick={() => {
+                      setOpenDropdown(null)
+                      try {
+                        exportIssueToTxt(issue)
+                        showToast('TXT exported successfully', 'success')
+                      } catch (error) {
+                        showToast('Failed to export TXT', 'error')
+                        console.error('TXT export error:', error)
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)]"
+                  >
+                    Plain Text
+                  </button>
+                </div>
+              )}
+            </div>
+
             <ThemeToggle />
           </div>
         </div>
@@ -955,21 +1029,21 @@ function IssueEditorContent({
         <div className="flex md:hidden mt-3 gap-1 border-t border-[var(--border)] pt-3 -mx-4 px-4">
           <button
             onClick={() => setMobileView('nav')}
-            className={`flex-1 py-2 text-sm rounded active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'nav' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'nav' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
-            Navigation
+            NAV
           </button>
           <button
             onClick={() => setMobileView('editor')}
-            className={`flex-1 py-2 text-sm rounded active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'editor' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'editor' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
-            Editor
+            EDITOR
           </button>
           <button
             onClick={() => setMobileView('toolkit')}
-            className={`flex-1 py-2 text-sm rounded active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'toolkit' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'toolkit' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
-            Toolkit
+            TOOLKIT
           </button>
         </div>
       </header>
@@ -1138,6 +1212,9 @@ function IssueEditorContent({
         onClose={() => setIsShortcutsOpen(false)}
       />
 
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette seriesId={seriesId} issueId={issue.id} />
+
       {/* Jump to Page Modal */}
       <JumpToPageModal
         isOpen={isJumpToPageOpen}
@@ -1147,7 +1224,7 @@ function IssueEditorContent({
           for (const act of issue.acts || []) {
             const actName = act.name || `Act ${act.sort_order + 1}`
             for (const scene of act.scenes || []) {
-              const sceneName = scene.name || scene.title || `Scene ${scene.sort_order + 1}`
+              const sceneName = scene.title || `Scene ${scene.sort_order + 1}`
               for (const page of scene.pages || []) {
                 pages.push({
                   id: page.id,
@@ -1182,6 +1259,13 @@ function IssueEditorContent({
           page={selectedPage}
           characters={issue.series.characters}
           pagePosition={`Page ${selectedPage.page_number} of ${allPages.length}`}
+          sceneContext={selectedPageContext ? {
+            actName: selectedPageContext.act.name || `Act ${selectedPageContext.act.sort_order + 1}`,
+            sceneName: selectedPageContext.scene.name || 'Untitled Scene',
+            plotlineName: selectedPageContext.scene.plotline_name,
+            pagePositionInScene: selectedPageContext.pagePositionInScene,
+            totalPagesInScene: selectedPageContext.scene.total_pages,
+          } : null}
           onExit={() => setIsZenMode(false)}
           onSave={refreshIssue}
           onNavigate={(direction) => {

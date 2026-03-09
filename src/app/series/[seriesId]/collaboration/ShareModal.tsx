@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 type Role = 'editor' | 'commenter' | 'viewer'
 
@@ -204,6 +205,8 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
     }
   }
 
+  const focusTrapRef = useFocusTrap(isOpen)
+
   if (!isOpen) return null
 
   return (
@@ -212,6 +215,10 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
       onClick={onClose}
     >
       <div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Share ${seriesTitle}`}
         className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
@@ -226,6 +233,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
           <button
             onClick={onClose}
             className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl active:scale-[0.97] transition-all duration-150 ease-out"
+            aria-label="Close share modal"
           >
             ×
           </button>
@@ -247,11 +255,12 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
 
           {/* Invite Form */}
           <form onSubmit={handleInvite} className="space-y-3">
-            <label className="block text-sm font-medium text-[var(--text-secondary)]">
+            <label htmlFor="invite-email" className="block text-sm font-medium text-[var(--text-secondary)]">
               Invite by email
             </label>
             <div className="flex gap-2">
               <input
+                id="invite-email"
                 type="email"
                 value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
@@ -262,6 +271,7 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
                 value={inviteRole}
                 onChange={e => setInviteRole(e.target.value as Role)}
                 className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
+                aria-label="Select role for invitee"
               >
                 <option value="viewer">View Only</option>
                 <option value="commenter">Can Comment</option>

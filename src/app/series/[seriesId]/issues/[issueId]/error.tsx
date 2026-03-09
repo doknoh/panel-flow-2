@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
-import Link from 'next/link'
+import ErrorDisplay from '@/components/ui/ErrorDisplay'
 
 export default function IssueEditorError({
   error,
@@ -10,45 +9,16 @@ export default function IssueEditorError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  useEffect(() => {
-    console.error('Issue editor error:', error)
-  }, [error])
-
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center p-4">
-      <div className="max-w-lg w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8">
-        <div className="text-[var(--color-warning)] text-4xl mb-4 text-center">!</div>
-        <h1 className="text-xl font-bold mb-2 text-center">Editor Error</h1>
-        <p className="text-[var(--text-secondary)] mb-4 text-center">
-          There was a problem loading the issue editor. Your work has been auto-saved.
-        </p>
-
-        <div className="bg-[var(--bg-tertiary)] rounded p-4 mb-6">
-          <p className="text-sm text-[var(--text-secondary)] mb-1">Error details:</p>
-          <p className="text-sm text-[var(--color-error)] font-mono">
-            {error.message || 'Unknown error'}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={reset}
-            className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--text-primary)] font-medium py-2 px-4 rounded transition-colors"
-          >
-            Reload Editor
-          </button>
-          <Link
-            href="/dashboard"
-            className="w-full bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] font-medium py-2 px-4 rounded transition-colors text-center"
-          >
-            Return to Dashboard
-          </Link>
-        </div>
-
-        <p className="text-[var(--text-muted)] text-xs mt-6 text-center">
-          If this problem persists, try refreshing the page or clearing your browser cache.
-        </p>
-      </div>
-    </div>
+    <ErrorDisplay
+      error={error}
+      reset={reset}
+      title="Editor Error"
+      description="There was a problem loading the issue editor. Your work has been auto-saved."
+      retryLabel="Reload Editor"
+      dashboardLabel="Return to Dashboard"
+      showDetails={true}
+      helpText="If this problem persists, try refreshing the page or clearing your browser cache."
+    />
   )
 }

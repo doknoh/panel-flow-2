@@ -113,91 +113,90 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
   }, [issue, selectedPageId])
 
   return (
-    <div className="h-7 bg-[var(--bg-primary)] border-t border-[var(--text-primary)] px-4 flex items-center justify-between text-[10px] font-mono uppercase text-[var(--text-secondary)] shrink-0">
+    <div className="h-8 bg-[var(--bg-primary)] border-t border-[var(--text-primary)] px-4 flex items-center justify-between type-meta shrink-0" style={{ fontVariantNumeric: 'tabular-nums' }}>
       {/* Left side - Page stats */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {selectedPage && (
           <>
             <span>
-              Page {selectedPage.page_number}
-              <span className="text-[var(--text-muted)] mx-1">•</span>
-              {stats.pagePanels} panel{stats.pagePanels !== 1 ? 's' : ''}
-            </span>
-            <span className="text-[var(--text-muted)]">|</span>
-            <span>
-              {stats.pageWords.toLocaleString()} words
-              <span className="text-[var(--text-muted)] mx-1">•</span>
-              {stats.pageCharacters.toLocaleString()} chars
+              PG: {String(selectedPage.page_number).padStart(2, '0')}
+              <span className="type-separator">{'\/\/'}</span>
+              PNL: {stats.pagePanels}
+              <span className="type-separator">{'\/\/'}</span>
+              WRD: {stats.pageWords.toLocaleString()}
+              <span className="type-separator">{'\/\/'}</span>
+              CHR: {stats.pageCharacters.toLocaleString()}
             </span>
           </>
         )}
       </div>
 
       {/* Center - Undo/Redo */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <button
           onClick={undo}
           disabled={!canUndo}
-          className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 transition-all duration-150 ease-out ${
+          className={`px-2 py-0.5 type-micro font-mono flex items-center gap-1 transition-all duration-150 ease-out border ${
             canUndo
-              ? 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] active:scale-[0.97]'
-              : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-not-allowed'
+              ? 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] active:scale-[0.97]'
+              : 'border-transparent text-[var(--text-disabled)] cursor-not-allowed'
           }`}
           title="Undo (⌘Z)"
+          aria-label={`Undo${undoStack.length > 0 ? ` (${undoStack.length} actions available)` : ''}`}
         >
-          ↩ Undo
-          {undoStack.length > 0 && (
-            <span className="text-[var(--text-muted)]">({undoStack.length})</span>
-          )}
+          [UNDO{undoStack.length > 0 ? ` ${undoStack.length}` : ''}]
         </button>
         <button
           onClick={redo}
           disabled={!canRedo}
-          className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 transition-all duration-150 ease-out ${
+          className={`px-2 py-0.5 type-micro font-mono flex items-center gap-1 transition-all duration-150 ease-out border ${
             canRedo
-              ? 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] active:scale-[0.97]'
-              : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-not-allowed'
+              ? 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] active:scale-[0.97]'
+              : 'border-transparent text-[var(--text-disabled)] cursor-not-allowed'
           }`}
           title="Redo (⌘⇧Z)"
+          aria-label={`Redo${redoStack.length > 0 ? ` (${redoStack.length} actions available)` : ''}`}
         >
-          ↪ Redo
-          {redoStack.length > 0 && (
-            <span className="text-[var(--text-muted)]">({redoStack.length})</span>
-          )}
+          [REDO{redoStack.length > 0 ? ` ${redoStack.length}` : ''}]
         </button>
       </div>
 
       {/* Right side - Issue stats and save status */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <span>
-          Issue: {stats.totalPages} page{stats.totalPages !== 1 ? 's' : ''}
-          <span className="text-[var(--text-muted)] mx-1">•</span>
-          {stats.totalPanels} panel{stats.totalPanels !== 1 ? 's' : ''}
-          <span className="text-[var(--text-muted)] mx-1">•</span>
-          {stats.issueWords.toLocaleString()} words
+          ISSUE: {stats.totalPages} PGS
+          <span className="type-separator">{'\/\/'}</span>
+          {stats.totalPanels} PNLS
+          <span className="type-separator">{'\/\/'}</span>
+          {stats.issueWords.toLocaleString()} WRDS
         </span>
-        <span className="text-[var(--text-muted)]">|</span>
-        <span className={`flex items-center gap-1 ${
-          saveStatus === 'saved' ? 'text-[var(--color-success)]' :
-          saveStatus === 'saving' ? 'text-[var(--color-warning)]' :
-          'text-[var(--color-error)]'
-        }`}>
+        <span className="type-separator">{'\/\/'}</span>
+        <span
+          role="status"
+          aria-live="polite"
+          aria-label={`Save status: ${saveStatus === 'saved' ? 'All changes saved' : saveStatus === 'saving' ? 'Saving changes' : 'Unsaved changes'}`}
+          className={`flex items-center gap-1.5 ${
+            saveStatus === 'saved' ? 'text-[var(--color-success)]' :
+            saveStatus === 'saving' ? 'text-[var(--color-warning)]' :
+            'text-[var(--color-error)]'
+          }`}
+        >
           {saveStatus === 'saved' && (
             <>
-              <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-success)]" />
-              Saved
+              <span className="inline-block w-[3px] h-[3px] bg-[var(--color-success)]" aria-hidden="true" />
+              SYNC: SAVED
             </>
           )}
           {saveStatus === 'saving' && (
             <>
-              <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-warning)] animate-pulse" />
-              Saving...
+              <span className="inline-block w-[3px] h-[3px] bg-[var(--color-warning)] animate-pulse" aria-hidden="true" />
+              SYNC: ACTIVE
             </>
           )}
           {saveStatus === 'unsaved' && (
             <>
-              <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-error)]" />
-              Unsaved
+              <span className="inline-block w-[3px] h-[3px] bg-[var(--color-error)]" aria-hidden="true" />
+              SYNC: PENDING
             </>
           )}
         </span>

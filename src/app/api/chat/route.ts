@@ -1,77 +1,147 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { streamMessage, buildContextString, buildSystemPrompt } from '@/lib/ai/client'
+import { assembleContext, assembleWriterContext } from '@/lib/ai/context-assembler'
+import { createStreamFromGenerator, getSSEHeaders } from '@/lib/ai/streaming'
 import { rateLimiters } from '@/lib/rate-limit'
+import { estimateTokens, truncateToTokenBudget } from '@/lib/ai/token-budget'
+import { EDITOR_TOOLS } from '@/lib/ai/tools'
 import { logger } from '@/lib/logger'
+import type Anthropic from '@anthropic-ai/sdk'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
-export async function POST(request: Request) {
+interface RequestBody {
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+  seriesId: string
+  issueId?: string
+  pageId?: string
+  mode?: 'ask' | 'guide'
+  conversationId?: string
+}
+
+export async function POST(request: NextRequest) {
   const start = performance.now()
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return new Response('Unauthorized', { status: 401 })
     }
 
-    // Rate limiting: 30 requests per minute per user
+    // Rate limiting
     const rateLimit = rateLimiters.chat(user.id)
     if (!rateLimit.success) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded. Please wait before sending more messages.',
-          retryAfter: Math.ceil(rateLimit.resetIn / 1000)
-        },
+      return new Response(
+        `Rate limit exceeded. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds.`,
         {
           status: 429,
-          headers: {
-            'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)),
-            'X-RateLimit-Remaining': String(rateLimit.remaining),
-          }
+          headers: { 'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)) },
         }
       )
     }
 
-    const { message, context, maxTokens } = await request.json()
+    const body = (await request.json()) as RequestBody
+    const { messages, seriesId, issueId, pageId, mode = 'ask', conversationId } = body
 
-    if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response('Messages are required', { status: 400 })
     }
 
-    // Allow custom max_tokens up to 8192, default to 1024
-    const tokens = Math.min(maxTokens || 1024, 8192)
+    if (!seriesId) {
+      return new Response('Series ID is required', { status: 400 })
+    }
 
-    const systemPrompt = `You are a writing partner for a graphic novel scriptwriter. You have been given the complete script and all project context below.
+    // Verify user has access to this series
+    const { data: series } = await supabase
+      .from('series')
+      .select('user_id')
+      .eq('id', seriesId)
+      .single()
 
-${context ? context : 'No project context provided.'}
+    if (!series) {
+      return new Response('Series not found', { status: 404 })
+    }
 
-Remember: You have READ the full script above. You KNOW this material. Engage with it specifically.`
+    // Check ownership or collaboration
+    const seriesData = series as { user_id: string }
+    if (seriesData.user_id !== user.id) {
+      const { data: collab } = await supabase
+        .from('series_collaborators')
+        .select('id')
+        .eq('series_id', seriesId)
+        .eq('user_id', user.id)
+        .single()
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: tokens,
-      system: systemPrompt,
-      messages: [
-        { role: 'user', content: message }
-      ],
-    })
+      if (!collab) {
+        return new Response('Access denied', { status: 403 })
+      }
+    }
 
-    const textContent = response.content.find(block => block.type === 'text')
-    const text = textContent?.type === 'text' ? textContent.text : ''
+    // Assemble context from the database (server-side)
+    const [context, writerContext] = await Promise.all([
+      assembleContext(seriesId, issueId, pageId),
+      assembleWriterContext(user.id, seriesId, issueId),
+    ])
+
+    const rawContextString = buildContextString(context)
+    const systemPrompt = buildSystemPrompt(mode, writerContext)
+    const contextString = truncateToTokenBudget(rawContextString, estimateTokens(systemPrompt))
+
+    // Convert messages to Anthropic format
+    const anthropicMessages: Anthropic.MessageParam[] = messages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }))
+
+    // Save/update conversation record
+    let activeConversationId = conversationId
+    if (conversationId) {
+      await supabase
+        .from('ai_conversations')
+        .update({
+          messages: messages,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', conversationId)
+        .eq('user_id', user.id)
+    } else {
+      const { data: newConv } = await supabase
+        .from('ai_conversations')
+        .insert({
+          user_id: user.id,
+          series_id: seriesId,
+          issue_id: issueId || null,
+          page_id: pageId || null,
+          messages: messages,
+          mode,
+        })
+        .select('id')
+        .single()
+      activeConversationId = newConv?.id || null
+    }
 
     const duration = Math.round(performance.now() - start)
-    logger.info('Chat API request completed', {
+    logger.info('Chat API streaming started', {
       userId: user.id,
+      seriesId,
       action: 'chat',
       duration,
-      tokensUsed: response.usage?.output_tokens,
     })
 
-    return NextResponse.json({ response: text })
+    // Create streaming response with tools
+    const generator = streamMessage(anthropicMessages, systemPrompt, contextString, EDITOR_TOOLS)
+    const stream = createStreamFromGenerator(generator)
+
+    const sseHeaders = getSSEHeaders() as Record<string, string>
+    if (activeConversationId) {
+      sseHeaders['X-Conversation-Id'] = activeConversationId
+    }
+
+    return new Response(stream, { headers: sseHeaders })
   } catch (error) {
     const duration = Math.round(performance.now() - start)
     logger.error('Chat API error', {
@@ -79,8 +149,8 @@ Remember: You have READ the full script above. You KNOW this material. Engage wi
       duration,
       error: error instanceof Error ? error.message : String(error),
     })
-    return NextResponse.json(
-      { error: 'Failed to generate response' },
+    return new Response(
+      error instanceof Error ? error.message : 'Internal server error',
       { status: 500 }
     )
   }

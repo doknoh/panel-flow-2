@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import ImageUploader from '@/components/ImageUploader'
 import { useEntityImages } from '@/hooks/useEntityImages'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface Character {
   id: string
@@ -319,20 +320,13 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
       {(isCreating || editingId) && renderForm()}
 
       {characters.length === 0 && !isCreating ? (
-        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
-          <div className="text-5xl mb-4 opacity-30">👤</div>
-          <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">No characters yet</h3>
-          <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto mb-6">
-            Characters appear in autocomplete when writing dialogue.
-            Define their visual descriptions to help your artist.
-          </p>
-          <button
-            onClick={startCreate}
-            className="bg-[var(--color-primary)] hover:opacity-90 px-4 py-2 rounded font-medium"
-          >
-            Create Your First Character
-          </button>
-        </div>
+        <EmptyState
+          icon="👤"
+          title="No characters yet"
+          description="Characters appear in autocomplete when writing dialogue. Define their visual descriptions to help your artist."
+          actionLabel="Create Your First Character"
+          onAction={startCreate}
+        />
       ) : (
         <div className="space-y-3">
           {characters.map((character) => (

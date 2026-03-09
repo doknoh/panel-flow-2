@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { formatDistanceToNow, format } from 'date-fns'
 import Link from 'next/link'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface LooseEnd {
   id: string
@@ -114,12 +115,11 @@ export default function SessionList({ sessions: initialSessions, seriesId }: Ses
 
   if (sessions.length === 0) {
     return (
-      <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
-        <p className="text-[var(--text-secondary)] mb-2">No sessions recorded yet</p>
-        <p className="text-[var(--text-muted)] text-sm">
-          Sessions are automatically tracked when you write in the Issue Editor
-        </p>
-      </div>
+      <EmptyState
+        icon="📊"
+        title="No sessions recorded yet"
+        description="Sessions are automatically tracked when you write in the Issue Editor."
+      />
     )
   }
 
