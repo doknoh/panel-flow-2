@@ -77,13 +77,31 @@ export default async function IssuePage({
   }
 
   // Resolve plotline names onto scenes from separately-fetched plotlines
-  const actsData = actsResult.data || []
+  const actsDataRaw = actsResult.data || []
   const plotlineMap = new Map((plotlinesResult.data || []).map(p => [p.id, p]))
-  for (const act of actsData) {
+  for (const act of actsDataRaw) {
     for (const scene of ((act as any).scenes || [])) {
       scene.plotline = scene.plotline_id ? plotlineMap.get(scene.plotline_id) || null : null
     }
   }
+
+  // Sort all nested relations by sort_order (PostgREST only sorts top-level .order())
+  const actsData = actsDataRaw
+    .sort((a: any, b: any) => a.sort_order - b.sort_order)
+    .map((act: any) => ({
+      ...act,
+      scenes: (act.scenes || [])
+        .sort((a: any, b: any) => a.sort_order - b.sort_order)
+        .map((scene: any) => ({
+          ...scene,
+          pages: (scene.pages || [])
+            .sort((a: any, b: any) => a.sort_order - b.sort_order)
+            .map((page: any) => ({
+              ...page,
+              panels: (page.panels || []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+            }))
+        }))
+    }))
 
   // Merge plotlines into series data
   if (plotlinesResult.data) {
