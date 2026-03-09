@@ -81,7 +81,9 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   // Derive issue with correct page_number values computed from structural position
   const issue = useMemo(() => stampPageNumbers(issueRaw), [issueRaw])
   const [refreshKey, setRefreshKey] = useState(0)
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(() => {
+    return initialIssue.acts?.[0]?.scenes?.[0]?.pages?.[0]?.id || null
+  })
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false)
   const [isZoomPanelOpen, setIsZoomPanelOpen] = useState(false)
@@ -125,20 +127,15 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     ? findPreviousPage(issue.acts, selectedPageId)
     : null
 
-  // Auto-select first page if none selected
+  // Auto-select first page if current selection is invalid (e.g., page deleted)
   useEffect(() => {
-    if (!selectedPageId) {
+    if (!selectedPage && issue.acts?.length) {
       const firstPage = issue.acts?.[0]?.scenes?.[0]?.pages?.[0]
       if (firstPage) {
         setSelectedPageId(firstPage.id)
       }
     }
-  }, [issue, selectedPageId])
-
-  // Refresh data on mount to ensure latest characters/locations are loaded
-  useEffect(() => {
-    refreshIssue()
-  }, [])
+  }, [issue, selectedPage])
 
   // Focus title input when editing starts
   useEffect(() => {
@@ -178,11 +175,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   }
 
   const refreshIssue = useCallback(async () => {
-    console.log('refreshIssue: STARTING refresh for issue', initialIssue.id)
     const supabase = createClient()
-
-    // Add a small delay to ensure DB transaction is committed
-    await new Promise(resolve => setTimeout(resolve, 150))
 
     // Fetch issue structure and plotlines separately to avoid PostgREST FK join failures
     // (plotline:plotline_id join can fail if any scene has a dangling FK reference)
@@ -254,12 +247,9 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
     }
 
     if (data) {
-      console.log('refreshIssue: GOT DATA, acts count:', data.acts?.length, 'scenes:', data.acts?.flatMap((a: any) => a.scenes || []).length)
       // Sort acts, scenes, and pages by sort_order for consistent display
       const sortedData = {
         ...data,
-        // Add a timestamp to force React to see this as new data
-        _refreshedAt: Date.now(),
         acts: (data.acts || [])
           .sort((a: any, b: any) => a.sort_order - b.sort_order)
           .map((act: any) => ({
@@ -277,10 +267,8 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
               }))
           }))
       }
-      console.log('refreshIssue: SETTING new issue data')
       setIssue(sortedData)
       setRefreshKey(k => k + 1)
-      console.log('refreshIssue: DONE, refreshKey incremented')
     }
   }, [initialIssue.id])
 
