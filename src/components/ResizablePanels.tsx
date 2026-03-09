@@ -92,17 +92,17 @@ export default function ResizablePanels({
   const isLeftCollapsed = controlledLeftCollapsed ?? internalLeftCollapsed
   const isRightCollapsed = controlledRightCollapsed ?? internalRightCollapsed
 
-  // Track widths before collapse so we can restore them
-  const savedLeftWidthRef = useRef(leftWidth)
-  const savedRightWidthRef = useRef(rightWidth)
+  // Track widths before collapse so we can restore them (state, not refs, since used for rendering)
+  const [savedLeftWidth, setSavedLeftWidth] = useState(leftWidth)
+  const [savedRightWidth, setSavedRightWidth] = useState(rightWidth)
 
-  // Keep refs in sync when user resizes (only when not collapsed)
+  // Keep saved widths in sync when user resizes (only when not collapsed)
   useEffect(() => {
-    if (!isLeftCollapsed) savedLeftWidthRef.current = leftWidth
+    if (!isLeftCollapsed) setSavedLeftWidth(leftWidth)
   }, [leftWidth, isLeftCollapsed])
 
   useEffect(() => {
-    if (!isRightCollapsed) savedRightWidthRef.current = rightWidth
+    if (!isRightCollapsed) setSavedRightWidth(rightWidth)
   }, [rightWidth, isRightCollapsed])
 
   // Animation state: tracks whether we're mid-transition
@@ -117,20 +117,20 @@ export default function ResizablePanels({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(storageKey, JSON.stringify({
-        left: isLeftCollapsed ? savedLeftWidthRef.current : leftWidth,
-        right: isRightCollapsed ? savedRightWidthRef.current : rightWidth,
+        left: isLeftCollapsed ? savedLeftWidth : leftWidth,
+        right: isRightCollapsed ? savedRightWidth : rightWidth,
         leftCollapsed: isLeftCollapsed,
         rightCollapsed: isRightCollapsed,
       }))
     }
-  }, [leftWidth, rightWidth, isLeftCollapsed, isRightCollapsed, storageKey])
+  }, [leftWidth, rightWidth, savedLeftWidth, savedRightWidth, isLeftCollapsed, isRightCollapsed, storageKey])
 
   // Toggle collapse handlers
   const toggleLeftCollapse = useCallback(() => {
     const newCollapsed = !isLeftCollapsed
     if (!newCollapsed) {
       // Expanding: restore saved width
-      setLeftWidth(savedLeftWidthRef.current)
+      setLeftWidth(savedLeftWidth)
     }
     setIsLeftAnimating(true)
     if (onLeftCollapseChange) {
@@ -140,13 +140,13 @@ export default function ResizablePanels({
     }
     // Clear animating state after transition
     setTimeout(() => setIsLeftAnimating(false), 350)
-  }, [isLeftCollapsed, onLeftCollapseChange])
+  }, [isLeftCollapsed, savedLeftWidth, onLeftCollapseChange])
 
   const toggleRightCollapse = useCallback(() => {
     const newCollapsed = !isRightCollapsed
     if (!newCollapsed) {
       // Expanding: restore saved width
-      setRightWidth(savedRightWidthRef.current)
+      setRightWidth(savedRightWidth)
     }
     setIsRightAnimating(true)
     if (onRightCollapseChange) {
@@ -155,7 +155,7 @@ export default function ResizablePanels({
       setInternalRightCollapsed(newCollapsed)
     }
     setTimeout(() => setIsRightAnimating(false), 350)
-  }, [isRightCollapsed, onRightCollapseChange])
+  }, [isRightCollapsed, savedRightWidth, onRightCollapseChange])
 
   // Handle left divider drag (only when not collapsed)
   const handleLeftMouseDown = useCallback((e: React.MouseEvent) => {
@@ -223,8 +223,6 @@ export default function ResizablePanels({
   // Computed widths for animation
   const effectiveLeftWidth = isLeftCollapsed ? 0 : leftWidth
   const effectiveRightWidth = isRightCollapsed ? 0 : rightWidth
-  const leftTransitioning = isLeftAnimating || isLeftCollapsed !== (effectiveLeftWidth === 0)
-  const rightTransitioning = isRightAnimating || isRightCollapsed !== (effectiveRightWidth === 0)
 
   return (
     <div ref={containerRef} className="flex-1 flex overflow-hidden">
@@ -239,7 +237,7 @@ export default function ResizablePanels({
         <div
           className="h-full overflow-y-auto"
           style={{
-            width: isLeftCollapsed ? savedLeftWidthRef.current : leftWidth,
+            width: isLeftCollapsed ? savedLeftWidth : leftWidth,
             opacity: isLeftCollapsed ? 0 : 1,
             transition: isLeftAnimating
               ? isLeftCollapsed
@@ -358,7 +356,7 @@ export default function ResizablePanels({
         <div
           className="h-full overflow-y-auto"
           style={{
-            width: isRightCollapsed ? savedRightWidthRef.current : rightWidth,
+            width: isRightCollapsed ? savedRightWidth : rightWidth,
             opacity: isRightCollapsed ? 0 : 1,
             transition: isRightAnimating
               ? isRightCollapsed
