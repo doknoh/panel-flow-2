@@ -46,7 +46,7 @@ export default function Header({
             </span>
           )}
           {userEmail && (
-            <form action="/auth/signout" method="post">
+            <form action="/auth/signout" method="post" className="flex items-center">
               <button
                 type="submit"
                 className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"

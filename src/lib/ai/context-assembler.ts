@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { AIContext, WriterContext, WritingPhase } from './client'
+import { buildGateContext } from './curriculum'
 
 const DB_TIMEOUT = 8000
 
@@ -158,14 +159,17 @@ export async function assembleWriterContext(
       const { data: issue } = await withTimeout(
         supabase
           .from('issues')
-          .select('number, title, themes, motifs, writing_phase')
+          .select('number, title, themes, motifs, writing_phase, emotional_thesis, false_belief, reader_takeaway')
           .eq('id', issueId)
           .single(),
         DB_TIMEOUT,
       )
 
       if (issue) {
-        const i = issue as { number: number; title: string; themes?: string; motifs?: string; writing_phase?: string }
+        const i = issue as {
+          number: number; title: string; themes?: string; motifs?: string;
+          writing_phase?: string; emotional_thesis?: string; false_belief?: string; reader_takeaway?: string
+        }
         seriesContext.currentIssueNumber = i.number
         seriesContext.currentIssueTitle = i.title
         seriesContext.currentIssueThemes = i.themes || undefined
@@ -173,6 +177,12 @@ export async function assembleWriterContext(
         // Pass writing phase through for phase-aware AI behavior
         if (i.writing_phase) {
           context.currentPhase = i.writing_phase as WritingPhase
+          // Build gate context with anchor questions for phase enforcement
+          context.gateContext = buildGateContext(i.writing_phase as WritingPhase, {
+            emotional_thesis: i.emotional_thesis,
+            false_belief: i.false_belief,
+            reader_takeaway: i.reader_takeaway,
+          })
         }
       }
     }
