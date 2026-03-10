@@ -1,14 +1,17 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useToast } from '@/contexts/ToastContext'
 import { analyzeProjectCompleteness, type CompletenessAnalysis } from './analyzeCompleteness'
 import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
-import ThemeToggle from '@/components/ui/ThemeToggle'
+import Header from '@/components/ui/Header'
 import ChatMessageContent from '@/components/ChatMessageContent'
+import {
+  Users, MapPin, GitBranch, Lightbulb, StickyNote, Film,
+  PenTool, MessageSquare, Pin, Trophy, Search, List, FileText, Wrench,
+} from 'lucide-react'
 
 interface GuidedSession {
   id: string
@@ -45,23 +48,25 @@ interface ToolProposal {
 }
 
 // Tool display config
-const TOOL_DISPLAY: Record<string, { icon: string; label: string; color: string }> = {
-  create_character: { icon: '👤', label: 'Create Character', color: 'var(--color-primary)' },
-  update_character: { icon: '👤', label: 'Update Character', color: 'var(--color-primary)' },
-  create_location: { icon: '📍', label: 'Create Location', color: 'var(--color-success)' },
-  create_plotline: { icon: '🧵', label: 'Create Plotline', color: 'var(--accent-hover)' },
-  save_canvas_beat: { icon: '💡', label: 'Save to Canvas', color: 'var(--color-warning)' },
-  add_panel_note: { icon: '📝', label: 'Add Panel Note', color: 'var(--color-info)' },
-  update_scene_metadata: { icon: '🎬', label: 'Update Scene', color: 'var(--accent-hover)' },
-  draft_panel_description: { icon: '🎨', label: 'Draft Panel', color: 'var(--color-success)' },
-  add_dialogue: { icon: '💬', label: 'Add Dialogue', color: 'var(--color-primary)' },
-  save_project_note: { icon: '📌', label: 'Save Note', color: 'var(--color-warning)' },
-  generate_power_rankings: { icon: '🏆', label: 'Power Rankings', color: 'var(--accent-hover)' },
-  track_character_state: { icon: '🎭', label: 'Track Character State', color: 'var(--color-primary)' },
-  continuity_check: { icon: '🔍', label: 'Continuity Check', color: 'var(--color-error)' },
-  extract_outline: { icon: '📋', label: 'Extract Outline', color: 'var(--color-info)' },
-  draft_scene_summary: { icon: '📄', label: 'Scene Summary', color: 'var(--color-success)' },
+const TOOL_ICON_SIZE = 14
+const TOOL_DISPLAY: Record<string, { icon: ReactNode; label: string; color: string }> = {
+  create_character: { icon: <Users size={TOOL_ICON_SIZE} />, label: 'Create Character', color: 'var(--color-primary)' },
+  update_character: { icon: <Users size={TOOL_ICON_SIZE} />, label: 'Update Character', color: 'var(--color-primary)' },
+  create_location: { icon: <MapPin size={TOOL_ICON_SIZE} />, label: 'Create Location', color: 'var(--color-success)' },
+  create_plotline: { icon: <GitBranch size={TOOL_ICON_SIZE} />, label: 'Create Plotline', color: 'var(--accent-hover)' },
+  save_canvas_beat: { icon: <Lightbulb size={TOOL_ICON_SIZE} />, label: 'Save to Canvas', color: 'var(--color-warning)' },
+  add_panel_note: { icon: <StickyNote size={TOOL_ICON_SIZE} />, label: 'Add Panel Note', color: 'var(--color-info)' },
+  update_scene_metadata: { icon: <Film size={TOOL_ICON_SIZE} />, label: 'Update Scene', color: 'var(--accent-hover)' },
+  draft_panel_description: { icon: <PenTool size={TOOL_ICON_SIZE} />, label: 'Draft Panel', color: 'var(--color-success)' },
+  add_dialogue: { icon: <MessageSquare size={TOOL_ICON_SIZE} />, label: 'Add Dialogue', color: 'var(--color-primary)' },
+  save_project_note: { icon: <Pin size={TOOL_ICON_SIZE} />, label: 'Save Note', color: 'var(--color-warning)' },
+  generate_power_rankings: { icon: <Trophy size={TOOL_ICON_SIZE} />, label: 'Power Rankings', color: 'var(--accent-hover)' },
+  track_character_state: { icon: <Users size={TOOL_ICON_SIZE} />, label: 'Track Character State', color: 'var(--color-primary)' },
+  continuity_check: { icon: <Search size={TOOL_ICON_SIZE} />, label: 'Continuity Check', color: 'var(--color-error)' },
+  extract_outline: { icon: <List size={TOOL_ICON_SIZE} />, label: 'Extract Outline', color: 'var(--color-info)' },
+  draft_scene_summary: { icon: <FileText size={TOOL_ICON_SIZE} />, label: 'Scene Summary', color: 'var(--color-success)' },
 }
+const DEFAULT_TOOL_DISPLAY = { icon: <Wrench size={TOOL_ICON_SIZE} />, label: '', color: 'var(--text-secondary)' }
 
 function getToolSummary(toolName: string, input: Record<string, unknown>): string {
   switch (toolName) {
@@ -686,115 +691,109 @@ export default function GuidedMode({
     : series.title
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-white">
+    <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header */}
-      <header className="border-b border-[var(--border)] px-4 py-3 shrink-0">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div className="flex items-center gap-3">
-            <Link
-              href={currentIssue ? `/series/${series.id}/issues/${currentIssue.id}` : `/series/${series.id}`}
-              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-            >
-              &larr;
-            </Link>
-            <div>
-              <h1 className="font-semibold flex items-center gap-2">
-                <span className="text-[var(--accent-hover)]">Guide</span>
-                <span className="text-[var(--text-muted)]">/</span>
-                <span>{contextLabel}</span>
-              </h1>
-              {session && (
-                <p className="text-xs text-[var(--text-muted)]">
-                  {session.session_type === 'general' ? 'General Session' : session.session_type.replace(/_/g, ' ')}
-                  {session.focus_area && ` \u2022 Exploring: ${session.focus_area}`}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {session && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowSessionMenu(!showSessionMenu)}
-                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1.5 border border-[var(--border)] rounded-lg flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
-                >
-                  Options
-                  <span className="text-[10px]">&#9660;</span>
-                </button>
-
-                {showSessionMenu && (
-                  <>
-                    {/* Backdrop */}
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowSessionMenu(false)}
-                    />
-                    {/* Menu */}
-                    <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl overflow-hidden">
-                      {/* Shift Focus Options */}
-                      <div className="p-2 border-b border-[var(--border)]">
-                        <div className="text-[10px] uppercase text-[var(--text-muted)] px-2 py-1">Shift Focus To</div>
-                        <button
-                          onClick={() => shiftFocus('character_deep_dive')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
-                        >
-                          Characters
-                        </button>
-                        <button
-                          onClick={() => shiftFocus('outline')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
-                        >
-                          Story Structure
-                        </button>
-                        <button
-                          onClick={() => shiftFocus('world_building')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
-                        >
-                          World Building
-                        </button>
-                        <button
-                          onClick={() => shiftFocus('general')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
-                        >
-                          Open Exploration
-                        </button>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="p-2">
-                        <button
-                          onClick={() => {
-                            setShowSessionMenu(false)
-                            extractInsights()
-                          }}
-                          disabled={isExtracting || displayMessages.length < 2}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] rounded disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] transition-all duration-150 ease-out"
-                        >
-                          {isExtracting ? 'Extracting...' : 'Extract Insights'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowSessionMenu(false)
-                            setSession(null)
-                            setDisplayMessages([])
-                            setExtractionResults(null)
-                            setShowSessionPicker(true)
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-[var(--color-error)] hover:bg-[var(--bg-tertiary)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
-                        >
-                          New Session
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+      <Header
+        variant="subpage"
+        backHref={currentIssue ? `/series/${series.id}/issues/${currentIssue.id}` : `/series/${series.id}`}
+        backLabel={series.title}
+        title="Guide"
+        maxWidth="max-w-4xl"
+        subtitleNode={
+          <div>
+            {contextLabel !== series.title && (
+              <p className="type-micro text-[var(--text-secondary)] uppercase">{contextLabel}</p>
             )}
-            <ThemeToggle />
+            {session && (
+              <p className="type-micro text-[var(--text-muted)]">
+                {session.session_type === 'general' ? 'GENERAL SESSION' : session.session_type.replace(/_/g, ' ').toUpperCase()}
+                {session.focus_area && ` // EXPLORING: ${session.focus_area.toUpperCase()}`}
+              </p>
+            )}
           </div>
-        </div>
-      </header>
+        }
+      >
+        {session && (
+          <div className="relative">
+            <button
+              onClick={() => setShowSessionMenu(!showSessionMenu)}
+              className="type-micro text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
+            >
+              OPTIONS
+              <span className="text-[10px]">&#9660;</span>
+            </button>
+
+            {showSessionMenu && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowSessionMenu(false)}
+                />
+                {/* Menu */}
+                <div className="dropdown-panel absolute right-0 top-full mt-1 z-20 w-56 py-1">
+                  {/* Shift Focus Options */}
+                  <div className="px-2 py-1 border-b border-[var(--border)]">
+                    <div className="type-micro text-[var(--text-muted)] px-2 py-1">SHIFT FOCUS TO</div>
+                    <button
+                      onClick={() => shiftFocus('character_deep_dive')}
+                      className="dropdown-item"
+                    >
+                      Characters
+                    </button>
+                    <button
+                      onClick={() => shiftFocus('outline')}
+                      className="dropdown-item"
+                    >
+                      Story Structure
+                    </button>
+                    <button
+                      onClick={() => shiftFocus('world_building')}
+                      className="dropdown-item"
+                    >
+                      World Building
+                    </button>
+                    <button
+                      onClick={() => shiftFocus('general')}
+                      className="dropdown-item"
+                    >
+                      Open Exploration
+                    </button>
+                  </div>
+
+                  <div className="dropdown-separator" />
+
+                  {/* Actions */}
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setShowSessionMenu(false)
+                        extractInsights()
+                      }}
+                      disabled={isExtracting || displayMessages.length < 2}
+                      className="dropdown-item disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isExtracting ? 'Extracting...' : 'Extract Insights'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSessionMenu(false)
+                        setSession(null)
+                        setDisplayMessages([])
+                        setExtractionResults(null)
+                        setShowSessionPicker(true)
+                      }}
+                      className="dropdown-item text-[var(--color-error)]"
+                    >
+                      New Session
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </Header>
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden flex flex-col max-w-4xl mx-auto w-full">
@@ -802,8 +801,8 @@ export default function GuidedMode({
         {!session && (
           <div className="flex-1 flex flex-col items-center justify-center p-8">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold mb-2">Guided Writing Session</h2>
-              <p className="text-[var(--text-secondary)] max-w-md">
+              <h2 className="type-section mb-2">GUIDED WRITING SESSION</h2>
+              <p className="type-meta text-[var(--text-secondary)] max-w-md mx-auto">
                 Your AI writing partner will guide you through developing your story,
                 asking questions and helping you discover the details that bring it to life.
               </p>
@@ -813,18 +812,20 @@ export default function GuidedMode({
             {analysis && (
               <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 mb-6 w-full max-w-md">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium">Project Completeness</span>
-                  <span className="text-sm text-[var(--text-secondary)]">{analysis.overallScore}%</span>
+                  <span className="type-label text-[var(--text-secondary)]">PROJECT COMPLETENESS</span>
+                  <span className="type-micro text-[var(--text-secondary)]">{analysis.overallScore}%</span>
                 </div>
-                <div className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-[var(--bg-tertiary)] overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[var(--accent-hover)] to-[var(--color-primary)] transition-all"
+                    className="h-full bg-[var(--color-primary)] transition-all"
                     style={{ width: `${analysis.overallScore}%` }}
                   />
                 </div>
-                <div className="mt-3 text-xs text-[var(--text-muted)]">
+                <div className="mt-3">
                   {analysis.suggestedFocus && (
-                    <p>Suggested focus: <span className="text-[var(--accent-hover)]">{analysis.suggestedFocus}</span></p>
+                    <p className="type-micro text-[var(--text-muted)]">
+                      SUGGESTED FOCUS: <span className="text-[var(--color-primary)]">{analysis.suggestedFocus}</span>
+                    </p>
                   )}
                 </div>
               </div>
@@ -834,56 +835,56 @@ export default function GuidedMode({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md mb-6">
               <button
                 onClick={() => startNewSession('general')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left active:scale-[0.97] transition-all duration-150 ease-out"
               >
-                <div className="font-medium mb-1">Open Exploration</div>
-                <div className="text-xs text-[var(--text-secondary)]">Let the AI guide based on what&apos;s needed</div>
+                <div className="type-label mb-1">OPEN EXPLORATION</div>
+                <div className="type-micro text-[var(--text-secondary)]">Let the AI guide based on what&apos;s needed</div>
               </button>
               <button
                 onClick={() => startNewSession('character_deep_dive')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left active:scale-[0.97] transition-all duration-150 ease-out"
               >
-                <div className="font-medium mb-1">Character Deep Dive</div>
-                <div className="text-xs text-[var(--text-secondary)]">Explore motivations, arcs, and voices</div>
+                <div className="type-label mb-1">CHARACTER DEEP DIVE</div>
+                <div className="type-micro text-[var(--text-secondary)]">Explore motivations, arcs, and voices</div>
               </button>
               <button
                 onClick={() => startNewSession('outline')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left active:scale-[0.97] transition-all duration-150 ease-out"
               >
-                <div className="font-medium mb-1">Story Structure</div>
-                <div className="text-xs text-[var(--text-secondary)]">Work out acts, beats, and pacing</div>
+                <div className="type-label mb-1">STORY STRUCTURE</div>
+                <div className="type-micro text-[var(--text-secondary)]">Work out acts, beats, and pacing</div>
               </button>
               <button
                 onClick={() => startNewSession('world_building')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg text-left active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left active:scale-[0.97] transition-all duration-150 ease-out"
               >
-                <div className="font-medium mb-1">World Building</div>
-                <div className="text-xs text-[var(--text-secondary)]">Define locations, rules, and atmosphere</div>
+                <div className="type-label mb-1">WORLD BUILDING</div>
+                <div className="type-micro text-[var(--text-secondary)]">Define locations, rules, and atmosphere</div>
               </button>
             </div>
 
             {/* Recent Sessions */}
             {recentSessions.length > 0 && (
               <div className="w-full max-w-md">
-                <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Resume a session</h3>
+                <h3 className="type-label text-[var(--text-secondary)] mb-2">RESUME A SESSION</h3>
                 <div className="space-y-2">
                   {recentSessions.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => resumeSession(s)}
-                      className="w-full p-3 bg-[var(--bg-secondary)]/50 hover:bg-[var(--bg-tertiary)]/50 border border-[var(--border)] rounded-lg text-left active:scale-[0.97] hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
+                      className="w-full p-3 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] text-left active:scale-[0.97] hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">
-                          {s.title || s.session_type.replace(/_/g, ' ')}
+                        <span className="type-label text-[var(--text-primary)]">
+                          {s.title || s.session_type.replace(/_/g, ' ').toUpperCase()}
                         </span>
-                        <span className="text-xs text-[var(--text-muted)]">
+                        <span className="type-micro text-[var(--text-muted)]">
                           {new Date(s.last_active_at).toLocaleDateString()}
                         </span>
                       </div>
                       {s.focus_area && (
-                        <div className="text-xs text-[var(--text-muted)] mt-1">
-                          Last exploring: {s.focus_area}
+                        <div className="type-micro text-[var(--text-muted)] mt-1">
+                          LAST EXPLORING: {s.focus_area.toUpperCase()}
                         </div>
                       )}
                     </button>
@@ -905,10 +906,10 @@ export default function GuidedMode({
                   className={`flex animate-message-arrive ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                    className={`max-w-[85%] rounded-lg px-4 py-3 ${
                       msg.role === 'user'
                         ? 'bg-[var(--color-primary)] text-white'
-                        : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                        : 'bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)]'
                     }`}
                   >
                     <div className="text-sm leading-relaxed">
@@ -921,33 +922,33 @@ export default function GuidedMode({
 
                     {/* Tool Proposals */}
                     {msg.toolProposals && msg.toolProposals.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                      <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
                         {msg.toolProposals.map((proposal) => {
-                          const display = TOOL_DISPLAY[proposal.toolName] || { icon: '🔧', label: proposal.toolName, color: 'var(--text-secondary)' }
+                          const display = TOOL_DISPLAY[proposal.toolName] || DEFAULT_TOOL_DISPLAY
                           const summary = getToolSummary(proposal.toolName, proposal.input)
 
                           return (
                             <div
                               key={proposal.toolUseId}
-                              className="border border-dashed rounded-lg p-3 bg-[var(--bg-primary)]/30"
+                              className="border border-dashed rounded-lg p-3 bg-[var(--bg-tertiary)]/50"
                               style={{ borderColor: display.color }}
                             >
                               <div className="flex items-start gap-2 mb-1">
-                                <span className="text-base">{display.icon}</span>
+                                <span className="shrink-0" style={{ color: display.color }}>{display.icon}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium" style={{ color: display.color }}>
-                                    {display.label}
+                                  <p className="type-micro font-medium" style={{ color: display.color }}>
+                                    {display.label || proposal.toolName.replace(/_/g, ' ').toUpperCase()}
                                   </p>
-                                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">{summary}</p>
+                                  <p className="type-micro text-[var(--text-secondary)] mt-0.5">{summary}</p>
                                 </div>
                                 {proposal.status === 'completed' && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">Done</span>
+                                  <span className="type-micro px-1.5 py-0.5 border border-[var(--color-success)]/30 text-[var(--color-success)]">DONE</span>
                                 )}
                                 {proposal.status === 'dismissed' && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-muted)]">Skipped</span>
+                                  <span className="type-micro px-1.5 py-0.5 border border-[var(--border)] text-[var(--text-muted)]">SKIPPED</span>
                                 )}
                                 {proposal.status === 'executing' && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)]">Running...</span>
+                                  <span className="type-micro px-1.5 py-0.5 border border-[var(--color-warning)]/30 text-[var(--color-warning)]">RUNNING...</span>
                                 )}
                               </div>
 
@@ -956,16 +957,16 @@ export default function GuidedMode({
                                   <button
                                     onClick={() => handleToolProposal(proposal, true, i)}
                                     disabled={isLoading}
-                                    className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50"
+                                    className="flex-1 py-1.5 px-3 type-micro font-medium transition-colors border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
                                   >
-                                    Confirm
+                                    CONFIRM
                                   </button>
                                   <button
                                     onClick={() => handleToolProposal(proposal, false, i)}
                                     disabled={isLoading}
-                                    className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                                    className="flex-1 py-1.5 px-3 type-micro font-medium transition-colors border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]"
                                   >
-                                    Skip
+                                    SKIP
                                   </button>
                                 </div>
                               )}
@@ -981,32 +982,32 @@ export default function GuidedMode({
               {/* Streaming text */}
               {streamingText && (
                 <div className="flex justify-start">
-                  <div className="max-w-[85%] bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-2xl px-4 py-3">
+                  <div className="max-w-[85%] bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] rounded-lg px-4 py-3">
                     <div className="text-sm leading-relaxed">
                       <ChatMessageContent content={streamingText} />
                     </div>
 
                     {streamingToolProposals.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                      <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
                         {streamingToolProposals.map((proposal) => {
-                          const display = TOOL_DISPLAY[proposal.toolName] || { icon: '🔧', label: proposal.toolName, color: 'var(--text-secondary)' }
+                          const display = TOOL_DISPLAY[proposal.toolName] || DEFAULT_TOOL_DISPLAY
                           return (
                             <div
                               key={proposal.toolUseId}
-                              className="border border-dashed rounded-lg p-3 opacity-70 bg-[var(--bg-primary)]/30"
+                              className="border border-dashed rounded-lg p-3 opacity-70 bg-[var(--bg-tertiary)]/50"
                               style={{ borderColor: display.color }}
                             >
                               <div className="flex items-center gap-2">
-                                <span className="text-base">{display.icon}</span>
-                                <p className="text-xs font-medium" style={{ color: display.color }}>
-                                  {proposal.status === 'streaming' ? `${display.label}...` : display.label}
+                                <span className="shrink-0" style={{ color: display.color }}>{display.icon}</span>
+                                <p className="type-micro font-medium" style={{ color: display.color }}>
+                                  {proposal.status === 'streaming' ? `${display.label || proposal.toolName.replace(/_/g, ' ').toUpperCase()}...` : (display.label || proposal.toolName.replace(/_/g, ' ').toUpperCase())}
                                 </p>
                                 {proposal.status === 'streaming' && (
                                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-warning)] animate-pulse" />
                                 )}
                               </div>
                               {proposal.status === 'pending' && (
-                                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                                <p className="type-micro text-[var(--text-secondary)] mt-1">
                                   {getToolSummary(proposal.toolName, proposal.input)}
                                 </p>
                               )}
@@ -1022,12 +1023,12 @@ export default function GuidedMode({
               {/* Loading indicator (before first token) */}
               {isLoading && !streamingText && (
                 <div className="flex justify-start">
-                  <div className="bg-[var(--bg-tertiary)] rounded-2xl px-4 py-3">
+                  <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-3">
                     <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                       <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     </div>
                   </div>
@@ -1039,22 +1040,22 @@ export default function GuidedMode({
 
             {/* Extraction Results Panel */}
             {extractionResults && (
-              <div className="px-4 py-3 bg-emerald-900/20 border-t border-emerald-500/30">
+              <div className="px-4 py-3 bg-[var(--color-success)]/5 border-t border-[var(--color-success)]/30">
                 <div className="max-w-2xl mx-auto">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm font-medium text-emerald-300">
-                      Extracted Insights
+                    <div className="type-label text-[var(--color-success)]">
+                      EXTRACTED INSIGHTS
                     </div>
                     <button
                       onClick={() => setExtractionResults(null)}
-                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
+                      className="type-micro text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
                     >
                       &times;
                     </button>
                   </div>
 
                   {extractionResults.sessionSummary && (
-                    <p className="text-xs text-[var(--text-secondary)] mb-2 italic">
+                    <p className="type-micro text-[var(--text-secondary)] mb-2 italic">
                       &quot;{extractionResults.sessionSummary}&quot;
                     </p>
                   )}
@@ -1064,19 +1065,19 @@ export default function GuidedMode({
                       {extractionResults.insights.map((insight: any, i: number) => (
                         <div
                           key={i}
-                          className="text-xs bg-[var(--bg-secondary)]/50 px-3 py-2 rounded flex items-start gap-2"
+                          className="bg-[var(--bg-secondary)] border border-[var(--border)] px-3 py-2 flex items-start gap-2"
                         >
                           <div className="flex-1 min-w-0">
-                            <span className="text-[var(--text-primary)]">{insight.description}</span>
-                            <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--text-muted)]">
-                              <span className="bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">{insight.category}</span>
-                              <span>
+                            <span className="text-sm text-[var(--text-primary)]">{insight.description}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="type-micro bg-[var(--bg-tertiary)] px-1.5 py-0.5">{insight.category}</span>
+                              <span className="type-micro text-[var(--text-muted)]">
                                 {Math.round(insight.confidence * 100)}% confidence
                               </span>
                               {extractionResults.savedInsights?.some((s: any) =>
                                 s.description === insight.description
                               ) && (
-                                <span className="text-emerald-400">Saved</span>
+                                <span className="type-micro text-[var(--color-success)]">SAVED</span>
                               )}
                             </div>
                           </div>
@@ -1084,7 +1085,7 @@ export default function GuidedMode({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-[var(--text-muted)]">
+                    <p className="type-micro text-[var(--text-muted)]">
                       No clear insights found yet. Keep exploring your ideas!
                     </p>
                   )}
@@ -1101,20 +1102,20 @@ export default function GuidedMode({
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Share your thoughts..."
-                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl px-4 py-3 resize-none text-sm focus:outline-none focus:border-[var(--accent-hover)] transition-colors"
+                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-4 py-3 resize-none text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   rows={2}
                   disabled={isLoading}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={!input.trim() || isLoading}
-                  className="px-4 bg-[var(--accent-hover)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-xl font-medium active:scale-[0.97] transition-all duration-150 ease-out"
+                  className="type-label px-4 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:border-[var(--border)] disabled:text-[var(--text-muted)] active:scale-[0.97] transition-all duration-150 ease-out"
                 >
-                  Send
+                  SEND
                 </button>
               </div>
-              <div className="max-w-2xl mx-auto mt-2 text-xs text-[var(--text-muted)] text-center">
-                Press Enter to send &bull; Shift+Enter for new line
+              <div className="max-w-2xl mx-auto mt-2 type-micro text-[var(--text-muted)] text-center">
+                ENTER TO SEND // SHIFT+ENTER FOR NEW LINE
               </div>
             </div>
           </>

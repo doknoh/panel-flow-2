@@ -1,11 +1,15 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import CanvasItem from './CanvasItem'
 import GraduationModal from './GraduationModal'
 import EmptyState from '@/components/ui/EmptyState'
+import Header from '@/components/ui/Header'
+import {
+  Users, Lightbulb, Palette, HelpCircle, MessageSquare, Swords, Globe, MessageSquarePlus,
+} from 'lucide-react'
+import { type ReactNode } from 'react'
 
 // Types
 export type ItemType = 'character' | 'theme' | 'visual' | 'scenario' | 'dialogue' | 'conflict' | 'world'
@@ -63,14 +67,24 @@ interface CanvasClientProps {
   locations: Location[]
 }
 
-const ITEM_TYPE_CONFIG: Record<ItemType, { icon: string; label: string; color: string }> = {
-  character: { icon: '🎭', label: 'Character', color: 'from-purple-900/50 to-purple-800/30' },
-  theme: { icon: '💡', label: 'Theme', color: 'from-amber-900/50 to-amber-800/30' },
-  visual: { icon: '🎨', label: 'Visual', color: 'from-cyan-900/50 to-cyan-800/30' },
-  scenario: { icon: '❓', label: 'What If', color: 'from-rose-900/50 to-rose-800/30' },
-  dialogue: { icon: '🗣️', label: 'Dialogue', color: 'from-green-900/50 to-green-800/30' },
-  conflict: { icon: '⚔️', label: 'Conflict', color: 'from-red-900/50 to-red-800/30' },
-  world: { icon: '🌍', label: 'World', color: 'from-blue-900/50 to-blue-800/30' },
+const ITEM_TYPE_CONFIG: Record<ItemType, { label: string; borderColor: string }> = {
+  character: { label: 'CHARACTER', borderColor: 'var(--color-primary)' },
+  theme: { label: 'THEME', borderColor: 'var(--color-warning)' },
+  visual: { label: 'VISUAL', borderColor: 'var(--accent-hover)' },
+  scenario: { label: 'WHAT IF', borderColor: 'var(--color-error)' },
+  dialogue: { label: 'DIALOGUE', borderColor: 'var(--color-success)' },
+  conflict: { label: 'CONFLICT', borderColor: 'var(--color-error)' },
+  world: { label: 'WORLD', borderColor: 'var(--color-info)' },
+}
+
+const ITEM_TYPE_ICONS: Record<ItemType, ReactNode> = {
+  character: <Users size={16} />,
+  theme: <Lightbulb size={16} />,
+  visual: <Palette size={16} />,
+  scenario: <HelpCircle size={16} />,
+  dialogue: <MessageSquare size={16} />,
+  conflict: <Swords size={16} />,
+  world: <Globe size={16} />,
 }
 
 const COLOR_OPTIONS: ColorTag[] = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'gray']
@@ -339,58 +353,21 @@ export default function CanvasClient({
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header */}
-      <header className="border-b border-[var(--border)] bg-[var(--bg-secondary)]/50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href={`/series/${seriesId}`}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                ← {seriesTitle}
-              </Link>
-              <h1 className="text-xl font-semibold flex items-center gap-2">
-                <span className="text-2xl">💭</span>
-                Canvas
-              </h1>
-            </div>
-
-            {/* Add idea button */}
-            <div className="relative">
-              <button
-                onClick={() => setIsCreating(!isCreating)}
-                className="px-4 py-2 bg-[var(--color-primary)] hover:opacity-90 rounded-lg font-medium active:scale-[0.97] transition-all duration-150 ease-out"
-              >
-                + Add Idea
-              </button>
-
-              {/* Type selector dropdown */}
-              {isCreating && (
-                <div className="absolute right-0 top-full mt-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 py-2 min-w-[180px]">
-                  {Object.entries(ITEM_TYPE_CONFIG).map(([type, config]) => (
-                    <button
-                      key={type}
-                      onClick={() => handleCreateItem(type as ItemType)}
-                      className="w-full px-4 py-2 text-left hover:bg-[var(--bg-tertiary)] flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out"
-                    >
-                      <span>{config.icon}</span>
-                      <span>{config.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Filter tabs */}
-          <div className="flex items-center gap-4 mt-4 overflow-x-auto pb-2">
+      <Header
+        variant="subpage"
+        backHref={`/series/${seriesId}`}
+        backLabel={seriesTitle}
+        title="Canvas"
+        maxWidth="max-w-7xl"
+        secondaryRow={
+          <div className="flex items-center gap-4 overflow-x-auto pb-2">
             <div className="flex gap-2">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out ${
+                className={`type-micro px-3 py-1.5 whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out ${
                   filter === 'all'
-                    ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                    ? 'border border-[var(--text-primary)] text-[var(--text-primary)]'
+                    : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]'
                 }`}
               >
                 All ({items.length})
@@ -402,13 +379,13 @@ export default function CanvasClient({
                   <button
                     key={type}
                     onClick={() => setFilter(type as ItemType)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out ${
+                    className={`type-micro px-3 py-1.5 whitespace-nowrap flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out ${
                       filter === type
-                        ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                        : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                        ? 'border border-[var(--text-primary)] text-[var(--text-primary)]'
+                        : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]'
                     }`}
                   >
-                    <span>{config.icon}</span>
+                    <span className="text-[var(--text-muted)]">{ITEM_TYPE_ICONS[type as ItemType]}</span>
                     <span>{config.label}</span>
                     <span className="ml-1 opacity-60">({count})</span>
                   </button>
@@ -422,10 +399,10 @@ export default function CanvasClient({
                 <button
                   key={f}
                   onClick={() => setFilingFilter(f)}
-                  className={`px-2 py-1 rounded text-xs font-medium capitalize active:scale-[0.97] transition-all duration-150 ease-out ${
+                  className={`type-micro px-3 py-1.5 capitalize active:scale-[0.97] transition-all duration-150 ease-out ${
                     filingFilter === f
-                      ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      ? 'border border-[var(--text-primary)] text-[var(--text-primary)]'
+                      : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]'
                   }`}
                 >
                   {f}
@@ -433,26 +410,52 @@ export default function CanvasClient({
               ))}
             </div>
           </div>
+        }
+      >
+        <div className="relative">
+          <button
+            onClick={() => setIsCreating(!isCreating)}
+            className="type-label px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] active:scale-[0.97] transition-all duration-150 ease-out"
+          >
+            + Add Idea
+          </button>
+
+          {/* Type selector dropdown */}
+          {isCreating && (
+            <div className="dropdown-panel absolute right-0 top-full mt-2 z-50 min-w-[180px]">
+              {Object.entries(ITEM_TYPE_CONFIG).map(([type, config]) => (
+                <button
+                  key={type}
+                  onClick={() => handleCreateItem(type as ItemType)}
+                  className="dropdown-item w-full text-left flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out"
+                >
+                  <span className="text-[var(--text-muted)]">{ITEM_TYPE_ICONS[type as ItemType]}</span>
+                  <span>{config.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      </header>
+      </Header>
 
       {/* Canvas grid */}
       <main className="max-w-7xl mx-auto px-4 py-6">
         {filteredItems.length === 0 ? (
           <EmptyState
-            icon="💭"
+            lucideIcon={<MessageSquarePlus size={32} />}
             title="Your canvas is empty"
             description="Start dumping ideas here -- characters, themes, visuals, what-ifs. They can graduate to structured entities when ready."
             actionLabel="+ Add Your First Idea"
             onAction={() => setIsCreating(true)}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger-children">
             {filteredItems.map(item => (
               <CanvasItem
                 key={item.id}
                 item={item}
                 config={ITEM_TYPE_CONFIG[item.item_type]}
+                icon={ITEM_TYPE_ICONS[item.item_type]}
                 onUpdate={handleUpdateItem}
                 onArchive={handleArchiveItem}
                 onGraduate={handleGraduate}
@@ -493,4 +496,4 @@ export default function CanvasClient({
   )
 }
 
-export { ITEM_TYPE_CONFIG, COLOR_OPTIONS }
+export { ITEM_TYPE_CONFIG, ITEM_TYPE_ICONS, COLOR_OPTIONS }

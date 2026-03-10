@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import {
   analyzeSeriesPatterns,
   Series,
@@ -15,6 +14,7 @@ import {
   getInsightIcon,
   formatIssueRange,
 } from '@/lib/series-patterns'
+import Header from '@/components/ui/Header'
 
 interface PatternsClientProps {
   seriesId: string
@@ -43,44 +43,34 @@ export default function PatternsClient({
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header */}
-      <header className="border-b border-[var(--border)] bg-[var(--bg-secondary)]">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3 text-sm text-[var(--text-muted)] mb-2">
-            <Link href={`/series/${seriesId}`} className="hover:text-[var(--text-primary)]">
-              {seriesTitle}
-            </Link>
-            <span>/</span>
-            <span className="text-[var(--text-primary)]">Patterns</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold flex items-center gap-2">
-              🕸️ Cross-Issue Patterns
-            </h1>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode('plotlines')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  viewMode === 'plotlines'
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                Plotlines
-              </button>
-              <button
-                onClick={() => setViewMode('characters')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  viewMode === 'characters'
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                Characters
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header
+        variant="subpage"
+        backHref={`/series/${seriesId}`}
+        backLabel={seriesTitle}
+        title="Patterns"
+        maxWidth="max-w-7xl"
+      >
+        <button
+          onClick={() => setViewMode('plotlines')}
+          className={`type-micro px-3 py-1 rounded border transition-colors ${
+            viewMode === 'plotlines'
+              ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
+              : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]'
+          }`}
+        >
+          Plotlines
+        </button>
+        <button
+          onClick={() => setViewMode('characters')}
+          className={`type-micro px-3 py-1 rounded border transition-colors ${
+            viewMode === 'characters'
+              ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
+              : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]'
+          }`}
+        >
+          Characters
+        </button>
+      </Header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Plotlines View */}
