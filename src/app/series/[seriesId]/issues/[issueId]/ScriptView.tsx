@@ -10,13 +10,12 @@ import CharacterAutocomplete from '@/components/CharacterAutocomplete'
 import TypeSelector from '@/components/TypeSelector'
 import FindReplaceModal from './FindReplaceModal'
 import {
-  wrapSelection,
   parseMarkdownToReact,
   countWords,
-  getWordCountClass,
   parseMarkdownForPdf,
   stripMarkdown
 } from '@/lib/markdown'
+import ScriptEditor from '@/components/editor/ScriptEditor'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 
 // ============================================================================
@@ -2037,52 +2036,6 @@ interface ScriptBlockComponentProps {
   registerRef: (el: HTMLTextAreaElement | HTMLInputElement | null) => void
 }
 
-// Memoized word count badge to prevent recalculation on every render
-const WordCountBadge = React.memo(function WordCountBadge({
-  content,
-  className = '',
-  showWarnings = true
-}: {
-  content: string
-  className?: string
-  showWarnings?: boolean
-}) {
-  const wc = useMemo(() => countWords(content), [content])
-
-  if (!content) return null
-
-  const warningText = showWarnings
-    ? wc >= 35 ? ' - too many for letterer!' : wc >= 25 ? ' - getting wordy' : ''
-    : ''
-
-  return (
-    <div className={`absolute right-0 top-0 -mt-5 ${className}`}>
-      <span
-        className={`text-xs font-mono ${getWordCountClass(wc)}`}
-        title={`${wc} words${warningText}`}
-      >
-        {wc}w
-      </span>
-    </div>
-  )
-})
-
-// Memoized inline word count for SFX
-const InlineWordCount = React.memo(function InlineWordCount({ content }: { content: string }) {
-  const wc = useMemo(() => countWords(content), [content])
-
-  if (!content) return null
-
-  return (
-    <span
-      className={`text-xs font-mono ${getWordCountClass(wc)}`}
-      title={`${wc} words`}
-    >
-      {wc}w
-    </span>
-  )
-})
-
 const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   block,
   characters,
@@ -2105,108 +2058,6 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   isLastBlockInPage,
   registerRef,
 }: ScriptBlockComponentProps) {
-  // ============================================================================
-  // Markdown formatting handlers (Cmd+B for bold, Cmd+I for italic)
-  // ============================================================================
-
-  const handleTextareaKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>,
-    content: string,
-    onContentChange: (newContent: string) => void
-  ) => {
-    const isMod = e.metaKey || e.ctrlKey
-    const target = e.target as HTMLTextAreaElement | HTMLInputElement
-
-    // Cmd+B for bold
-    if (isMod && e.key === 'b') {
-      e.preventDefault()
-      e.stopPropagation()
-      applyFormatting(target, content, '**', onContentChange)
-      return
-    }
-
-    // Cmd+I for italic
-    if (isMod && e.key === 'i') {
-      e.preventDefault()
-      e.stopPropagation()
-      applyFormatting(target, content, '*', onContentChange)
-      return
-    }
-  }
-
-  // Auto-resize textarea to fit content
-  const autoResize = (el: HTMLTextAreaElement | null) => {
-    if (el) {
-      el.style.height = 'auto'
-      el.style.height = el.scrollHeight + 'px'
-    }
-  }
-
-  const applyFormatting = (
-    target: HTMLTextAreaElement | HTMLInputElement,
-    content: string,
-    wrapper: '**' | '*',
-    onContentChange: (newContent: string) => void
-  ) => {
-    const start = target.selectionStart ?? 0
-    const end = target.selectionEnd ?? 0
-
-    // Handle empty content - insert markers with cursor between
-    if (!content) {
-      const newContent = wrapper + wrapper
-      onContentChange(newContent)
-      requestAnimationFrame(() => {
-        target.focus()
-        target.setSelectionRange(wrapper.length, wrapper.length)
-      })
-      return
-    }
-
-    // If no selection, find word boundaries
-    let actualStart = start
-    let actualEnd = end
-
-    if (start === end) {
-      // Find word boundaries
-      let wordStart = start
-      let wordEnd = end
-
-      while (wordStart > 0 && !/\s/.test(content[wordStart - 1])) {
-        wordStart--
-      }
-      while (wordEnd < content.length && !/\s/.test(content[wordEnd])) {
-        wordEnd++
-      }
-
-      // Check if we found a word (not just whitespace)
-      const selectedText = content.slice(wordStart, wordEnd)
-      if (!selectedText.trim()) {
-        // Cursor is in whitespace - insert markers at cursor position
-        const before = content.slice(0, start)
-        const after = content.slice(start)
-        const newContent = before + wrapper + wrapper + after
-        onContentChange(newContent)
-        requestAnimationFrame(() => {
-          target.focus()
-          target.setSelectionRange(start + wrapper.length, start + wrapper.length)
-        })
-        return
-      }
-
-      actualStart = wordStart
-      actualEnd = wordEnd
-    }
-
-    const result = wrapSelection(content, actualStart, actualEnd, wrapper)
-    onContentChange(result.text)
-
-    // Restore cursor position after React re-renders
-    requestAnimationFrame(() => {
-      target.focus()
-      target.setSelectionRange(result.newStart, result.newEnd)
-    })
-  }
-
   // Page header - non-editable
   if (block.type === 'page-header') {
     return (
@@ -2242,20 +2093,16 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           </button>
         </div>
         <div className="relative">
-          <textarea
-            ref={(el) => { registerRef(el); autoResize(el) }}
-            value={block.content}
-            onChange={(e) => onChange(e.target.value)}
-            onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
-            onKeyDown={(e) => handleTextareaKeyDown(e, block.content, onChange)}
+          <ScriptEditor
+            variant="description"
+            initialContent={block.content || ''}
+            onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
-            onBlur={onBlur}
-            placeholder="Describe what we see in this panel... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-[var(--text-primary)] font-medium resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 min-h-[60px] leading-relaxed overflow-hidden"
-            style={{ caretColor: 'var(--text-primary)' }}
+            onBlur={() => onBlur?.()}
+            placeholder="Describe what we see in this panel..."
+            showWordCount
+            className="script-view-editor"
           />
-          {/* Word count indicator - memoized for performance */}
-          <WordCountBadge content={block.content} showWarnings={false} />
         </div>
 
         {/* Action bar for adding content to this panel - shown after visual description */}
@@ -2340,20 +2187,16 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           </div>
         </div>
         <div className="relative">
-          <textarea
-            ref={(el) => { registerRef(el); autoResize(el) }}
-            value={block.content}
-            onChange={(e) => onChange(e.target.value)}
-            onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
-            onKeyDown={(e) => handleTextareaKeyDown(e, block.content, onChange)}
+          <ScriptEditor
+            variant="dialogue"
+            initialContent={block.content || ''}
+            onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
-            onBlur={onBlur}
-            placeholder="Dialogue... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-[var(--text-primary)] font-medium resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 min-h-[40px] leading-relaxed overflow-hidden"
-            style={{ caretColor: 'var(--text-primary)' }}
+            onBlur={() => onBlur?.()}
+            placeholder="Dialogue..."
+            showWordCount
+            className="script-view-editor"
           />
-          {/* Word count indicator - memoized for performance */}
-          <WordCountBadge content={block.content} showWarnings={true} />
         </div>
 
         {/* Action bar for adding content to this panel */}
@@ -2419,20 +2262,16 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           </button>
         </div>
         <div className="relative">
-          <textarea
-            ref={(el) => { registerRef(el); autoResize(el) }}
-            value={block.content}
-            onChange={(e) => onChange(e.target.value)}
-            onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
-            onKeyDown={(e) => handleTextareaKeyDown(e, block.content, onChange)}
+          <ScriptEditor
+            variant="caption"
+            initialContent={block.content || ''}
+            onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
-            onBlur={onBlur}
-            placeholder="Caption text... (Cmd+B bold, Cmd+I italic)"
-            className="w-full bg-transparent text-[var(--color-warning)] font-medium italic resize-none focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1 -ml-2 min-h-[30px] leading-relaxed overflow-hidden"
-            style={{ caretColor: '#fbbf24' }}
+            onBlur={() => onBlur?.()}
+            placeholder="Caption text..."
+            showWordCount
+            className="script-view-editor"
           />
-          {/* Word count indicator - memoized for performance */}
-          <WordCountBadge content={block.content} showWarnings={false} />
         </div>
 
         {/* Action bar for adding content to this panel */}
@@ -2484,20 +2323,17 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
       <div className="mt-2 ml-8 group/sfx border-l-2 border-[var(--accent-hover)]/40 pl-3">
         <div className="flex items-center gap-2">
           <span className="text-[var(--accent-hover)] text-xs uppercase tracking-wider font-mono font-bold">SFX:</span>
-          <input
-            ref={(el) => registerRef(el)}
-            type="text"
-            value={block.content}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={(e) => handleTextareaKeyDown(e, block.content, onChange)}
-            onFocus={onFocus}
-            onBlur={onBlur}
-            placeholder="Sound effect... (Cmd+B bold, Cmd+I italic)"
-            className="flex-1 bg-transparent text-[var(--accent-hover)] font-bold focus:outline-none focus:bg-[var(--bg-secondary)]/30 rounded px-2 py-1"
-            style={{ caretColor: '#a855f7' }}
-          />
-          {/* Inline word count for SFX - memoized */}
-          <InlineWordCount content={block.content} />
+          <div className="flex-1">
+            <ScriptEditor
+              variant="sfx"
+              initialContent={block.content || ''}
+              onUpdate={(md) => onChange(md)}
+              onFocus={onFocus}
+              onBlur={() => onBlur?.()}
+              placeholder="Sound effect..."
+              className="script-view-editor script-view-editor--sfx"
+            />
+          </div>
           <button
             onClick={onDeleteSfx}
             className="opacity-0 group-hover/sfx:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1"
