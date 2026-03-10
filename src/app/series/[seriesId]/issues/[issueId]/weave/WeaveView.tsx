@@ -328,6 +328,22 @@ function SortablePage({
               }`}>
                 {orientation === 'left' ? 'L' : 'R'}
               </span>
+              {page.intention && (
+                <span className={`text-[7px] uppercase tracking-wide px-1 py-0.5 rounded font-medium ${
+                  page.intention === 'reveal' || page.intention === 'climax'
+                    ? 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
+                    : page.intention === 'silent_beat' || page.intention === 'breathing_room'
+                    ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]'
+                    : 'bg-[var(--bg-tertiary)]/80 text-[var(--text-muted)]'
+                }`} title={`Page intention: ${page.intention.replace('_', ' ')}`}>
+                  {page.intention === 'reveal' ? 'RVL' :
+                   page.intention === 'climax' ? 'CLX' :
+                   page.intention === 'setup' ? 'SET' :
+                   page.intention === 'transition' ? 'TRN' :
+                   page.intention === 'breathing_room' ? 'BRM' :
+                   page.intention === 'silent_beat' ? 'SIL' : ''}
+                </span>
+              )}
             </div>
 
             {/* Plotline selector */}
@@ -457,13 +473,14 @@ function SortablePage({
           {/* Footer: Scene name (click to select scene) + Edit link */}
           <div className="flex items-center justify-between mt-1 pt-1 border-t border-[var(--border)]">
             <button
-              className="text-[8px] text-[var(--text-muted)] hover:text-[var(--color-primary)] truncate max-w-[70px] transition-colors"
+              className="text-[8px] text-[var(--text-muted)] hover:text-[var(--color-primary)] truncate max-w-[90px] transition-colors"
               onClick={(e) => {
                 e.stopPropagation()
                 onSelectScene(scene.id)
               }}
-              title="Select all pages in this scene"
+              title={`Select all pages in this scene (${scene.pages?.length || 0}p)`}
             >
+              <span className="text-[var(--text-tertiary)] mr-0.5">{scene.pages?.length || 0}p</span>
               {scene.title || scene.name || 'Scene'}
             </button>
             <Link
@@ -1301,6 +1318,96 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           ))}
         </div>
       )}
+
+      {/* Scene Units & Plotline Gap Analysis */}
+      {(() => {
+        // Compute scene units with page counts
+        const sceneUnits: { sceneId: string; title: string; pageCount: number; actNumber: number; plotlineColor?: string }[] = []
+        const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
+        for (const act of sortedActs) {
+          const sortedScenes = [...(act.scenes || [])].sort((a, b) => a.sort_order - b.sort_order)
+          for (const scene of sortedScenes) {
+            const pageCount = scene.pages?.length || 0
+            if (pageCount === 0) continue
+            const plotline = plotlines.find(pl => pl.id === scene.plotline_id)
+            sceneUnits.push({
+              sceneId: scene.id,
+              title: scene.title || scene.name || 'Untitled',
+              pageCount,
+              actNumber: act.number,
+              plotlineColor: plotline?.color,
+            })
+          }
+        }
+
+        // Compute plotline gaps — find how many pages between appearances of each plotline
+        const plotlineGaps: { plotlineName: string; plotlineColor: string; gapStart: number; gapEnd: number; gapSize: number }[] = []
+        for (const pl of plotlines) {
+          const pagesWithPlotline = flatPages
+            .filter(fp => {
+              const pagePlotlineId = fp.page.plotline_id || fp.scene.plotline_id
+              return pagePlotlineId === pl.id
+            })
+            .map(fp => fp.globalPageNumber)
+
+          if (pagesWithPlotline.length < 2) continue
+
+          for (let g = 0; g < pagesWithPlotline.length - 1; g++) {
+            const gap = pagesWithPlotline[g + 1] - pagesWithPlotline[g]
+            if (gap > 6) {
+              plotlineGaps.push({
+                plotlineName: pl.name,
+                plotlineColor: pl.color,
+                gapStart: pagesWithPlotline[g],
+                gapEnd: pagesWithPlotline[g + 1],
+                gapSize: gap,
+              })
+            }
+          }
+        }
+
+        if (sceneUnits.length === 0 && plotlineGaps.length === 0) return null
+
+        return (
+          <div className="space-y-3">
+            {/* Scene unit strip */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1">
+              <span className="text-[10px] text-[var(--text-muted)] font-mono shrink-0 mr-1">SCENES:</span>
+              {sceneUnits.map((su) => (
+                <div
+                  key={su.sceneId}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono border shrink-0"
+                  style={{
+                    borderColor: su.plotlineColor ? su.plotlineColor + '60' : 'var(--border)',
+                    backgroundColor: su.plotlineColor ? su.plotlineColor + '15' : 'transparent',
+                  }}
+                >
+                  <span className="text-[var(--text-secondary)]">{su.title}</span>
+                  <span className="text-[var(--text-muted)]">({su.pageCount}p)</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Plotline gap warnings */}
+            {plotlineGaps.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] text-[var(--color-warning)] font-mono shrink-0">GAPS:</span>
+                {plotlineGaps.map((gap, gi) => (
+                  <div
+                    key={gi}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10"
+                  >
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: gap.plotlineColor }} />
+                    <span className="text-[var(--text-secondary)]">{gap.plotlineName}</span>
+                    <span className="text-[var(--color-warning)]">dark {gap.gapSize}pg</span>
+                    <span className="text-[var(--text-muted)]">(p{gap.gapStart}–{gap.gapEnd})</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Pages View - Individual page dragging with multi-select */}
       <DndContext

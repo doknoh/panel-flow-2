@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { AIContext, WriterContext } from './client'
+import type { AIContext, WriterContext, WritingPhase } from './client'
 
 const DB_TIMEOUT = 8000
 
@@ -158,18 +158,22 @@ export async function assembleWriterContext(
       const { data: issue } = await withTimeout(
         supabase
           .from('issues')
-          .select('number, title, themes, motifs')
+          .select('number, title, themes, motifs, writing_phase')
           .eq('id', issueId)
           .single(),
         DB_TIMEOUT,
       )
 
       if (issue) {
-        const i = issue as { number: number; title: string; themes?: string; motifs?: string }
+        const i = issue as { number: number; title: string; themes?: string; motifs?: string; writing_phase?: string }
         seriesContext.currentIssueNumber = i.number
         seriesContext.currentIssueTitle = i.title
         seriesContext.currentIssueThemes = i.themes || undefined
         seriesContext.currentIssueMotifs = i.motifs || undefined
+        // Pass writing phase through for phase-aware AI behavior
+        if (i.writing_phase) {
+          context.currentPhase = i.writing_phase as WritingPhase
+        }
       }
     }
 

@@ -15,6 +15,7 @@ import {
   analyzePacing,
   getScoreColor,
   getScoreLabel,
+  getPanelDensityLabel,
   PACING_THRESHOLDS,
   type PageData,
   type PacingAnalysis,
@@ -66,6 +67,9 @@ export default function PacingAnalyst({ pages, onPageClick }: PacingAnalystProps
         />
       </div>
 
+      {/* Panel Economy Strip */}
+      <PanelEconomyStrip metrics={analysis.pages} onPageClick={onPageClick} />
+
       {/* Quick Stats */}
       <QuickStats overall={analysis.overall} />
 
@@ -77,6 +81,61 @@ export default function PacingAnalyst({ pages, onPageClick }: PacingAnalystProps
         onPageClick={onPageClick}
         pages={analysis.pages}
       />
+    </div>
+  )
+}
+
+// --- Panel Economy Strip ---
+function PanelEconomyStrip({
+  metrics,
+  onPageClick,
+}: {
+  metrics: PagePacingMetric[]
+  onPageClick?: (pageId: string) => void
+}) {
+  if (metrics.length === 0) return null
+
+  const densityColors: Record<string, string> = {
+    SPLASH: 'bg-purple-500',
+    OPEN: 'bg-blue-400',
+    STANDARD: 'bg-green-500',
+    DENSE: 'bg-yellow-500',
+    GRID: 'bg-orange-500',
+    CRAMPED: 'bg-red-500',
+  }
+
+  return (
+    <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border)]">
+      <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-3">Panel Economy</h4>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--text-muted)] mb-2">
+        {['SPLASH', 'OPEN', 'STANDARD', 'DENSE', 'GRID', 'CRAMPED'].map(label => (
+          <span key={label} className="flex items-center gap-1">
+            <span className={`w-2 h-2 rounded-sm ${densityColors[label]}`} />
+            {label}
+          </span>
+        ))}
+      </div>
+
+      {/* Density strip */}
+      <div className="flex gap-1">
+        {metrics.map((page) => {
+          const color = densityColors[page.densityLabel] || 'bg-gray-400'
+          return (
+            <button
+              key={page.pageId}
+              onClick={() => onPageClick?.(page.pageId)}
+              className={`flex-1 h-6 ${color} rounded-sm transition-opacity hover:opacity-80 flex items-center justify-center`}
+              title={`Page ${page.pageNumber}: ${page.panelCount} panels (${page.densityLabel})`}
+            >
+              <span className="text-[9px] text-white font-bold opacity-80">
+                {page.panelCount}
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

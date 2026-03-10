@@ -354,6 +354,50 @@ export const EDITOR_TOOLS: Anthropic.Tool[] = [
       required: ['sceneId'],
     },
   },
+
+  // ============================================
+  // ART PROMPTS PHASE TOOL
+  // ============================================
+
+  {
+    name: 'generate_art_prompt',
+    description:
+      'Generate an image/art prompt for a specific panel, translating the script description into a detailed visual brief for the artist or AI image generator. Includes lighting, color palette, camera angle, expression/body language, and atmosphere. Use during the Art Prompts phase or when the writer asks for visual direction on a panel.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        panelId: {
+          type: 'string',
+          description: 'The panel ID to generate an art prompt for',
+        },
+        prompt: {
+          type: 'string',
+          description: 'The full art/image prompt describing the visual in detail',
+        },
+        style_notes: {
+          type: 'string',
+          description: 'Overall artistic style direction (e.g., "Moebius-influenced linework", "muted realism")',
+        },
+        lighting: {
+          type: 'string',
+          description: 'Lighting description (e.g., "harsh fluorescent overhead", "warm golden hour rim light")',
+        },
+        color_palette: {
+          type: 'string',
+          description: 'Color direction (e.g., "desaturated blues and grays with a single warm accent", "high contrast B&W")',
+        },
+        camera_notes: {
+          type: 'string',
+          description: 'Camera angle and framing (e.g., "low angle looking up — gives character power", "extreme close-up on hands")',
+        },
+        mood: {
+          type: 'string',
+          description: 'Emotional atmosphere (e.g., "claustrophobic tension", "quiet devastation", "manic energy")',
+        },
+      },
+      required: ['panelId', 'prompt'],
+    },
+  },
 ]
 
 // ============================================
@@ -1060,6 +1104,46 @@ export async function executeToolCall(
           result: sceneData,
           entityId: targetSceneId,
           entityType: 'scene',
+        }
+      }
+
+      case 'generate_art_prompt': {
+        const panelId = input.panelId as string
+
+        // Fetch the panel to include context in the result
+        const { data: panel } = await supabase
+          .from('panels')
+          .select('id, sort_order, visual_description, camera')
+          .eq('id', panelId)
+          .single()
+
+        if (!panel) return { success: false, result: 'Panel not found' }
+        const p = panel as { id: string; sort_order: number; visual_description?: string; camera?: string }
+
+        // Upsert — replace existing art prompt for this panel
+        const { data: artPrompt, error } = await supabase
+          .from('art_prompts')
+          .upsert({
+            panel_id: panelId,
+            prompt: input.prompt as string,
+            style_notes: (input.style_notes as string) || null,
+            lighting: (input.lighting as string) || null,
+            color_palette: (input.color_palette as string) || null,
+            camera_notes: (input.camera_notes as string) || null,
+            mood: (input.mood as string) || null,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'panel_id',
+          })
+          .select('id')
+          .single()
+
+        if (error) return { success: false, result: error.message }
+        return {
+          success: true,
+          result: `Generated art prompt for panel ${p.sort_order}:\n\nPrompt: ${input.prompt}\n${input.lighting ? `Lighting: ${input.lighting}\n` : ''}${input.color_palette ? `Color: ${input.color_palette}\n` : ''}${input.camera_notes ? `Camera: ${input.camera_notes}\n` : ''}${input.mood ? `Mood: ${input.mood}\n` : ''}${input.style_notes ? `Style: ${input.style_notes}\n` : ''}`,
+          entityId: artPrompt.id,
+          entityType: 'art_prompt',
         }
       }
 

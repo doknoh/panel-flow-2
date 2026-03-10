@@ -44,6 +44,7 @@ interface Issue {
   rules: string | null
   series_act: 'BEGINNING' | 'MIDDLE' | 'END' | null
   status: string
+  writing_phase: string | null
   outline_notes: string | null
   series: {
     id: string
@@ -1222,8 +1223,13 @@ function IssueEditorContent({
       {/* Status Bar */}
       <StatusBar
         issue={issue}
+        issueId={issue.id}
         selectedPageId={selectedPageId}
         saveStatus={saveStatus}
+        writingPhase={issue.writing_phase}
+        onPhaseChange={(phase) => {
+          setIssue(prev => ({ ...prev, writing_phase: phase }))
+        }}
       />
 
       {/* Find & Replace Modal */}
