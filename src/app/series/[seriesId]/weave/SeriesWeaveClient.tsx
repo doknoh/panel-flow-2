@@ -421,6 +421,7 @@ export default function SeriesWeaveClient({
                                   <button
                                     onClick={() => setEditingCell(null)}
                                     className="text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
+                                    aria-label="Close editor"
                                   >
                                     ✕
                                   </button>

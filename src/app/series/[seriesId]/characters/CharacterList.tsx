@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext'
 import ImageUploader from '@/components/ImageUploader'
 import { useEntityImages } from '@/hooks/useEntityImages'
 import EmptyState from '@/components/ui/EmptyState'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface Character {
   id: string
@@ -28,6 +29,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
   const [isCreating, setIsCreating] = useState(false)
   const [form, setForm] = useState<Partial<Character>>({})
   const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirmDialog()
 
   // Image management for the character being edited
   const { images, setImages, loading: imagesLoading } = useEntityImages(
@@ -162,24 +164,35 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
   }
 
   const deleteCharacter = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this character?')) return
+    const character = characters.find(c => c.id === id)
+    if (!character) return
 
-    // Store for rollback
-    const deletedCharacter = characters.find(c => c.id === id)
+    // Check usage before deleting
+    const supabase = createClient()
+    const { count } = await supabase
+      .from('dialogue_blocks')
+      .select('id', { count: 'exact', head: true })
+      .eq('character_id', id)
+
+    const usageWarning = count && count > 0
+      ? `This character appears in ${count} dialogue block(s). Deleting will leave those blocks without a speaker.`
+      : undefined
+
+    const confirmed = await confirm({
+      title: `Delete "${character.name}"?`,
+      description: usageWarning || 'This character will be permanently removed.',
+    })
+    if (!confirmed) return
 
     // Optimistic update FIRST
     setCharacters(prev => prev.filter(c => c.id !== id))
     showToast('Character deleted', 'success')
 
-    // Then persist to database
-    const supabase = createClient()
     const { error } = await supabase.from('characters').delete().eq('id', id)
 
     if (error) {
       // Rollback on error
-      if (deletedCharacter) {
-        setCharacters(prev => [...prev, deletedCharacter].sort((a, b) => a.name.localeCompare(b.name)))
-      }
+      setCharacters(prev => [...prev, character].sort((a, b) => a.name.localeCompare(b.name)))
       showToast('Failed to delete character: ' + error.message, 'error')
     }
   }
@@ -305,6 +318,7 @@ export default function CharacterList({ seriesId, initialCharacters }: Character
 
   return (
     <div>
+      <ConfirmDialog {...dialogProps} />
       <div className="flex items-center justify-between mb-6">
         <p className="text-[var(--text-secondary)]">{characters.length} character{characters.length !== 1 ? 's' : ''}</p>
         {!isCreating && !editingId && (

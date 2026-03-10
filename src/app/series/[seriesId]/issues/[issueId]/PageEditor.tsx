@@ -1465,6 +1465,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             <button
                               onClick={(e) => { e.stopPropagation(); deletePanel(panel.id) }}
                               className="type-micro text-[var(--text-disabled)] hover:text-[var(--color-error)]"
+                              aria-label="Delete panel"
                             >
                               [DEL]
                             </button>
@@ -1683,6 +1684,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         <button
                                           onClick={() => deleteDialogue(dialogue.id, panel.id)}
                                           className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
+                                          aria-label="Delete dialogue"
                                         >
                                           ×
                                         </button>
@@ -1794,6 +1796,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         <button
                                           onClick={() => deleteCaption(caption.id, panel.id)}
                                           className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2 ml-auto"
+                                          aria-label="Delete caption"
                                         >
                                           ×
                                         </button>

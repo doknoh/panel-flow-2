@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useRouter } from 'next/navigation'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface Snapshot {
   id: string
@@ -106,6 +107,7 @@ export default function VersionHistoryClient({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [isRestoring, setIsRestoring] = useState(false)
   const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirmDialog()
   const router = useRouter()
 
   const selectedSnapshot = selectedIndex !== null ? snapshots[selectedIndex] : null
@@ -114,9 +116,12 @@ export default function VersionHistoryClient({
     : null
 
   const handleRestore = async (snapshot: Snapshot) => {
-    if (!confirm('Are you sure you want to restore this version? This will overwrite current content.')) {
-      return
-    }
+    const confirmed = await confirm({
+      title: 'Restore this version?',
+      description: 'This will overwrite current content. A backup of the current state will be saved automatically.',
+      confirmLabel: 'Restore',
+    })
+    if (!confirmed) return
 
     setIsRestoring(true)
     const supabase = createClient()
@@ -236,6 +241,7 @@ export default function VersionHistoryClient({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <ConfirmDialog {...dialogProps} />
       {/* Version List */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold mb-4">Saved Versions</h2>

@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext'
 import ImageUploader, { ImageAttachment } from '@/components/ImageUploader'
 import { useEntityImages } from '@/hooks/useEntityImages'
 import EmptyState from '@/components/ui/EmptyState'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface Location {
   id: string
@@ -26,6 +27,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
   const [isCreating, setIsCreating] = useState(false)
   const [form, setForm] = useState<Partial<Location>>({})
   const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirmDialog()
 
   // Image management for the location being edited
   const { images, setImages, loading: imagesLoading } = useEntityImages(
@@ -148,24 +150,35 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
   }
 
   const deleteLocation = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this location?')) return
+    const location = locations.find(l => l.id === id)
+    if (!location) return
 
-    // Store for rollback
-    const deletedLocation = locations.find(l => l.id === id)
+    // Check usage before deleting
+    const supabase = createClient()
+    const { count } = await supabase
+      .from('scenes')
+      .select('id', { count: 'exact', head: true })
+      .eq('location_id', id)
+
+    const usageWarning = count && count > 0
+      ? `This location is used in ${count} scene(s). Deleting will leave those scenes without a location.`
+      : undefined
+
+    const confirmed = await confirm({
+      title: `Delete "${location.name}"?`,
+      description: usageWarning || 'This location will be permanently removed.',
+    })
+    if (!confirmed) return
 
     // Optimistic update FIRST
     setLocations(prev => prev.filter(l => l.id !== id))
     showToast('Location deleted', 'success')
 
-    // Then persist to database
-    const supabase = createClient()
     const { error } = await supabase.from('locations').delete().eq('id', id)
 
     if (error) {
       // Rollback on error
-      if (deletedLocation) {
-        setLocations(prev => [...prev, deletedLocation].sort((a, b) => a.name.localeCompare(b.name)))
-      }
+      setLocations(prev => [...prev, location].sort((a, b) => a.name.localeCompare(b.name)))
       showToast('Failed to delete location: ' + error.message, 'error')
     }
   }
@@ -263,6 +276,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
 
   return (
     <div>
+      <ConfirmDialog {...dialogProps} />
       <div className="flex items-center justify-between mb-6">
         <p className="text-[var(--text-secondary)]">{locations.length} location{locations.length !== 1 ? 's' : ''}</p>
         {!isCreating && !editingId && (

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import EmptyState from '@/components/ui/EmptyState'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface Plotline {
   id: string
@@ -46,6 +47,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
   const [isCreating, setIsCreating] = useState(false)
   const [form, setForm] = useState<Partial<Plotline>>({})
   const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirmDialog()
 
   const refreshPlotlines = async () => {
     const supabase = createClient()
@@ -166,10 +168,14 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
   }
 
   const deletePlotline = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this plotline? Scenes assigned to it will be unassigned.')) return
+    const plotline = plotlines.find(p => p.id === id)
+    if (!plotline) return
 
-    // Store for rollback
-    const deletedPlotline = plotlines.find(p => p.id === id)
+    const confirmed = await confirm({
+      title: `Delete "${plotline.name}"?`,
+      description: 'Scenes assigned to this plotline will be unassigned.',
+    })
+    if (!confirmed) return
 
     // Optimistic update FIRST
     setPlotlines(prev => prev.filter(p => p.id !== id))
@@ -181,8 +187,8 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
 
     if (error) {
       // Rollback on error
-      if (deletedPlotline) {
-        setPlotlines(prev => [...prev, deletedPlotline].sort((a, b) => a.sort_order - b.sort_order))
+      if (plotline) {
+        setPlotlines(prev => [...prev, plotline].sort((a, b) => a.sort_order - b.sort_order))
       }
       showToast('Failed to delete plotline: ' + error.message, 'error')
     }
@@ -256,6 +262,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
 
   return (
     <div>
+      <ConfirmDialog {...dialogProps} />
       <div className="mb-6">
         <p className="text-[var(--text-secondary)] mb-2">
           Plotlines help you track different narrative threads in your story.

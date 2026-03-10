@@ -7,6 +7,7 @@ import { getImageUrl } from '@/lib/supabase/storage'
 import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
 import PacingAnalyst from '@/components/PacingAnalyst'
 import ChatMessageContent from '@/components/ChatMessageContent'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import type { PageData } from '@/lib/pacing'
 
 // Image attachment type for visuals tab
@@ -155,6 +156,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   // Local state for optimistic status updates
   const [localStatus, setLocalStatus] = useState(issue.status)
   const { showToast } = useToast()
+  const { confirm: confirmDialog, dialogProps } = useConfirmDialog()
 
   // Character and Location detail panel state
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
@@ -644,7 +646,13 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   }
 
   const deleteLocation = async (locationId: string) => {
-    if (!confirm('Delete this location?')) return
+    const confirmed = await confirmDialog({
+      title: 'Delete this location?',
+      description: 'This location will be permanently removed.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!confirmed) return
 
     // Optimistic update
     setLocalLocations((prev: any[]) => prev.filter((l: any) => l.id !== locationId))
@@ -899,6 +907,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
   return (
     <div className="p-4 h-full flex flex-col">
+      <ConfirmDialog {...dialogProps} />
       {/* Tab Navigation */}
       <div className="flex gap-0 mb-4 border-b border-[var(--border)] shrink-0">
         {([
