@@ -1,9 +1,11 @@
 'use client'
 
+import { type ReactNode } from 'react'
 import Link from 'next/link'
 
 interface EmptyStateProps {
   icon?: string
+  lucideIcon?: ReactNode
   title: string
   description?: string
   actionLabel?: string
@@ -13,6 +15,7 @@ interface EmptyStateProps {
 
 export default function EmptyState({
   icon,
+  lucideIcon,
   title,
   description,
   actionLabel,
@@ -20,34 +23,24 @@ export default function EmptyState({
   actionHref,
 }: EmptyStateProps) {
   return (
-    <div
-      className="flex flex-col items-center justify-center py-12 rounded-xl border-2 border-dashed"
-      style={{ borderColor: 'var(--border)' }}
-    >
-      {icon && (
-        <span className="text-5xl opacity-60 mb-4" role="img">
+    <div className="flex flex-col items-center justify-center py-12 rounded-lg border-2 border-dashed border-[var(--border)]">
+      {lucideIcon ? (
+        <div className="mb-4 text-[var(--text-muted)] opacity-60">{lucideIcon}</div>
+      ) : icon ? (
+        <span className="text-4xl opacity-40 mb-4 grayscale" role="img">
           {icon}
         </span>
-      )}
-      <h3
-        className="font-medium text-lg mb-1"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        {title}
-      </h3>
+      ) : null}
+      <h3 className="type-label text-[var(--text-primary)] mb-1">{title}</h3>
       {description && (
-        <p
-          className="text-sm max-w-md mx-auto text-center mb-4"
-          style={{ color: 'var(--text-muted)' }}
-        >
+        <p className="type-meta text-[var(--text-muted)] max-w-md mx-auto text-center mb-4">
           {description}
         </p>
       )}
       {actionLabel && actionHref && (
         <Link
           href={actionHref}
-          className="mt-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'var(--color-primary)' }}
+          className="mt-2 type-meta px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-150 active:scale-[0.97]"
         >
           {actionLabel}
         </Link>
@@ -55,8 +48,7 @@ export default function EmptyState({
       {actionLabel && onAction && !actionHref && (
         <button
           onClick={onAction}
-          className="mt-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'var(--color-primary)' }}
+          className="mt-2 type-meta px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-150 active:scale-[0.97]"
         >
           {actionLabel}
         </button>

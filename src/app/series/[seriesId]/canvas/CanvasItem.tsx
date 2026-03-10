@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import { CanvasItemData, ColorTag, COLOR_OPTIONS, FilingTarget } from './CanvasClient'
 
 interface CanvasItemProps {
   item: CanvasItemData
-  config: { icon: string; label: string; color: string }
+  config: { label: string; borderColor: string }
+  icon: ReactNode
   onUpdate: (id: string, updates: Partial<CanvasItemData>) => void
   onArchive: (id: string) => void
   onGraduate: (item: CanvasItemData) => void
@@ -44,6 +45,7 @@ const COLOR_DOT_CLASSES: Record<ColorTag, string> = {
 export default function CanvasItem({
   item,
   config,
+  icon,
   onUpdate,
   onArchive,
   onGraduate,
@@ -116,17 +118,18 @@ export default function CanvasItem({
       onDragEnd={onDragEnd}
       className={`
         relative group rounded-lg border-l-4 transition-all cursor-grab active:cursor-grabbing
-        ${item.color_tag ? COLOR_CLASSES[item.color_tag] : 'border-l-[var(--border)]'}
+        ${item.color_tag ? COLOR_CLASSES[item.color_tag] : ''}
         ${isDragging ? 'opacity-50 scale-95' : 'opacity-100'}
-        bg-gradient-to-br ${config.color}
-        border border-[var(--border)]/50 hover:border-[var(--border-strong)]
+        bg-[var(--bg-secondary)]
+        border border-[var(--border)] hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)]
       `}
+      style={!item.color_tag ? { borderLeftColor: config.borderColor } : undefined}
     >
       {/* Header with type icon and menu */}
       <div className="flex items-center justify-between px-3 pt-3 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{config.icon}</span>
-          <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+          <span className="text-[var(--text-muted)]">{icon}</span>
+          <span className="type-micro" style={{ color: config.borderColor }}>
             {config.label}
           </span>
         </div>
@@ -135,9 +138,9 @@ export default function CanvasItem({
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="p-1 rounded hover:bg-[var(--bg-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-[var(--text-muted)]" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
             </svg>
           </button>
@@ -148,24 +151,24 @@ export default function CanvasItem({
                 className="fixed inset-0 z-40"
                 onClick={() => setShowMenu(false)}
               />
-              <div className="absolute right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 py-1 min-w-[140px]">
+              <div className="dropdown-panel absolute right-0 top-full mt-1 z-50 py-1 min-w-[140px]">
                 <button
                   onClick={() => {
                     setIsEditing(true)
                     setShowMenu(false)
                   }}
-                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
+                  className="dropdown-item"
                 >
-                  ✏️ Edit
+                  Edit
                 </button>
                 <button
                   onClick={() => {
                     setShowColorPicker(true)
                     setShowMenu(false)
                   }}
-                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
+                  className="dropdown-item"
                 >
-                  🎨 Color
+                  Color
                 </button>
                 {item.filed_to_page_id ? (
                   <button
@@ -173,9 +176,9 @@ export default function CanvasItem({
                       onUnfileItem(item.id)
                       setShowMenu(false)
                     }}
-                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
+                    className="dropdown-item"
                   >
-                    📂 Unfile
+                    Unfile
                   </button>
                 ) : (
                   <button
@@ -184,9 +187,9 @@ export default function CanvasItem({
                       setShowFilingPicker(true)
                       setShowMenu(false)
                     }}
-                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
+                    className="dropdown-item"
                   >
-                    📁 File To...
+                    File To...
                   </button>
                 )}
                 {canGraduate && (
@@ -195,20 +198,20 @@ export default function CanvasItem({
                       onGraduate(item)
                       setShowMenu(false)
                     }}
-                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2"
+                    className="dropdown-item"
                   >
-                    🎓 Graduate
+                    Graduate
                   </button>
                 )}
-                <hr className="border-[var(--border)] my-1" />
+                <div className="dropdown-separator" />
                 <button
                   onClick={() => {
                     onArchive(item.id)
                     setShowMenu(false)
                   }}
-                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] flex items-center gap-2 text-[var(--color-error)]"
+                  className="dropdown-item text-[var(--color-error)]"
                 >
-                  🗑️ Archive
+                  Archive
                 </button>
               </div>
             </>
@@ -224,28 +227,28 @@ export default function CanvasItem({
               ref={titleRef}
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              className="w-full bg-black/30 border border-[var(--border)] rounded px-2 py-1 text-[var(--text-primary)] font-medium"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--color-primary)]"
               placeholder="Title"
             />
             <textarea
               ref={contentRef}
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
-              className="w-full bg-black/30 border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-secondary)] resize-none min-h-[60px]"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-secondary)] resize-none min-h-[60px] focus:outline-none focus:border-[var(--color-primary)]"
               placeholder="Notes, ideas, fragments..."
             />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={handleCancel}
-                className="px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="type-micro px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               >
-                Cancel
+                CANCEL
               </button>
               <button
                 onClick={handleSave}
-                className="px-2 py-1 text-xs bg-[var(--color-primary)] hover:opacity-90 rounded"
+                className="type-micro px-2 py-1 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
               >
-                Save
+                SAVE
               </button>
             </div>
           </div>
@@ -276,18 +279,14 @@ export default function CanvasItem({
       {/* Filed badge */}
       {item.filed_to_page_id && (
         <div className="px-3 pb-2">
-          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/30">
-            📁 Filed to Page {filingTargets.find(t => t.pageId === item.filed_to_page_id)?.pageNumber || '?'}
-          </span>
+          <span className="type-micro px-2 py-0.5 border border-[var(--color-primary)]/30 text-[var(--color-primary)]">FILED TO PG {filingTargets.find(t => t.pageId === item.filed_to_page_id)?.pageNumber || '?'}</span>
         </div>
       )}
 
       {/* Source badge for AI-generated items */}
       {item.source === 'ai' && (
         <div className="px-3 pb-2">
-          <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--accent-hover)]/20 text-[var(--accent-hover)] border border-[var(--accent-hover)]/30">
-            AI generated
-          </span>
+          <span className="type-micro px-2 py-0.5 border border-[var(--accent-hover)]/30 text-[var(--accent-hover)]">AI GENERATED</span>
         </div>
       )}
 
@@ -295,9 +294,9 @@ export default function CanvasItem({
       {canGraduate && (
         <button
           onClick={() => onGraduate(item)}
-          className="absolute bottom-2 right-2 px-2 py-0.5 text-xs bg-[var(--color-success)]/50 hover:bg-[var(--color-success)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute bottom-2 right-2 type-micro px-2 py-0.5 border border-[var(--color-success)]/50 text-[var(--color-success)] hover:bg-[var(--color-success)]/10 opacity-0 group-hover:opacity-100 transition-all duration-150"
         >
-          Graduate →
+          GRADUATE
         </button>
       )}
 
@@ -308,20 +307,20 @@ export default function CanvasItem({
             className="fixed inset-0 z-40"
             onClick={() => setShowColorPicker(false)}
           />
-          <div className="absolute left-3 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 p-2">
+          <div className="dropdown-panel absolute left-3 top-full mt-1 z-50 p-2">
             <div className="grid grid-cols-4 gap-1">
               {COLOR_OPTIONS.map(color => (
                 <button
                   key={color}
                   onClick={() => handleColorChange(color)}
-                  className={`w-6 h-6 rounded ${COLOR_DOT_CLASSES[color]} hover:ring-2 ring-white/50 transition-all ${
+                  className={`w-6 h-6 rounded ${COLOR_DOT_CLASSES[color]} hover:ring-2 ring-[var(--text-primary)]/50 transition-all ${
                     item.color_tag === color ? 'ring-2' : ''
                   }`}
                 />
               ))}
               <button
                 onClick={() => handleColorChange(null)}
-                className={`w-6 h-6 rounded bg-[var(--bg-tertiary)] hover:ring-2 ring-white/50 transition-all flex items-center justify-center text-xs ${
+                className={`w-6 h-6 rounded bg-[var(--bg-tertiary)] hover:ring-2 ring-[var(--text-primary)]/50 transition-all flex items-center justify-center text-xs ${
                   !item.color_tag ? 'ring-2' : ''
                 }`}
               >
@@ -342,8 +341,8 @@ export default function CanvasItem({
               setFilingIssueFilter(null)
             }}
           />
-          <div className="absolute left-0 right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 p-3 min-w-[220px] max-h-[300px] overflow-y-auto">
-            <div className="text-xs font-medium text-[var(--text-muted)] uppercase mb-2">File to page</div>
+          <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50 p-3 min-w-[220px] max-h-[300px] overflow-y-auto">
+            <div className="type-micro text-[var(--text-muted)] mb-2">File to page</div>
             {filingTargets.length === 0 ? (
               <p className="text-xs text-[var(--text-muted)]">Loading...</p>
             ) : (

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import VersionHistoryClient from './VersionHistoryClient'
+import Header from '@/components/ui/Header'
 
 interface PageProps {
   params: Promise<{ seriesId: string; issueId: string }>
@@ -38,20 +38,14 @@ export default async function VersionHistoryPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <header className="border-b border-[var(--border)] px-6 py-4">
-        <div className="max-w-4xl mx-auto">
-          <Link
-            href={`/series/${seriesId}/issues/${issueId}`}
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm mb-2 inline-block"
-          >
-            &larr; Back to Editor
-          </Link>
-          <h1 className="text-2xl font-bold">Version History</h1>
-          <p className="text-[var(--text-secondary)] mt-1">
-            {series.title} - Issue #{issue.number}: {issue.title}
-          </p>
-        </div>
-      </header>
+      <Header
+        variant="subpage"
+        backHref={`/series/${seriesId}/issues/${issueId}`}
+        backLabel={`Issue #${issue.number}`}
+        title="Version History"
+        maxWidth="max-w-4xl"
+        subtitle={`${series.title} — Issue #${issue.number}: ${issue.title}`}
+      />
 
       <main className="max-w-4xl mx-auto px-6 py-8">
         <VersionHistoryClient
