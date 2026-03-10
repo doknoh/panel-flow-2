@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { getImageUrl } from '@/lib/supabase/storage'
 import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
 import PacingAnalyst from '@/components/PacingAnalyst'
+import ChatMessageContent from '@/components/ChatMessageContent'
 import type { PageData } from '@/lib/pacing'
 
 // Image attachment type for visuals tab
@@ -75,6 +76,7 @@ interface ToolProposal {
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  isError?: boolean
   toolProposals?: ToolProposal[]
 }
 
@@ -866,6 +868,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       setChatMessages(prev => [...prev, {
         role: 'assistant',
         content: error instanceof Error ? error.message : 'Failed to connect to AI assistant.',
+        isError: true,
       }])
     }
 
@@ -1757,15 +1760,43 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     <div
                       key={i}
                       className={`rounded-lg text-sm ${
-                        msg.role === 'user'
+                        msg.isError
+                          ? 'bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 mr-2 p-3'
+                          : msg.role === 'user'
                           ? 'bg-[var(--color-primary)]/10 ml-4 p-3'
                           : 'bg-[var(--bg-tertiary)] mr-2 p-3'
                       }`}
                     >
-                      <p className="type-micro mb-1">
-                        {msg.role === 'user' ? 'YOU' : 'SYSTEM_AI'}
-                      </p>
-                      <p className="type-console whitespace-pre-wrap">{msg.content}</p>
+                      {msg.isError ? (
+                        <>
+                          <p className="type-micro mb-1 text-[var(--color-error)]">ERROR</p>
+                          <p className="type-console text-[var(--color-error)]">{msg.content}</p>
+                          <button
+                            onClick={() => {
+                              // Remove this error message and set input to last user message for retry
+                              const lastUserMsg = chatMessages.slice(0, i).reverse().find(m => m.role === 'user')
+                              if (lastUserMsg) {
+                                setChatMessages(prev => prev.filter((_, idx) => idx !== i))
+                                setChatInput(lastUserMsg.content)
+                              }
+                            }}
+                            className="mt-2 text-xs text-[var(--color-primary)] hover:underline"
+                          >
+                            Retry
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="type-micro mb-1">
+                            {msg.role === 'user' ? 'YOU' : 'SYSTEM_AI'}
+                          </p>
+                          {msg.role === 'assistant' ? (
+                            <ChatMessageContent content={msg.content} />
+                          ) : (
+                            <p className="type-console whitespace-pre-wrap">{msg.content}</p>
+                          )}
+                        </>
+                      )}
 
                       {/* Tool Proposals */}
                       {msg.toolProposals && msg.toolProposals.length > 0 && (
@@ -1831,7 +1862,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                   {streamingText && (
                     <div className="bg-[var(--bg-tertiary)] mr-2 p-3 rounded-lg text-sm">
                       <p className="text-xs text-[var(--text-muted)] mb-1">AI Creative Partner</p>
-                      <p className="whitespace-pre-wrap">{streamingText}</p>
+                      <ChatMessageContent content={streamingText} />
 
                       {/* Streaming tool proposals */}
                       {streamingToolProposals.length > 0 && (
@@ -1874,6 +1905,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" />
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" style={{ animationDelay: '0.2s' }} />
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" style={{ animationDelay: '0.4s' }} />
+                        <span className="text-xs text-[var(--text-muted)] ml-1">Thinking...</span>
                       </div>
                     </div>
                   )}

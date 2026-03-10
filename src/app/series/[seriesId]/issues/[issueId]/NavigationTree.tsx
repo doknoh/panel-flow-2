@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useUndo } from '@/contexts/UndoContext'
 import { fetchPageDeepData, fetchSceneDeepData, fetchActDeepData } from '@/lib/undoHelpers'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import {
   DndContext,
   closestCenter,
@@ -102,6 +103,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   const pageSummaryInputRef = useRef<HTMLTextAreaElement>(null)
   const { showToast } = useToast()
   const { recordAction } = useUndo()
+  const { confirm, dialogProps } = useConfirmDialog()
 
   // Only enable drag-drop after client mount to avoid hydration mismatch
   useEffect(() => {
@@ -490,9 +492,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const act = issue.acts?.find((a: any) => a.id === actId)
     const pageCount = act?.scenes?.reduce((sum: number, s: any) => sum + (s.pages?.length || 0), 0) || 0
 
-    const confirmed = window.confirm(
-      `Delete "${actTitle}"?\n\nThis will permanently delete ${act?.scenes?.length || 0} scene(s) and ${pageCount} page(s).`
-    )
+    const confirmed = await confirm({
+      title: `Delete "${actTitle}"?`,
+      description: `This will permanently delete ${act?.scenes?.length || 0} scene(s) and ${pageCount} page(s).`,
+    })
     if (!confirmed) return
 
     // Deep-fetch full nested data BEFORE delete for undo
@@ -522,9 +525,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   }
 
   const deleteScene = async (sceneId: string, sceneTitle: string, pageCount: number) => {
-    const confirmed = window.confirm(
-      `Delete "${sceneTitle}"?\n\nThis will permanently delete ${pageCount} page(s).`
-    )
+    const confirmed = await confirm({
+      title: `Delete "${sceneTitle}"?`,
+      description: `This will permanently delete ${pageCount} page(s).`,
+    })
     if (!confirmed) return
 
     // Find the parent act
@@ -566,7 +570,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   }
 
   const deletePage = async (pageId: string, pageNumber: number) => {
-    const confirmed = window.confirm(`Delete Page ${pageNumber}?\n\nThis will permanently delete all panels on this page.`)
+    const confirmed = await confirm({
+      title: `Delete Page ${pageNumber}?`,
+      description: 'This will permanently delete all panels on this page.',
+    })
     if (!confirmed) return
 
     // Find parent scene
@@ -1674,6 +1681,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
   return (
     <div className="p-3">
+      <ConfirmDialog {...dialogProps} />
       <div className="flex items-center justify-between mb-3">
         <h3 className="type-label">STRUCTURE</h3>
         <button
