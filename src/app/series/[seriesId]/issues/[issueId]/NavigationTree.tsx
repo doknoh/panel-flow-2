@@ -1754,12 +1754,14 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                             onBlur={() => saveTitle()}
                             onKeyDown={handleEditKeyDown}
                             onClick={(e) => e.stopPropagation()}
-                            className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 text-sm font-extrabold uppercase tracking-tight focus:border-[var(--color-primary)] focus:outline-none"
+                            className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] px-1 py-0.5 type-label focus:border-[var(--color-primary)] focus:outline-none"
+                            style={{ fontSize: '0.8125rem' }}
                             autoFocus
                           />
                         ) : (
                           <span
-                            className="text-sm font-extrabold uppercase tracking-tight text-[var(--text-primary)] flex-1"
+                            className="type-label text-[var(--text-primary)] flex-1"
+                            style={{ fontSize: '0.8125rem' }}
                             onDoubleClick={(e) => {
                               e.stopPropagation()
                               startEditing(act.id, act.name || `Act ${act.number}`)
@@ -1824,7 +1826,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                         />
                                       ) : (
                                         <span
-                                          className="text-xs font-bold text-[var(--text-secondary)] flex-1 truncate"
+                                          className="text-xs font-bold text-[var(--text-primary)] flex-1 truncate"
                                           onDoubleClick={(e) => {
                                             e.stopPropagation()
                                             startEditing(scene.id, scene.title || 'Untitled Scene')
@@ -1887,7 +1889,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                     />
                                                   ) : (
                                                     <span className="text-xs flex-1 truncate">
-                                                      {getPageDisplayName(page)}
+                                                      <span className="font-bold">{`Page ${pagePositionMap.get(page.id) || '?'}`}</span>
+                                                      {page.title && !page.title.match(/^Page \d+$/i) && (
+                                                        <span className="font-normal text-[var(--text-muted)]">: {page.title}</span>
+                                                      )}
                                                     </span>
                                                   )}
                                                   <span className={`type-micro tabular-nums ${isSelected ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
