@@ -3,7 +3,7 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from 'react'
 import { useUndo } from '@/contexts/UndoContext'
 import { createClient } from '@/lib/supabase/client'
-import { type WritingPhase, PHASE_LABELS } from '@/lib/ai/client'
+import { type WritingPhase, PHASE_LABELS } from '@/lib/ai/phases'
 
 const WRITING_PHASES: WritingPhase[] = [
   'ideation', 'structure', 'weave', 'page_craft', 'drafting', 'editing', 'art_prompts',
