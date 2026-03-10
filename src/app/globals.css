@@ -815,3 +815,250 @@ html[data-theme-transitioning] * {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================
+   TIPTAP / SCRIPT EDITOR STYLES
+   ============================================ */
+
+/* Container */
+.script-editor {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.script-editor--focused {
+  border-color: var(--color-primary);
+}
+
+/* ProseMirror editor area */
+.script-editor .ProseMirror {
+  padding: 8px 12px;
+  min-height: 40px;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.script-editor--description .ProseMirror {
+  min-height: 80px;
+}
+
+.script-editor--dialogue .ProseMirror,
+.script-editor--caption .ProseMirror {
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.script-editor--sfx .ProseMirror {
+  min-height: 28px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.script-editor--notes .ProseMirror {
+  min-height: 50px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Placeholder */
+.script-editor .ProseMirror p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-muted);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Typography inside editor */
+.script-editor .ProseMirror p {
+  margin: 0 0 0.25em;
+}
+
+.script-editor .ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.script-editor .ProseMirror strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.script-editor .ProseMirror em {
+  font-style: italic;
+}
+
+.script-editor .ProseMirror u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.script-editor .ProseMirror s {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Headings */
+.script-editor .ProseMirror h1,
+.script-editor .ProseMirror h2,
+.script-editor .ProseMirror h3 {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0.75em 0 0.25em;
+}
+
+.script-editor .ProseMirror h1 { font-size: 1.4em; }
+.script-editor .ProseMirror h2 { font-size: 1.2em; }
+.script-editor .ProseMirror h3 { font-size: 1.05em; }
+
+.script-editor .ProseMirror h1:first-child,
+.script-editor .ProseMirror h2:first-child,
+.script-editor .ProseMirror h3:first-child {
+  margin-top: 0;
+}
+
+/* Lists */
+.script-editor .ProseMirror ul,
+.script-editor .ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 0.25em 0;
+}
+
+.script-editor .ProseMirror ul {
+  list-style-type: disc;
+}
+
+.script-editor .ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.script-editor .ProseMirror li {
+  margin: 0.1em 0;
+}
+
+.script-editor .ProseMirror li p {
+  margin: 0;
+}
+
+/* Blockquote */
+.script-editor .ProseMirror blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 12px;
+  margin: 0.5em 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Code */
+.script-editor .ProseMirror code {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  color: var(--color-primary);
+}
+
+.script-editor .ProseMirror pre {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
+.script-editor .ProseMirror pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85em;
+  color: var(--text-primary);
+}
+
+/* Horizontal rule */
+.script-editor .ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.75em 0;
+}
+
+/* Word count badge */
+.script-editor__word-count {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  font-size: 10px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Speaker color decoration */
+.script-editor__content--has-speaker-color {
+  border-left: 3px solid var(--speaker-color, transparent);
+  padding-left: 9px;
+}
+
+/* Mention styling */
+.script-editor .mention {
+  background: var(--color-primary);
+  color: white;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+/* Zen mode editor overrides */
+.zen-editor.script-editor {
+  background: transparent;
+  border: none;
+}
+.zen-editor .script-editor__content {
+  min-height: 200px;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: white;
+}
+.zen-editor .script-editor__content:focus {
+  outline: none;
+}
+.zen-editor.script-editor--focused {
+  border-color: transparent;
+}
+.zen-editor--notes .script-editor__content {
+  min-height: 60px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* Script view editor overrides — seamless inline appearance */
+.script-view-editor.script-editor {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+}
+.script-view-editor .script-editor__content {
+  min-height: 36px;
+  padding: 4px 8px;
+  line-height: 1.625;
+}
+.script-view-editor.script-editor--focused {
+  background: var(--bg-secondary);
+  background-opacity: 0.3;
+  border-color: transparent;
+}
+.script-view-editor--sfx .script-editor__content {
+  font-weight: 700;
+  color: var(--accent-hover);
+}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import ScriptEditor from '@/components/editor/ScriptEditor'
 
 interface Panel {
   id: string
@@ -383,15 +384,12 @@ export default function ZenMode({
             <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
               Visual Description
             </label>
-            <textarea
-              ref={textareaRef}
-              value={currentPanel.visual_description || ''}
-              onChange={(e) => updatePanelField('visual_description', e.target.value)}
+            <ScriptEditor
+              variant="description"
+              initialContent={currentPanel.visual_description || ''}
+              onUpdate={(md) => updatePanelField('visual_description', md)}
               placeholder="Describe what we see in this panel..."
-              className="w-full bg-transparent text-white text-lg leading-relaxed resize-none focus:outline-none placeholder:text-[var(--text-muted)] min-h-[200px]"
-              style={{
-                caretColor: '#fff',
-              }}
+              className="zen-editor"
             />
           </div>
 
@@ -435,11 +433,12 @@ export default function ZenMode({
             <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
               Notes (Internal)
             </label>
-            <textarea
-              value={currentPanel.notes || ''}
-              onChange={(e) => updatePanelField('notes', e.target.value)}
+            <ScriptEditor
+              variant="notes"
+              initialContent={currentPanel.notes || ''}
+              onUpdate={(md) => updatePanelField('notes', md)}
               placeholder="Internal notes..."
-              className="w-full bg-transparent text-[var(--text-muted)] text-sm leading-relaxed resize-none focus:outline-none placeholder:text-[var(--text-muted)] min-h-[60px]"
+              className="zen-editor zen-editor--notes"
             />
           </div>
 

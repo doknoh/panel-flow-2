@@ -9,6 +9,7 @@ import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import PageTypeSelector from './PageTypeSelector'
 import CommentButton from '../../collaboration/CommentButton'
 import DescriptionAnalysis from '@/components/DescriptionAnalysis'
+import ScriptEditor from '@/components/editor/ScriptEditor'
 import {
   DndContext,
   closestCenter,
@@ -1501,50 +1502,26 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                 VISUAL DESCRIPTION
                                 <span className="type-micro text-[var(--text-disabled)] ml-2">(names auto-capitalize)</span>
                               </label>
-                              <textarea
-                                data-panel-field="1"
-                                value={panel.visual_description || ''}
-                                ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)) }}
+                              <ScriptEditor
+                                variant="description"
+                                initialContent={panel.visual_description || ''}
+                                onUpdate={(md) => {
+                                  updatePanelField(panel.id, 'visual_description', md)
+                                }}
                                 onFocus={() => handleTextFieldFocus(panel.id, 'visual_description', panel.visual_description)}
-                                onChange={(e) => {
-                                  updatePanelField(panel.id, 'visual_description', e.target.value)
-                                  autoResize(e.target)
-                                  handleDescriptionInput(e, panel.id)
+                                onBlur={(md) => {
+                                  // Update panel with latest text before blur handler reads it
+                                  if (md !== panel.visual_description) {
+                                    updatePanelField(panel.id, 'visual_description', md)
+                                  }
+                                  // Use setTimeout to let state update propagate
+                                  setTimeout(() => handleVisualDescriptionBlur(
+                                    { ...panel, visual_description: md }
+                                  ), 0)
                                 }}
-                                onKeyDown={(e) => {
-                                  handleDescriptionKeyDown(e, panel.id)
-                                  handleFieldTabNavigation(e, panel.id)
-                                }}
-                                onBlur={() => {
-                                  // Delay to allow mention click
-                                  setTimeout(() => setMentionState(null), 150)
-                                  handleVisualDescriptionBlur(panel)
-                                }}
-                                placeholder="Describe what the reader sees... (type @ to mention a character)"
-                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none textarea-smooth"
-                                style={{ minHeight: '60px' }}
+                                placeholder="Describe what the reader sees..."
+                                characters={characters}
                               />
-                              {/* @mention dropdown */}
-                              {mentionState && mentionState.panelId === panel.id && filteredMentionCharacters.length > 0 && (
-                                <div
-                                  className="dropdown-panel absolute z-50 mt-1 py-1 min-w-[180px] max-h-[200px] overflow-y-auto"
-                                >
-                                  {filteredMentionCharacters.map((char, idx) => (
-                                    <button
-                                      key={char.id}
-                                      onMouseDown={(e) => {
-                                        e.preventDefault()
-                                        insertMention(panel.id, char)
-                                      }}
-                                      className={`dropdown-item ${
-                                        idx === mentionIndex ? 'active bg-white/[0.12]' : ''
-                                      }`}
-                                    >
-                                      <span className="font-medium">{char.name}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
                               <DescriptionAnalysis
                                 visualDescription={panel.visual_description || ''}
                                 shotType={panel.shot_type}
@@ -1689,30 +1666,24 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                           ×
                                         </button>
                                       </div>
-                                      <textarea
-                                        data-panel-field={`${11 + dIdx * 2}`}
-                                        defaultValue={dialogue.text}
-                                        ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)) }}
-                                        onFocus={(e) => { focusStartValueRef.current = e.target.value }}
-                                        onInput={(e) => {
-                                          autoResize(e.target as HTMLTextAreaElement)
+                                      <ScriptEditor
+                                        variant="dialogue"
+                                        initialContent={dialogue.text || ''}
+                                        onUpdate={(md) => {
                                           // Sync local state live for word count badge
-                                          const newText = (e.target as HTMLTextAreaElement).value
                                           setPanels(prev => prev.map(p => ({
                                             ...p,
                                             dialogue_blocks: (p.dialogue_blocks || []).map(d =>
-                                              d.id === dialogue.id ? { ...d, text: newText } : d
+                                              d.id === dialogue.id ? { ...d, text: md } : d
                                             )
                                           })))
                                         }}
-                                        onBlur={(e) => {
-                                          const newText = e.target.value
-                                          updateDialogue(dialogue.id, 'text', newText, focusStartValueRef.current)
+                                        onFocus={() => { focusStartValueRef.current = dialogue.text || '' }}
+                                        onBlur={(md) => {
+                                          updateDialogue(dialogue.id, 'text', md, focusStartValueRef.current)
                                         }}
-                                        onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
                                         placeholder="Enter dialogue..."
-                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none textarea-smooth"
-                                        style={{ minHeight: '36px' }}
+                                        showWordCount
                                       />
                                       {/* Word count warning for dialogue balloon */}
                                       {(() => {
@@ -1725,7 +1696,6 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                                 ? 'text-[var(--color-warning)]'
                                                 : 'text-[var(--text-muted)]'
                                           }`}>
-                                            <span>{dialogueWordCount}w</span>
                                             {dialogueWordCount > 30 && <span>- balloon overflow</span>}
                                             {dialogueWordCount > 25 && dialogueWordCount <= 30 && <span>- getting full</span>}
                                           </div>
@@ -1801,30 +1771,23 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                           ×
                                         </button>
                                       </div>
-                                      <textarea
-                                        data-panel-field={`${100 + cIdx}`}
-                                        defaultValue={caption.text}
-                                        ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)) }}
-                                        onFocus={(e) => { focusStartValueRef.current = e.target.value }}
-                                        onInput={(e) => {
-                                          autoResize(e.target as HTMLTextAreaElement)
-                                          // Sync local state live for word count badge
-                                          const newText = (e.target as HTMLTextAreaElement).value
+                                      <ScriptEditor
+                                        variant="caption"
+                                        initialContent={caption.text || ''}
+                                        onUpdate={(md) => {
+                                          // Sync local state live
                                           setPanels(prev => prev.map(p => ({
                                             ...p,
                                             captions: (p.captions || []).map(c =>
-                                              c.id === caption.id ? { ...c, text: newText } : c
+                                              c.id === caption.id ? { ...c, text: md } : c
                                             )
                                           })))
                                         }}
-                                        onBlur={(e) => {
-                                          const newText = e.target.value
-                                          updateCaption(caption.id, 'text', newText, focusStartValueRef.current)
+                                        onFocus={() => { focusStartValueRef.current = caption.text || '' }}
+                                        onBlur={(md) => {
+                                          updateCaption(caption.id, 'text', md, focusStartValueRef.current)
                                         }}
-                                        onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
                                         placeholder="Enter caption text..."
-                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none textarea-smooth"
-                                        style={{ minHeight: '36px' }}
                                       />
                                     </div>
                                   ))}
@@ -1847,29 +1810,25 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   .sort((a, b) => a.sort_order - b.sort_order)
                                   .map((sfx, sIdx) => (
                                     <div key={sfx.id} className="bg-[var(--bg-tertiary)] rounded p-3 flex gap-2 items-center">
-                                      <input
-                                        data-panel-field={`${200 + sIdx}`}
-                                        type="text"
-                                        defaultValue={sfx.text}
-                                        onFocus={(e) => { focusStartValueRef.current = e.target.value }}
-                                        onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
-                                        onInput={(e) => {
-                                          // Sync local state live for word count badge
-                                          const newText = (e.target as HTMLInputElement).value
-                                          setPanels(prev => prev.map(p => ({
-                                            ...p,
-                                            sound_effects: (p.sound_effects || []).map(s =>
-                                              s.id === sfx.id ? { ...s, text: newText } : s
-                                            )
-                                          })))
-                                        }}
-                                        onBlur={(e) => {
-                                          const newText = e.target.value
-                                          updateSoundEffect(sfx.id, newText, focusStartValueRef.current)
-                                        }}
-                                        placeholder="CRASH!, BANG!, WHOOSH!..."
-                                        className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] px-2 py-1 text-sm font-bold uppercase italic text-[var(--color-error)] focus:border-[var(--color-primary)] focus:outline-none"
-                                      />
+                                      <div className="flex-1">
+                                        <ScriptEditor
+                                          variant="sfx"
+                                          initialContent={sfx.text || ''}
+                                          onUpdate={(md) => {
+                                            setPanels(prev => prev.map(p => ({
+                                              ...p,
+                                              sound_effects: (p.sound_effects || []).map(s =>
+                                                s.id === sfx.id ? { ...s, text: md } : s
+                                              )
+                                            })))
+                                          }}
+                                          onFocus={() => { focusStartValueRef.current = sfx.text || '' }}
+                                          onBlur={(md) => {
+                                            updateSoundEffect(sfx.id, md, focusStartValueRef.current)
+                                          }}
+                                          placeholder="CRASH!, BANG!, WHOOSH!..."
+                                        />
+                                      </div>
                                       <button
                                         onClick={() => deleteSoundEffect(sfx.id, panel.id)}
                                         className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
@@ -1884,20 +1843,23 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             {/* Panel Notes */}
                             <div>
                               <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
-                              <textarea
-                                data-panel-field="300"
-                                value={panel.notes || ''}
-                                ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)) }}
-                                onFocus={() => handleTextFieldFocus(panel.id, 'notes', panel.notes)}
-                                onChange={(e) => {
-                                  updatePanelField(panel.id, 'notes', e.target.value)
-                                  autoResize(e.target)
+                              <ScriptEditor
+                                variant="notes"
+                                initialContent={panel.notes || ''}
+                                onUpdate={(md) => {
+                                  updatePanelField(panel.id, 'notes', md)
                                 }}
-                                onBlur={() => handleOtherFieldBlur(panel, 'notes')}
-                                onKeyDown={(e) => handleFieldTabNavigation(e, panel.id)}
+                                onFocus={() => handleTextFieldFocus(panel.id, 'notes', panel.notes)}
+                                onBlur={(md) => {
+                                  // Update with latest text, then end text edit
+                                  if (md !== panel.notes) {
+                                    updatePanelField(panel.id, 'notes', md)
+                                  }
+                                  setTimeout(() => handleOtherFieldBlur(
+                                    { ...panel, notes: md }, 'notes'
+                                  ), 0)
+                                }}
                                 placeholder="Additional notes for the artist..."
-                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm overflow-hidden focus:border-[var(--color-primary)] focus:outline-none textarea-smooth"
-                                style={{ minHeight: '36px' }}
                               />
                             </div>
                           </div>
