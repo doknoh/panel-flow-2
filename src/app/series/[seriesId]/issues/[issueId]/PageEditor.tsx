@@ -1269,11 +1269,11 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                 e.stopPropagation()
                                 setEditingPanel(isActive ? null : panel.id)
                               }}
+                              style={{ fontSize: '0.8125rem' }}
                             >
                               PNL {panel.panel_number}
                             </span>
-                            <span className="type-separator">{'\/\/'}</span>
-                            <span className="type-label">VISUAL</span>
+                            <span className="type-micro text-[var(--text-muted)]">VISUAL</span>
                             {/* Word Count */}
                             <span className="type-micro" style={{ fontVariantNumeric: 'tabular-nums' }}>
                               {wordCount}W
@@ -1359,7 +1359,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             <div>
                               <label className="block type-label mb-1">
                                 VISUAL DESCRIPTION
-                                <span className="type-micro ml-2">(names auto-capitalize)</span>
+                                <span className="type-micro text-[var(--text-disabled)] ml-2">(names auto-capitalize)</span>
                               </label>
                               <textarea
                                 data-panel-field="1"
@@ -1598,7 +1598,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             {/* Captions */}
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <label className="type-label">CAPTIONS</label>
+                                <label className="type-micro text-[var(--text-secondary)]">CAPTIONS</label>
                                 <button
                                   onClick={() => addCaption(panel.id)}
                                   className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
@@ -1692,7 +1692,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             {/* Sound Effects */}
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <label className="type-label">SFX</label>
+                                <label className="type-micro text-[var(--text-secondary)]">SFX</label>
                                 <button
                                   onClick={() => addSoundEffect(panel.id)}
                                   className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
@@ -1741,7 +1741,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
 
                             {/* Panel Notes */}
                             <div>
-                              <label className="block type-label mb-1">ARTIST NOTES</label>
+                              <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
                               <textarea
                                 data-panel-field="300"
                                 value={panel.notes || ''}

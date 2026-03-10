@@ -949,7 +949,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               {isEditingContext ? (
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Title</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Title</label>
                     <input
                       type="text"
                       value={contextForm.title}
@@ -959,7 +959,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Tagline</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Tagline</label>
                     <input
                       type="text"
                       value={contextForm.tagline}
@@ -969,7 +969,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Summary (TL;DR)</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Summary (TL;DR)</label>
                     <textarea
                       value={contextForm.summary}
                       onChange={(e) => setContextForm(prev => ({ ...prev, summary: e.target.value }))}
@@ -979,7 +979,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Themes</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Themes</label>
                     <textarea
                       value={contextForm.themes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, themes: e.target.value }))}
@@ -989,7 +989,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Stakes</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Stakes</label>
                     <textarea
                       value={contextForm.stakes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, stakes: e.target.value }))}
@@ -999,7 +999,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Outline Notes</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Outline Notes</label>
                     <textarea
                       value={contextForm.outline_notes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, outline_notes: e.target.value }))}
@@ -1009,7 +1009,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Motifs</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Motifs</label>
                     <textarea
                       value={contextForm.motifs}
                       onChange={(e) => setContextForm(prev => ({ ...prev, motifs: e.target.value }))}
@@ -1019,7 +1019,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Visual Style</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Visual Style</label>
                     <textarea
                       value={contextForm.visual_style}
                       onChange={(e) => setContextForm(prev => ({ ...prev, visual_style: e.target.value }))}
@@ -1029,7 +1029,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Issue Rules</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Issue Rules</label>
                     <textarea
                       value={contextForm.rules}
                       onChange={(e) => setContextForm(prev => ({ ...prev, rules: e.target.value }))}
@@ -1039,7 +1039,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Series Position</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Series Position</label>
                     <select
                       value={contextForm.series_act}
                       onChange={(e) => setContextForm(prev => ({ ...prev, series_act: e.target.value }))}
@@ -1180,7 +1180,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                 <div className="space-y-3">
                   {/* Name */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Name</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Name</label>
                     <input
                       type="text"
                       value={selectedCharacter.name || ''}
@@ -1191,7 +1191,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
                   {/* Role */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Role</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Role</label>
                     <input
                       type="text"
                       value={selectedCharacter.role || ''}
@@ -1203,7 +1203,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
                   {/* Description */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Description</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Description</label>
                     <textarea
                       value={selectedCharacter.description || ''}
                       onChange={(e) => updateCharacterField('description', e.target.value)}
@@ -1215,7 +1215,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
                   {/* Visual Description */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Visual Description</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Visual Description</label>
                     <textarea
                       value={selectedCharacter.visual_description || ''}
                       onChange={(e) => updateCharacterField('visual_description', e.target.value)}
@@ -1227,7 +1227,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
                   {/* Personality Traits */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Personality Traits</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Personality Traits</label>
                     <textarea
                       value={selectedCharacter.personality_traits || ''}
                       onChange={(e) => updateCharacterField('personality_traits', e.target.value)}
@@ -1239,7 +1239,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
                   {/* Background */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Background</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Background</label>
                     <textarea
                       value={selectedCharacter.background || ''}
                       onChange={(e) => updateCharacterField('background', e.target.value)}
@@ -1276,7 +1276,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     {pageCharacters.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-xs text-[var(--color-primary)] uppercase tracking-wide">On This Page</h3>
+                          <h3 className="type-label text-[var(--color-primary)]">On This Page</h3>
                           <span className="text-xs text-[var(--color-primary)]/60">({pageCharacters.length})</span>
                         </div>
                         <div className="space-y-1">
@@ -1303,7 +1303,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     {sceneCharacters.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-xs text-emerald-400 uppercase tracking-wide">In This Scene</h3>
+                          <h3 className="type-label text-emerald-400">In This Scene</h3>
                           <span className="text-xs text-emerald-400/60">({sceneCharacters.length})</span>
                         </div>
                         <div className="space-y-1">
@@ -1330,7 +1330,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     {otherCharacters.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-xs text-[var(--text-muted)] uppercase tracking-wide">
+                          <h3 className="type-label text-[var(--text-muted)]">
                             All Characters
                           </h3>
                           <span className="text-xs text-[var(--text-muted)]">({otherCharacters.length})</span>
@@ -1384,7 +1384,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                 <div className="space-y-3">
                   {/* Name */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Name</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Name</label>
                     <input
                       type="text"
                       value={selectedLocation.name || ''}
@@ -1395,7 +1395,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
                   {/* Description */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Description</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Description</label>
                     <textarea
                       value={selectedLocation.description || ''}
                       onChange={(e) => updateLocationField('description', e.target.value)}
@@ -1407,7 +1407,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
                   {/* Visual Description */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Visual Description</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Visual Description</label>
                     <textarea
                       value={selectedLocation.visual_description || ''}
                       onChange={(e) => updateLocationField('visual_description', e.target.value)}
@@ -1419,7 +1419,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
                   {/* Mood/Atmosphere */}
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Mood / Atmosphere</label>
+                    <label className="block type-micro text-[var(--text-muted)] mb-1">Mood / Atmosphere</label>
                     <textarea
                       value={selectedLocation.mood || ''}
                       onChange={(e) => updateLocationField('mood', e.target.value)}
