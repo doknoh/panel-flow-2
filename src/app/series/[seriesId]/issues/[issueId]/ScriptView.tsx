@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useUndo } from '@/contexts/UndoContext'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import CharacterAutocomplete from '@/components/CharacterAutocomplete'
 import TypeSelector from '@/components/TypeSelector'
 import FindReplaceModal from './FindReplaceModal'
@@ -166,6 +167,7 @@ export default function ScriptView({
 
   const { showToast } = useToast()
   const { recordAction, startGenericTextEdit, endGenericTextEdit, undo, redo, canUndo, canRedo } = useUndo()
+  const { confirm, dialogProps } = useConfirmDialog()
   const supabase = createClient()
   const characters = issue.series?.characters || []
 
@@ -986,7 +988,10 @@ export default function ScriptView({
 
     // Confirm if non-empty
     if (block.content.trim()) {
-      const confirmed = window.confirm('Delete this dialogue? This can be undone with ⌘Z.')
+      const confirmed = await confirm({
+        title: 'Delete this dialogue?',
+        description: 'This can be undone with \u2318Z.',
+      })
       if (!confirmed) return
     }
 
@@ -1046,7 +1051,10 @@ export default function ScriptView({
 
     // Confirm if non-empty
     if (block.content.trim()) {
-      const confirmed = window.confirm('Delete this caption? This can be undone with ⌘Z.')
+      const confirmed = await confirm({
+        title: 'Delete this caption?',
+        description: 'This can be undone with \u2318Z.',
+      })
       if (!confirmed) return
     }
 
@@ -1104,7 +1112,10 @@ export default function ScriptView({
 
     // Confirm if non-empty
     if (block.content.trim()) {
-      const confirmed = window.confirm('Delete this sound effect? This can be undone with ⌘Z.')
+      const confirmed = await confirm({
+        title: 'Delete this sound effect?',
+        description: 'This can be undone with \u2318Z.',
+      })
       if (!confirmed) return
     }
 
@@ -1163,9 +1174,10 @@ export default function ScriptView({
     // Check if panel has any content
     const hasContent = panelBlocks.some(b => b.content.trim())
     if (hasContent) {
-      const confirmed = window.confirm(
-        'Delete this panel and all its contents (dialogue, captions, sound effects)? This can be undone with ⌘Z.'
-      )
+      const confirmed = await confirm({
+        title: 'Delete this panel?',
+        description: 'All contents (dialogue, captions, sound effects) will be removed. This can be undone with \u2318Z.',
+      })
       if (!confirmed) return
     }
 
@@ -1364,9 +1376,10 @@ export default function ScriptView({
     const hasContent = pageBlocks.some(b => b.content.trim())
 
     if (hasContent) {
-      const confirmed = window.confirm(
-        'Delete this page and all its panels? This can be undone with ⌘Z.'
-      )
+      const confirmed = await confirm({
+        title: 'Delete this page?',
+        description: 'All panels on this page will be removed. This can be undone with \u2318Z.',
+      })
       if (!confirmed) return
     }
 
@@ -1785,6 +1798,7 @@ export default function ScriptView({
       className="fixed inset-0 bg-[var(--bg-primary)] z-50 flex flex-col overflow-hidden"
       style={{ fontFamily: "'Courier Prime', 'Courier New', monospace" }}
     >
+      <ConfirmDialog {...dialogProps} />
       {/* Header */}
       <div className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-primary)]">
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">

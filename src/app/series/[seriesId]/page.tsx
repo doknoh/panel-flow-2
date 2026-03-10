@@ -16,8 +16,6 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  console.log('Series page - user:', user?.id, user?.email)
-
   if (!user) {
     redirect('/login')
   }
@@ -40,15 +38,12 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     issues = issuesData || []
   }
 
-  console.log('Series page - series query result:', { series: series?.id, error: seriesError?.message, code: seriesError?.code })
-
   if (seriesError || !series) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center">
         <div className="text-center">
           <h1 className="type-title mb-2">SERIES NOT FOUND</h1>
           <p className="type-meta text-[var(--text-secondary)] mb-4">This series doesn&apos;t exist or you don&apos;t have access.</p>
-          <p className="type-micro text-[var(--text-muted)] mb-4">DEBUG: USER={user?.id?.substring(0, 8)}... ERROR={seriesError?.message || 'none'}</p>
           <Link href="/dashboard" className="type-meta text-[var(--color-primary)] hover:underline">
             BACK TO DASHBOARD
           </Link>

@@ -6,6 +6,8 @@ import { useToast } from '@/contexts/ToastContext'
 import { getImageUrl } from '@/lib/supabase/storage'
 import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
 import PacingAnalyst from '@/components/PacingAnalyst'
+import ChatMessageContent from '@/components/ChatMessageContent'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import type { PageData } from '@/lib/pacing'
 
 // Image attachment type for visuals tab
@@ -75,6 +77,7 @@ interface ToolProposal {
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  isError?: boolean
   toolProposals?: ToolProposal[]
 }
 
@@ -153,6 +156,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   // Local state for optimistic status updates
   const [localStatus, setLocalStatus] = useState(issue.status)
   const { showToast } = useToast()
+  const { confirm: confirmDialog, dialogProps } = useConfirmDialog()
 
   // Character and Location detail panel state
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
@@ -330,12 +334,23 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   const [streamingText, setStreamingText] = useState('')
   const [streamingToolProposals, setStreamingToolProposals] = useState<ToolProposal[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const conversationIdRef = useRef<string | null>(null)
+  const userScrolledUpRef = useRef(false)
 
+  // Smart auto-scroll: only scroll if user is near the bottom
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!userScrolledUpRef.current) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [chatMessages, streamingText])
+
+  // Always scroll to bottom when user sends a message
+  useEffect(() => {
+    userScrolledUpRef.current = false
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages.length])
 
   // Trigger conversation synthesis on unmount or when chat is cleared
   useEffect(() => {
@@ -631,7 +646,13 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   }
 
   const deleteLocation = async (locationId: string) => {
-    if (!confirm('Delete this location?')) return
+    const confirmed = await confirmDialog({
+      title: 'Delete this location?',
+      description: 'This location will be permanently removed.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!confirmed) return
 
     // Optimistic update
     setLocalLocations((prev: any[]) => prev.filter((l: any) => l.id !== locationId))
@@ -866,6 +887,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       setChatMessages(prev => [...prev, {
         role: 'assistant',
         content: error instanceof Error ? error.message : 'Failed to connect to AI assistant.',
+        isError: true,
       }])
     }
 
@@ -885,6 +907,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
   return (
     <div className="p-4 h-full flex flex-col">
+      <ConfirmDialog {...dialogProps} />
       {/* Tab Navigation */}
       <div className="flex gap-0 mb-4 border-b border-[var(--border)] shrink-0">
         {([
@@ -1734,7 +1757,15 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             )}
 
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto space-y-3 mb-3">
+            <div
+              ref={chatContainerRef}
+              className="flex-1 overflow-y-auto space-y-3 mb-3"
+              onScroll={(e) => {
+                const el = e.currentTarget
+                const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+                userScrolledUpRef.current = distanceFromBottom > 80
+              }}
+            >
               {chatMessages.length === 0 && !streamingText ? (
                 <div className="text-center py-6 px-4">
                   <p className="type-label mb-2">
@@ -1757,15 +1788,66 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     <div
                       key={i}
                       className={`rounded-lg text-sm ${
-                        msg.role === 'user'
+                        msg.isError
+                          ? 'bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 mr-2 p-3'
+                          : msg.role === 'user'
                           ? 'bg-[var(--color-primary)]/10 ml-4 p-3'
                           : 'bg-[var(--bg-tertiary)] mr-2 p-3'
                       }`}
                     >
-                      <p className="type-micro mb-1">
-                        {msg.role === 'user' ? 'YOU' : 'SYSTEM_AI'}
-                      </p>
-                      <p className="type-console whitespace-pre-wrap">{msg.content}</p>
+                      {msg.isError ? (
+                        <>
+                          <p className="type-micro mb-1 text-[var(--color-error)]">ERROR</p>
+                          <p className="type-console text-[var(--color-error)]">{msg.content}</p>
+                          <button
+                            onClick={() => {
+                              // Remove this error message and set input to last user message for retry
+                              const lastUserMsg = chatMessages.slice(0, i).reverse().find(m => m.role === 'user')
+                              if (lastUserMsg) {
+                                setChatMessages(prev => prev.filter((_, idx) => idx !== i))
+                                setChatInput(lastUserMsg.content)
+                              }
+                            }}
+                            className="mt-2 text-xs text-[var(--color-primary)] hover:underline"
+                          >
+                            Retry
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="type-micro mb-1">
+                            {msg.role === 'user' ? 'YOU' : 'SYSTEM_AI'}
+                          </p>
+                          {msg.role === 'assistant' ? (
+                            <ChatMessageContent content={msg.content} />
+                          ) : (
+                            <p className="type-console whitespace-pre-wrap">{msg.content}</p>
+                          )}
+                          {msg.role === 'assistant' && (
+                            <button
+                              onClick={async () => {
+                                const supabase = createClient()
+                                const { error } = await supabase
+                                  .from('project_notes')
+                                  .insert({
+                                    series_id: issue.series.id,
+                                    type: 'AI_INSIGHT',
+                                    content: msg.content.slice(0, 500),
+                                  })
+                                if (error) {
+                                  showToast('Failed to save note', 'error')
+                                } else {
+                                  showToast('Saved to project notes', 'success')
+                                }
+                              }}
+                              className="mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                              title="Save this insight to Project Notes"
+                            >
+                              Save to Notes
+                            </button>
+                          )}
+                        </>
+                      )}
 
                       {/* Tool Proposals */}
                       {msg.toolProposals && msg.toolProposals.length > 0 && (
@@ -1813,7 +1895,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                                     <button
                                       onClick={() => handleToolProposal(proposal, false, i)}
                                       disabled={isLoading}
-                                      className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                                      className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       Skip
                                     </button>
@@ -1831,7 +1913,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                   {streamingText && (
                     <div className="bg-[var(--bg-tertiary)] mr-2 p-3 rounded-lg text-sm">
                       <p className="text-xs text-[var(--text-muted)] mb-1">AI Creative Partner</p>
-                      <p className="whitespace-pre-wrap">{streamingText}</p>
+                      <ChatMessageContent content={streamingText} />
 
                       {/* Streaming tool proposals */}
                       {streamingToolProposals.length > 0 && (
@@ -1874,6 +1956,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" />
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" style={{ animationDelay: '0.2s' }} />
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" style={{ animationDelay: '0.4s' }} />
+                        <span className="text-xs text-[var(--text-muted)] ml-1">Thinking...</span>
                       </div>
                     </div>
                   )}
@@ -1884,20 +1967,31 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
 
             {/* Chat Input */}
             <div className="shrink-0">
-              <div className="flex gap-2">
-                <input
-                  type="text"
+              <div className="flex gap-2 items-end">
+                <textarea
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      sendMessage()
+                    }
+                  }}
                   placeholder="Talk to your editor..."
-                  className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+                  rows={1}
+                  className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none resize-none max-h-32 overflow-y-auto"
                   disabled={isLoading}
+                  style={{ minHeight: '38px' }}
+                  onInput={(e) => {
+                    const el = e.currentTarget
+                    el.style.height = '38px'
+                    el.style.height = Math.min(el.scrollHeight, 128) + 'px'
+                  }}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={isLoading || !chatInput.trim()}
-                  className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded text-sm shrink-0"
+                  className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] px-4 py-2 rounded text-sm shrink-0"
                 >
                   Send
                 </button>

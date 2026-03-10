@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import EmptyState from '@/components/ui/EmptyState'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 type NoteType = 'OPEN_QUESTION' | 'DECISION' | 'AI_INSIGHT' | 'GENERAL'
 
@@ -40,6 +41,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
   const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirmDialog()
 
   const filteredNotes = notes.filter(note => {
     if (filterType !== 'ALL' && note.type !== filterType) return false
@@ -119,7 +121,10 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
   }
 
   const deleteNote = async (id: string) => {
-    const confirmed = window.confirm('Delete this note?')
+    const confirmed = await confirm({
+      title: 'Delete this note?',
+      description: 'This action cannot be undone.',
+    })
     if (!confirmed) return
 
     const supabase = createClient()
@@ -154,6 +159,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
 
   return (
     <div>
+      <ConfirmDialog {...dialogProps} />
       {/* Stats */}
       <div className="flex items-center gap-6 mb-6 text-sm">
         <span className="text-[var(--text-secondary)]">

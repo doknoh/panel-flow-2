@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useRouter } from 'next/navigation'
 import {
   detectScriptFormat,
@@ -202,6 +203,7 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirmDialog()
   const router = useRouter()
 
   // Update a panel's visual description
@@ -677,12 +679,11 @@ ${pageContent}`,
     // Confirm import
     const hasExistingContent = issue.acts && issue.acts.length > 0
     if (hasExistingContent) {
-      const confirmed = window.confirm(
-        `This will REPLACE ALL existing content in Issue #${issue.number}.\n\n` +
-        `You are about to import ${parsedPages.length} pages with ${parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels.\n\n` +
-        `All existing acts, scenes, and pages will be deleted.\n` +
-        `This action cannot be undone. Continue?`
-      )
+      const confirmed = await confirm({
+        title: `Replace all content in Issue #${issue.number}?`,
+        description: `This will import ${parsedPages.length} pages with ${parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels. All existing acts, scenes, and pages will be deleted. This cannot be undone.`,
+        confirmLabel: 'Replace',
+      })
       if (!confirmed) return
     }
 
@@ -1795,6 +1796,7 @@ ${pageContent}`,
 
   return (
     <div className="max-w-3xl mx-auto py-6">
+      <ConfirmDialog {...dialogProps} />
       {renderStepIndicator()}
 
       {parseError && (

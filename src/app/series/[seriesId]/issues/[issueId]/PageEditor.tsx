@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useOffline } from '@/contexts/OfflineContext'
 import { useUndo } from '@/contexts/UndoContext'
+import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import PageTypeSelector from './PageTypeSelector'
 import CommentButton from '../../collaboration/CommentButton'
 import DescriptionAnalysis from '@/components/DescriptionAnalysis'
@@ -257,6 +258,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   const { showToast } = useToast()
   const { isOnline, queueChange, pendingChanges: offlinePending } = useOffline()
   const { recordAction, startTextEdit, endTextEdit } = useUndo()
+  const { confirm, dialogProps } = useConfirmDialog()
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -819,11 +821,20 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   }
 
   const deleteDialogue = async (dialogueId: string, panelId: string, dialogueData?: any) => {
+    // Confirm if dialogue has text content
+    const panel = panels.find(p => p.id === panelId)
+    const localDialogue = panel?.dialogue_blocks?.find(d => d.id === dialogueId)
+    if (localDialogue?.text?.trim()) {
+      const confirmed = await confirm({
+        title: 'Delete this dialogue?',
+        description: 'This can be undone.',
+      })
+      if (!confirmed) return
+    }
+
     const supabase = createClient()
 
     // Get the dialogue data for undo from local state
-    const panel = panels.find(p => p.id === panelId)
-    const localDialogue = panel?.dialogue_blocks?.find(d => d.id === dialogueId)
     const dataForUndo = dialogueData || localDialogue
 
     // Optimistically remove the dialogue immediately
@@ -956,11 +967,18 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   }
 
   const deleteCaption = async (captionId: string, panelId: string) => {
-    const supabase = createClient()
-
-    // Get the caption data for undo from local state
+    // Confirm if caption has text content
     const panel = panels.find(p => p.id === panelId)
     const localCaption = panel?.captions?.find(c => c.id === captionId)
+    if (localCaption?.text?.trim()) {
+      const confirmed = await confirm({
+        title: 'Delete this caption?',
+        description: 'This can be undone.',
+      })
+      if (!confirmed) return
+    }
+
+    const supabase = createClient()
 
     // Optimistically remove the caption immediately
     setPanels(prev => prev.map(p =>
@@ -1140,7 +1158,10 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                        (panel?.sound_effects?.length ?? 0) > 0
 
     if (hasContent) {
-      const confirmed = window.confirm('Delete this panel? This action can be undone.')
+      const confirmed = await confirm({
+        title: 'Delete this panel?',
+        description: 'All panel contents will be removed. This can be undone.',
+      })
       if (!confirmed) return
     }
 
@@ -1267,6 +1288,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
 
   return (
     <div className="p-6 relative">
+      <ConfirmDialog {...dialogProps} />
       {/* Page watermark */}
       <div className="page-watermark" aria-hidden="true">
         {String(page.page_number).padStart(2, '0')}
@@ -1443,6 +1465,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             <button
                               onClick={(e) => { e.stopPropagation(); deletePanel(panel.id) }}
                               className="type-micro text-[var(--text-disabled)] hover:text-[var(--color-error)]"
+                              aria-label="Delete panel"
                             >
                               [DEL]
                             </button>
@@ -1661,6 +1684,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         <button
                                           onClick={() => deleteDialogue(dialogue.id, panel.id)}
                                           className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
+                                          aria-label="Delete dialogue"
                                         >
                                           ×
                                         </button>
@@ -1772,6 +1796,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         <button
                                           onClick={() => deleteCaption(caption.id, panel.id)}
                                           className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2 ml-auto"
+                                          aria-label="Delete caption"
                                         >
                                           ×
                                         </button>
