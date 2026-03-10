@@ -1,12 +1,23 @@
 'use client'
 
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { useMemo, useRef, useEffect, useState, useCallback } from 'react'
 import { useUndo } from '@/contexts/UndoContext'
+import { createClient } from '@/lib/supabase/client'
+import { type WritingPhase, PHASE_LABELS } from '@/lib/ai/client'
+
+const WRITING_PHASES: WritingPhase[] = [
+  'ideation', 'structure', 'weave', 'page_craft', 'drafting', 'editing', 'art_prompts',
+]
+
+const BALLOON_WORD_LIMIT = 35
 
 interface StatusBarProps {
   issue: any
+  issueId: string
   selectedPageId: string | null
   saveStatus: 'saved' | 'saving' | 'unsaved'
+  writingPhase: string | null
+  onPhaseChange: (phase: string) => void
 }
 
 function countWords(text: string | null | undefined): number {
@@ -19,10 +30,12 @@ function countCharacters(text: string | null | undefined): number {
   return text.length
 }
 
-export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusBarProps) {
+export default function StatusBar({ issue, issueId, selectedPageId, saveStatus, writingPhase, onPhaseChange }: StatusBarProps) {
   const { canUndo, canRedo, undo, redo, undoStack, redoStack } = useUndo()
   const prevSaveStatusRef = useRef(saveStatus)
   const [showSaveConfirm, setShowSaveConfirm] = useState(false)
+  const [isPhaseOpen, setIsPhaseOpen] = useState(false)
+  const phaseRef = useRef<HTMLDivElement>(null)
 
   // Detect saving → saved transition for micro-animation
   useEffect(() => {
@@ -33,6 +46,26 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
     }
     prevSaveStatusRef.current = saveStatus
   }, [saveStatus])
+
+  // Close phase dropdown on outside click
+  useEffect(() => {
+    if (!isPhaseOpen) return
+    function handleClick(e: MouseEvent) {
+      if (phaseRef.current && !phaseRef.current.contains(e.target as Node)) {
+        setIsPhaseOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [isPhaseOpen])
+
+  const handlePhaseSelect = useCallback(async (phase: WritingPhase) => {
+    setIsPhaseOpen(false)
+    onPhaseChange(phase)
+    const supabase = createClient()
+    await supabase.from('issues').update({ writing_phase: phase }).eq('id', issueId)
+  }, [issueId, onPhaseChange])
+
   const stats = useMemo(() => {
     let issueWords = 0
     let issueCharacters = 0
@@ -41,6 +74,7 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
     let totalPanels = 0
     let totalPages = 0
     let pagePanels = 0
+    let maxBalloonWords = 0
 
     for (const act of issue.acts || []) {
       for (const scene of act.scenes || []) {
@@ -62,7 +96,7 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
               pageCharacters += descChars
             }
 
-            // Count dialogue words
+            // Count dialogue words + track max balloon
             for (const dialogue of panel.dialogue_blocks || []) {
               const dlgWords = countWords(dialogue.text)
               const dlgChars = countCharacters(dialogue.text)
@@ -71,6 +105,7 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
               if (isSelectedPage) {
                 pageWords += dlgWords
                 pageCharacters += dlgChars
+                if (dlgWords > maxBalloonWords) maxBalloonWords = dlgWords
               }
             }
 
@@ -110,6 +145,7 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
       totalPanels,
       totalPages,
       pagePanels,
+      maxBalloonWords,
     }
   }, [issue, selectedPageId])
 
@@ -124,22 +160,63 @@ export default function StatusBar({ issue, selectedPageId, saveStatus }: StatusB
     return null
   }, [issue, selectedPageId])
 
+  const currentPhase = (writingPhase || 'drafting') as WritingPhase
+  const phaseLabel = PHASE_LABELS[currentPhase]
+  const balloonOverLimit = stats.maxBalloonWords > BALLOON_WORD_LIMIT
+
   return (
     <div className="h-8 bg-[var(--bg-primary)] border-t border-[var(--text-primary)] px-4 flex items-center justify-between type-meta shrink-0" style={{ fontVariantNumeric: 'tabular-nums' }}>
-      {/* Left side - Page stats */}
+      {/* Left side - Phase selector + Page stats */}
       <div className="flex items-center gap-3">
+        {/* Phase selector */}
+        <div ref={phaseRef} className="relative">
+          <button
+            onClick={() => setIsPhaseOpen(!isPhaseOpen)}
+            className="px-2 py-0.5 type-micro font-mono border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] transition-all duration-150 ease-out active:scale-[0.97]"
+            title={`Writing phase: ${phaseLabel.full}`}
+          >
+            [{phaseLabel.short}]
+          </button>
+          {isPhaseOpen && (
+            <div className="absolute bottom-full left-0 mb-1 bg-[var(--bg-primary)] border border-[var(--border-strong)] shadow-lg z-50 min-w-[160px]">
+              {WRITING_PHASES.map((phase) => {
+                const label = PHASE_LABELS[phase]
+                const isActive = phase === currentPhase
+                return (
+                  <button
+                    key={phase}
+                    onClick={() => handlePhaseSelect(phase)}
+                    className={`w-full px-3 py-1.5 text-left type-micro font-mono transition-colors ${
+                      isActive
+                        ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <span className="inline-block w-8">{label.short}</span>
+                    <span className="text-[var(--text-tertiary)]">{label.full}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {selectedPage && (
-          <>
-            <span>
-              PG: {String(selectedPage.page_number).padStart(2, '0')}
-              <span className="type-separator">{'\/\/'}</span>
-              PNL: {stats.pagePanels}
-              <span className="type-separator">{'\/\/'}</span>
-              WRD: {stats.pageWords.toLocaleString()}
-              <span className="type-separator">{'\/\/'}</span>
-              CHR: {stats.pageCharacters.toLocaleString()}
-            </span>
-          </>
+          <span>
+            PG: {String(selectedPage.page_number).padStart(2, '0')}
+            <span className="type-separator">{'\/\/'}</span>
+            PNL: {stats.pagePanels}
+            <span className="type-separator">{'\/\/'}</span>
+            WRD: {stats.pageWords.toLocaleString()}
+            {stats.maxBalloonWords > 0 && (
+              <>
+                <span className="type-separator">{'\/\/'}</span>
+                <span className={balloonOverLimit ? 'text-[var(--color-warning)]' : ''}>
+                  BLN: {stats.maxBalloonWords}w
+                </span>
+              </>
+            )}
+          </span>
         )}
       </div>
 

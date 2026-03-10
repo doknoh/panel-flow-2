@@ -78,10 +78,13 @@ interface PageForLinking {
   linked_page_id: string | null
 }
 
+type PageIntention = 'setup' | 'reveal' | 'transition' | 'climax' | 'breathing_room' | 'silent_beat'
+
 interface Page {
   id: string
   page_number: number
   page_type?: PageType
+  intention?: PageIntention | null
   linked_page_id?: string | null
   panels: Panel[]
 }
@@ -110,6 +113,114 @@ function countWords(text: string | null | undefined): number {
 }
 
 // Sortable panel wrapper (must be defined outside component to use hooks properly)
+// --- Page Intention Selector ---
+const PAGE_INTENTIONS: { value: PageIntention; label: string; short: string }[] = [
+  { value: 'setup', label: 'Setup', short: 'SET' },
+  { value: 'reveal', label: 'Reveal', short: 'REV' },
+  { value: 'transition', label: 'Transition', short: 'TRN' },
+  { value: 'climax', label: 'Climax', short: 'CLX' },
+  { value: 'breathing_room', label: 'Breathing Room', short: 'BRM' },
+  { value: 'silent_beat', label: 'Silent Beat', short: 'SLN' },
+]
+
+function PageIntentionSelector({
+  pageId,
+  currentIntention,
+  pageOrientation,
+  onUpdate,
+}: {
+  pageId: string
+  currentIntention: PageIntention | null
+  pageOrientation: string
+  onUpdate: () => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (!isOpen) return
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [isOpen])
+
+  const handleSelect = async (intention: PageIntention | null) => {
+    setIsOpen(false)
+    await supabase.from('pages').update({ intention }).eq('id', pageId)
+    onUpdate()
+  }
+
+  // Architecture warning: reveal/climax on left (even) page
+  const isWrongSide = currentIntention &&
+    (currentIntention === 'reveal' || currentIntention === 'climax') &&
+    pageOrientation === 'left'
+
+  const currentLabel = currentIntention
+    ? PAGE_INTENTIONS.find(i => i.value === currentIntention)?.short || '—'
+    : '—'
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`type-micro px-2 py-0.5 font-mono border transition-all duration-150 ${
+          isWrongSide
+            ? 'border-[var(--color-warning)] text-[var(--color-warning)]'
+            : 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-tertiary)]'
+        }`}
+        title={isWrongSide
+          ? `This ${currentIntention} lands on a left page — reader won't get the page-turn surprise`
+          : `Page intention: ${currentIntention || 'None'}`
+        }
+      >
+        {currentLabel}
+      </button>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-[var(--bg-primary)] border border-[var(--border-strong)] shadow-lg z-50 min-w-[150px]">
+          <button
+            onClick={() => handleSelect(null)}
+            className={`w-full px-3 py-1.5 text-left type-micro font-mono transition-colors ${
+              !currentIntention
+                ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+            }`}
+          >
+            <span className="inline-block w-8">—</span>
+            <span className="text-[var(--text-tertiary)]">None</span>
+          </button>
+          {PAGE_INTENTIONS.map(({ value, label, short }) => {
+            const isActive = value === currentIntention
+            const wouldBeWrong = (value === 'reveal' || value === 'climax') && pageOrientation === 'left'
+            return (
+              <button
+                key={value}
+                onClick={() => handleSelect(value)}
+                className={`w-full px-3 py-1.5 text-left type-micro font-mono transition-colors ${
+                  isActive
+                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                }`}
+              >
+                <span className="inline-block w-8">{short}</span>
+                <span className="text-[var(--text-tertiary)]">{label}</span>
+                {wouldBeWrong && <span className="text-[var(--color-warning)] ml-2">!</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {isWrongSide && (
+        <div className="absolute top-full left-0 mt-1 type-micro text-[var(--color-warning)] whitespace-nowrap" style={{ zIndex: isOpen ? 0 : 40 }}>
+          {currentIntention === 'reveal' ? 'Reveal' : 'Climax'} on left page
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SortablePanelCard({ id, children }: { id: string; children: (listeners: any) => React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
@@ -1190,6 +1301,12 @@ export default function PageEditor({ page, pageContext, characters, locations, s
             currentType={page.page_type || 'SINGLE'}
             currentLinkedPageId={page.linked_page_id || null}
             scenePages={scenePages}
+            onUpdate={onUpdate}
+          />
+          <PageIntentionSelector
+            pageId={page.id}
+            currentIntention={page.intention || null}
+            pageOrientation={pageOrientation}
             onUpdate={onUpdate}
           />
           <CommentButton entityType="page" entityId={page.id} />

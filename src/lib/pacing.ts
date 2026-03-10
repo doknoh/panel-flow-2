@@ -22,6 +22,8 @@ export interface PagePacingMetric {
   dialoguePanels: number
   silentPanels: number
   wordsPerPanel: number
+  maxBalloonWords: number
+  densityLabel: string
   isOddPage: boolean
   warnings: string[]
 }
@@ -54,13 +56,25 @@ export interface PacingAnalysis {
   score: number
 }
 
-// Industry standard thresholds
+// Industry standard thresholds calibrated to comic script craft
 export const PACING_THRESHOLDS = {
-  wordsPerPage: { ideal: { min: 30, max: 100 }, warning: 150 },
-  panelsPerPage: { ideal: { min: 4, max: 6 }, cramped: 8, sparse: 3 },
+  wordsPerPage: { ideal: { min: 30, max: 100 }, warning: 210 },
+  panelsPerPage: { ideal: { min: 4, max: 6 }, cramped: 10, sparse: 2 },
   dialogueRatio: { ideal: { min: 0.4, max: 0.6 }, talking_heads: 0.8 },
   silentRatio: { ideal: { min: 0.1, max: 0.2 }, no_breathing: 0.05 },
   wordsPerPanel: { ideal: { min: 10, max: 25 }, wall_of_text: 40 },
+  wordsPerBalloon: { max: 35 },
+}
+
+/** Semantic labels for panel counts — visual pacing vocabulary */
+export function getPanelDensityLabel(panelCount: number): string {
+  if (panelCount <= 0) return ''
+  if (panelCount === 1) return 'SPLASH'
+  if (panelCount <= 3) return 'OPEN'
+  if (panelCount <= 6) return 'STANDARD'
+  if (panelCount <= 8) return 'DENSE'
+  if (panelCount === 9) return 'GRID'
+  return 'CRAMPED'
 }
 
 /**
@@ -81,8 +95,15 @@ export function calculatePageMetrics(page: PageData): PagePacingMetric {
   let wordCount = 0
   let dialoguePanels = 0
   let silentPanels = 0
+  let maxBalloonWords = 0
 
   for (const panel of panels) {
+    // Track individual balloon word counts
+    for (const d of (panel.dialogue || [])) {
+      const balloonWords = countWords(d.text)
+      if (balloonWords > maxBalloonWords) maxBalloonWords = balloonWords
+    }
+
     const dialogueWords = (panel.dialogue || [])
       .reduce((sum, d) => sum + countWords(d.text), 0)
     const captionWords = (panel.captions || [])
@@ -122,6 +143,10 @@ export function calculatePageMetrics(page: PageData): PagePacingMetric {
     warnings.push('High words per panel — consider splitting dialogue')
   }
 
+  if (maxBalloonWords > PACING_THRESHOLDS.wordsPerBalloon.max) {
+    warnings.push(`Dialogue balloon at ${maxBalloonWords} words — max ~${PACING_THRESHOLDS.wordsPerBalloon.max}`)
+  }
+
   return {
     pageId: page.id,
     pageNumber: page.page_number,
@@ -130,6 +155,8 @@ export function calculatePageMetrics(page: PageData): PagePacingMetric {
     dialoguePanels,
     silentPanels,
     wordsPerPanel: Math.round(wordsPerPanel * 10) / 10,
+    maxBalloonWords,
+    densityLabel: getPanelDensityLabel(panelCount),
     isOddPage: page.page_number % 2 === 1,
     warnings,
   }
@@ -175,7 +202,7 @@ export function generateInsights(
       type: 'warning',
       severity: highWordPages.length > 3 ? 'high' : 'medium',
       pages: highWordPages.map(p => p.pageNumber),
-      message: `${highWordPages.length} page(s) have over 150 words — may read slowly`,
+      message: `${highWordPages.length} page(s) have over ${PACING_THRESHOLDS.wordsPerPage.warning} words — may read slowly`,
       suggestion: 'Consider splitting dialogue or adding visual beats to these pages',
     })
   }
@@ -233,6 +260,47 @@ export function generateInsights(
         pages: allPages,
         message: `Dialogue-heavy sequences detected — risk of "talking heads"`,
         suggestion: 'Break up with action beats, visual variety, or silent panels',
+      })
+    }
+  }
+
+  // Check for over-limit dialogue balloons
+  const pagesWithOverLimitBalloons = pageMetrics.filter(p => p.maxBalloonWords > PACING_THRESHOLDS.wordsPerBalloon.max)
+  if (pagesWithOverLimitBalloons.length > 0) {
+    insights.push({
+      type: 'warning',
+      severity: pagesWithOverLimitBalloons.length > 3 ? 'high' : 'medium',
+      pages: pagesWithOverLimitBalloons.map(p => p.pageNumber),
+      message: `${pagesWithOverLimitBalloons.length} page(s) have dialogue balloons over ${PACING_THRESHOLDS.wordsPerBalloon.max} words`,
+      suggestion: 'Split long balloons or trim dialogue. In comics, every extra word crowds the art.',
+    })
+  }
+
+  // Check for panel count monotony (3+ consecutive pages with same count)
+  if (pageMetrics.length >= 3) {
+    const monotonyRuns: number[][] = []
+    let currentRun: number[] = [pageMetrics[0].pageNumber]
+    let currentCount = pageMetrics[0].panelCount
+
+    for (let i = 1; i < pageMetrics.length; i++) {
+      if (pageMetrics[i].panelCount === currentCount && currentCount > 0) {
+        currentRun.push(pageMetrics[i].pageNumber)
+      } else {
+        if (currentRun.length >= 3) monotonyRuns.push([...currentRun])
+        currentRun = [pageMetrics[i].pageNumber]
+        currentCount = pageMetrics[i].panelCount
+      }
+    }
+    if (currentRun.length >= 3) monotonyRuns.push(currentRun)
+
+    if (monotonyRuns.length > 0) {
+      const allPages = monotonyRuns.flat()
+      insights.push({
+        type: 'suggestion',
+        severity: 'medium',
+        pages: allPages,
+        message: `Monotonous panel counts — ${allPages.length} consecutive pages with identical panel density`,
+        suggestion: 'Monotonous panel counts = monotonous pacing. Vary between grid (9), standard (4-6), and open (2-3) layouts.',
       })
     }
   }
