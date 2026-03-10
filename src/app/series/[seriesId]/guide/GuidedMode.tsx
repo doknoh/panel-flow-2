@@ -8,6 +8,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { analyzeProjectCompleteness, type CompletenessAnalysis } from './analyzeCompleteness'
 import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import ChatMessageContent from '@/components/ChatMessageContent'
 
 interface GuidedSession {
   id: string
@@ -910,8 +911,12 @@ export default function GuidedMode({
                         : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {msg.content}
+                    <div className="text-sm leading-relaxed">
+                      {msg.role === 'assistant' ? (
+                        <ChatMessageContent content={msg.content} />
+                      ) : (
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      )}
                     </div>
 
                     {/* Tool Proposals */}
@@ -977,8 +982,8 @@ export default function GuidedMode({
               {streamingText && (
                 <div className="flex justify-start">
                   <div className="max-w-[85%] bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-2xl px-4 py-3">
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {streamingText}
+                    <div className="text-sm leading-relaxed">
+                      <ChatMessageContent content={streamingText} />
                     </div>
 
                     {streamingToolProposals.length > 0 && (
