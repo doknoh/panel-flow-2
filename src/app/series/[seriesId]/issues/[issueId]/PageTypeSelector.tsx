@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 
@@ -39,16 +39,27 @@ export default function PageTypeSelector({
   const [isLinkingModalOpen, setIsLinkingModalOpen] = useState(false)
   const [pendingType, setPendingType] = useState<PageType | null>(null)
   const [saving, setSaving] = useState(false)
+  const [flipUp, setFlipUp] = useState(false)
+  const dropdownContainerRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
 
   const currentTypeInfo = pageTypes.find(t => t.value === currentType) || pageTypes[0]
   const linkedPage = scenePages.find(p => p.id === currentLinkedPageId)
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside + check viewport bounds
   useEffect(() => {
     const handleClickOutside = () => setIsDropdownOpen(false)
     if (isDropdownOpen) {
       document.addEventListener('click', handleClickOutside)
+
+      // Check if dropdown would overflow viewport bottom
+      if (dropdownContainerRef.current) {
+        const rect = dropdownContainerRef.current.getBoundingClientRect()
+        const dropdownHeight = pageTypes.length * 52 + 8
+        const spaceBelow = window.innerHeight - rect.bottom
+        setFlipUp(spaceBelow < dropdownHeight && rect.top > dropdownHeight)
+      }
+
       return () => document.removeEventListener('click', handleClickOutside)
     }
   }, [isDropdownOpen])
@@ -151,7 +162,7 @@ export default function PageTypeSelector({
   return (
     <>
       {/* Type Selector Button */}
-      <div className="relative">
+      <div className="relative" ref={dropdownContainerRef}>
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -180,7 +191,9 @@ export default function PageTypeSelector({
         {/* Dropdown */}
         {isDropdownOpen && (
           <div
-            className="dropdown-panel absolute top-full left-0 mt-1 z-50 min-w-[180px] py-1"
+            className={`dropdown-panel absolute left-0 z-50 min-w-[180px] py-1 ${
+              flipUp ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
             {pageTypes.map((type) => (
@@ -189,8 +202,8 @@ export default function PageTypeSelector({
                 onClick={() => handleTypeSelect(type.value)}
                 className={`w-full px-3 py-2 text-left flex items-center gap-3 transition-colors ${
                   type.value === currentType
-                    ? 'active bg-white/[0.08]'
-                    : 'hover:bg-white/[0.08] text-[#d8d8ec]'
+                    ? 'active bg-[var(--bg-tertiary)]'
+                    : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
                 }`}
               >
                 <span className="text-xl w-6 text-center">{type.icon}</span>
@@ -199,7 +212,7 @@ export default function PageTypeSelector({
                   <div className="text-xs opacity-50">{type.description}</div>
                 </div>
                 {type.value === currentType && (
-                  <svg className="w-4 h-4 ml-auto text-[#a0a0ff]" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 ml-auto text-[var(--color-primary)]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 )}

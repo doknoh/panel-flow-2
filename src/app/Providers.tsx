@@ -3,6 +3,7 @@
 import { ToastProvider } from '@/contexts/ToastContext'
 import { OfflineProvider } from '@/contexts/OfflineContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import AuthGuard from '@/components/AuthGuard'
 import { ReactNode } from 'react'
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -10,6 +11,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     <ThemeProvider>
       <ToastProvider>
         <OfflineProvider>
+          <AuthGuard />
           {children}
         </OfflineProvider>
       </ToastProvider>

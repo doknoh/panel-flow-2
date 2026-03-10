@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 
 type DialogueType = 'dialogue' | 'thought' | 'whisper' | 'shout' | 'off_panel' | 'electronic' | 'radio'
 type CaptionType = 'narrative' | 'location' | 'time' | 'editorial'
@@ -37,6 +37,7 @@ export default function TypeSelector({
 }: TypeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(0)
+  const [flipUp, setFlipUp] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
@@ -55,11 +56,19 @@ export default function TypeSelector({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Reset highlight when opening
+  // Reset highlight and check viewport bounds when opening
   useEffect(() => {
     if (isOpen) {
       const currentIndex = options.findIndex(o => o.value === value)
       setHighlightedIndex(currentIndex >= 0 ? currentIndex : 0)
+
+      // Check if dropdown would overflow viewport bottom
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        const dropdownHeight = options.length * 48 + 8 // ~48px per item + padding
+        const spaceBelow = window.innerHeight - rect.bottom
+        setFlipUp(spaceBelow < dropdownHeight && rect.top > dropdownHeight)
+      }
     }
   }, [isOpen, value, options])
 
@@ -158,7 +167,9 @@ export default function TypeSelector({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 left-0 w-48 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden">
+        <div className={`absolute z-50 left-0 w-48 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden ${
+          flipUp ? 'bottom-full mb-1' : 'top-full mt-1'
+        }`}>
           <ul
             ref={listRef}
             className="max-h-64 overflow-y-auto py-1"

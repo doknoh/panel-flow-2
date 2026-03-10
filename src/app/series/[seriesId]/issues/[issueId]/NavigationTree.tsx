@@ -2062,7 +2062,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         <div
           ref={contextMenuRef}
           className="dropdown-panel fixed z-50 py-1 min-w-[160px]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          style={{
+            left: Math.min(contextMenu.x, window.innerWidth - 180),
+            top: Math.min(contextMenu.y, window.innerHeight - 250),
+          }}
         >
           {/* Rename - available for all types */}
           <button
