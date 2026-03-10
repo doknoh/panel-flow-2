@@ -75,10 +75,32 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Fetch confirmed writer insights from Guided Mode extractions
+    const { data: writerInsights } = await supabase
+      .from('writer_insights')
+      .select('insight_type, category, description, confidence')
+      .eq('user_id', user.id)
+      .gte('confidence', 0.6)
+      .order('confidence', { ascending: false })
+      .limit(20)
+
+    const insights = (writerInsights || []) as Array<{
+      insight_type: string
+      category: string | null
+      description: string
+      confidence: number
+    }>
+
     // Build context for profile synthesis
     const summaries = conversations
       .map((c, i) => `Session ${i + 1} (${c.mode} mode): ${c.synthesized_summary}`)
       .join('\n\n')
+
+    const insightsText = insights.length > 0
+      ? insights
+          .map(i => `- [${i.insight_type}${i.category ? `/${i.category}` : ''}] ${i.description} (confidence: ${i.confidence})`)
+          .join('\n')
+      : ''
 
     const toolStatsText = Object.entries(writerProfile.tool_stats || {})
       .map(([tool, stats]) => {
@@ -105,7 +127,7 @@ Keep it specific and actionable — this will be fed back to the AI to personali
       messages: [
         {
           role: 'user',
-          content: `Previous profile:\n${previousProfile}\n\nRecent session summaries:\n${summaries}\n\nTool acceptance rates:\n${toolStatsText || 'No tool data yet.'}\n\nUpdate the writer profile based on all of this information.`,
+          content: `Previous profile:\n${previousProfile}\n\nRecent session summaries:\n${summaries}\n\nTool acceptance rates:\n${toolStatsText || 'No tool data yet.'}\n\nConfirmed writer insights (extracted from Guided Mode sessions):\n${insightsText || 'No insights extracted yet.'}\n\nUpdate the writer profile based on all of this information. Pay special attention to the confirmed writer insights — these are patterns the AI has identified and the writer has validated through conversation.`,
         },
       ],
     })

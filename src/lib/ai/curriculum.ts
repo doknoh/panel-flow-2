@@ -76,15 +76,16 @@ export const PHASE_GATES: Record<string, PhaseGate> = {
 
   page_craft_to_drafting: {
     targetPhase: 'drafting',
-    name: 'Page Architecture Review',
+    name: 'Four-Beat Architecture Review',
     requirements: [
-      'No reveals landing on left (even) pages without explicit writer override',
-      'Splash pages justified — only for genuine emotional peaks',
+      'Four-beat loop intact: reveals at top of left pages, bridges pulling across gutter, pickups delivering new info, cliffhangers compelling the turn',
+      'No major reveals buried mid-page without explicit writer override',
+      'Splash pages justified — right-page splash is macro-reveal, left-page splash is full stop',
       'Spreads landing on correct even-odd pairs',
-      'Scene units make structural sense (1-page, 3-page, 4-page blocks)',
+      'Scene units make structural sense (1-page punctuation, 2-page spreads, 3-page tension, 4-page complete sequences)',
     ],
     redirectPrompt:
-      'Before you start writing, I want to flag any page architecture issues. Reveals on wrong pages, unjustified splashes, or spread alignment problems are much harder to fix after the script is written.',
+      'Before you start writing, I want to run the four-beat check on your page architecture. I\'m looking at every spread as a unit: is the reveal at the top of the left page? Does the bridge pull the reader across? Does the pickup on the right deliver something new? Does the cliffhanger compel the turn? These are much harder to fix after the script is written.',
   },
 }
 
@@ -153,14 +154,15 @@ export const PHASE_BEHAVIORS: PhaseBehavior[] = [
   },
   {
     phase: 'weave',
-    focus: 'Plotline rhythm, left/right alignment, breathing room',
+    focus: 'Plotline rhythm, four-beat page-turn logic, breathing room',
     activeMoves: [
       'Name every active plotline before starting. Confirm the full list.',
       'Flag when any plotline disappears for more than 6-8 pages: "You haven\'t checked in with [plotline] in N pages — intentional?"',
-      'Enforce the left/right rule on reveals and cliffhangers',
+      'Think in spreads: every left-right pair is a four-beat unit. Scene transitions should respect the loop — don\'t break mid-spread if avoidable.',
+      'Flag reveals landing on left pages where they\'ll be buried, and cliffhangers on left pages where they won\'t drive a turn',
       'Flag continuity risks when scenes are reordered: character knowledge breaks, emotional arc breaks',
-      'Suggest breathing room between intense sequences',
-      'Watch page alignment for reveals — every page turn is a dramatic instrument',
+      'Suggest breathing room between intense sequences — a 1-page beat between two 4-page action scenes prevents fatigue',
+      'Watch scene-unit sizing: 3-page scenes create natural mid-spread tension; 4-page scenes are clean complete units',
     ],
     hardNos: [
       'Do NOT write dialogue',
@@ -172,20 +174,25 @@ export const PHASE_BEHAVIORS: PhaseBehavior[] = [
   },
   {
     phase: 'page_craft',
-    focus: 'Page architecture — which moments get which real estate',
+    focus: 'Page architecture — four-beat reading loop, which moments get which real estate',
     activeMoves: [
-      'Enforce left/right page rule: reveals on right (odd), setup on left (even)',
-      'Challenge every splash page: "Does this moment earn a full page?"',
-      'Suggest modular scene units: 1-page beats, 3-page sequences, 4-page blocks',
-      'Flag spreads that don\'t land on even-odd pairs',
-      'Flag spreads with heavy dialogue (balloon placement constraints)',
+      'Think in spreads, not pages: every left-right pair is a four-beat dramatic unit (reveal → bridge → pickup → cliffhanger)',
+      'Flag buried reveals: "Your biggest moment on page 12 is in panel 4 — that\'s mid-page. Can it move to panel 1 where the eye hits first?"',
+      'Flag wasted page turns: "The bottom of page 8 resolves the scene. Nothing is pulling the reader to page 9. What question can you leave open?"',
+      'Flag missing bridges: "The bottom of your left page feels complete. The reader\'s eye needs a reason to cross the gutter — tension, question, mid-action."',
+      'Flag cliffhangers on wrong pages: "Your cliffhanger is at the bottom of a left page — the reader just looks right, they don\'t turn. Move it to the bottom of the right page."',
+      'Challenge every splash page: "Does this moment earn a full page? A right-page splash is a macro-reveal. A left-page splash is a full stop. Which do you want?"',
+      'Suggest modular scene units: 1-page punctuation, 2-page spreads, 3-page mid-spread tension, 4-page complete sequences',
+      'Flag spreads that don\'t land on even-odd pairs — a spread starting on odd means the reader sees the right half first',
+      'Flag spreads with heavy dialogue (balloon placement across the gutter is a production constraint)',
+      'After a spread, check that the next page re-establishes the four-beat rhythm',
     ],
     hardNos: [
       'Do NOT write dialogue or panel descriptions',
       'Do NOT run power rankings (that\'s editing phase)',
       'Do NOT suggest line edits',
     ],
-    advancementSignal: 'Page architecture clean — no reveals on wrong pages, splashes justified, spreads aligned',
+    advancementSignal: 'Page architecture clean — four-beat loop intact across all spreads, splashes justified, spreads aligned',
     entryGate: 'weave_to_page_craft',
   },
   {
@@ -217,6 +224,7 @@ export const PHASE_BEHAVIORS: PhaseBehavior[] = [
       'Protect silent beats — don\'t let the writer fill every panel with dialogue',
       '"Do you need 8 panels here or can this be 5?"',
       'Flag caption/image redundancy',
+      'Check four-beat loop health: are reveals at the top of left pages? Are cliffhangers at the bottom of right pages? Are bridges pulling across the gutter?',
     ],
     hardNos: [
       'Do NOT be polite about weak pages — candid assessment only',
@@ -244,36 +252,126 @@ export const PHASE_BEHAVIORS: PhaseBehavior[] = [
 ]
 
 // ============================================
-// LEFT/RIGHT PAGE RULES
+// FOUR-BEAT READING LOOP
 // ============================================
 
 /**
- * Page architecture rules for the physical comic book.
- * These should be enforced in weave, page_craft, and editing phases.
+ * The Four-Beat Reading Loop — how readers actually experience a comic spread.
+ *
+ * Every left-right page pair forms a dramatic unit with four beats:
+ *
+ *   LEFT PAGE (even)              RIGHT PAGE (odd)
+ *   ┌──────────────────┐          ┌──────────────────┐
+ *   │  1. REVEAL        │          │  3. PICKUP        │
+ *   │  (top-left)       │          │  (top-right)      │
+ *   │  First thing the  │          │  First thing the  │
+ *   │  eye hits after   │          │  eye hits after   │
+ *   │  turning the page │          │  scanning left.   │
+ *   │                   │          │  New info, shift,  │
+ *   │                   │          │  or escalation.   │
+ *   │                   │          │                   │
+ *   │  2. BRIDGE        │          │  4. CLIFFHANGER   │
+ *   │  (bottom-left)    │          │  (bottom-right)   │
+ *   │  Carries reader   │          │  Last thing before │
+ *   │  across the gutter│          │  the page turn.   │
+ *   │  to the right     │          │  Must compel the  │
+ *   │  page. Questions, │          │  turn. Question,  │
+ *   │  tension, lean-in.│          │  threat, promise. │
+ *   └──────────────────┘          └──────────────────┘
+ *
+ * The AI should think about every spread in these terms during
+ * weave, page_craft, and editing phases.
  */
+
 export const PAGE_ARCHITECTURE_RULES = {
+  /** The four beats of the reading loop, in eye-tracking order */
+  fourBeatLoop: {
+    reveal: {
+      position: 'top-left of LEFT page (even)',
+      role: 'First thing the eye hits after the page turn. This is prime real estate — the reader\'s attention is highest here.',
+      goodFor: ['new visual information', 'establishing shot', 'emotional reaction', 'consequence of previous cliffhanger', 'scene-setting'],
+      badFor: ['exposition dumps', 'talking heads', 'redundant captions'],
+      aiCheck: 'Is the top of the left page earning its position? A buried reveal (important moment in the middle or bottom of a page) wastes the reader\'s sharpest attention.',
+    },
+    bridge: {
+      position: 'bottom-left of LEFT page (even)',
+      role: 'Carries the reader\'s eye across the gutter to the right page. Must create forward momentum — questions, tension, incomplete actions.',
+      goodFor: ['unanswered questions', 'mid-action beats', 'tension escalation', 'dialogue hooks', 'visual momentum'],
+      badFor: ['resolution', 'full stops', 'self-contained beats'],
+      aiCheck: 'Does the bottom of the left page pull the reader rightward? If it resolves or rests, the reader\'s eye has no reason to keep moving.',
+    },
+    pickup: {
+      position: 'top-right of RIGHT page (odd)',
+      role: 'First thing the eye hits on the right page. New information, a shift, or escalation. Answers or deepens what the bridge set up.',
+      goodFor: ['new information', 'perspective shift', 'escalation', 'payoff of bridge setup', 'counterpoint'],
+      badFor: ['repetition of left page', 'dead air', 'filler panels'],
+      aiCheck: 'Does the top of the right page deliver something new? If it just continues the left page\'s energy without adding, the spread feels flat.',
+    },
+    cliffhanger: {
+      position: 'bottom-right of RIGHT page (odd)',
+      role: 'Last thing the reader sees before deciding to turn the page. Must compel the turn. This is the engine of pacing.',
+      goodFor: ['unanswered questions', 'threats', 'promises', 'emotional gut-punches', 'visual hooks', 'dramatic irony'],
+      badFor: ['resolution', 'satisfaction', 'complete thoughts', 'narration that summarizes'],
+      aiCheck: 'Does the last panel on the right page make the reader NEED to turn? If the reader could put the book down here, the cliffhanger failed.',
+    },
+  },
+
+  /** Left page (even) — the hidden page, revealed on turn */
   leftPage: {
     number: 'even',
-    role: 'Build tension, pose questions, set up. Hidden until the page turn.',
-    goodFor: ['setup', 'transition', 'breathing_room', 'tension_building'],
-    badFor: ['reveal', 'climax', 'major_payoff'],
+    role: 'Hidden until the page turn. Contains the reveal (top) and the bridge (bottom). Sets up what the right page pays off.',
+    goodFor: ['setup', 'reveal of new information', 'tension building', 'scene establishment'],
+    badFor: ['major climax without right-page payoff', 'wasted reveals buried in mid-page'],
   },
+
+  /** Right page (odd) — receives the eye, drives the turn */
   rightPage: {
     number: 'odd',
-    role: 'Receives the eye first on page turn. Reveals, payoffs, emotional peaks.',
-    goodFor: ['reveal', 'climax', 'major_payoff', 'cliffhanger'],
-    badFor: [],
+    role: 'Receives the scanning eye from the left page. Contains the pickup (top) and the cliffhanger (bottom). Escalates and compels the turn.',
+    goodFor: ['escalation', 'payoff', 'emotional peaks', 'cliffhangers'],
+    badFor: ['dead endings', 'resolution without forward momentum'],
   },
+
+  /** Splash page rules within the four-beat loop */
   splashRules: [
-    'Splash pages must be earned — only for genuine emotional peaks',
-    'A splash on pages 2-3 of a spread kills the page-turn reveal — flag this',
-    'Every splash should be justifiable: "What makes this moment worth a full page?"',
+    'A RIGHT-page splash functions as a macro-reveal — the entire page IS the beat. Justify it: "Does this moment earn the full-page pause?"',
+    'A LEFT-page splash is a full stop — it breaks the reading loop entirely. Use only when you WANT the reader to pause and absorb (funeral, landscape, transformation).',
+    'A splash on pages 2-3 of a spread kills the page-turn reveal from page 1 — flag this as a structural problem.',
+    'Every splash must be justifiable: "What makes this moment worth surrendering the four-beat rhythm?"',
   ],
+
+  /** Spread rules within the four-beat loop */
   spreadRules: [
-    'Spreads always land on even-odd pairs (left-right)',
-    'Warn if spread doesn\'t start on even page',
-    'Spreads with heavy dialogue create balloon placement constraints — flag in analysis',
+    'A spread pauses the four-beat loop — the left-right pair becomes a single visual moment instead of a dramatic sequence.',
+    'Spreads function as a macro-reveal: the page turn delivers one overwhelming image instead of four sequential beats.',
+    'Spreads must start on even pages (left-right pair). A spread on odd-even pages means the reader sees the right half first — destroying the reveal.',
+    'Spreads with heavy dialogue fight the format — balloon placement across the gutter is a production constraint. Flag for the writer.',
+    'After a spread, the next page turn must re-establish the four-beat rhythm. Don\'t follow a spread with another spread unless intentionally creating a "gallery" sequence.',
   ],
+
+  /** Modular scene unit patterns that work with the four-beat loop */
+  sceneUnits: {
+    onePage: {
+      pages: 1,
+      rhythm: 'Single beat — best for quick cuts, transitions, or punctuation between longer sequences.',
+      bestFor: ['intercuts', 'reaction beats', 'time jumps', 'visual punctuation'],
+    },
+    threePage: {
+      pages: 3,
+      rhythm: 'One and a half spreads — creates natural tension because the scene ends mid-spread, forcing a page turn into a new scene.',
+      bestFor: ['character moments', 'dialogue scenes', 'building sequences'],
+    },
+    fourPage: {
+      pages: 4,
+      rhythm: 'Two complete spreads — two full four-beat loops. The most structurally clean unit for a self-contained scene.',
+      bestFor: ['complete dramatic sequences', 'action set pieces', 'major confrontations'],
+    },
+    twoPage: {
+      pages: 2,
+      rhythm: 'One spread — functions as a single dramatic unit with the full four-beat loop.',
+      bestFor: ['establishing sequences', 'quick scenes', 'parallel cuts'],
+    },
+  },
 }
 
 // ============================================

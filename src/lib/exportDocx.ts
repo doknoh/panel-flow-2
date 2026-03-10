@@ -41,6 +41,9 @@ interface Panel {
 
 interface Page {
   page_number: number
+  page_type?: string | null
+  linked_page_id?: string | null
+  notes_to_artist?: string | null
   panels: Panel[]
 }
 
@@ -124,6 +127,7 @@ export async function exportIssueToDocx(
   options?: {
     authorName?: string
     characterNames?: string[]
+    includeSummary?: boolean
   }
 ) {
   const characterMap = new Map(issue.series.characters.map(c => [c.id, c.name]))
@@ -181,7 +185,8 @@ export async function exportIssueToDocx(
   }
 
   // Summary - spec format: "TL;DR SUMMARY" heading
-  if (issue.summary) {
+  const includeSummary = options?.includeSummary !== false // default true
+  if (issue.summary && includeSummary) {
     children.push(
       new Paragraph({
         children: [
@@ -247,13 +252,71 @@ export async function exportIssueToDocx(
       for (const page of sortedPages) {
         // Determine page orientation (odd = right, even = left)
         const orientation = page.page_number % 2 === 1 ? 'right' : 'left'
+        const pageType = page.page_type?.toUpperCase()
 
-        // Page header - spec format: "PAGE [N] ([orientation])"
+        // For SPREAD_RIGHT, render panels without a full page header
+        if (pageType === 'SPREAD_RIGHT') {
+          const sortedRightPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
+          if (sortedRightPanels.length > 0) {
+            children.push(new Paragraph({
+              children: [new TextRun({ text: `— Page ${page.page_number} panels —`, size: 18, italics: true, color: '666666' })],
+              spacing: { before: 100, after: 50 },
+              indent: { left: 360 },
+            }))
+          }
+          sortedRightPanels.forEach((panel, panelIndex) => {
+            const displayPanelNumber = panelIndex + 1
+            const shotType = panel.shot_type ? ` ${panel.shot_type.replace('_', ' ').toUpperCase()}.` : ''
+            children.push(new Paragraph({
+              children: [new TextRun({ text: `PANEL ${displayPanelNumber}:`, bold: true, size: 22 }), new TextRun({ text: shotType, size: 22 })],
+              spacing: { before: 150 },
+            }))
+            if (panel.visual_description) {
+              const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
+              children.push(new Paragraph({ children: [new TextRun({ text: capitalizedDesc, size: 22 })], indent: { left: 360 }, spacing: { after: 100 } }))
+            }
+            const sortedCaptions = [...(panel.captions || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const caption of sortedCaptions) {
+              const captionLabel = caption.caption_type === 'narrative' ? 'CAP' : caption.caption_type === 'location' ? 'LOCATION' : caption.caption_type === 'time' ? 'TIME' : 'CAP'
+              children.push(new Paragraph({ children: [new TextRun({ text: `${captionLabel}: `, bold: true, size: 22 }), new TextRun({ text: caption.text, size: 22 })], indent: { left: 360 } }))
+            }
+            const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const dialogue of sortedDialogue) {
+              const characterName = dialogue.speaker_name ? dialogue.speaker_name.toUpperCase() : dialogue.character_id ? (characterMap.get(dialogue.character_id) || 'UNKNOWN').toUpperCase() : 'UNKNOWN'
+              const dialogueSuffix = getDialogueSuffix(dialogue.dialogue_type)
+              let modifierSuffix = ''
+              if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') { modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]` }
+              children.push(new Paragraph({ children: [new TextRun({ text: `${characterName}${dialogueSuffix}${modifierSuffix}: `, bold: true, size: 22 }), new TextRun({ text: dialogue.text, size: 22 })], indent: { left: 360 } }))
+            }
+            const sortedSfx = [...(panel.sound_effects || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const sfx of sortedSfx) {
+              if (sfx.text) {
+                children.push(new Paragraph({ children: [new TextRun({ text: `SFX: `, bold: true, size: 22 }), new TextRun({ text: sfx.text.toUpperCase(), bold: true, size: 22 })], indent: { left: 360 } }))
+              }
+            }
+            if (includeNotes && panel.notes) {
+              children.push(new Paragraph({ children: [new TextRun({ text: `*Note to Artist: ${panel.notes}*`, italics: true, size: 20, color: '666666' })], indent: { left: 360 }, spacing: { before: 50 } }))
+            }
+          })
+          continue
+        }
+
+        // Page header - handle spreads vs. single pages
+        let pageHeaderText: string
+        if (pageType === 'SPREAD_LEFT') {
+          const nextPageNum = page.page_number + 1
+          pageHeaderText = `PAGES ${page.page_number}-${nextPageNum} (DOUBLE-PAGE SPREAD)`
+        } else if (pageType === 'SPLASH') {
+          pageHeaderText = `PAGE ${page.page_number} (${orientation}, SPLASH)`
+        } else {
+          pageHeaderText = `PAGE ${page.page_number} (${orientation})`
+        }
+
         children.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: `PAGE ${page.page_number} (${orientation})`,
+                text: pageHeaderText,
                 bold: true,
                 size: 24,
               }),
@@ -261,6 +324,24 @@ export async function exportIssueToDocx(
             spacing: { before: 300, after: 150 },
           })
         )
+
+        // Artist notes for the page
+        if (page.notes_to_artist) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `*Note to Artist: ${page.notes_to_artist}*`,
+                  italics: true,
+                  size: 20,
+                  color: '666666',
+                }),
+              ],
+              indent: { left: 360 },
+              spacing: { after: 100 },
+            })
+          )
+        }
 
         // Sort panels and restart panel numbering at 1 per page
         const sortedPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)

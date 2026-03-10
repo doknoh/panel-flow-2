@@ -1301,6 +1301,12 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           <span className="text-[var(--text-secondary)]">
             {pageContext.act.name || `ACT ${pageContext.act.number ?? (pageContext.act.sort_order + 1)}`}
           </span>
+          {pageContext.scene.name && (
+            <>
+              <span className="type-separator">{'\/\/'}</span>
+              <span className="text-[var(--text-secondary)]">{pageContext.scene.name}</span>
+            </>
+          )}
           {pageContext.scene.plotline_name && (
             <>
               <span className="type-separator">{'\/\/'}</span>
@@ -1313,6 +1319,8 @@ export default function PageEditor({ page, pageContext, characters, locations, s
               <span>{pageContext.pagePositionInScene} OF {pageContext.scene.total_pages} IN SCENE</span>
             </>
           )}
+          <span className="type-separator">{'\/\/'}</span>
+          <span className="text-[var(--text-muted)]">{pageOrientation.toUpperCase()}</span>
         </div>
       )}
       <div className="flex items-center justify-between mb-8">

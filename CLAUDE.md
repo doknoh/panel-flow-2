@@ -2,120 +2,95 @@
 
 A professional comic book script writing tool for sequential art writers.
 
+**Last updated:** 2026-03-10
+
 ---
 
-## Project Overview
+## What This Is
 
-Panel Flow is a structured writing environment for comic book scripts. It replaces:
-- **Google Docs** (for writing)
-- **Google Sheets** (for structure/weave visualization)
-- **Fragmented AI conversations** (for creative collaboration)
-
-...with a unified, purpose-built application.
+Panel Flow is a structured writing environment for comic book scripts. It replaces Google Docs (for writing), Google Sheets (for structure/weave visualization), and fragmented AI conversations (for creative collaboration) with a unified, purpose-built application.
 
 **Primary User:** Professional writer working on an 8-issue graphic novel with multiple plotlines, non-linear timelines, and sophisticated structural requirements.
 
 **Core Value:** Reduce formatting tedium, maintain creative context across complex projects, provide AI creative partnership that asks the right questions at every phase.
 
-**The Bar:** Google Docs. Match its reliability, auto-save, version history, find-and-replace, and fluid writing experience BEFORE adding comic-specific features.
-
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Rationale |
-|-------|------------|-----------|
-| Frontend | React (Next.js) | Modern, fast, good ecosystem |
-| Hosting | Vercel | User has experience, reliable |
-| Database | Supabase (PostgreSQL) | Relational data, SQL queries |
-| Auth | Google OAuth via Supabase | Universal, user preference |
-| AI | Claude API (Anthropic) | Long context, nuanced feedback |
-| Voice-to-Text | WhisperFlow | User's existing tool for mobile |
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Framework | Next.js (App Router) | 16.1.4 |
+| UI | React + Tailwind CSS | React 19, Tailwind 4 |
+| Database | Supabase (PostgreSQL) | supabase-js 2.91 |
+| Auth | Google OAuth via Supabase | @supabase/ssr 0.8 |
+| AI | Claude API (Anthropic) | claude-sonnet-4, SDK 0.71 |
+| Rich Text | TipTap (ProseMirror) | 3.20 + tiptap-markdown 0.9 |
+| Drag & Drop | dnd-kit | core 6.3, sortable 10.0 |
+| UI Components | Radix UI | dialog, dropdown, select, tabs, tooltip, popover, collapsible |
+| Icons | Lucide React | 0.562 |
+| Export | jsPDF + docx + plain text | jspdf 4.0, docx 9.5 |
+| Forms | react-hook-form + zod | rhf 7.71, zod 4.3 |
+| Hosting | Vercel | Production |
 
 ---
 
 ## Design Principles
 
-These govern ALL design decisions. When in doubt, defer to these.
-
-1. **Ask, Don't Assume** — AI never silently infers. Always surface interpretations and ask for confirmation. When parsing scripts, tracking character states, identifying issues—show work, ask first.
-
-2. **The Script Is Truth** — When outline and script conflict, script wins. Outlines are derived views that can be regenerated from scripts.
-
-3. **Reduce Formatting Tedium** — Auto-capitalize character names in descriptions. Auto-number panels/pages. Auto-format dialogue blocks. Writer focuses on content; system handles presentation.
-
-4. **Auto-Renumber Everything** — Drag-and-drop at any level (panels, pages, scenes) triggers automatic renumbering. No manual cleanup ever.
-
-5. **Draft Mode → Commit** — In structure views, allow free experimentation. Only when user commits do changes propagate and checks run.
-
-6. **Google Docs Is the Bar** — Auto-save, deep version history, find-and-replace, reliability, speed. Match these fundamentals.
-
-7. **Toolkit, Not Tyranny** — Motifs, themes, visual style notes, and rules are reminders that stay visible—not constraints the system enforces. Creative decisions remain with the writer.
-
-8. **The Writing Stays Human** — AI collaborates, structures, challenges, drafts for reaction. The writer does the actual writing. Non-negotiable.
+1. **Ask, Don't Assume** — AI never silently infers. Always surface interpretations and ask for confirmation.
+2. **The Script Is Truth** — When outline and script conflict, script wins.
+3. **Reduce Formatting Tedium** — Auto-capitalize character names, auto-number panels/pages, auto-format dialogue.
+4. **Auto-Renumber Everything** — Drag-and-drop at any level triggers automatic renumbering.
+5. **Google Docs Is the Bar** — Auto-save, version history, find-and-replace, reliability, speed.
+6. **Toolkit, Not Tyranny** — Motifs, themes, and rules are reminders, not constraints.
+7. **The Writing Stays Human** — AI collaborates and challenges. The writer does the actual writing.
 
 ---
 
-## User Workflow Phases
+## Application Routes
 
-The user works in distinct cognitive modes. The app should support each:
+### Core
+| Route | Purpose |
+|-------|---------|
+| `/` | Landing page, redirects to dashboard if logged in |
+| `/login` | Google OAuth via Supabase |
+| `/pending-approval` | Gated access for unapproved users |
+| `/dashboard` | Series list, create new, admin user management |
+| `/invite/[token]` | Collaboration invitation acceptance |
 
-### Phase 1: Ideation
-- Long voice riffs (8-10 minutes)
-- AI listens, organizes into story beats
-- AI asks clarifying questions, identifies gaps, challenges assumptions
-- Output: Rough concept for issue
+### Series
+| Route | Purpose |
+|-------|---------|
+| `/series/new` | Create series (manual or AI-guided) |
+| `/series/[seriesId]` | Series home: metadata, issues grid, tools grid, world building links |
+| `/series/[seriesId]/characters` | Character CRUD |
+| `/series/[seriesId]/characters/[characterId]/voice` | AI character voice profile analysis |
+| `/series/[seriesId]/locations` | Location CRUD |
+| `/series/[seriesId]/plotlines` | Plotline CRUD with color assignment |
+| `/series/[seriesId]/notes` | Project notes (open questions, decisions, AI insights) |
+| `/series/[seriesId]/canvas` | Pre-structure idea brainstorming board |
+| `/series/[seriesId]/guide` | AI Socratic writing sessions (Guided Mode) |
+| `/series/[seriesId]/outline` | Series outline with AI sync-from-scripts |
+| `/series/[seriesId]/weave` | Series-level plotline weave across all issues |
+| `/series/[seriesId]/analytics` | Writing analytics dashboard |
+| `/series/[seriesId]/sessions` | Session history with loose ends |
+| `/series/[seriesId]/continuity` | AI continuity checker |
+| `/series/[seriesId]/patterns` | Cross-issue plotline patterns |
+| `/series/[seriesId]/character-arcs` | Character emotional arc tracking |
+| `/series/[seriesId]/deadlines` | Deadline management dashboard |
+| `/series/[seriesId]/collaboration` | Sharing and comments (via ShareButton) |
 
-### Phase 2: Structure
-- Break issue into 3 acts
-- Define beginning/end of each act
-- Break acts into scenes
-- Rough page allocation
-- Output: Scene list with page counts
-
-### Phase 3: Weave
-- Interleave multiple plotlines
-- Consider rhythm, pacing, breathing room
-- Consider left/right page alignment for reveals/cliffhangers
-- Drag-and-drop experimentation
-- Output: Color-coded page-by-page breakdown
-
-### Phase 4: Page-Level Craft
-- Assign specific pages to scenes
-- Ensure reveals on left pages, cliffhangers on right
-- Consider spreads, mirror pages, modular units
-- Output: Locked page structure
-
-### Phase 5: Drafting
-- Write panel-by-panel scripts
-- Structured interface with fields
-- AI available but not interrupting
-- Output: Complete draft script
-
-### Phase 6: Editing
-- Review each page for efficiency
-- "Do I need 8 panels or can this be 5?"
-- AI provides feedback and power rankings
-- Output: Polished script
-
----
-
-## The Three Layers
-
-The app maintains three distinct layers of information:
-
-### Layer 1: The Script
-The actual panel-by-panel content. What gets exported. The source of truth.
-
-### Layer 2: The Entity Database
-Characters and Locations with persistent profiles. Referenced by scripts via tagging.
-
-### Layer 3: Project Context
-- **Series-level:** Concept, themes, plotline definitions, visual grammar, rules
-- **Issue-level:** Outline, motifs, stakes, issue-specific rules
-- **Project notes:** Open questions, decisions under consideration, AI insights worth preserving
-
-**The AI reads ALL THREE layers for context in every interaction.**
+### Issue
+| Route | Purpose |
+|-------|---------|
+| `/series/[seriesId]/issues/[issueId]` | Main three-column editor (nav / editor / toolkit) |
+| `/series/[seriesId]/issues/[issueId]/weave` | Issue-level weave view with drag-and-drop |
+| `/series/[seriesId]/issues/[issueId]/blueprint` | Structural planning view |
+| `/series/[seriesId]/issues/[issueId]/read` | Read-only formatted script view |
+| `/series/[seriesId]/issues/[issueId]/rhythm` | Visual rhythm/pacing analysis |
+| `/series/[seriesId]/issues/[issueId]/scene-analytics` | Scene-level analytics |
+| `/series/[seriesId]/issues/[issueId]/history` | Version history with snapshots |
+| `/series/[seriesId]/issues/[issueId]/import` | Import script from pasted text |
 
 ---
 
@@ -129,1079 +104,453 @@ Series
                     └── Page
                           └── Panel
                                 ├── Dialogue Block
-                                └── Caption
+                                ├── Caption
+                                └── Sound Effect
 ```
 
 ---
 
-## Data Models
+## Issue Editor (Main Workspace)
 
-### User
-```typescript
-interface User {
-  id: string
-  email: string
-  name: string
-  avatar_url?: string
-  created_at: Date
-  last_login: Date
-}
-```
+Three-column layout: Navigation | Editor | Toolkit
 
-### Series
-```typescript
-interface Series {
-  id: string
-  user_id: string // owner
-  title: string
-  logline: string // one paragraph concept
-  central_theme: string
-  visual_grammar: string // notes on recurring visual devices
-  rules: string // series-wide conventions
-  created_at: Date
-  updated_at: Date
-}
-```
+### Left Column: Navigation Tree
+- Act/Scene/Page hierarchy, all expandable
+- Drag-and-drop reordering of scenes and pages (auto-renumbers)
+- Add Scene / Add Page buttons
+- Scene descriptions show as tooltips
 
-### Plotline
-```typescript
-interface Plotline {
-  id: string
-  series_id: string
-  name: string // e.g., "Marshall IRL", "Tracy Solo", "Antagonist"
-  color: string // hex, auto-assigned by system
-  description?: string
-}
-```
+### Center Column: Editor
+**Page view shows:**
+- Context breadcrumb: `ACT [N] // [plotline] // [X] OF [Y] IN SCENE`
+- Page number (computed), orientation (LEFT/RIGHT), page type selector
+- Panel cards, vertically stacked, drag to reorder
+- Each panel: visual description (TipTap rich text), shot type, dialogue blocks, captions, SFX, artist notes, internal notes
+- Keyboard shortcuts: Cmd+S (save), Cmd+Z/Shift+Z (undo/redo), Cmd+F (find/replace), Cmd+Enter (add panel)
 
-### ProjectNote
-```typescript
-interface ProjectNote {
-  id: string
-  series_id: string
-  type: 'OPEN_QUESTION' | 'DECISION' | 'AI_INSIGHT' | 'GENERAL'
-  content: string
-  resolved: boolean
-  resolved_at?: Date
-  created_at: Date
-  updated_at: Date
-}
-```
+**Additional editor modes:**
+- **ScriptView** — Continuous scrolling script with inline editing
+- **ZenMode** — Distraction-free writing (description + notes only)
+- **BlueprintView** — Structural planning focus
+- **ReadingView** — Read-only formatted output
 
-### Issue
-```typescript
-interface Issue {
-  id: string
-  series_id: string
-  number: number
-  title: string
-  tagline: string // one-line hook
-  summary: string // TL;DR for readers
-  visual_style: string // notes for artist
-  motifs: string // visual/narrative motifs for this issue
-  stakes: string // what's at risk
-  themes: string // philosophical underpinning
-  rules: string // issue-specific conventions (e.g., "9-panel grid for Paul/Tracy")
-  series_act: 'BEGINNING' | 'MIDDLE' | 'END' // where this issue falls in overall series arc
-  status: 'OUTLINE' | 'DRAFTING' | 'REVISION' | 'COMPLETE'
-  created_at: Date
-  updated_at: Date
-}
-```
-
-**Series Act Structure:** For an 8-issue series, roughly: Issues 1-2 = Beginning, Issues 3-5 = Middle, Issues 6-8 = End. This helps track where each issue falls in the overall narrative arc.
-
-### Act
-```typescript
-interface Act {
-  id: string
-  issue_id: string
-  number: number // 1, 2, or 3
-  title?: string // e.g., "Creative Paralysis"
-  beat_summary: string // key moments, not panel-level
-}
-```
-
-### Scene
-```typescript
-interface Scene {
-  id: string
-  act_id: string
-  order: number // position within act
-  title?: string // slug, e.g., "Studio Breakdown"
-  plotline_id: string
-  characters: string[] // character IDs
-  location_id?: string
-  target_page_count?: number // rough allocation
-  notes?: string // internal notes
-}
-```
-
-### Page
-```typescript
-interface Page {
-  id: string
-  scene_id: string
-  order: number // position within scene
-  page_number: number // COMPUTED: position within issue, auto-updates
-  orientation: 'LEFT' | 'RIGHT' | 'SPREAD_LEFT' | 'SPREAD_RIGHT' | 'MIRROR_LEFT' | 'MIRROR_RIGHT'
-  page_type: 'SINGLE' | 'SPREAD' | 'MIRROR'
-  linked_page_id?: string // for spreads/mirrors, reference to paired page
-  template?: 'STANDARD' | 'NINE_PANEL_GRID' | 'SIX_PANEL_GRID' | 'CUSTOM'
-  notes_to_artist?: string // included in export
-}
-```
-
-### Panel
-```typescript
-interface Panel {
-  id: string
-  page_id: string
-  order: number // position on page
-  panel_number: number // COMPUTED: position within issue, auto-updates
-  visual_description: string // what we see (required)
-  characters_present: string[] // character IDs (required)
-  location_id?: string // defaults to scene location if not specified
-  sfx?: string
-  panel_size?: 'FULL_PAGE' | 'HALF' | 'THIRD' | 'QUARTER' | 'INSET' | 'SMALL' | 'LARGE' | 'CUSTOM'
-  camera?: string // e.g., "Extreme close-up", "Wide shot", "POV"
-  notes_to_artist?: string // included in export
-  internal_notes?: string // NOT in export, writer only
-}
-```
-
-### DialogueBlock
-```typescript
-interface DialogueBlock {
-  id: string
-  panel_id: string
-  order: number // sequence within panel, drag to reorder
-  speaker_id?: string // character ID, nullable for unknown speakers
-  speaker_name?: string // for characters not in database (e.g., "COP #1")
-  delivery_type: 'STANDARD' | 'VO' | 'OS' | 'BACKGROUND'
-  delivery_instruction?: string // e.g., "MUTTERS", "LAUGHS", "SOBS"
-  balloon_number: number // for multiple balloons from same speaker: 1, 2, 3
-  text: string
-}
-```
-
-### Caption
-```typescript
-interface Caption {
-  id: string
-  panel_id: string
-  order: number // sequence within panel
-  type: 'NARRATION' | 'LOCATION' | 'TIME' | 'OTHER'
-  text: string
-}
-```
-
-### Character
-```typescript
-interface Character {
-  id: string
-  series_id: string
-  name: string // full name
-  display_name: string // how it appears in script: "MARSHALL"
-  physical_description?: string // for artist reference
-  speech_patterns?: string // verbal tics, vocabulary, rhythm
-  relationships?: string // connections to other characters
-  arc_notes?: string // where they start, where they end
-  first_appearance?: string // e.g., "Issue 1, Page 4"
-}
-```
-
-### Location
-```typescript
-interface Location {
-  id: string
-  series_id: string
-  name: string
-  description?: string
-  visual_details?: string // for artist
-  first_appearance?: string
-}
-```
-
-### Version
-```typescript
-interface Version {
-  id: string
-  entity_type: 'SERIES' | 'ISSUE' | 'SCENE' | 'PAGE' | 'PANEL'
-  entity_id: string
-  snapshot: object // full state at this moment
-  created_at: Date
-  name?: string // optional label, e.g., "Before Paul's notes"
-}
-```
-
-### LooseEnd
-```typescript
-interface LooseEnd {
-  id: string
-  series_id: string
-  session_id?: string // if created during a session
-  type: 'UNTRACKED_CHARACTER' | 'UNTRACKED_LOCATION' | 'CONTINUITY_FLAG' | 'PAGE_ALIGNMENT' | 'OTHER'
-  description: string
-  page_reference?: string // e.g., "Issue 2, Page 16"
-  resolved: boolean
-  resolved_at?: Date
-  created_at: Date
-}
-```
-
-### Session
-```typescript
-interface Session {
-  id: string
-  user_id: string
-  series_id: string
-  started_at: Date
-  ended_at: Date
-  summary: string // AI-generated
-  progress: string
-  todo: string
-  stats: {
-    words_written: number
-    panels_created: number
-    pages_created: number
-    time_spent_minutes: number
-  }
-}
-```
+### Right Column: Toolkit
+- Issue context (theme, motifs, visual style, stakes, rules)
+- AI Chat sidebar with streaming responses and tool proposals
+- Pacing analysis
+- Previous page context (collapsible)
+- Command palette (Cmd+K) for quick navigation
 
 ---
 
-## Phase 1: MVP Scope
+## Rich Text Editing (TipTap)
 
-### Core Features
+All script writing surfaces use TipTap with markdown storage via `tiptap-markdown`. Content stored as plain TEXT in Postgres — zero database migration needed. All exports, AI context, and find/replace read markdown from the database unchanged.
 
-1. **Auth:** Google OAuth login via Supabase
-2. **Dashboard:** List projects, create new, see progress
-3. **Project Home:** Series overview, issues grid, characters, locations, plotlines
-4. **Issue Editor:** Three-column layout (navigation | editor | toolkit)
-5. **Panel Editor:** Structured fields for all panel data
-6. **Character/Location Database:** CRUD, dropdown population, searchable ("show every panel Tracy is in")
-7. **Plotline Management:** Define plotlines, assign colors, use in dropdowns
-8. **Drag-and-Drop:** Reorder panels, pages, scenes with auto-renumbering
-9. **Auto-Save:** Every change saved (debounced ~2 seconds)
-10. **Version History:** Browse by date, name versions, restore any version
-11. **Find and Replace:** Across entire issue or series
-12. **Word Count:** Always visible in editor
-13. **Export:** PDF and Google Doc in exact script format
-14. **AI Sidebar:** Conversational interface with full project context
-15. **Loose Ends Tracking:** Flag untracked characters/locations during drafting
+### ScriptEditor Component
+Single component with `variant` prop controlling toolbar and behavior:
 
-### Screens
+| Variant | Toolbar | Used For |
+|---------|---------|----------|
+| `description` | Full (B/I/U/S, lists, heading, blockquote, code, hr) | Visual descriptions |
+| `dialogue` | Compact (B/I only) + word count with letterer warnings | Dialogue blocks |
+| `caption` | Compact (B/I only) | Caption text |
+| `sfx` | None, single-line behavior | Sound effects |
+| `notes` | Medium (B/I/U, lists) | Artist notes, internal notes |
 
-| Route | Purpose |
-|-------|---------|
-| `/` | Dashboard - all projects |
-| `/project/[seriesId]` | Project Home - series overview |
-| `/project/[seriesId]/issue/[issueId]` | Issue Editor - main workspace |
-| `/project/[seriesId]/characters` | Character Manager |
-| `/project/[seriesId]/locations` | Location Manager |
-| `/project/[seriesId]/plotlines` | Plotline Manager |
-| `/project/[seriesId]/notes` | Project Notes |
-
-### Issue Editor Layout (Three Columns)
-
-#### Left Column: Navigation (collapsible)
-- Issue title and number
-- Act list (expandable)
-  - Scene list within each act (expandable)
-    - Page list within each scene
-- Click any item → navigate to it in center
-- Drag scenes to reorder (auto-renumbers)
-- Drag pages to reorder (auto-renumbers)
-- "Add Scene" button at act level
-- "Add Page" button at scene level
-
-#### Center Column: Editor
-**When Scene Selected:**
-- Scene title (editable)
-- Plotline dropdown
-- Characters multi-select
-- Location dropdown
-- Scene notes
-
-**When Page Selected:**
-- Page number (computed, display only)
-- Orientation (LEFT/RIGHT, computed but overridable)
-- Page type selector (Single / Spread / Mirror)
-- Template selector (Standard / 9-Panel Grid / etc.)
-- Notes to artist
-
-**Panel List:**
-- Each panel as a card, vertically stacked
-- Drag handle for reordering
-- Click to expand/edit
-- "Add Panel" button at bottom
-
-**Panel Editor (expanded):**
-- Panel number (computed)
-- Visual description (large text area) — REQUIRED
-- Camera (dropdown + freeform)
-- Panel size (dropdown)
-- Characters present (multi-select) — REQUIRED
-  - Dropdown shows all characters in project
-  - Characters already tagged in current panel show "(in panel)" indicator
-  - "Type new name..." option at bottom for ad-hoc characters
-- Location (dropdown, defaults to scene)
-- **Dialogue section:**
-  - List of dialogue blocks, drag to reorder
-  - Each block:
-    - Speaker dropdown (shows all characters, "(present in panel)" indicator, "Type new name..." option)
-    - Delivery type dropdown (Standard, V.O., O.S., Background)
-    - Delivery instruction (freeform: MUTTERS, LAUGHS, etc.)
-    - Balloon number (auto-increments for same speaker)
-    - Text (the dialogue)
-  - "Add Dialogue" button
-- **Captions section:**
-  - List of captions, drag to reorder
-  - Each: Type, Text
-  - "Add Caption" button
-- SFX field
-- Notes to artist
-- Internal notes (never exported)
-
-#### Right Column: Toolkit (collapsible)
-
-**Default State:** Collapsed to thin strip showing only current issue theme as single line.
-
-**Expanded State (one click):**
-- **Issue Context:**
-  - Theme (always visible even when collapsed)
-  - Motifs (bulleted list)
-  - Visual style notes
-  - Stakes
-  - Issue rules/conventions
-- **AI Chat:**
-  - Full conversation history within session
-  - Text input at bottom
-  - Collapsible independently
-  - "Save to Notes" button on any AI response to preserve insight to Project Notes
-
-**Scene Header (contextual):**
-When entering a page, briefly show at top of editor:
-```
-Page 12 (left) • Act II • Tracy subplot • 4 of 6 pages in scene
-```
-Orients writer without requiring them to hold it in memory.
-
-**Contextual Tooltips:**
-- When cursor in visual description field → small icon expands to show motifs
-- When cursor in dialogue with character selected → hover shows speech patterns
-- Present but not intrusive
-
-### Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| Cmd/Ctrl + S | Force save (with visual confirmation) |
-| Cmd/Ctrl + Z | Undo |
-| Cmd/Ctrl + Shift + Z | Redo |
-| Cmd/Ctrl + F | Find/Replace dialog |
-| Cmd/Ctrl + Enter | Add new panel (when in page view) |
-| Tab | Next field in panel editor |
-| Shift + Tab | Previous field |
-| Escape | Collapse current panel / Close modal |
-
-### Loose Ends Tracking (Phase 1)
-
-When user types a speaker name not in character database:
-1. Accept it (don't block workflow)
-2. Save with `speaker_name` string
-3. Create `LooseEnd` record of type `UNTRACKED_CHARACTER`
-4. Show indicator in UI (small badge on character field)
-5. Surface in session summary
-
-Same for locations referenced but not in database.
+### Key Implementation Details
+- `immediatelyRender: false` required for Next.js SSR compatibility
+- Markdown extracted via `editor.storage.markdown.getMarkdown()`
+- Type casting: `((editor.storage as any).markdown as MarkdownStorage)`
+- Save patterns: description uses debounced onChange auto-save; dialogue/caption/sfx use onBlur immediate save
+- Undo integration: onFocus captures start state, onBlur records end state
 
 ---
 
-## Auto-Formatting Rules
+## AI System
 
-### Character Names in Descriptions
-When a character name from database appears in visual description, auto-capitalize on blur:
-- `"Marshall walks in"` → `"MARSHALL walks in"`
-- Apply on field blur (when user leaves the field)
-- Do NOT apply inside dialogue text
+### Architecture
+- **Model:** Claude Sonnet 4 (`claude-sonnet-4-20250514`)
+- **Streaming:** Server-Sent Events via `/api/chat` and `/api/guide`
+- **Context:** Full project context assembled per-request (~200K token window)
+- **Tools:** 20+ tools the AI can propose (writer confirms before execution)
 
-### Page Number Computation
-```
-page_number = (sum of all pages in previous scenes in issue) + order_within_scene
-```
-Recalculate entire issue on any page reorder, add, or delete.
+### Context Assembly (`src/lib/ai/context-assembler.ts`)
+Every AI interaction receives:
+- Series metadata (title, logline, theme, visual grammar, rules)
+- Characters (cap 30) with display names, speech patterns, relationships
+- Locations (cap 20)
+- Plotlines with sort order
+- Canvas items (unfiled, cap 20)
+- Project notes (unresolved, cap 20)
+- Full issue script text (cap 300K chars)
+- Current page detail
+- Other issues in series (number, title, summary, status)
+- Writer profile (synthesized narrative portrait)
+- Recent conversation summaries
+- Personality preset modifier
 
-### Panel Number Computation
+### AI Persona (`src/lib/ai/client.ts`)
+Elite veteran editor of sequential art storytelling. Values: honest over nice, specific over general, questions over answers, less is more. Socratic approach — one focused question at a time. Never generic.
 
-**Internal tracking:**
-```
-panel_number = (sum of all panels on previous pages in issue) + order_on_page
-```
-This gives each panel a unique sequential number within the issue for reference.
+### Writing Phases (`src/lib/ai/phases.ts` + `curriculum.ts`)
+7 phases with distinct AI behavior and gate requirements:
 
-**Export display:**
-Panel numbers RESTART at 1 on each page. The export shows "PANEL 1:", "PANEL 2:" etc. per page, not continuous across the issue.
+| Phase | AI Focus | Gate to Next |
+|-------|----------|-------------|
+| Ideation | Listen, organize, challenge | Three Anchor Questions answered (emotional_thesis, false_belief, reader_takeaway) |
+| Structure | Acts, beats, turning points | Gap-naming ritual complete |
+| Weave | Plotline interleaving, pacing | Plotline accounting complete |
+| Page Craft | Four-beat reading loop, page architecture | Four-beat architecture review |
+| Drafting | Available but not interrupting | N/A |
+| Editing | Candid feedback, push for greatness | N/A |
+| Art Prompts | Artist-facing notes | N/A |
 
-Recalculate on any panel add, remove, or reorder.
+Each phase has `activeMoves` (what AI should do), `hardNos` (what AI must never do), and `advancementSignals` (when to suggest moving forward).
 
-### Orientation Computation
-```
-if page_number is odd: orientation = RIGHT (recto page)
-if page_number is even: orientation = LEFT (verso page)
-```
-**Exception:** User can override for spreads/mirrors.
+**Four-Beat Reading Loop:** The Page Craft phase enforces a comics-specific craft framework where every left-right page pair is a four-beat dramatic unit: reveal (top-left) → bridge (bottom-left) → pickup (top-right) → cliffhanger (bottom-right). Full rules including splash/spread interactions and modular scene units are in `curriculum.ts`.
 
-### Spread/Mirror Handling
-- When user creates a SPREAD, system creates two linked pages
-- Both pages move together when dragged
-- Spread always lands on even-odd pair (left-right)
-- If user tries to place spread starting on odd page, warn and suggest fix
+### AI Tools (`src/lib/ai/tools.ts`)
+The AI can propose actions that the writer confirms or dismisses:
+
+**World building:** `create_character`, `update_character`, `create_location`, `create_plotline`
+**Capture:** `save_canvas_beat`, `save_project_note`, `add_panel_note`
+**Script work:** `update_scene_metadata`, `draft_panel_description`, `add_dialogue`
+**Analysis:** `generate_power_rankings`, `track_character_state`, `continuity_check`, `extract_outline`, `draft_scene_summary`
+
+Tool acceptance/rejection tracked in `writer_profiles.tool_stats` to adapt AI behavior.
+
+### Writer Adaptation
+- **Writer Profiles** (`writer_profiles` table): AI synthesizes a narrative portrait from conversation patterns, updated every 5 conversations
+- **Personality Presets** (`ai_personality_presets`): Custom system prompt modifiers
+- **Conversation Persistence** (`ai_conversations`): Messages, tool outcomes, synthesized summaries stored per-context
+
+### Guided Mode (`/series/[seriesId]/guide`)
+Dedicated Socratic exploration sessions (distinct from sidebar chat):
+- Session types: general, character deep dive, world building, outline
+- Session persistence with pause/resume
+- Focus shifting mid-session
+- Insight extraction with confidence scoring → `writer_insights` table
 
 ---
 
-## Export Specification
+## Collaboration System
 
-### Format
-Match the exact format from the user's existing scripts.
+- **Roles:** owner, editor, commenter, viewer
+- **Invitation flow:** Email invite → token → acceptance page
+- **Comments:** Page-level and panel-level with threading and resolution
+- **RLS:** Row-level security with helper functions (`user_can_view_series`, `user_can_edit_series`, etc.)
+- **Notifications:** Per-series notification preferences (comments, edits, daily digest)
 
-### Document Structure
+---
 
-**Note:** Panel numbers restart at 1 on each page (PANEL 1, PANEL 2, etc.).
+## Export System
 
+Three formats, all reading from database:
+
+| Format | Library | File |
+|--------|---------|------|
+| PDF | jsPDF | `src/lib/exportPdf.ts` |
+| Word (.docx) | docx | `src/lib/exportDocx.ts` |
+| Plain Text | native | `src/lib/exportTxt.ts` |
+
+### Export Format
+Panel numbers restart at 1 on each page. Character names ALL CAPS in descriptions.
 ```
 [SERIES TITLE] - ISSUE #[NUMBER]
 By [Author Name]
-CHAPTER [NUMBER]: [ISSUE TITLE]
-
-TL;DR SUMMARY
-[Issue summary paragraph]
 
 PAGE [N] ([orientation])
 PANEL 1: [Visual description with CHARACTER NAMES in caps.]
-[Optional: Camera/size notes if present]
 CHARACTER: Dialogue text.
-CHARACTER (V.O.): Voice over dialogue.
-CHARACTER (O.S.): Off-screen dialogue.
-CHARACTER [INSTRUCTION]: Dialogue with delivery instruction.
-CHARACTER 2: Second balloon from same speaker.
-CAP: Caption text.
+CHARACTER (V.O.): Voice over.
+CHARACTER [LAUGHING]: With delivery instruction.
+CAP (NARRATIVE): Caption text.
 SFX: Sound effect!
-
-PANEL 2: [Next panel description...]
-[Continue for all panels on page]
-
-PAGE [N+1] ([orientation])
-PANEL 1: [Panel numbers restart each page]
-...
-
-PAGES [N]-[N+1] (DOUBLE-PAGE SPREAD)
-[Spread content]
-
-PAGES [N]-[N+1] ([orientation], [orientation]) — mirror pages
-*Note to Artist: These pages should look like mirrors.*
-[Mirror content]
-
-END OF ISSUE #[NUMBER]
 ```
 
-### Dialogue Attribution Formats
-| Type | Format |
-|------|--------|
-| Standard | `MARSHALL: Line.` |
-| Voice Over | `MARSHALL (V.O.): Line.` |
-| Off-Screen | `MARSHALL (O.S.): Line.` |
-| Background | `NEWS REPORTER [IN BACKGROUND]: Line.` |
-| With instruction | `KEN [LAUGHING]: Line.` |
-| Multiple balloons | `ROYCE:` then `ROYCE 2:` for same speaker |
-
-### Export Options
-- **Format:** PDF or Google Doc
-- **Include Summary:** Yes / No
-- **Include Artist Notes:** Yes / No
-- **Include Internal Notes:** Never (always excluded)
+Dialogue type suffixes: `(V.O.)`, `(O.S.)`, `(WHISPER)`, `(SHOUT)`, `(THOUGHT)`, `[IN BACKGROUND]`, `(ELECTRONIC)`, `(RADIO)`
 
 ---
 
-## AI Assistant Specification
+## Auto-Formatting
 
-### Context Provided on Every Interaction
-- Series metadata (title, theme, plotlines, visual grammar)
-- Full current issue outline (summary, motifs, stakes, themes, rules)
-- Full current issue script (all pages, panels, dialogue)
-- Character database (all characters with profiles)
-- Location database
-- Project notes (open questions, decisions, insights)
-- Current cursor position (which page/panel user is viewing)
-- Conversation history within current session
+- **Character name capitalization:** On blur, character names from database are auto-capitalized in visual descriptions (`src/lib/auto-format.ts`)
+- **Page numbering:** Computed from structural position, recalculated on reorder (`src/lib/renumberPages.ts`)
+- **Panel numbering:** Sequential within issue, display restarts per page in export
+- **Orientation:** Odd pages = RIGHT, even pages = LEFT
 
-**Context Window Capacity:** Claude's context window (~200K tokens) can comfortably hold a full 40-page comic script (~10-15K tokens) plus all metadata, outlines, and conversation history simultaneously. No need to truncate or summarize.
+---
 
-**Session Behavior:** AI conversation history resets on new session (stateless). However, the AI always reads the full project context (scripts, characters, notes) on every interaction, so it maintains understanding of the work even without conversation history. Users can preserve key insights by saving AI responses to Project Notes.
+## Canvas Mode (`/series/[seriesId]/canvas`)
 
-### Behavior by Phase
+Pre-structure brainstorming board for early ideation:
+- Item types: character, theme, visual, scenario, dialogue, conflict, world
+- Color tagging (8 colors)
+- Graduation: promote canvas items to characters or locations
+- Filing: attach items to specific scenes or pages
+- AI can create canvas items via `save_canvas_beat` tool
 
-| Phase | AI Role |
+---
+
+## Analytics & Intelligence
+
+### Analytics Dashboard (`/series/[seriesId]/analytics`)
+- Volume stats (words, panels, pages, issues)
+- Session history and velocity
+- Progress tracking per issue
+
+### Pacing Analysis (`src/lib/pacing.ts`)
+- Per-page metrics: word count, panel count, dialogue ratio
+- Overall tempo assessment
+- Silent panel sequences
+- AI insights on pacing
+
+### Scene Analytics (`src/lib/scene-analytics.ts`)
+- Per-scene: page count, panel count, word count, dialogue/silent ratio
+- Dramatic function classification
+- Efficiency scoring
+
+### Visual Rhythm (`src/lib/visual-rhythm.ts`)
+- Per-page rhythm data visualization
+- Tempo analysis (slow/moderate/fast/variable)
+
+### Character Voice Profiles (`src/lib/character-voice.ts`)
+- AI analysis of character dialogue patterns
+- Vocabulary level, sentence length, common words, tone markers, speech quirks
+- Dialogue flags when character speaks out of voice
+
+### Power Rankings (AI tool)
+- Cross-issue quality comparison
+- Structural coherence, voice consistency, theme resonance, pacing
+
+### Character State Tracking (`character_states` table)
+- Per-issue emotional state with 1-10 score
+- Plot position, key moments, arc summary
+- Tracked via AI tool or manual entry
+
+### Continuity Monitoring (AI tool)
+- Character appearance tracking
+- Timeline/location logic checks
+- Cross-issue awareness
+
+---
+
+## Undo/Redo System (`src/contexts/UndoContext.tsx`)
+
+Full undo stack covering 30+ operation types:
+- Panel field updates, dialogue/caption/sfx CRUD
+- Panel/page/scene/act add, delete, reorder, move, duplicate
+- Deep restore: structural operations restore full nested trees with original UUIDs
+- Helper functions in `src/lib/undoHelpers.ts`
+
+---
+
+## Find and Replace (`src/lib/search.ts`)
+
+Search across visual descriptions, dialogue, captions, SFX, and notes. Options: match case, whole word. Navigate-to-match and replace-all supported.
+
+---
+
+## Version History
+
+`version_snapshots` table stores full issue state as JSONB. Browse by date, compare snapshots with diff view, restore any version.
+
+---
+
+## Offline Support (`src/contexts/OfflineContext.tsx`)
+
+Detects online/offline status. When offline, queues write operations to localStorage. Auto-syncs when connection restored.
+
+---
+
+## Database Schema (Key Tables)
+
+### Content Tables
+| Table | Purpose |
 |-------|---------|
-| **Ideation** | Listen to riffs, summarize, ask clarifying questions, identify gaps, challenge weak ideas, argue constructively |
-| **Structure** | Ask meta-prompts: "What's the turn in Act 2?", "What does reader know that Marshall doesn't?", flag pacing issues |
-| **Weave** | Flag gaps: "You haven't checked in with Tracy for 8 pages—intentional?", suggest alternatives |
-| **Drafting** | Available in sidebar, not interrupting. Can draft pages for user to react to and rewrite. Answer questions. |
-| **Editing** | Read panels, push for greatness, give candid feedback, provide power rankings across issues |
-
-### Tone and Approach
-- Candid and firm, but constructive
-- Willing to argue and push back
-- Respects that writer knows their story better
-- Asks more than tells (Socratic)
-- Celebrates breakthroughs, doesn't sugarcoat weaknesses
-- Never precious about its own suggestions
-
-### What AI NEVER Does
-- Write final dialogue (only drafts for user to rewrite)
-- Make changes without asking
-- Silently infer important facts
-- Provide generic feedback (always specific to this project)
-- Pretend to understand something it doesn't
-- Act on uncertain information without confirming
-
----
-
-## Guided Mode
-
-**URL:** `/series/[seriesId]/guide`
-
-**Purpose:** AI-driven Socratic writing partner that helps writers develop their story through conversation. Unlike the sidebar AI chat (quick questions during drafting), Guided Mode is for dedicated exploration sessions.
-
-### Core Concept
-The AI acts as an elite veteran editor of sequential art storytelling. It guides writers through discovering their stories by asking incisive questions—pulling the sculpture from the rock rather than telling writers what to do.
-
-### Session Types
-Writers can start sessions focused on:
-- **Open Exploration** — AI guides based on project analysis
-- **Character Deep Dive** — Explore motivations, arcs, relationships, and voices
-- **Story Structure** — Work out acts, beats, turning points, and pacing
-- **World Building** — Define locations, rules, atmosphere, and setting
-
-### Key Features
-
-#### Session Persistence
-- Sessions save to `guided_sessions` table
-- Messages save to `guided_messages` table
-- Writers can pause and resume sessions later
-- Session history shows recent sessions to continue
-
-#### Project Completeness Analysis
-On entering Guide mode, the system analyzes:
-- Series metadata completeness
-- Character development depth
-- Issue structure (acts, scenes, pages)
-- Location definitions
-
-Displays as percentage with suggested focus area.
-
-#### Shift Focus (Mid-Session Pivots)
-Writers can shift conversation topic without losing context:
-- Click "Options" dropdown → "Shift Focus To"
-- Select new focus (Characters, Story Structure, World Building, Open Exploration)
-- AI acknowledges the pivot and continues with full conversation context
-- Session type updates to match new focus
-
-#### Insight Extraction
-After meaningful conversation, writers can extract structured insights:
-- Click "Options" → "Extract Insights"
-- AI analyzes conversation transcript
-- Extracts character insights, story insights, world insights, and writer patterns
-- Assigns confidence scores (0.5-1.0) based on explicit writer confirmation
-- Saves insights with confidence ≥ 0.6 to `writer_insights` table
-- Updates session with summary title
-
-### Database Tables
-
-```typescript
-// Guided sessions - persistent conversation threads
-interface GuidedSession {
-  id: string
-  user_id: string
-  series_id: string
-  issue_id?: string  // optional context narrowing
-  scene_id?: string
-  page_id?: string
-  title?: string     // auto-generated from extraction
-  session_type: 'general' | 'outline' | 'character_deep_dive' | 'world_building'
-  status: 'active' | 'paused' | 'completed'
-  focus_area?: string
-  completion_areas?: string[]
-  started_at: Date
-  last_active_at: Date
-}
-
-// Individual messages in a session
-interface GuidedMessage {
-  id: string
-  session_id: string
-  role: 'assistant' | 'user'
-  content: string
-  extracted_data?: object  // if AI detected extractable insight
-  context_snapshot?: object
-  created_at: Date
-}
-
-// Writer insights - learned patterns about the writer
-interface WriterInsight {
-  id: string
-  user_id: string
-  insight_type: 'preference' | 'strength' | 'pattern' | 'trigger'
-  category?: string  // 'motivation', 'arc', 'theme', etc.
-  description: string
-  confidence: number  // 0.0-1.0
-  evidence_session_ids: string[]
-  created_at: Date
-}
-```
-
-### API Routes
-
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/api/guide` | POST | Generate AI response (initial or continued) |
-| `/api/guide/extract` | POST | Analyze session and extract insights |
-
-### AI Editor Persona
-The AI persona is:
-- Warm but direct — doesn't waste time with platitudes
-- Asks ONE focused question at a time
-- Listens carefully and builds on what the writer reveals
-- Notices patterns and connections the writer might miss
-- Pushes gently on weak spots
-- Celebrates specificity and concrete details
-- Allergic to vagueness — probes until things are sharp
-
-### Integration with Project Context
-Every AI interaction receives:
-- Full series metadata (title, theme, logline, genre)
-- All characters with profiles
-- All locations
-- Current issue context (if narrowed)
-- Completeness analysis
-- Previously extracted writer insights
-
----
-
-## Phase 2: Structure & Import
-
-### Weave Visualization
-
-**URL:** `/project/[seriesId]/issue/[issueId]/weave`
-
-**Purpose:** See the shape of an entire issue at a glance. Understand plotline pacing. Experiment with scene order.
-
-**Layout:**
-- X-axis: Pages (1 to ~40)
-- Y-axis: Plotlines (color-coded rows)
-- Scenes rendered as horizontal blocks:
-  - Width = page count
-  - Color = plotline color
-  - Label = scene title or first beat
-- Page orientation markers (L/R) along top
-- Act dividers as vertical lines
-
-```
-WEAVE VIEW MOCKUP
-
-Plotlines:
-─────────────────────────────
-Marshall IRL      [Red]
-Marshall Neural   [Blue]
-Paul Solo         [Green]
-Tracy Solo        [Purple]
-Paul+Tracy        [Orange]
-
-Pages:   1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20
-         R  L  R  L  R  L  R  L  R  L  R  L  R  L  R  L  R  L  R  L
-
-Marshall IRL     [████████]              [████]        [██████████]
-Marshall Neural           [██████████████]      [████████]
-Paul Solo                                              [████]
-Tracy Solo                    [████]
-Paul+Tracy       [████]                                        [████]
-
-         |──── Act I ────|────── Act II ──────|───── Act III ─────|
-```
-
-**View Mode:**
-- Hover scene block → tooltip with details
-- Click scene → navigate to scene in editor
-
-**Edit Mode (Draft):**
-- Drag scene blocks to reorder
-- Visual guides show drop target
-- Page numbers preview in real-time
-- Conflicts highlighted (spread landing wrong, reveal on wrong side)
-- Nothing saves until "Commit"
-
-**Commit:**
-- Click "Commit Changes"
-- System shows continuity report:
-  - Pages that changed orientation
-  - Reveals now on wrong page side
-  - Plotline gap warnings
-  - Potential continuity issues
-- User confirms or cancels
-- On confirm → changes save and propagate
-
-### Outline Layer
-
-**URL:** `/project/[seriesId]/outline`
-
-**Layout:**
-- Series-level info at top (theme, visual grammar)
-- All issues as expandable sections
-- Per-issue: title, tagline, themes, motifs, stakes, act-by-act beats
-
-**AI Sync from Scripts:**
-1. User clicks "Update Outline from Scripts"
-2. AI reads all scripts in series
-3. AI generates proposed outline
-4. User reviews in diff view (current | proposed)
-5. User accepts all, per-section, or edits
-6. Outline updates
-
-**Divergence Detection:**
-- System compares outline to scripts
-- Flags: "Outline says X happens in Act II, but script doesn't include this"
-- User can update outline, update script, or dismiss
-
-### Session Summaries
-
-**Trigger:** Automatic on tab close / navigate away. Can skip if rushed.
-
-**Content:**
-```
-SESSION SUMMARY — January 20, 2026
-Duration: 2h 14m
-
-PROGRESS
-✓ Drafted pages 14-18 (Scene: Tracy Infiltrates /theSTANS/)
-✓ Added character profile: RECOVERY STAN
-✓ Moved Scene 4 from Act II to Act III
-
-TO-DO
-○ Pages 19-22 need drafting
-○ Act III scene order marked tentative
-○ Review continuity after Scene 4 move
-
-LOOSE ENDS
-⚠ New character "DR. CHEN" used on page 16 — not in database
-⚠ Location "Interscope Lobby" referenced — not in database
-⚠ Page 17 reveal now lands on RIGHT page (was LEFT) — intentional?
-
-STATS
-Words written: 1,847
-Panels created: 23
-Pages created: 5
-```
-
-**Storage:** Saved to database. User can browse session history.
-
-### Import from Google Docs
-
-**Flow:**
-1. User clicks "Import Script"
-2. User pastes Google Doc content
-3. System divides into chunks (~4-5 pages each)
-4. For each chunk:
-   - AI parses into structured data
-   - User reviews side-by-side (original | parsed)
-   - User corrects errors
-   - User confirms chunk
-5. Full issue imported
-
-**Parsing Rules:**
-- `PAGE X` or `PAGE X (left/right)` → page break
-- `PANEL X:` → panel break
-- `CHARACTER:` or `CHARACTER (V.O.):` → dialogue
-- `SFX:` → sound effect
-- `CAP:` or `CAPTION:` → caption
-- Other text in panel context → visual description
-
-Flag low-confidence parses for user review. Ask, don't assume.
-
-### Mobile Voice Ideation
-
-**Flow:**
-1. User opens app on mobile
-2. Selects project and issue
-3. Enters "Voice Mode"
-4. Screen shows:
-   - Current issue context (theme, where you left off)
-   - AI chat interface
-   - Voice input button (WhisperFlow)
-5. User speaks → transcribed to text
-6. Transcript appears as user message
-7. AI responds with text
-8. User reads, speaks again
-
-**Saving Insights:**
-User can tap "Save to Notes" on any AI response to preserve it to Project Notes.
-
----
-
-## Phase 3: Analytics & Intelligence
-
-### Analytics Dashboard
-
-**URL:** `/project/[seriesId]/analytics`
-
-**Purpose:** The user has a competitive brain and is motivated by data. These visualizations help maintain momentum, identify productivity patterns, and track progress toward completion.
-
-#### Volume Stats
-- Total words written (lifetime, this week, today)
-- Panels completed
-- Pages completed
-- Issues completed
-
-#### Consistency Stats
-- Writing streak (consecutive days with activity)
-- Average session length
-- Most productive time of day (chart)
-- Words per session over time (line graph)
-
-#### Progress Stats
-- Percentage of current issue drafted (progress bar)
-- Percentage of series completed (progress bar)
-- Pace projection: "At this rate, Issue 6 complete by [date]"
-
-#### Quality-Adjacent Stats
-- Average panels per page (efficiency over time)
-- Dialogue-to-description ratio
-- Average panel description length
-- Trends over time (are you getting tighter?)
-
-#### Visualizations
-- Line graphs for trends
-- Bar charts for comparisons
-- Heat maps for activity by day/time
-- Progress bars for completion
-
-### Power Rankings
-
-**Purpose:** AI evaluates relative quality of issues for consistency.
-
-**Criteria:**
-- Structural coherence (clear acts, scenes, pacing)
-- Character voice consistency
-- Theme resonance
-- Page turn effectiveness
-- Dialogue efficiency
-- Visual description clarity
-
-**Output:**
-- Ranked list of issues by quality
-- Per-issue breakdown with specific notes:
-  - "Issue 2 has weaker Act II pacing than others"
-  - "Issue 5's L.M. POV is structurally ambitious"
-- Specific recommendations for leveling up weaker issues
-
-**User Interaction:**
-- "What makes Issue 3 stronger than Issue 2?"
-- "How can I level up Issue 4?"
-- AI provides specific, actionable feedback referencing actual content
-
-### Character State Tracking
-
-**Per-Issue View:**
-- Starting state (emotional + plot position)
-- Key moments (page references)
-- Ending state
-- Arc summary (one sentence)
-
-**Series View (Macro Graph):**
-- Line graph per character showing state across all issues
-- Key inflection points marked
-- Color-coded by issue
-
-**Data Model:**
-```typescript
-interface CharacterState {
-  id: string
-  character_id: string
-  issue_id: string
-  emotional_state: string // hope/despair spectrum
-  plot_position: string // in control, out of control, safe, danger
-  summary: string // one sentence
-}
-```
-
-**AI Generation:**
-- AI reads scripts, proposes character states
-- Surfaces interpretation: "Based on pages 12-15, Tracy seems 'desperate but determined'—accurate?"
-- User reviews and confirms
-- Updates when scripts change significantly
-- Accuracy of inference = proof of genuine comprehension
-
-### Continuity Monitoring
-
-**Passive Tracking:**
-- Character appearances (which panels)
-- Location appearances (which scenes)
-- Chronological markers (year, time of day)
-- Character knowledge (what each character knows when)
-
-**Active Alerts (on significant changes):**
-- Character references something they don't know yet
-- Character in location they haven't traveled to
-- Timeline logic breaks
-- Emotional reaction without setup
-- Page alignment changed (reveal now on wrong side)
-
-**Manual Check:**
-- User runs "Continuity Check" on demand
-- AI scans full issue or series
-- Returns report of potential issues
-- User reviews and resolves
-
----
-
-## Critical Requirements
-
-These are non-negotiable:
-
-1. **Zero data loss** — Auto-save must work. Every change persisted.
-2. **Fast and responsive** — Page loads <2 seconds. No typing lag.
-3. **Drag-and-drop feels native** — Smooth, immediate feedback.
-4. **Version history complete** — Browse any date, name important versions, restore any version.
-5. **Undo/redo deep history** — Not just one step back. Full undo stack like Google Docs.
-6. **Export exactly matches format** — Compare against sample scripts for accuracy.
+| `series` | Top-level project (title, logline, theme, rules) |
+| `issues` | Issues within a series (number, title, summary, motifs, stakes, writing_phase, anchor questions, deadline) |
+| `acts` | 3 acts per issue (name, beat_summary, intention) |
+| `scenes` | Scenes within acts (title, plotline, characters, location, target_page_count) |
+| `pages` | Pages within scenes (page_number, page_type, linked_page_id, template, story_beat, visual_motif) |
+| `panels` | Panels within pages (visual_description, shot_type, panel_size, characters_present, location) |
+| `dialogue_blocks` | Dialogue within panels (speaker, dialogue_type, modifier, text, balloon_number) |
+| `captions` | Captions within panels (caption_type, text) |
+| `sound_effects` | SFX within panels (text) |
+
+### Entity Tables
+| Table | Purpose |
+|-------|---------|
+| `characters` | Character profiles (name, display_name, role, speech_patterns, relationships, arc_notes) |
+| `locations` | Location profiles (name, description, visual_description, significance) |
+| `plotlines` | Plotlines (name, color, description, sort_order) |
+| `plotline_issue_assignments` | Which plotlines appear in which issues (first_appearance, climax, resolution flags) |
+
+### Intelligence Tables
+| Table | Purpose |
+|-------|---------|
+| `character_states` | Per-issue emotional/plot state tracking |
+| `character_voice_profiles` | AI voice analysis (vocabulary, tone, quirks, sample quotes) |
+| `dialogue_flags` | Out-of-voice dialogue warnings |
+| `scene_analytics` | Computed scene metrics (word count, efficiency, dramatic function) |
+| `issue_rhythm_cache` | Per-page rhythm data |
+| `pacing_analyses` | Full pacing analysis with AI insights |
+| `canvas_items` | Pre-structure brainstorming items |
+
+### AI Tables
+| Table | Purpose |
+|-------|---------|
+| `ai_conversations` | Persisted chat messages, tool outcomes, synthesized summaries |
+| `writer_profiles` | AI-synthesized writer portrait, tool acceptance stats |
+| `writer_insights` | Extracted insights from Guided Mode (type, confidence, evidence) |
+| `ai_personality_presets` | Custom AI behavior modifiers |
+| `panel_notes` | AI/user editorial notes on specific panels |
+| `guided_sessions` | Guided Mode session persistence |
+| `guided_messages` | Messages within guided sessions |
+
+### Collaboration Tables
+| Table | Purpose |
+|-------|---------|
+| `series_collaborators` | User roles per series |
+| `collaboration_invitations` | Pending invitations with tokens |
+| `comments` | Page/panel comments with threading |
+| `collaboration_notifications` | Per-user notification preferences |
+
+### System Tables
+| Table | Purpose |
+|-------|---------|
+| `sessions` | Writing session tracking (stats, duration) |
+| `loose_ends` | Untracked characters/locations/continuity flags |
+| `version_snapshots` | Issue version history (JSONB snapshots) |
+| `project_notes` | Open questions, decisions, AI insights |
+| `allowed_users` | App access control |
+| `image_attachments` | Polymorphic image storage for characters/locations/series/pages |
 
 ---
 
 ## File Structure
 
 ```
-/app
-  /page.tsx                           # Dashboard
-  /project
-    /[seriesId]
-      /page.tsx                       # Project Home
-      /outline/page.tsx               # Outline View (Phase 2)
-      /analytics/page.tsx             # Analytics (Phase 3)
-      /notes/page.tsx                 # Project Notes
-      /plotlines/page.tsx             # Plotline Manager
-      /characters/page.tsx            # Character Manager
-      /locations/page.tsx             # Location Manager
-      /issue
-        /[issueId]
-          /page.tsx                   # Issue Editor
-          /weave/page.tsx             # Weave View (Phase 2)
-
-/components
-  /editor
-    /IssueEditor.tsx                  # Main three-column layout
-    /NavigationTree.tsx               # Left column
-    /PanelEditor.tsx                  # Center column
-    /ToolkitSidebar.tsx               # Right column
-    /DialogueBlock.tsx
-    /CaptionBlock.tsx
-    /SceneHeader.tsx
-    /PageHeader.tsx
-  /weave
-    /WeaveTimeline.tsx
-    /SceneBlock.tsx
-  /ai
-    /AIChatPanel.tsx
-    /VoiceMode.tsx
-  /database
-    /CharacterEditor.tsx
-    /LocationEditor.tsx
-    /PlotlineEditor.tsx
-  /analytics
-    /Dashboard.tsx
-    /Charts.tsx
-  /export
-    /ExportModal.tsx
-    /ExportPreview.tsx
-  /ui
-    /... (shared components: Button, Input, Modal, etc.)
-
-/lib
-  /supabase.ts                        # Database client and queries
-  /claude.ts                          # AI client
-  /export.ts                          # Export formatting functions
-  /utils.ts                           # Helpers
-  /auto-format.ts                     # Character name capitalization, etc.
-  /numbering.ts                       # Page/panel number computation
-
-/types
-  /index.ts                           # All TypeScript interfaces
+src/
+  app/
+    api/
+      chat/route.ts              # Main AI chat (SSE streaming)
+      guide/route.ts             # Guided Mode AI
+      guide/extract/route.ts     # Insight extraction
+      ai/debrief/route.ts        # Session debrief generation
+      ai/synthesize/route.ts     # Conversation summary synthesis
+      ai/synthesize-profile/     # Writer profile synthesis
+      ai/tool-result/route.ts    # Tool acceptance/rejection
+      analyze-script-structure/  # Import script analysis
+      issues/[issueId]/renumber/ # Page/panel renumbering
+      pages/[pageId]/summarize/  # AI page summary
+      health/route.ts            # Health check
+    series/
+      [seriesId]/
+        issues/[issueId]/
+          IssueEditor.tsx         # Main three-column layout
+          PageEditor.tsx          # Center column panel editor
+          NavigationTree.tsx      # Left column nav tree
+          Toolkit.tsx             # Right column (AI chat, context, pacing)
+          ScriptView.tsx          # Continuous script view
+          ZenMode.tsx             # Distraction-free writing
+          WeaveView.tsx           # Issue-level weave
+          PageTypeSelector.tsx    # Single/Splash/Spread selector
+          QuickNav.tsx            # Jump-to-page navigation
+          PreviousPageContext.tsx  # Previous page summary
+          blueprint/              # Blueprint structural view
+          read/ReadingView.tsx    # Read-only formatted view
+          rhythm/                 # Visual rhythm analysis
+          scene-analytics/        # Scene-level analytics
+          history/                # Version history
+          import/                 # Script import
+  components/
+    editor/
+      ScriptEditor.tsx            # TipTap rich text editor (5 variants)
+      ScriptEditorToolbar.tsx     # Variant-specific formatting toolbar
+    ui/
+      ConfirmDialog.tsx           # Reusable confirmation dialog
+      ErrorDisplay.tsx            # Error states
+      EmptyState.tsx              # Empty states
+      LoadingSpinner.tsx          # Loading indicator
+      ThemeToggle.tsx             # Dark/light mode toggle
+    AuthGuard.tsx                 # Route protection
+    ChatMessageContent.tsx        # AI message rendering (markdown, tool proposals)
+    CommandPalette.tsx            # Cmd+K search
+    PacingAnalyst.tsx             # Pacing analysis component
+    DescriptionAnalysis.tsx       # Visual description quality analysis
+    ImageUploader.tsx             # Image upload with drag-and-drop
+    OutlineToggle.tsx             # Outline visibility toggle
+    PanelNoteIndicator.tsx        # Panel note badges
+    TypeSelector.tsx              # Reusable type selector dropdown
+  contexts/
+    ThemeContext.tsx               # Light/dark/system theme
+    ToastContext.tsx               # Toast notifications
+    UndoContext.tsx                # Full undo/redo stack
+    OfflineContext.tsx             # Offline detection + queue
+  hooks/
+    useCommandPalette.ts          # Fuzzy search for Cmd+K
+    useEntityImages.ts            # Image fetching from Supabase storage
+    useFocusTrap.ts               # Modal focus trapping
+    useSession.ts                 # Writing session tracking
+  lib/
+    ai/
+      client.ts                   # Anthropic SDK, persona, system prompt builder
+      context-assembler.ts        # Full project context assembly
+      token-budget.ts             # Token budget management
+      tools.ts                    # 20+ AI tool definitions + execution
+      phases.ts                   # Writing phase types and labels
+      curriculum.ts               # Phase gates, behaviors, four-beat reading loop
+      streaming.ts                # SSE encoder/decoder
+      conversations.ts            # Conversation persistence + writer adaptation
+    supabase/
+      client.ts                   # Browser Supabase client
+      server.ts                   # Server Supabase client
+      middleware.ts               # Auth middleware
+      storage.ts                  # Image storage helpers
+    exportPdf.ts                  # PDF export
+    exportDocx.ts                 # DOCX export
+    exportTxt.ts                  # Plain text export
+    auto-format.ts                # Character name capitalization, orientation
+    renumberPages.ts              # Page/panel renumbering
+    markdown.ts                   # Markdown parsing utilities
+    search.ts                     # Find and replace engine
+    undoHelpers.ts                # Deep restore for undo operations
+    pacing.ts                     # Pacing computation
+    visual-rhythm.ts              # Rhythm analysis
+    scene-analytics.ts            # Scene metrics
+    series-patterns.ts            # Cross-issue pattern analysis
+    character-voice.ts            # Character voice profiling
+    script-format-detector.ts     # Import format detection
+    script-structure-detector.ts  # Import structure detection
+    version-diff.ts               # Version comparison
+    fetch-with-retry.ts           # Resilient fetch
+    rate-limit.ts                 # API rate limiting
+    logger.ts                     # Structured logging
+    utils.ts                      # General utilities
 ```
 
 ---
 
-## Open Questions for Development
+## Critical Requirements
 
-These are decisions to finalize during build, not blockers:
-
-### UX Details
-- Exact column width proportions for three-column layout
-- Animation/transition timing for drag-and-drop
-- Mobile breakpoints and responsive behavior
-- Dark mode / light mode (user has dark mode in Panel Flow 1.0)
-- Specific icon library
-
-### Technical Details
-- Exact debounce timing for auto-save (suggested: 2 seconds)
-- Version history retention policy (keep all? prune after N months?)
-- Supabase row-level security configuration
-- Claude API token optimization (how much context per request)
-- Error handling UX for failed saves or API calls
-
-### AI Calibration
-- Exact system prompts for each AI task
-- Confidence thresholds for parsing
-- How aggressively to suggest vs. wait to be asked
+1. **Zero data loss** — Auto-save must work. Every change persisted.
+2. **Fast and responsive** — No typing lag. Page loads < 2 seconds.
+3. **Drag-and-drop feels native** — Smooth, immediate feedback.
+4. **Version history complete** — Browse any date, restore any version.
+5. **Undo/redo deep history** — Full stack covering structural operations.
+6. **Export exactly matches format** — Character names caps, panel numbers restart per page.
+7. **Markdown storage preserved** — All text stored as plain TEXT. No HTML or JSON in database.
 
 ---
 
-## Reference: Sample Scripts
+## Supabase Project
 
-The canonical script format reference is the user's existing work:
-- **Issue #1: "Public Service Announcement (SILENCE)"** — ~37 pages
-- **Issue #2: "I'm Back"** — ~40 pages
-
-**Existing Work Status:** The user has outlines for all 8 issues plus working drafts of Issues 1-5 in Google Docs. These will need to be imported using the Phase 2 import feature.
-
-These scripts demonstrate:
-- Page headers with orientation
-- Panel numbering restarting each page
-- Character names in ALL CAPS in descriptions
-- Dialogue blocks with speaker, delivery type, text
-- SFX and CAP as distinct elements
-- Notes to artist in context
-- **Media Chorus:** A recurring visual device where talking-head pundits appear as inset panels, formatted with character names like "OLDER WHITE MAN [CNN PUNDIT]:" — this is a series-specific convention
-- Mirror pages explicitly noted
-- Spreads explicitly noted
-- TL;DR summary at opening
-
-**Export must match this format exactly.** When in doubt, reference these scripts.
+- **Project ID:** `yzhpqhbfvdlolctgnteg`
+- **RLS:** Enabled on all tables with owner + collaborator policies
+- **Storage:** `entity-images` bucket for character/location/series/page images
 
 ---
 
-## Notes for Development
-
-1. **Start with Supabase schema** — Get data models right first
-2. **Build auth early** — Google OAuth via Supabase
-3. **Get basic CRUD working** — Before drag-and-drop or AI
-4. **Test auto-renumbering thoroughly** — This is core functionality
-5. **Export format must match exactly** — Test against sample scripts
-6. **AI sidebar can be simple first** — Basic chat, then sophistication
-7. **Version history is critical** — User relies on this heavily
-8. **Word count always visible** — Like Google Docs
-9. **Auto-save must never fail silently** — Clear error states
-10. **Mobile is Phase 2** — Desktop-first for MVP
-
----
-
-*This document is the source of truth for Panel Flow 2.0 development.*
+*This document reflects the actual state of the codebase as of March 2026.*
