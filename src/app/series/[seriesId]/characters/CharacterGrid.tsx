@@ -19,6 +19,7 @@ import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import type { CharacterWithStats, CharacterStats } from '@/lib/character-stats'
 import CharacterCard from './CharacterCard'
 import CharacterMiniCard from './CharacterMiniCard'
+import CharacterDetailPanel from './CharacterDetailPanel'
 
 const MINOR_THRESHOLD = 5
 
@@ -364,6 +365,15 @@ export default function CharacterGrid({
     })
   }, [])
 
+  const handleCharacterUpdate = useCallback(
+    (updated: CharacterWithStats) => {
+      setCharacters(prev =>
+        prev.map(c => (c.id === updated.id ? updated : c))
+      )
+    },
+    []
+  )
+
   const handleCardClick = useCallback((id: string) => {
     setSelectedCharacterId(id)
   }, [])
@@ -614,27 +624,23 @@ export default function CharacterGrid({
         </>
       )}
 
-      {/* CharacterDetailPanel placeholder */}
-      {selectedCharacterId && (
-        <div className="fixed inset-y-0 right-0 w-[480px] bg-[var(--bg-primary)] border-l border-[var(--border)] shadow-xl z-30 p-6 overflow-y-auto">
-          {/* CharacterDetailPanel will be rendered here in Task 22 */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-lg text-[var(--text-primary)]">Character Detail</h2>
-            <button
-              onClick={() => setSelectedCharacterId(null)}
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <p className="text-sm text-[var(--text-muted)]">
-            Detail panel will be wired up in a later task.
-          </p>
-          <p className="text-sm text-[var(--text-secondary)] mt-2">
-            Selected: {characters.find(c => c.id === selectedCharacterId)?.name}
-          </p>
-        </div>
-      )}
+      {/* CharacterDetailPanel */}
+      {selectedCharacterId && (() => {
+        const selectedChar = characters.find(c => c.id === selectedCharacterId)
+        if (!selectedChar) return null
+        return (
+          <CharacterDetailPanel
+            character={selectedChar}
+            seriesId={seriesId}
+            issues={issues}
+            allCharacters={allCharactersLookup}
+            isOpen={!!selectedCharacterId}
+            onClose={() => setSelectedCharacterId(null)}
+            onCharacterUpdate={handleCharacterUpdate}
+            onDelete={handleDelete}
+          />
+        )
+      })()}
 
       {/* MergeModal placeholder */}
       {/* MergeModal will be rendered here in a later task */}
