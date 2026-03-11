@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     // 3. Gather all dialogue for this character
     const { data: dialogues } = await supabase
       .from('dialogue_blocks')
-      .select('text, dialogue_type, modifier')
+      .select('text, dialogue_type, delivery_instruction')
       .eq('character_id', characterId)
       .not('text', 'is', null)
       .limit(100)

@@ -13,7 +13,7 @@ interface DialogueBlock {
   character_id: string | null
   speaker_name: string | null
   dialogue_type: string
-  modifier: string | null
+  delivery_instruction: string | null
   text: string
   sort_order: number
 }
@@ -32,8 +32,8 @@ interface SoundEffect {
 interface Panel {
   panel_number: number
   visual_description: string | null
-  shot_type: string | null
-  notes: string | null
+  camera: string | null
+  notes_to_artist: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -266,7 +266,7 @@ export async function exportIssueToDocx(
           }
           sortedRightPanels.forEach((panel, panelIndex) => {
             const displayPanelNumber = panelIndex + 1
-            const shotType = panel.shot_type ? ` ${panel.shot_type.replace('_', ' ').toUpperCase()}.` : ''
+            const shotType = panel.camera ? ` ${panel.camera.replace('_', ' ').toUpperCase()}.` : ''
             children.push(new Paragraph({
               children: [new TextRun({ text: `PANEL ${displayPanelNumber}:`, bold: true, size: 22 }), new TextRun({ text: shotType, size: 22 })],
               spacing: { before: 150 },
@@ -285,7 +285,7 @@ export async function exportIssueToDocx(
               const characterName = dialogue.speaker_name ? dialogue.speaker_name.toUpperCase() : dialogue.character_id ? (characterMap.get(dialogue.character_id) || 'UNKNOWN').toUpperCase() : 'UNKNOWN'
               const dialogueSuffix = getDialogueSuffix(dialogue.dialogue_type)
               let modifierSuffix = ''
-              if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') { modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]` }
+              if (dialogue.delivery_instruction && dialogue.dialogue_type === 'dialogue') { modifierSuffix = ` [${dialogue.delivery_instruction.toUpperCase()}]` }
               children.push(new Paragraph({ children: [new TextRun({ text: `${characterName}${dialogueSuffix}${modifierSuffix}: `, bold: true, size: 22 }), new TextRun({ text: dialogue.text, size: 22 })], indent: { left: 360 } }))
             }
             const sortedSfx = [...(panel.sound_effects || [])].sort((a, b) => a.sort_order - b.sort_order)
@@ -294,8 +294,8 @@ export async function exportIssueToDocx(
                 children.push(new Paragraph({ children: [new TextRun({ text: `SFX: `, bold: true, size: 22 }), new TextRun({ text: sfx.text.toUpperCase(), bold: true, size: 22 })], indent: { left: 360 } }))
               }
             }
-            if (includeNotes && panel.notes) {
-              children.push(new Paragraph({ children: [new TextRun({ text: `*Note to Artist: ${panel.notes}*`, italics: true, size: 20, color: '666666' })], indent: { left: 360 }, spacing: { before: 50 } }))
+            if (includeNotes && panel.notes_to_artist) {
+              children.push(new Paragraph({ children: [new TextRun({ text: `*Note to Artist: ${panel.notes_to_artist}*`, italics: true, size: 20, color: '666666' })], indent: { left: 360 }, spacing: { before: 50 } }))
             }
           })
           continue
@@ -351,8 +351,8 @@ export async function exportIssueToDocx(
           const displayPanelNumber = panelIndex + 1
 
           // Panel header with shot type
-          const shotType = panel.shot_type
-            ? ` ${panel.shot_type.replace('_', ' ').toUpperCase()}.`
+          const shotType = panel.camera
+            ? ` ${panel.camera.replace('_', ' ').toUpperCase()}.`
             : ''
 
           children.push(
@@ -431,8 +431,8 @@ export async function exportIssueToDocx(
 
             // Add modifier/instruction in bracket format if present and type is standard dialogue
             let modifierSuffix = ''
-            if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') {
-              modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]`
+            if (dialogue.delivery_instruction && dialogue.dialogue_type === 'dialogue') {
+              modifierSuffix = ` [${dialogue.delivery_instruction.toUpperCase()}]`
             }
 
             children.push(
@@ -478,12 +478,12 @@ export async function exportIssueToDocx(
           }
 
           // Artist notes (optional)
-          if (includeNotes && panel.notes) {
+          if (includeNotes && panel.notes_to_artist) {
             children.push(
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: `*Note to Artist: ${panel.notes}*`,
+                    text: `*Note to Artist: ${panel.notes_to_artist}*`,
                     italics: true,
                     size: 20,
                     color: '666666',

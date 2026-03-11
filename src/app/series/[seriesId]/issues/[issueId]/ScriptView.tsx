@@ -27,7 +27,7 @@ interface DialogueBlock {
   character_id: string | null
   text: string | null
   dialogue_type: string | null
-  modifier: string | null
+  delivery_instruction: string | null
   sort_order: number
   character?: { id: string; name: string } | null
 }
@@ -50,8 +50,9 @@ interface Panel {
   panel_number: number
   sort_order: number
   visual_description: string | null
-  shot_type: string | null
-  notes: string | null
+  camera: string | null
+  notes_to_artist: string | null
+  internal_notes: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -1835,29 +1836,29 @@ export default function ScriptView({
             <div className="flex items-center gap-1">
               <button
                 onClick={copyToClipboard}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                 title="Copy script to clipboard"
               >
-                📋 Copy
+                COPY
               </button>
               <button
                 onClick={exportToPdf}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
                 title="Export to PDF"
               >
-                📄 PDF
+                PDF
               </button>
             </div>
 
             {/* Save status */}
-            <span className={`text-xs ${
-              saveStatus === 'saved' ? 'text-[var(--color-success)]' :
+            <span className={`type-micro ${
+              saveStatus === 'saved' ? 'text-[var(--text-muted)]' :
               saveStatus === 'saving' ? 'text-[var(--color-primary)]' :
               'text-[var(--color-warning)]'
             }`}>
-              {saveStatus === 'saved' ? '✓ Saved' :
-               saveStatus === 'saving' ? 'Saving...' :
-               '• Unsaved'}
+              {saveStatus === 'saved' ? 'SAVED' :
+               saveStatus === 'saving' ? 'SAVING...' :
+               'UNSAVED'}
             </span>
 
             {/* Theme toggle */}
@@ -1886,7 +1887,7 @@ export default function ScriptView({
                 <span className="type-separator">{'\/\/'}</span>
                 <button
                   onClick={addPage}
-                  className="hover:text-[var(--color-success)] transition-colors"
+                  className="hover:text-[var(--color-primary)] transition-colors"
                   title="Add new page"
                 >
                   [+PG]
