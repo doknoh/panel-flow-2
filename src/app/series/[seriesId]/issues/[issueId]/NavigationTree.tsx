@@ -2191,7 +2191,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                     <div
                                       className={`flex items-center gap-2 pl-6 pr-2 py-1.5 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
                                         dragOverContainerId === scene.id && activeDragItem?.type === 'page' ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                                      } ${selectedIds.has(scene.id) ? 'bg-[var(--color-primary)]/15 border-l-2 border-l-[var(--color-primary)]' : ''}`}
+                                      } ${selectedIds.has(scene.id) ? 'bg-[var(--color-primary)]/15 ring-1 ring-inset ring-[var(--color-primary)]' : ''}`}
                                       style={{ borderLeft: `3px solid ${scene.plotline?.color || 'transparent'}` }}
                                       onClick={(e) => {
                                         if (editingItemId) return
@@ -2480,46 +2480,62 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                 <div className="absolute bottom-full mb-1 right-0 dropdown-panel py-1 min-w-[200px] max-h-48 overflow-y-auto z-50">
                   {sortedActs.map((act: any) => {
                     const actScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
-                    return actScenes.map((scene: any) => (
-                      <button
-                        key={scene.id}
-                        onClick={async () => {
-                          const ids = Array.from(selectedIds)
-                          for (const id of ids) {
-                            await movePageToScene(id, scene.id)
-                          }
-                          clearSelection()
-                          setShowMovePopover(false)
-                          showToast(`Moved ${ids.length} pages to ${scene.title || 'scene'}`, 'success')
-                        }}
-                        className="dropdown-item text-xs"
-                      >
-                        <span className="opacity-50">{act.name || `Act ${act.number}`} → </span>
-                        {scene.title || 'Untitled Scene'}
-                      </button>
-                    ))
+                    return actScenes.map((scene: any) => {
+                      // Disable scenes where all selected pages already live
+                      const allPagesInThisScene = Array.from(selectedIds).every(id =>
+                        (scene.pages || []).some((p: any) => p.id === id)
+                      )
+                      return (
+                        <button
+                          key={scene.id}
+                          disabled={allPagesInThisScene}
+                          onClick={async () => {
+                            const ids = Array.from(selectedIds)
+                            for (const id of ids) {
+                              await movePageToScene(id, scene.id)
+                            }
+                            clearSelection()
+                            setShowMovePopover(false)
+                            showToast(`Moved ${ids.length} pages to ${scene.title || 'scene'}`, 'success')
+                          }}
+                          className={`dropdown-item text-xs ${allPagesInThisScene ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          <span className="opacity-50">{act.name || `Act ${act.number}`} → </span>
+                          {scene.title || 'Untitled Scene'}
+                          {allPagesInThisScene && <span className="ml-1 opacity-60">(current)</span>}
+                        </button>
+                      )
+                    })
                   })}
                 </div>
               )}
               {showMovePopover && selectionType === 'scene' && (
                 <div className="absolute bottom-full mb-1 right-0 dropdown-panel py-1 min-w-[160px] z-50">
-                  {sortedActs.map((act: any) => (
-                    <button
-                      key={act.id}
-                      onClick={async () => {
-                        const ids = Array.from(selectedIds)
-                        for (const id of ids) {
-                          await moveSceneToAct(id, act.id)
-                        }
-                        clearSelection()
-                        setShowMovePopover(false)
-                        showToast(`Moved ${ids.length} scenes to ${act.name || 'act'}`, 'success')
-                      }}
-                      className="dropdown-item text-xs"
-                    >
-                      {act.name || `Act ${act.number}`}
-                    </button>
-                  ))}
+                  {sortedActs.map((act: any) => {
+                    // Disable acts where all selected scenes already live
+                    const allScenesInThisAct = Array.from(selectedIds).every(id =>
+                      (act.scenes || []).some((s: any) => s.id === id)
+                    )
+                    return (
+                      <button
+                        key={act.id}
+                        disabled={allScenesInThisAct}
+                        onClick={async () => {
+                          const ids = Array.from(selectedIds)
+                          for (const id of ids) {
+                            await moveSceneToAct(id, act.id)
+                          }
+                          clearSelection()
+                          setShowMovePopover(false)
+                          showToast(`Moved ${ids.length} scenes to ${act.name || 'act'}`, 'success')
+                        }}
+                        className={`dropdown-item text-xs ${allScenesInThisAct ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      >
+                        {act.name || `Act ${act.number}`}
+                        {allScenesInThisAct && <span className="ml-1 opacity-60">(current)</span>}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
