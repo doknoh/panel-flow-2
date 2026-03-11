@@ -106,7 +106,7 @@ export default function FiledNotesTab({
                         <span className="type-micro text-[var(--text-muted)]">
                           Page {item.target.pageNumber}
                           {item.target.sceneName && (
-                            <span className="type-separator mx-1">//</span>
+                            <span className="type-separator mx-1">{'//'}  </span>
                           )}
                           {item.target.sceneName}
                         </span>
