@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useUndo } from '@/contexts/UndoContext'
 import { fetchPageDeepData, fetchSceneDeepData, fetchActDeepData } from '@/lib/undoHelpers'
+import { batchDeletePages, batchDeleteScenes, batchDeleteActs } from '@/lib/batchActions'
 import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import {
   DndContext,
@@ -46,7 +47,7 @@ interface NavigationTreeProps {
   onRefresh: () => Promise<void> | void
 }
 
-function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
+function SortableItem({ id, children, isPartOfMultiDrag }: { id: string; children: React.ReactNode; isPartOfMultiDrag?: boolean }) {
   const {
     attributes,
     listeners,
@@ -59,7 +60,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging || isPartOfMultiDrag ? 0.3 : 1,
     zIndex: isDragging ? 50 : undefined,
   }
 
@@ -98,6 +99,11 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     x: number; y: number; type: 'act' | 'scene' | 'page'; id: string; title: string
   } | null>(null)
   const [contextSubmenu, setContextSubmenu] = useState<'move-to-act' | 'move-to-scene' | null>(null)
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectionType, setSelectionType] = useState<'page' | 'scene' | 'act' | null>(null)
+  const [lastClickedId, setLastClickedId] = useState<string | null>(null)
+  const [showMovePopover, setShowMovePopover] = useState(false)
   const editInputRef = useRef<HTMLInputElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const pageSummaryInputRef = useRef<HTMLTextAreaElement>(null)
@@ -174,6 +180,116 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     return null
   }
 
+  // --- Multi-select helpers ---
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+    setSelectionType(null)
+    setLastClickedId(null)
+    setShowMovePopover(false)
+  }, [])
+
+  const getVisibleItemIds = useCallback((type: 'page' | 'scene' | 'act'): string[] => {
+    const ids: string[] = []
+    const sorted = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
+
+    if (type === 'act') {
+      return sorted.map(a => a.id)
+    }
+
+    for (const act of sorted) {
+      const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+      if (type === 'scene') {
+        if (expandedActs.has(act.id)) {
+          ids.push(...sortedScenes.map((s: any) => s.id))
+        }
+      } else {
+        // pages
+        for (const scene of sortedScenes) {
+          if (expandedActs.has(act.id) && expandedScenes.has(scene.id)) {
+            const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+            ids.push(...sortedPages.map((p: any) => p.id))
+          }
+        }
+      }
+    }
+    return ids
+  }, [issue.acts, expandedActs, expandedScenes])
+
+  const handleMultiSelectClick = useCallback((
+    itemId: string,
+    itemType: 'page' | 'scene' | 'act',
+    e: React.MouseEvent
+  ) => {
+    const isMetaKey = e.metaKey || e.ctrlKey
+    const isShiftKey = e.shiftKey
+
+    if (!isMetaKey && !isShiftKey) {
+      // Plain click — clear selection, navigate as usual
+      clearSelection()
+      return false // signals caller to do normal navigation
+    }
+
+    if (isMetaKey) {
+      // Cmd/Ctrl+click: toggle item in selection
+      if (selectionType && selectionType !== itemType) {
+        // Different type — start new selection
+        setSelectedIds(new Set([itemId]))
+        setSelectionType(itemType)
+        setLastClickedId(itemId)
+        return true
+      }
+
+      const newSelected = new Set(selectedIds)
+      if (newSelected.has(itemId)) {
+        newSelected.delete(itemId)
+        if (newSelected.size === 0) {
+          setSelectionType(null)
+        }
+      } else {
+        newSelected.add(itemId)
+      }
+      setSelectedIds(newSelected)
+      setSelectionType(itemType)
+      setLastClickedId(itemId)
+      return true
+    }
+
+    if (isShiftKey) {
+      // Shift+click: range selection
+      if (selectionType && selectionType !== itemType) {
+        // Different type — start new selection
+        setSelectedIds(new Set([itemId]))
+        setSelectionType(itemType)
+        setLastClickedId(itemId)
+        return true
+      }
+
+      const visibleIds = getVisibleItemIds(itemType)
+      const anchorId = lastClickedId || itemId
+      const anchorIndex = visibleIds.indexOf(anchorId)
+      const currentIndex = visibleIds.indexOf(itemId)
+
+      if (anchorIndex === -1 || currentIndex === -1) {
+        setSelectedIds(new Set([itemId]))
+        setSelectionType(itemType)
+        setLastClickedId(itemId)
+        return true
+      }
+
+      const start = Math.min(anchorIndex, currentIndex)
+      const end = Math.max(anchorIndex, currentIndex)
+      const rangeIds = visibleIds.slice(start, end + 1)
+
+      setSelectedIds(new Set(rangeIds))
+      setSelectionType(itemType)
+      // Don't update lastClickedId on shift+click (anchor stays)
+      return true
+    }
+
+    return false
+  }, [selectedIds, selectionType, lastClickedId, clearSelection, getVisibleItemIds])
+
   const toggleAct = (actId: string) => {
     const newExpanded = new Set(expandedActs)
     if (newExpanded.has(actId)) {
@@ -231,6 +347,37 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [contextMenu])
+
+  // Clear multi-selection on Escape
+  useEffect(() => {
+    if (selectedIds.size === 0) return
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !contextMenu) {
+        clearSelection()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [selectedIds.size, contextMenu, clearSelection])
+
+  // Close move popover on click outside
+  useEffect(() => {
+    if (!showMovePopover) return
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-move-popover]')) {
+        setShowMovePopover(false)
+      }
+    }
+    // Slight delay to not close immediately on the button click that opened it
+    const timer = setTimeout(() => document.addEventListener('click', handleClick), 0)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [showMovePopover])
 
   // --- Unified title editing ---
 
@@ -1468,6 +1615,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     if (!itemType) return
 
+    // If dragging an item that's not in the selection, clear selection
+    // and drag just that item (standard OS behavior)
+    if (selectedIds.size > 0 && !selectedIds.has(itemId)) {
+      clearSelection()
+    }
+
     let sourceId = ''
     if (itemType === 'page') {
       const loc = findPageLocation(itemId)
@@ -1542,87 +1695,123 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       const sourceLocation = findSceneLocation(activeId)
       if (!sourceLocation) return
 
-      if (overType === 'scene') {
-        // Dropping on another scene
+      // Collect all scene IDs to move (multi-selected or just the dragged one)
+      const sceneIdsToMove = (selectedIds.size > 1 && selectedIds.has(activeId) && selectionType === 'scene')
+        ? (() => {
+            const ids = Array.from(selectedIds)
+            const visibleIds = getVisibleItemIds('scene')
+            ids.sort((a, b) => visibleIds.indexOf(a) - visibleIds.indexOf(b))
+            return ids
+          })()
+        : [activeId]
+
+      if (overType === 'act') {
+        // Move scene(s) to target act
+        for (const id of sceneIdsToMove) {
+          const loc = findSceneLocation(id)
+          if (loc && loc.actId !== overId) {
+            await moveSceneToAct(id, overId)
+          }
+        }
+        if (sceneIdsToMove.length > 1) clearSelection()
+      } else if (overType === 'scene') {
         const overLocation = findSceneLocation(overId)
         if (!overLocation) return
 
-        if (sourceLocation.actId === overLocation.actId) {
-          // Same act - reorder scenes
-          await handleSceneDragEnd(sourceLocation.actId, event)
+        if (sceneIdsToMove.length === 1) {
+          // Single scene — use existing logic
+          if (sourceLocation.actId === overLocation.actId) {
+            await handleSceneDragEnd(sourceLocation.actId, event)
+          } else {
+            await moveSceneToAct(activeId, overLocation.actId)
+          }
         } else {
-          // Different act - move scene to that act, inserting at the hovered scene's position
-          await moveSceneToAct(activeId, overLocation.actId, overId)
-        }
-      } else if (overType === 'act') {
-        // Dropping on an act header - move to that act
-        if (sourceLocation.actId !== overId) {
-          await moveSceneToAct(activeId, overId)
+          // Multi-scene: move all to target act
+          for (const id of sceneIdsToMove) {
+            const loc = findSceneLocation(id)
+            if (loc && loc.actId !== overLocation.actId) {
+              await moveSceneToAct(id, overLocation.actId)
+            }
+          }
+          clearSelection()
         }
       }
     } else if (dragItem.type === 'page') {
       const sourceLocation = findPageLocation(activeId)
       if (!sourceLocation) return
 
+      // Collect all page IDs to move (either multi-selected or just the dragged one)
+      // Sort by visual position to maintain relative order during multi-drop
+      const pageIdsToMove = (selectedIds.size > 1 && selectedIds.has(activeId) && selectionType === 'page')
+        ? (() => {
+            const ids = Array.from(selectedIds)
+            const visibleIds = getVisibleItemIds('page')
+            ids.sort((a, b) => visibleIds.indexOf(a) - visibleIds.indexOf(b))
+            return ids
+          })()
+        : [activeId]
+
       if (overType === 'page') {
-        // Dropping on another page
         const overLocation = findPageLocation(overId)
         if (!overLocation) return
 
-        if (sourceLocation.sceneId === overLocation.sceneId) {
-          // Same scene - reorder pages
-          await handlePageDragEnd(sourceLocation.sceneId, event)
+        if (pageIdsToMove.length === 1) {
+          // Single page — use existing logic
+          if (sourceLocation.sceneId === overLocation.sceneId) {
+            await handlePageDragEnd(sourceLocation.sceneId, event)
+          } else {
+            await movePageToScene(activeId, overLocation.sceneId, overId)
+          }
         } else {
-          // Different scene - move page to that scene, inserting at the hovered page's position
-          await movePageToScene(activeId, overLocation.sceneId, overId)
+          // Multi-page drop — move all to target scene
+          for (const id of pageIdsToMove) {
+            if (id !== overId) {
+              await movePageToScene(id, overLocation.sceneId)
+            }
+          }
+          clearSelection()
         }
       } else if (overType === 'scene') {
-        // Dropping on a scene header - move to that scene (append at end)
-        if (sourceLocation.sceneId !== overId) {
-          await movePageToScene(activeId, overId)
+        if (pageIdsToMove.length === 1) {
+          if (sourceLocation.sceneId !== overId) {
+            await movePageToScene(activeId, overId)
+          }
+        } else {
+          for (const id of pageIdsToMove) {
+            await movePageToScene(id, overId)
+          }
+          clearSelection()
         }
       } else if (overType === 'act') {
-        // Dropping page on an act header
+        // Keep existing act drop logic but apply to all selected pages
         const targetAct = (issue.acts || []).find((a: any) => a.id === overId)
         if (!targetAct) return
 
         const targetScenes = (targetAct.scenes || []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+        let targetSceneId = targetScenes[0]?.id
 
-        if (targetScenes.length > 0) {
-          // Act has scenes - move to the first scene
-          await movePageToScene(activeId, targetScenes[0].id)
-        } else {
-          // Act has no scenes - create one first, then move the page
+        if (!targetSceneId) {
           const supabase = createClient()
           const { data: newScene, error: sceneError } = await supabase
-            .from('scenes')
-            .insert({
-              act_id: overId,
-              title: 'Scene 1',
-              sort_order: 1,
-            })
-            .select()
-            .single()
-
+            .from('scenes').insert({ act_id: overId, title: 'Scene 1', sort_order: 1 }).select().single()
           if (sceneError || !newScene) {
             showToast('Failed to create scene for page move', 'error')
             return
           }
-
-          // Update local state with the new scene
           setIssue((prev: any) => ({
             ...prev,
-            acts: prev.acts.map((a: any) =>
-              a.id === overId
-                ? { ...a, scenes: [...(a.scenes || []), { ...newScene, pages: [] }] }
-                : a
+            acts: prev.acts.map((a: any) => a.id === overId
+              ? { ...a, scenes: [...(a.scenes || []), { ...newScene, pages: [] }] }
+              : a
             ),
           }))
-
-          // Now move the page to the new scene
-          await movePageToScene(activeId, newScene.id)
-          showToast('Created scene and moved page', 'success')
+          targetSceneId = newScene.id
         }
+
+        for (const id of pageIdsToMove) {
+          await movePageToScene(id, targetSceneId)
+        }
+        if (pageIdsToMove.length > 1) clearSelection()
       }
     }
   }
@@ -1668,6 +1857,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   ) => {
     e.preventDefault()
     e.stopPropagation()
+    // If right-clicking an item not in the current selection, clear selection
+    if (selectedIds.size > 0 && !selectedIds.has(id)) {
+      clearSelection()
+    }
     setContextMenu({ x: e.clientX, y: e.clientY, type, id, title })
     setContextSubmenu(null)
   }
@@ -1676,6 +1869,182 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     setContextMenu(null)
     setContextSubmenu(null)
   }
+
+  // --- Batch actions ---
+
+  const handleBatchDelete = useCallback(async () => {
+    if (!selectionType || selectedIds.size === 0) return
+
+    const count = selectedIds.size
+    const typeLabel = selectionType === 'page' ? 'page' : selectionType === 'scene' ? 'scene' : 'act'
+    const description = selectionType === 'page'
+      ? `This will permanently delete all panels on these pages.`
+      : selectionType === 'scene'
+        ? `This will permanently delete all pages and panels in these scenes.`
+        : `This will permanently delete all scenes, pages, and panels in these acts.`
+
+    const confirmed = await confirm({
+      title: `Delete ${count} ${typeLabel}${count !== 1 ? 's' : ''}?`,
+      description,
+    })
+    if (!confirmed) return
+
+    const supabase = createClient()
+    const ids = Array.from(selectedIds)
+
+    if (selectionType === 'page') {
+      const result = await batchDeletePages(supabase, ids, issue)
+      if (!result.success) {
+        showToast(`Failed to delete pages: ${result.error}`, 'error')
+        await onRefresh()
+        return
+      }
+
+      // Deselect deleted pages
+      if (selectedPageId && ids.includes(selectedPageId)) {
+        onSelectPage('')
+      }
+
+      // Optimistic UI update
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) => ({
+            ...s,
+            pages: (s.pages || []).filter((p: any) => !ids.includes(p.id)),
+          })),
+        })),
+      }))
+
+      // Record batch undo
+      recordAction({
+        type: 'batch_page_delete',
+        items: result.deletedItems.map(item => ({ pageId: item.id, sceneId: item.parentId, data: item.data })),
+        description: `Delete ${count} pages`,
+      })
+    } else if (selectionType === 'scene') {
+      const result = await batchDeleteScenes(supabase, ids, issue)
+      if (!result.success) {
+        showToast(`Failed to delete scenes: ${result.error}`, 'error')
+        await onRefresh()
+        return
+      }
+
+      // Deselect if current page was in deleted scenes
+      const deletedPageIds = new Set<string>()
+      for (const act of issue.acts || []) {
+        for (const scene of act.scenes || []) {
+          if (ids.includes(scene.id)) {
+            for (const page of scene.pages || []) {
+              deletedPageIds.add(page.id)
+            }
+          }
+        }
+      }
+      if (selectedPageId && deletedPageIds.has(selectedPageId)) {
+        onSelectPage('')
+      }
+
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).filter((s: any) => !ids.includes(s.id)),
+        })),
+      }))
+
+      recordAction({
+        type: 'batch_scene_delete',
+        items: result.deletedItems.map(item => ({ sceneId: item.id, actId: item.parentId, data: item.data })),
+        description: `Delete ${count} scenes`,
+      })
+    } else if (selectionType === 'act') {
+      const result = await batchDeleteActs(supabase, ids, issue)
+      if (!result.success) {
+        showToast(`Failed to delete acts: ${result.error}`, 'error')
+        await onRefresh()
+        return
+      }
+
+      // Deselect if current page was in deleted acts
+      const deletedPageIds = new Set<string>()
+      for (const act of issue.acts || []) {
+        if (ids.includes(act.id)) {
+          for (const scene of act.scenes || []) {
+            for (const page of scene.pages || []) {
+              deletedPageIds.add(page.id)
+            }
+          }
+        }
+      }
+      if (selectedPageId && deletedPageIds.has(selectedPageId)) {
+        onSelectPage('')
+      }
+
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.filter((a: any) => !ids.includes(a.id)),
+      }))
+
+      recordAction({
+        type: 'batch_act_delete',
+        items: result.deletedItems.map(item => ({ actId: item.id, issueId: item.parentId, data: item.data })),
+        description: `Delete ${count} acts`,
+      })
+    }
+
+    clearSelection()
+    showToast(`Deleted ${count} ${typeLabel}${count !== 1 ? 's' : ''}`, 'success')
+  }, [selectionType, selectedIds, issue, selectedPageId, onSelectPage, setIssue, onRefresh, clearSelection, showToast, recordAction, confirm])
+
+  const handleBatchMove = () => {
+    setShowMovePopover(prev => !prev)
+  }
+
+  const handleBatchDuplicate = async () => {
+    if (!selectionType || selectedIds.size === 0) return
+
+    // Sort IDs by visual position to maintain relative order
+    const ids = Array.from(selectedIds)
+    const visibleIds = getVisibleItemIds(selectionType)
+    ids.sort((a, b) => visibleIds.indexOf(a) - visibleIds.indexOf(b))
+    const count = ids.length
+
+    if (selectionType === 'page') {
+      for (const id of ids) {
+        await duplicatePage(id)
+      }
+    } else if (selectionType === 'scene') {
+      for (const id of ids) {
+        await duplicateScene(id)
+      }
+    }
+    // Acts don't have duplicate in the existing system
+
+    clearSelection()
+    showToast(`Duplicated ${count} ${selectionType}${count !== 1 ? 's' : ''}`, 'success')
+  }
+
+  // Batch delete on Delete/Backspace when items selected
+  useEffect(() => {
+    if (selectedIds.size < 2) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Don't trigger when editing text
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        handleBatchDelete()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedIds.size, handleBatchDelete])
+
+  const isContextMenuItemMultiSelected = contextMenu && selectedIds.has(contextMenu.id) && selectedIds.size > 1
 
   // --- Render ---
 
@@ -1742,14 +2111,22 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                 )
 
                 return (
-                  <SortableItem key={act.id} id={act.id}>
+                  <SortableItem key={act.id} id={act.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(act.id) && activeDragItem.id !== act.id)}>
                     <div>
                       {/* Act Header */}
                       <div
                         className={`flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
                           dragOverContainerId === act.id && (activeDragItem?.type === 'scene' || activeDragItem?.type === 'page') ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                        }`}
-                        onClick={() => !editingItemId && toggleAct(act.id)}
+                        } ${selectedIds.has(act.id) ? 'bg-[var(--color-primary)]/15 border-l-2 border-l-[var(--color-primary)]' : ''}`}
+                        onClick={(e) => {
+                          if (editingItemId) return
+                          if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                            handleMultiSelectClick(act.id, 'act', e)
+                          } else {
+                            clearSelection()
+                            toggleAct(act.id)
+                          }
+                        }}
                         onContextMenu={(e) => handleContextMenu(e, 'act', act.id, act.name || `Act ${act.number}`)}
                       >
                         <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedActs.has(act.id) ? 'rotate-90' : ''}`} />
@@ -1808,15 +2185,23 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                               const scenePageCount = sortedPages.length
 
                               return (
-                                <SortableItem key={scene.id} id={scene.id}>
+                                <SortableItem key={scene.id} id={scene.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(scene.id) && activeDragItem.id !== scene.id)}>
                                   <div>
                                     {/* Scene Header */}
                                     <div
                                       className={`flex items-center gap-2 pl-6 pr-2 py-1.5 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
                                         dragOverContainerId === scene.id && activeDragItem?.type === 'page' ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                                      }`}
+                                      } ${selectedIds.has(scene.id) ? 'bg-[var(--color-primary)]/15 ring-1 ring-inset ring-[var(--color-primary)]' : ''}`}
                                       style={{ borderLeft: `3px solid ${scene.plotline?.color || 'transparent'}` }}
-                                      onClick={() => !editingItemId && toggleScene(scene.id)}
+                                      onClick={(e) => {
+                                        if (editingItemId) return
+                                        if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                                          handleMultiSelectClick(scene.id, 'scene', e)
+                                        } else {
+                                          clearSelection()
+                                          toggleScene(scene.id)
+                                        }
+                                      }}
                                       onContextMenu={(e) => handleContextMenu(e, 'scene', scene.id, scene.title || 'Untitled Scene')}
                                     >
                                       <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedScenes.has(scene.id) ? 'rotate-90' : ''}`} />
@@ -1873,14 +2258,22 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                             const isSelected = selectedPageId === page.id
 
                                             return (
-                                              <SortableItem key={page.id} id={page.id}>
+                                              <SortableItem key={page.id} id={page.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(page.id) && activeDragItem.id !== page.id)}>
                                                 <div
-                                                  onClick={() => !editingItemId && onSelectPage(page.id)}
+                                                  onClick={(e) => {
+                                                    if (editingItemId) return
+                                                    const handled = handleMultiSelectClick(page.id, 'page', e)
+                                                    if (!handled) {
+                                                      onSelectPage(page.id)
+                                                    }
+                                                  }}
                                                   onContextMenu={(e) => handleContextMenu(e, 'page', page.id, page.title || '')}
                                                   className={`flex items-center gap-2 pl-10 pr-2 py-1 cursor-pointer transition-colors group ${
                                                     isSelected
                                                       ? 'bg-[var(--color-primary)] text-white'
-                                                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
+                                                      : selectedIds.has(page.id)
+                                                        ? 'bg-[var(--color-primary)]/15 border-l-2 border-[var(--color-primary)] text-[var(--text-primary)]'
+                                                        : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
                                                   }`}
                                                 >
                                                   {editingItemId === page.id ? (
@@ -2025,11 +2418,17 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           <DragOverlay dropAnimation={null}>
             {activeDragItem && (() => {
               const { id, type } = activeDragItem
+              const isMultiDrag = selectedIds.size > 1 && selectedIds.has(id) && selectionType === type
+              const dragCount = isMultiDrag ? selectedIds.size : 1
+
               if (type === 'act') {
                 const act = (issue.acts || []).find((a: any) => a.id === id)
                 return (
-                  <div className="px-3 py-2 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg text-sm font-extrabold uppercase tracking-tight text-[var(--text-primary)]">
+                  <div className="px-3 py-2 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg text-sm font-extrabold uppercase tracking-tight text-[var(--text-primary)] flex items-center gap-2">
                     {act?.name || 'Act'}
+                    {dragCount > 1 && (
+                      <span className="bg-[var(--color-primary)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">{dragCount}</span>
+                    )}
                   </div>
                 )
               }
@@ -2040,14 +2439,20 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                   <div className="px-3 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg flex items-center gap-2">
                     {plotline && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: plotline.color }} />}
                     <span className="type-label text-[var(--text-primary)]">{loc?.scene?.title || 'Scene'}</span>
+                    {dragCount > 1 && (
+                      <span className="bg-[var(--color-primary)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">{dragCount}</span>
+                    )}
                   </div>
                 )
               }
               if (type === 'page') {
                 const pos = pagePositionMap.get(id)
                 return (
-                  <div className="px-3 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg type-label text-[var(--text-primary)] tabular-nums">
+                  <div className="px-3 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg type-label text-[var(--text-primary)] tabular-nums flex items-center gap-2">
                     Page {pos || '?'}
+                    {dragCount > 1 && (
+                      <span className="bg-[var(--color-primary)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">{dragCount}</span>
+                    )}
                   </div>
                 )
               }
@@ -2055,6 +2460,106 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             })()}
           </DragOverlay>
         </DndContext>
+      )}
+
+      {/* Multi-select action bar */}
+      {selectedIds.size >= 2 && (
+        <div className="sticky bottom-0 bg-[var(--bg-elevated)] border-t-2 border-[var(--color-primary)] px-3 py-2.5 flex items-center justify-between z-10 animate-in slide-in-from-bottom-2 duration-200">
+          <span className="text-xs font-semibold text-[var(--text-primary)]">
+            {selectedIds.size} {selectionType}{selectedIds.size !== 1 ? 's' : ''} selected
+          </span>
+          <div className="flex items-center gap-1.5">
+            <div className="relative" data-move-popover>
+              <button
+                onClick={() => handleBatchMove()}
+                className="px-2.5 py-1 text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-colors"
+              >
+                Move
+              </button>
+              {showMovePopover && selectionType === 'page' && (
+                <div className="absolute bottom-full mb-1 right-0 dropdown-panel py-1 min-w-[200px] max-h-48 overflow-y-auto z-50">
+                  {sortedActs.map((act: any) => {
+                    const actScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+                    return actScenes.map((scene: any) => {
+                      // Disable scenes where all selected pages already live
+                      const allPagesInThisScene = Array.from(selectedIds).every(id =>
+                        (scene.pages || []).some((p: any) => p.id === id)
+                      )
+                      return (
+                        <button
+                          key={scene.id}
+                          disabled={allPagesInThisScene}
+                          onClick={async () => {
+                            const ids = Array.from(selectedIds)
+                            for (const id of ids) {
+                              await movePageToScene(id, scene.id)
+                            }
+                            clearSelection()
+                            setShowMovePopover(false)
+                            showToast(`Moved ${ids.length} pages to ${scene.title || 'scene'}`, 'success')
+                          }}
+                          className={`dropdown-item text-xs ${allPagesInThisScene ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          <span className="opacity-50">{act.name || `Act ${act.number}`} → </span>
+                          {scene.title || 'Untitled Scene'}
+                          {allPagesInThisScene && <span className="ml-1 opacity-60">(current)</span>}
+                        </button>
+                      )
+                    })
+                  })}
+                </div>
+              )}
+              {showMovePopover && selectionType === 'scene' && (
+                <div className="absolute bottom-full mb-1 right-0 dropdown-panel py-1 min-w-[160px] z-50">
+                  {sortedActs.map((act: any) => {
+                    // Disable acts where all selected scenes already live
+                    const allScenesInThisAct = Array.from(selectedIds).every(id =>
+                      (act.scenes || []).some((s: any) => s.id === id)
+                    )
+                    return (
+                      <button
+                        key={act.id}
+                        disabled={allScenesInThisAct}
+                        onClick={async () => {
+                          const ids = Array.from(selectedIds)
+                          for (const id of ids) {
+                            await moveSceneToAct(id, act.id)
+                          }
+                          clearSelection()
+                          setShowMovePopover(false)
+                          showToast(`Moved ${ids.length} scenes to ${act.name || 'act'}`, 'success')
+                        }}
+                        className={`dropdown-item text-xs ${allScenesInThisAct ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      >
+                        {act.name || `Act ${act.number}`}
+                        {allScenesInThisAct && <span className="ml-1 opacity-60">(current)</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => handleBatchDuplicate()}
+              className="px-2.5 py-1 text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-colors"
+            >
+              Duplicate
+            </button>
+            <button
+              onClick={() => handleBatchDelete()}
+              className="px-2.5 py-1 text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 rounded transition-colors"
+            >
+              Delete
+            </button>
+            <button
+              onClick={clearSelection}
+              className="px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] rounded transition-colors ml-1"
+              aria-label="Clear selection"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Context Menu */}
@@ -2082,7 +2587,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           {(contextMenu.type === 'scene' || contextMenu.type === 'page') && (
             <button
               onClick={() => {
-                if (contextMenu.type === 'page') {
+                if (isContextMenuItemMultiSelected) {
+                  handleBatchDuplicate()
+                } else if (contextMenu.type === 'page') {
                   duplicatePage(contextMenu.id)
                 } else {
                   duplicateScene(contextMenu.id)
@@ -2091,7 +2598,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               }}
               className="dropdown-item text-xs"
             >
-              Duplicate
+              {isContextMenuItemMultiSelected
+                ? `Duplicate ${selectedIds.size} ${selectionType}${selectedIds.size !== 1 ? 's' : ''}`
+                : 'Duplicate'
+              }
             </button>
           )}
 
@@ -2123,14 +2633,23 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           {contextMenu.type === 'scene' && (
             <div
               className="relative"
-              onMouseEnter={() => setContextSubmenu('move-to-act')}
+              onMouseEnter={() => !isContextMenuItemMultiSelected ? setContextSubmenu('move-to-act') : undefined}
               onMouseLeave={() => setContextSubmenu(null)}
             >
               <button
+                onClick={() => {
+                  if (isContextMenuItemMultiSelected) {
+                    handleBatchMove()
+                    closeContextMenu()
+                  }
+                }}
                 className="dropdown-item text-xs justify-between"
               >
-                <span>Move to Act</span>
-                <ChevronRight className="w-3 h-3 opacity-40" />
+                {isContextMenuItemMultiSelected
+                  ? <span>{`Move ${selectedIds.size} ${selectionType}${selectedIds.size !== 1 ? 's' : ''}`}</span>
+                  : <span>Move to Act</span>
+                }
+                {!isContextMenuItemMultiSelected && <ChevronRight className="w-3 h-3 opacity-40" />}
               </button>
               {contextSubmenu === 'move-to-act' && (
                 <div className="dropdown-panel absolute left-full top-0 py-1 min-w-[140px]">
@@ -2167,14 +2686,23 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           {contextMenu.type === 'page' && (
             <div
               className="relative"
-              onMouseEnter={() => setContextSubmenu('move-to-scene')}
+              onMouseEnter={() => !isContextMenuItemMultiSelected ? setContextSubmenu('move-to-scene') : undefined}
               onMouseLeave={() => setContextSubmenu(null)}
             >
               <button
+                onClick={() => {
+                  if (isContextMenuItemMultiSelected) {
+                    handleBatchMove()
+                    closeContextMenu()
+                  }
+                }}
                 className="dropdown-item text-xs justify-between"
               >
-                <span>Move to Scene</span>
-                <ChevronRight className="w-3 h-3 opacity-40" />
+                {isContextMenuItemMultiSelected
+                  ? <span>{`Move ${selectedIds.size} ${selectionType}${selectedIds.size !== 1 ? 's' : ''}`}</span>
+                  : <span>Move to Scene</span>
+                }
+                {!isContextMenuItemMultiSelected && <ChevronRight className="w-3 h-3 opacity-40" />}
               </button>
               {contextSubmenu === 'move-to-scene' && (
                 <div className="dropdown-panel absolute left-full top-0 py-1 min-w-[180px] max-h-64 overflow-y-auto">
@@ -2217,7 +2745,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           {/* Delete */}
           <button
             onClick={() => {
-              if (contextMenu.type === 'act') {
+              if (isContextMenuItemMultiSelected) {
+                handleBatchDelete()
+              } else if (contextMenu.type === 'act') {
                 deleteAct(contextMenu.id, contextMenu.title)
               } else if (contextMenu.type === 'scene') {
                 const sceneLocation = findSceneLocation(contextMenu.id)
@@ -2231,7 +2761,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             }}
             className="dropdown-item text-xs !text-red-400 hover:!text-red-300"
           >
-            Delete
+            {isContextMenuItemMultiSelected
+              ? `Delete ${selectedIds.size} ${selectionType}${selectedIds.size !== 1 ? 's' : ''}`
+              : 'Delete'
+            }
           </button>
         </div>
       )}
