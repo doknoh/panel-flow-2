@@ -16,9 +16,22 @@ import {
   BookOpen,
   ScanLine,
   Trash2,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/contexts/ToastContext'
 import type { CharacterWithStats } from '@/lib/character-stats'
+import {
+  trainVoiceProfile,
+  getVocabularyLabel,
+  getVocabularyColor,
+  getFlagSeverityColor,
+  getFlagTypeLabel,
+  generateProfileSummary,
+  type DialogueBlock,
+} from '@/lib/character-voice'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -431,6 +444,407 @@ function ProfileTab({
 }
 
 // ===========================================================================
+// Voice Tab
+// ===========================================================================
+
+interface VoiceData {
+  dialogues: Array<{
+    id: string
+    text: string
+    dialogueType: string | null
+    deliveryInstruction: string | null
+    issueNumber: number | null
+    issueTitle: string | null
+    issueId: string | null
+    pageNumber: number | null
+    sceneName: string | null
+  }>
+  profile: any | null
+  flags: Array<{
+    id: string
+    dialogue_id: string
+    flag_type: string
+    message: string
+    flagged_word: string | null
+    suggested_alternative: string | null
+    severity: string
+    dismissed: boolean
+  }>
+  dialogueCount: number
+}
+
+function VoiceTab({ character }: { character: CharacterWithStats }) {
+  const [voiceData, setVoiceData] = useState<VoiceData | null>(null)
+  const [voiceLoading, setVoiceLoading] = useState(false)
+  const [isTraining, setIsTraining] = useState(false)
+  const voiceLoadedRef = useRef(false)
+  const { showToast } = useToast()
+
+  // Reset voice data when character changes
+  useEffect(() => {
+    voiceLoadedRef.current = false
+    setVoiceData(null)
+  }, [character.id])
+
+  // Load voice data on mount (since this only renders when tab is active)
+  useEffect(() => {
+    if (!voiceLoadedRef.current) {
+      voiceLoadedRef.current = true
+      setVoiceLoading(true)
+      fetch(`/api/characters/${character.id}/voice`)
+        .then(r => r.json())
+        .then(data => setVoiceData(data))
+        .catch(() => showToast('Failed to load voice data', 'error'))
+        .finally(() => setVoiceLoading(false))
+    }
+  }, [character.id, showToast])
+
+  const handleTrain = useCallback(async () => {
+    if (!voiceData || voiceData.dialogues.length < 5) {
+      showToast('Need at least 5 dialogues to train voice profile', 'error')
+      return
+    }
+
+    setIsTraining(true)
+    try {
+      const blocks: DialogueBlock[] = voiceData.dialogues.map(d => ({
+        id: d.id,
+        text: d.text,
+        dialogue_type: d.dialogueType,
+      }))
+
+      const profile = trainVoiceProfile(character.id, blocks)
+      const summary = generateProfileSummary(
+        profile,
+        character.display_name || character.name
+      )
+
+      const supabase = createClient()
+      const { error } = await supabase.from('character_voice_profiles').upsert(
+        {
+          character_id: character.id,
+          vocabulary_level: profile.vocabularyLevel,
+          avg_sentence_length: profile.avgSentenceLength,
+          common_words: profile.commonWords,
+          avoided_words: profile.avoidedWords,
+          tone_markers: profile.toneMarkers,
+          speech_quirks: profile.speechQuirks,
+          sample_quotes: profile.sampleQuotes,
+          dialogue_count: profile.dialogueCount,
+          profile_summary: summary,
+          trained_at: new Date().toISOString(),
+        },
+        { onConflict: 'character_id' }
+      )
+
+      if (error) throw new Error(error.message)
+
+      const res = await fetch(`/api/characters/${character.id}/voice`)
+      const newData = await res.json()
+      setVoiceData(newData)
+      showToast('Voice profile trained', 'success')
+    } catch (err) {
+      showToast(
+        'Failed to train voice profile: ' +
+          (err instanceof Error ? err.message : 'Unknown error'),
+        'error'
+      )
+    } finally {
+      setIsTraining(false)
+    }
+  }, [voiceData, character, showToast])
+
+  const handleDismissFlag = useCallback(
+    async (flagId: string) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('dialogue_flags')
+        .update({ dismissed: true })
+        .eq('id', flagId)
+
+      if (error) {
+        showToast('Failed to dismiss flag', 'error')
+        return
+      }
+
+      setVoiceData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          flags: prev.flags.filter(f => f.id !== flagId),
+        }
+      })
+    },
+    [showToast]
+  )
+
+  if (voiceLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 size={20} className="animate-spin text-[var(--text-muted)]" />
+        <span className="ml-2 text-sm text-[var(--text-muted)]">
+          Loading voice data...
+        </span>
+      </div>
+    )
+  }
+
+  if (!voiceData) {
+    return (
+      <div className="text-center py-12 text-[var(--text-muted)] text-sm">
+        Failed to load voice data.
+      </div>
+    )
+  }
+
+  const profile = voiceData.profile
+  const hasEnoughDialogue = voiceData.dialogueCount >= 5
+
+  return (
+    <div className="space-y-5">
+      {/* Train button */}
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-[var(--text-muted)]">
+          {voiceData.dialogueCount} dialogue
+          {voiceData.dialogueCount !== 1 ? 's' : ''} found
+        </div>
+        <button
+          onClick={handleTrain}
+          disabled={!hasEnoughDialogue || isTraining}
+          className="flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-3 py-1.5 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          title={
+            !hasEnoughDialogue
+              ? 'Need at least 5 dialogues to train'
+              : 'Train voice profile from dialogue'
+          }
+        >
+          {isTraining ? (
+            <>
+              <Loader2 size={12} className="animate-spin" />
+              Training...
+            </>
+          ) : (
+            <>
+              <RefreshCw size={12} />
+              {profile ? 'Retrain' : 'Train'} Profile
+            </>
+          )}
+        </button>
+      </div>
+
+      {!hasEnoughDialogue && (
+        <div className="flex items-start gap-2 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-xs text-[var(--text-muted)]">
+          <AlertCircle size={14} className="mt-0.5 shrink-0" />
+          Need at least 5 dialogues to train a voice profile. This character has{' '}
+          {voiceData.dialogueCount}.
+        </div>
+      )}
+
+      {/* Trained profile */}
+      {profile && (
+        <section className="space-y-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Trained Profile
+          </h4>
+
+          {profile.profile_summary && (
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              {profile.profile_summary}
+            </p>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-[var(--bg-secondary)] rounded px-3 py-2">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+                Vocabulary
+              </div>
+              <span
+                className={`text-xs font-medium px-2 py-0.5 rounded ${getVocabularyColor(profile.vocabulary_level)}`}
+              >
+                {getVocabularyLabel(profile.vocabulary_level)}
+              </span>
+            </div>
+            <div className="bg-[var(--bg-secondary)] rounded px-3 py-2">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+                Avg. Sentence
+              </div>
+              <div className="text-xs font-medium text-[var(--text-primary)]">
+                {profile.avg_sentence_length} words
+              </div>
+            </div>
+          </div>
+
+          {profile.common_words?.length > 0 && (
+            <div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                Common Words
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {profile.common_words.map((w: string) => (
+                  <span
+                    key={w}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                  >
+                    {w}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {profile.avoided_words?.length > 0 && (
+            <div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                Avoided Words
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {profile.avoided_words.map((w: string) => (
+                  <span
+                    key={w}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--color-error)]/10 text-[var(--color-error)]"
+                  >
+                    {w}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {profile.tone_markers?.length > 0 && (
+            <div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                Tone Markers
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {profile.tone_markers.map((m: string) => (
+                  <span
+                    key={m}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                  >
+                    {m}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {profile.speech_quirks?.length > 0 && (
+            <div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                Speech Quirks
+              </div>
+              <ul className="space-y-0.5">
+                {profile.speech_quirks.map((q: string) => (
+                  <li
+                    key={q}
+                    className="text-xs text-[var(--text-secondary)] pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[7px] before:w-1.5 before:h-1.5 before:bg-[var(--text-muted)] before:rounded-full"
+                  >
+                    {q}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {profile.sample_quotes?.length > 0 && (
+            <div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                Sample Quotes
+              </div>
+              <div className="space-y-1">
+                {profile.sample_quotes.map((q: string, i: number) => (
+                  <p
+                    key={i}
+                    className="text-xs text-[var(--text-secondary)] italic border-l-2 border-[var(--border)] pl-2"
+                  >
+                    &ldquo;{q}&rdquo;
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Dialogue flags */}
+      {voiceData.flags.length > 0 && (
+        <section className="space-y-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Dialogue Flags ({voiceData.flags.length})
+          </h4>
+          {voiceData.flags.map(flag => (
+            <div
+              key={flag.id}
+              className="flex items-start gap-2 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded"
+            >
+              <AlertCircle
+                size={14}
+                className={`mt-0.5 shrink-0 ${getFlagSeverityColor(flag.severity as any)}`}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    {getFlagTypeLabel(flag.flag_type as any)}
+                  </span>
+                  <span
+                    className={`text-[10px] font-medium ${getFlagSeverityColor(flag.severity as any)}`}
+                  >
+                    {flag.severity}
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {flag.message}
+                </p>
+                {flag.suggested_alternative && (
+                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                    Suggestion: {flag.suggested_alternative}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => handleDismissFlag(flag.id)}
+                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                title="Dismiss flag"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Sample dialogues */}
+      {voiceData.dialogues.length > 0 && (
+        <section className="space-y-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Sample Dialogue ({voiceData.dialogues.length})
+          </h4>
+          <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+            {voiceData.dialogues.slice(0, 30).map(d => (
+              <div
+                key={d.id}
+                className="px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded"
+              >
+                <p className="text-xs text-[var(--text-primary)] leading-relaxed">
+                  &ldquo;{d.text}&rdquo;
+                </p>
+                {(d.issueNumber || d.pageNumber) && (
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                    {d.issueNumber != null && `Issue #${d.issueNumber}`}
+                    {d.pageNumber != null && ` / Page ${d.pageNumber}`}
+                    {d.sceneName && ` / ${d.sceneName}`}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+// ===========================================================================
 // Placeholder tabs (to be implemented in subsequent tasks)
 // ===========================================================================
 
@@ -557,7 +971,7 @@ export default function CharacterDetailPanel({
               onFieldSave={handleFieldSave}
             />
           )}
-          {activeTab === 'voice' && <PlaceholderTab label="Voice" />}
+          {activeTab === 'voice' && <VoiceTab character={character} />}
           {activeTab === 'appearances' && <PlaceholderTab label="Appearances" />}
           {activeTab === 'scan' && <PlaceholderTab label="AI Scan" />}
         </div>
