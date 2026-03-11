@@ -845,6 +845,97 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
 }
 
 // ===========================================================================
+// Appearances Tab
+// ===========================================================================
+
+function AppearancesTab({
+  character,
+  issues,
+}: {
+  character: CharacterWithStats
+  issues: Array<{ id: string; number: number; title: string }>
+}) {
+  const breakdown = character.stats?.issueBreakdown
+  const hasData = breakdown && Object.keys(breakdown).length > 0
+
+  if (!hasData) {
+    return (
+      <div className="text-center py-12">
+        <BookOpen
+          size={24}
+          className="mx-auto mb-2 text-[var(--text-muted)]"
+        />
+        <p className="text-sm text-[var(--text-muted)]">
+          No appearance data.
+        </p>
+        <p className="text-xs text-[var(--text-muted)] mt-1">
+          Click Refresh Stats in the toolbar to compute.
+        </p>
+      </div>
+    )
+  }
+
+  // Sort by issue number
+  const entries = Object.entries(breakdown)
+    .map(([issueId, data]) => {
+      const issue = issues.find(i => i.id === issueId)
+      return { issueId, issue, data }
+    })
+    .sort((a, b) => (a.issue?.number ?? 0) - (b.issue?.number ?? 0))
+
+  return (
+    <div className="space-y-3">
+      {character.first_appearance && (
+        <div className="flex items-start gap-2 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-xs text-[var(--text-muted)]">
+          <BookOpen size={14} className="mt-0.5 shrink-0" />
+          First appearance: {character.first_appearance}
+        </div>
+      )}
+
+      <div className="text-xs text-[var(--text-muted)] mb-1">
+        Appears in {entries.length} issue{entries.length !== 1 ? 's' : ''}
+      </div>
+
+      {entries.map(({ issueId, issue, data }) => (
+        <div
+          key={issueId}
+          className="px-3 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded"
+        >
+          <div className="flex items-baseline justify-between mb-1">
+            <h4 className="text-sm font-semibold text-[var(--text-primary)]">
+              Issue #{issue?.number ?? '?'}
+            </h4>
+            {issue?.title && (
+              <span className="text-xs text-[var(--text-muted)] truncate ml-2">
+                {issue.title}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-bold text-[var(--text-primary)] tabular-nums">
+                {data.panels}
+              </span>
+              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                panels
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-bold text-[var(--text-secondary)] tabular-nums">
+                {data.dialogues}
+              </span>
+              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                dialogues
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ===========================================================================
 // Placeholder tabs (to be implemented in subsequent tasks)
 // ===========================================================================
 
@@ -972,7 +1063,9 @@ export default function CharacterDetailPanel({
             />
           )}
           {activeTab === 'voice' && <VoiceTab character={character} />}
-          {activeTab === 'appearances' && <PlaceholderTab label="Appearances" />}
+          {activeTab === 'appearances' && (
+            <AppearancesTab character={character} issues={issues} />
+          )}
           {activeTab === 'scan' && <PlaceholderTab label="AI Scan" />}
         </div>
       </div>
