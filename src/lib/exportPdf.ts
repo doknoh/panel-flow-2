@@ -25,6 +25,7 @@ interface Panel {
   panel_number: number
   visual_description: string | null
   shot_type: string | null
+  notes: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -32,6 +33,9 @@ interface Panel {
 
 interface Page {
   page_number: number
+  page_type?: string | null
+  linked_page_id?: string | null
+  notes_to_artist?: string | null
   panels: Panel[]
 }
 
@@ -114,6 +118,8 @@ export function exportIssueToPdf(
   options?: {
     authorName?: string
     characterNames?: string[]
+    includeSummary?: boolean
+    includeNotes?: boolean
   }
 ) {
   const doc = new jsPDF({
@@ -262,7 +268,8 @@ export function exportIssueToPdf(
   }
 
   // Summary - spec format: "TL;DR SUMMARY" heading
-  if (issue.summary) {
+  const includeSummary = options?.includeSummary !== false // default true
+  if (issue.summary && includeSummary) {
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.text('TL;DR SUMMARY', pageWidth / 2, 310, { align: 'center' })
@@ -306,8 +313,74 @@ export function exportIssueToPdf(
         // Determine page orientation (odd = right, even = left)
         const orientation = page.page_number % 2 === 1 ? 'right' : 'left'
 
-        // Page header - spec format: "PAGE [N] ([orientation])"
-        addText(`PAGE ${page.page_number} (${orientation})`, 12, true)
+        // Check for spread/splash page types
+        const pageType = page.page_type?.toUpperCase()
+
+        // For SPREAD_RIGHT pages, skip the header — panels already rendered under SPREAD_LEFT
+        if (pageType === 'SPREAD_RIGHT') {
+          // Still render this page's panels (they're part of the spread)
+          // but without a separate page header
+          const sortedRightPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
+          if (sortedRightPanels.length > 0) {
+            addText(`— Page ${page.page_number} panels —`, 9, false, 20)
+            addSpace(4)
+          }
+          sortedRightPanels.forEach((panel, panelIndex) => {
+            const displayPanelNumber = panelIndex + 1
+            const shotType = panel.shot_type ? ` (${panel.shot_type.replace('_', ' ').toUpperCase()})` : ''
+            addText(`PANEL ${displayPanelNumber}:${shotType}`, 11, true, 20)
+            if (panel.visual_description) {
+              const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
+              addMarkdownText(capitalizedDesc, 10, 40)
+            }
+            addSpace(6)
+            const sortedCaptions = [...(panel.captions || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const caption of sortedCaptions) {
+              const captionType = caption.caption_type === 'narrative' ? 'CAP' : caption.caption_type === 'location' ? 'LOCATION' : caption.caption_type === 'time' ? 'TIME' : 'CAP'
+              addText(`${captionType}:`, 10, true, 40)
+              addMarkdownText(caption.text, 10, 60)
+              addSpace(4)
+            }
+            const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const dialogue of sortedDialogue) {
+              const characterName = dialogue.speaker_name ? dialogue.speaker_name.toUpperCase() : dialogue.character_id ? (characterMap.get(dialogue.character_id) || 'UNKNOWN').toUpperCase() : 'UNKNOWN'
+              const dialogueSuffix = getDialogueSuffix(dialogue.dialogue_type)
+              let modifierSuffix = ''
+              if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') {
+                modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]`
+              }
+              addText(`${characterName}${dialogueSuffix}${modifierSuffix}:`, 10, true, 40)
+              addMarkdownText(dialogue.text, 10, 60)
+              addSpace(4)
+            }
+            const sortedSfx = [...(panel.sound_effects || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const sfx of sortedSfx) {
+              if (sfx.text) {
+                addMarkdownText(`SFX: **${sfx.text.toUpperCase()}**`, 10, 40)
+                addSpace(4)
+              }
+            }
+            addSpace(12)
+          })
+          addSpace(16)
+          continue
+        }
+
+        // Page header - handle spreads vs. single pages
+        if (pageType === 'SPREAD_LEFT') {
+          const nextPageNum = page.page_number + 1
+          addText(`PAGES ${page.page_number}-${nextPageNum} (DOUBLE-PAGE SPREAD)`, 12, true)
+        } else if (pageType === 'SPLASH') {
+          addText(`PAGE ${page.page_number} (${orientation}, SPLASH)`, 12, true)
+        } else {
+          addText(`PAGE ${page.page_number} (${orientation})`, 12, true)
+        }
+
+        // Artist notes for the page
+        if (page.notes_to_artist) {
+          addText(`*Note to Artist: ${page.notes_to_artist}*`, 9, false, 20)
+        }
+
         addSpace(8)
 
         // Sort panels and restart panel numbering at 1 per page
@@ -375,6 +448,13 @@ export function exportIssueToPdf(
               addMarkdownText(`SFX: **${sfx.text.toUpperCase()}**`, 10, 40)
               addSpace(4)
             }
+          }
+
+          // Artist notes (optional)
+          const includeNotes = options?.includeNotes === true // default false
+          if (includeNotes && panel.notes) {
+            addText(`*Note to Artist: ${panel.notes}*`, 9, false, 40)
+            addSpace(4)
           }
 
           addSpace(12)

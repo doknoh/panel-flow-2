@@ -22,6 +22,7 @@ interface Panel {
   panel_number: number
   visual_description: string | null
   shot_type: string | null
+  notes: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -29,6 +30,9 @@ interface Panel {
 
 interface Page {
   page_number: number
+  page_type?: string | null
+  linked_page_id?: string | null
+  notes_to_artist?: string | null
   panels: Panel[]
 }
 
@@ -111,6 +115,8 @@ export function exportIssueToTxt(
   options?: {
     authorName?: string
     characterNames?: string[]
+    includeSummary?: boolean
+    includeNotes?: boolean
   }
 ) {
   const characterMap = new Map(issue.series.characters.map(c => [c.id, c.name]))
@@ -134,7 +140,8 @@ export function exportIssueToTxt(
   lines.push('')
 
   // Summary - spec format: "TL;DR SUMMARY" heading
-  if (issue.summary) {
+  const includeSummary = options?.includeSummary !== false // default true
+  if (issue.summary && includeSummary) {
     lines.push('TL;DR SUMMARY')
     lines.push(issue.summary)
     lines.push('')
@@ -168,9 +175,61 @@ export function exportIssueToTxt(
       for (const page of sortedPages) {
         // Determine page orientation (odd = right, even = left)
         const orientation = page.page_number % 2 === 1 ? 'right' : 'left'
+        const pageType = page.page_type?.toUpperCase()
 
-        // Page header - spec format: "PAGE [N] ([orientation])"
-        lines.push(`PAGE ${page.page_number} (${orientation})`)
+        // For SPREAD_RIGHT, render panels without a full page header
+        if (pageType === 'SPREAD_RIGHT') {
+          const sortedRightPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
+          if (sortedRightPanels.length > 0) {
+            lines.push(`  — Page ${page.page_number} panels —`)
+            lines.push('')
+          }
+          sortedRightPanels.forEach((panel, panelIndex) => {
+            const displayPanelNumber = panelIndex + 1
+            const shotType = panel.shot_type ? ` ${panel.shot_type.replace('_', ' ').toUpperCase()}.` : ''
+            lines.push(`PANEL ${displayPanelNumber}:${shotType}`)
+            if (panel.visual_description) {
+              const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
+              lines.push(`    ${capitalizedDesc}`)
+            }
+            lines.push('')
+            const sortedCaptions = [...(panel.captions || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const caption of sortedCaptions) {
+              const captionLabel = caption.caption_type === 'narrative' ? 'CAP' : caption.caption_type === 'location' ? 'LOCATION' : caption.caption_type === 'time' ? 'TIME' : caption.caption_type === 'editorial' ? 'EDITORIAL' : 'CAP'
+              lines.push(`    ${captionLabel}: ${caption.text}`)
+            }
+            const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const dialogue of sortedDialogue) {
+              const characterName = dialogue.speaker_name ? dialogue.speaker_name.toUpperCase() : dialogue.character_id ? (characterMap.get(dialogue.character_id) || 'UNKNOWN').toUpperCase() : 'UNKNOWN'
+              const dialogueSuffix = getDialogueSuffix(dialogue.dialogue_type)
+              let modifierSuffix = ''
+              if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') { modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]` }
+              lines.push(`    ${characterName}${dialogueSuffix}${modifierSuffix}: ${dialogue.text}`)
+            }
+            const sortedSfx = [...(panel.sound_effects || [])].sort((a, b) => a.sort_order - b.sort_order)
+            for (const sfx of sortedSfx) {
+              if (sfx.text) { lines.push(`    SFX: ${sfx.text.toUpperCase()}`) }
+            }
+            lines.push('')
+          })
+          continue
+        }
+
+        // Page header - handle spreads vs. single pages
+        if (pageType === 'SPREAD_LEFT') {
+          const nextPageNum = page.page_number + 1
+          lines.push(`PAGES ${page.page_number}-${nextPageNum} (DOUBLE-PAGE SPREAD)`)
+        } else if (pageType === 'SPLASH') {
+          lines.push(`PAGE ${page.page_number} (${orientation}, SPLASH)`)
+        } else {
+          lines.push(`PAGE ${page.page_number} (${orientation})`)
+        }
+
+        // Artist notes for the page
+        if (page.notes_to_artist) {
+          lines.push(`    *Note to Artist: ${page.notes_to_artist}*`)
+        }
+
         lines.push('')
 
         // Sort panels and restart panel numbering at 1 per page
@@ -236,6 +295,12 @@ export function exportIssueToTxt(
             if (sfx.text) {
               lines.push(`    SFX: ${sfx.text.toUpperCase()}`)
             }
+          }
+
+          // Artist notes (optional)
+          const includeNotes = options?.includeNotes === true // default false
+          if (includeNotes && panel.notes) {
+            lines.push(`    *Note to Artist: ${panel.notes}*`)
           }
 
           lines.push('')

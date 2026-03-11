@@ -19,6 +19,7 @@ import ResizablePanels from '@/components/ResizablePanels'
 import { exportIssueToPdf } from '@/lib/exportPdf'
 import { exportIssueToDocx } from '@/lib/exportDocx'
 import { exportIssueToTxt } from '@/lib/exportTxt'
+import ExportModal, { type ExportOptions } from '@/components/ui/ExportModal'
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -486,6 +487,7 @@ function IssueEditorContent({
   const [isRightCollapsed, setIsRightCollapsed] = useState(false)
   const [peekPageId, setPeekPageId] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<'view' | 'navigate' | 'export' | null>(null)
+  const [showExportModal, setShowExportModal] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown on click outside
@@ -1007,64 +1009,33 @@ function IssueEditorContent({
               )}
             </div>
 
-            {/* Export dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setOpenDropdown(openDropdown === 'export' ? null : 'export')}
-                className={`type-meta px-2 md:px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out border ${openDropdown === 'export' ? 'border-[var(--border-strong)] text-[var(--text-primary)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'}`}
-              >
-                EXPORT
-              </button>
-              {openDropdown === 'export' && (
-                <div className="dropdown-panel absolute right-0 top-full mt-1 py-1 w-36 z-50">
-                  <button
-                    onClick={async () => {
-                      setOpenDropdown(null)
-                      try {
-                        exportIssueToPdf(issue)
-                        showToast('PDF exported successfully', 'success')
-                      } catch (error) {
-                        showToast('Failed to export PDF', 'error')
-                        console.error('PDF export error:', error)
-                      }
-                    }}
-                    className="dropdown-item"
-                  >
-                    PDF
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setOpenDropdown(null)
-                      try {
-                        await exportIssueToDocx(issue)
-                        showToast('Doc exported successfully', 'success')
-                      } catch (error) {
-                        showToast('Failed to export Doc', 'error')
-                        console.error('Doc export error:', error)
-                      }
-                    }}
-                    className="dropdown-item"
-                  >
-                    Word Doc
-                  </button>
-                  <button
-                    onClick={() => {
-                      setOpenDropdown(null)
-                      try {
-                        exportIssueToTxt(issue)
-                        showToast('TXT exported successfully', 'success')
-                      } catch (error) {
-                        showToast('Failed to export TXT', 'error')
-                        console.error('TXT export error:', error)
-                      }
-                    }}
-                    className="dropdown-item"
-                  >
-                    Plain Text
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Export button + modal */}
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="type-meta px-2 md:px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+            >
+              EXPORT
+            </button>
+            <ExportModal
+              open={showExportModal}
+              onCancel={() => setShowExportModal(false)}
+              onExport={async (opts: ExportOptions) => {
+                setShowExportModal(false)
+                try {
+                  if (opts.format === 'pdf') {
+                    exportIssueToPdf(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })
+                  } else if (opts.format === 'docx') {
+                    await exportIssueToDocx(issue, opts.includeNotes, { includeSummary: opts.includeSummary })
+                  } else {
+                    exportIssueToTxt(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })
+                  }
+                  showToast(`${opts.format.toUpperCase()} exported successfully`, 'success')
+                } catch (error) {
+                  showToast(`Failed to export ${opts.format.toUpperCase()}`, 'error')
+                  console.error('Export error:', error)
+                }
+              }}
+            />
 
             <ThemeToggle />
           </div>
