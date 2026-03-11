@@ -47,7 +47,7 @@ interface NavigationTreeProps {
   onRefresh: () => Promise<void> | void
 }
 
-function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
+function SortableItem({ id, children, isPartOfMultiDrag }: { id: string; children: React.ReactNode; isPartOfMultiDrag?: boolean }) {
   const {
     attributes,
     listeners,
@@ -60,7 +60,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging || isPartOfMultiDrag ? 0.3 : 1,
     zIndex: isDragging ? 50 : undefined,
   }
 
@@ -1598,6 +1598,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     if (!itemType) return
 
+    // If dragging an item that's not in the selection, clear selection
+    // and drag just that item (standard OS behavior)
+    if (selectedIds.size > 0 && !selectedIds.has(itemId)) {
+      clearSelection()
+    }
+
     let sourceId = ''
     if (itemType === 'page') {
       const loc = findPageLocation(itemId)
@@ -1672,87 +1678,123 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       const sourceLocation = findSceneLocation(activeId)
       if (!sourceLocation) return
 
-      if (overType === 'scene') {
-        // Dropping on another scene
+      // Collect all scene IDs to move (multi-selected or just the dragged one)
+      const sceneIdsToMove = (selectedIds.size > 1 && selectedIds.has(activeId) && selectionType === 'scene')
+        ? (() => {
+            const ids = Array.from(selectedIds)
+            const visibleIds = getVisibleItemIds('scene')
+            ids.sort((a, b) => visibleIds.indexOf(a) - visibleIds.indexOf(b))
+            return ids
+          })()
+        : [activeId]
+
+      if (overType === 'act') {
+        // Move scene(s) to target act
+        for (const id of sceneIdsToMove) {
+          const loc = findSceneLocation(id)
+          if (loc && loc.actId !== overId) {
+            await moveSceneToAct(id, overId)
+          }
+        }
+        if (sceneIdsToMove.length > 1) clearSelection()
+      } else if (overType === 'scene') {
         const overLocation = findSceneLocation(overId)
         if (!overLocation) return
 
-        if (sourceLocation.actId === overLocation.actId) {
-          // Same act - reorder scenes
-          await handleSceneDragEnd(sourceLocation.actId, event)
+        if (sceneIdsToMove.length === 1) {
+          // Single scene — use existing logic
+          if (sourceLocation.actId === overLocation.actId) {
+            await handleSceneDragEnd(sourceLocation.actId, event)
+          } else {
+            await moveSceneToAct(activeId, overLocation.actId)
+          }
         } else {
-          // Different act - move scene to that act, inserting at the hovered scene's position
-          await moveSceneToAct(activeId, overLocation.actId, overId)
-        }
-      } else if (overType === 'act') {
-        // Dropping on an act header - move to that act
-        if (sourceLocation.actId !== overId) {
-          await moveSceneToAct(activeId, overId)
+          // Multi-scene: move all to target act
+          for (const id of sceneIdsToMove) {
+            const loc = findSceneLocation(id)
+            if (loc && loc.actId !== overLocation.actId) {
+              await moveSceneToAct(id, overLocation.actId)
+            }
+          }
+          clearSelection()
         }
       }
     } else if (dragItem.type === 'page') {
       const sourceLocation = findPageLocation(activeId)
       if (!sourceLocation) return
 
+      // Collect all page IDs to move (either multi-selected or just the dragged one)
+      // Sort by visual position to maintain relative order during multi-drop
+      const pageIdsToMove = (selectedIds.size > 1 && selectedIds.has(activeId) && selectionType === 'page')
+        ? (() => {
+            const ids = Array.from(selectedIds)
+            const visibleIds = getVisibleItemIds('page')
+            ids.sort((a, b) => visibleIds.indexOf(a) - visibleIds.indexOf(b))
+            return ids
+          })()
+        : [activeId]
+
       if (overType === 'page') {
-        // Dropping on another page
         const overLocation = findPageLocation(overId)
         if (!overLocation) return
 
-        if (sourceLocation.sceneId === overLocation.sceneId) {
-          // Same scene - reorder pages
-          await handlePageDragEnd(sourceLocation.sceneId, event)
+        if (pageIdsToMove.length === 1) {
+          // Single page — use existing logic
+          if (sourceLocation.sceneId === overLocation.sceneId) {
+            await handlePageDragEnd(sourceLocation.sceneId, event)
+          } else {
+            await movePageToScene(activeId, overLocation.sceneId, overId)
+          }
         } else {
-          // Different scene - move page to that scene, inserting at the hovered page's position
-          await movePageToScene(activeId, overLocation.sceneId, overId)
+          // Multi-page drop — move all to target scene
+          for (const id of pageIdsToMove) {
+            if (id !== overId) {
+              await movePageToScene(id, overLocation.sceneId)
+            }
+          }
+          clearSelection()
         }
       } else if (overType === 'scene') {
-        // Dropping on a scene header - move to that scene (append at end)
-        if (sourceLocation.sceneId !== overId) {
-          await movePageToScene(activeId, overId)
+        if (pageIdsToMove.length === 1) {
+          if (sourceLocation.sceneId !== overId) {
+            await movePageToScene(activeId, overId)
+          }
+        } else {
+          for (const id of pageIdsToMove) {
+            await movePageToScene(id, overId)
+          }
+          clearSelection()
         }
       } else if (overType === 'act') {
-        // Dropping page on an act header
+        // Keep existing act drop logic but apply to all selected pages
         const targetAct = (issue.acts || []).find((a: any) => a.id === overId)
         if (!targetAct) return
 
         const targetScenes = (targetAct.scenes || []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+        let targetSceneId = targetScenes[0]?.id
 
-        if (targetScenes.length > 0) {
-          // Act has scenes - move to the first scene
-          await movePageToScene(activeId, targetScenes[0].id)
-        } else {
-          // Act has no scenes - create one first, then move the page
+        if (!targetSceneId) {
           const supabase = createClient()
           const { data: newScene, error: sceneError } = await supabase
-            .from('scenes')
-            .insert({
-              act_id: overId,
-              title: 'Scene 1',
-              sort_order: 1,
-            })
-            .select()
-            .single()
-
+            .from('scenes').insert({ act_id: overId, title: 'Scene 1', sort_order: 1 }).select().single()
           if (sceneError || !newScene) {
             showToast('Failed to create scene for page move', 'error')
             return
           }
-
-          // Update local state with the new scene
           setIssue((prev: any) => ({
             ...prev,
-            acts: prev.acts.map((a: any) =>
-              a.id === overId
-                ? { ...a, scenes: [...(a.scenes || []), { ...newScene, pages: [] }] }
-                : a
+            acts: prev.acts.map((a: any) => a.id === overId
+              ? { ...a, scenes: [...(a.scenes || []), { ...newScene, pages: [] }] }
+              : a
             ),
           }))
-
-          // Now move the page to the new scene
-          await movePageToScene(activeId, newScene.id)
-          showToast('Created scene and moved page', 'success')
+          targetSceneId = newScene.id
         }
+
+        for (const id of pageIdsToMove) {
+          await movePageToScene(id, targetSceneId)
+        }
+        if (pageIdsToMove.length > 1) clearSelection()
       }
     }
   }
@@ -2046,7 +2088,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                 )
 
                 return (
-                  <SortableItem key={act.id} id={act.id}>
+                  <SortableItem key={act.id} id={act.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(act.id) && activeDragItem.id !== act.id)}>
                     <div>
                       {/* Act Header */}
                       <div
@@ -2120,7 +2162,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                               const scenePageCount = sortedPages.length
 
                               return (
-                                <SortableItem key={scene.id} id={scene.id}>
+                                <SortableItem key={scene.id} id={scene.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(scene.id) && activeDragItem.id !== scene.id)}>
                                   <div>
                                     {/* Scene Header */}
                                     <div
@@ -2193,7 +2235,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                             const isSelected = selectedPageId === page.id
 
                                             return (
-                                              <SortableItem key={page.id} id={page.id}>
+                                              <SortableItem key={page.id} id={page.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(page.id) && activeDragItem.id !== page.id)}>
                                                 <div
                                                   onClick={(e) => {
                                                     if (editingItemId) return
@@ -2353,11 +2395,17 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           <DragOverlay dropAnimation={null}>
             {activeDragItem && (() => {
               const { id, type } = activeDragItem
+              const isMultiDrag = selectedIds.size > 1 && selectedIds.has(id) && selectionType === type
+              const dragCount = isMultiDrag ? selectedIds.size : 1
+
               if (type === 'act') {
                 const act = (issue.acts || []).find((a: any) => a.id === id)
                 return (
-                  <div className="px-3 py-2 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg text-sm font-extrabold uppercase tracking-tight text-[var(--text-primary)]">
+                  <div className="px-3 py-2 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg text-sm font-extrabold uppercase tracking-tight text-[var(--text-primary)] flex items-center gap-2">
                     {act?.name || 'Act'}
+                    {dragCount > 1 && (
+                      <span className="bg-[var(--color-primary)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">{dragCount}</span>
+                    )}
                   </div>
                 )
               }
@@ -2368,14 +2416,20 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                   <div className="px-3 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg flex items-center gap-2">
                     {plotline && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: plotline.color }} />}
                     <span className="type-label text-[var(--text-primary)]">{loc?.scene?.title || 'Scene'}</span>
+                    {dragCount > 1 && (
+                      <span className="bg-[var(--color-primary)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">{dragCount}</span>
+                    )}
                   </div>
                 )
               }
               if (type === 'page') {
                 const pos = pagePositionMap.get(id)
                 return (
-                  <div className="px-3 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg type-label text-[var(--text-primary)] tabular-nums">
+                  <div className="px-3 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg type-label text-[var(--text-primary)] tabular-nums flex items-center gap-2">
                     Page {pos || '?'}
+                    {dragCount > 1 && (
+                      <span className="bg-[var(--color-primary)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">{dragCount}</span>
+                    )}
                   </div>
                 )
               }
