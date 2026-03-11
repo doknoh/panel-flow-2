@@ -10,6 +10,7 @@ import PageTypeSelector from './PageTypeSelector'
 import CommentButton from '../../collaboration/CommentButton'
 import DescriptionAnalysis from '@/components/DescriptionAnalysis'
 import ScriptEditor from '@/components/editor/ScriptEditor'
+import { StickyNote, ChevronDown } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -106,6 +107,7 @@ interface PageEditorProps {
   scenePages?: PageForLinking[]
   onUpdate: () => void
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
+  filedNotes?: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
 }
 
 // Word count helper
@@ -238,7 +240,7 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
   )
 }
 
-export default function PageEditor({ page, pageContext, characters, locations, scenePages = [], onUpdate, setSaveStatus }: PageEditorProps) {
+export default function PageEditor({ page, pageContext, characters, locations, scenePages = [], onUpdate, setSaveStatus, filedNotes }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null) // tracks "shotType-{panelId}" or "captionType-{captionId}"
@@ -260,6 +262,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   const { isOnline, queueChange, pendingChanges: offlinePending } = useOffline()
   const { recordAction, startTextEdit, endTextEdit } = useUndo()
   const { confirm, dialogProps } = useConfirmDialog()
+  const [showFiledNotes, setShowFiledNotes] = useState(false)
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -1312,6 +1315,31 @@ export default function PageEditor({ page, pageContext, characters, locations, s
               <span className="type-separator">{'\/\/'}</span>
               <span>{pageContext.pagePositionInScene} OF {pageContext.scene.total_pages} IN SCENE</span>
             </>
+          )}
+        </div>
+      )}
+      {/* Filed notebook notes */}
+      {filedNotes && filedNotes.length > 0 && (
+        <div className="mb-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-3">
+          <button
+            onClick={() => setShowFiledNotes(!showFiledNotes)}
+            className="type-micro text-[var(--text-secondary)] flex items-center gap-1.5 w-full"
+          >
+            <StickyNote size={12} />
+            <span>{filedNotes.length} NOTEBOOK NOTE{filedNotes.length !== 1 ? 'S' : ''}</span>
+            <ChevronDown size={12} className={`ml-auto transition-transform ${showFiledNotes ? 'rotate-180' : ''}`} />
+          </button>
+          {showFiledNotes && (
+            <div className="mt-2 space-y-2 pt-2 border-t border-[var(--border)]">
+              {filedNotes.map(note => (
+                <div key={note.id} className="pl-3 border-l-2 border-[var(--color-primary)]">
+                  <span className="text-sm font-medium text-[var(--text-primary)]">{note.title}</span>
+                  {note.content && (
+                    <p className="text-sm text-[var(--text-muted)] line-clamp-2 mt-0.5">{note.content}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

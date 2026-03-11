@@ -90,6 +90,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const [isZoomPanelOpen, setIsZoomPanelOpen] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState(issue.title || '')
+  const [filedNotes, setFiledNotes] = useState<Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>>([])
   const titleInputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
   const lastSnapshotRef = useRef<string>('')
@@ -137,6 +138,21 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       }
     }
   }, [issue, selectedPage])
+
+  // Load canvas items filed to pages in this issue
+  useEffect(() => {
+    const loadFiledNotes = async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('canvas_items')
+        .select('id, title, content, item_type, filed_to_page_id, filed_at')
+        .eq('series_id', seriesId)
+        .not('filed_to_page_id', 'is', null)
+        .eq('archived', false)
+      if (data) setFiledNotes(data)
+    }
+    loadFiledNotes()
+  }, [seriesId])
 
   // Focus title input when editing starts
   useEffect(() => {
@@ -390,6 +406,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         setEditedTitle={setEditedTitle}
         titleInputRef={titleInputRef}
         saveTitle={saveTitle}
+        filedNotes={filedNotes}
       />
     </UndoProvider>
   )
@@ -430,6 +447,7 @@ function IssueEditorContent({
   setEditedTitle,
   titleInputRef,
   saveTitle,
+  filedNotes,
 }: {
   issue: Issue
   setIssue: React.Dispatch<React.SetStateAction<Issue>>
@@ -455,6 +473,7 @@ function IssueEditorContent({
   setEditedTitle: (title: string) => void
   titleInputRef: React.RefObject<HTMLInputElement | null>
   saveTitle: () => Promise<void>
+  filedNotes: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
 }) {
   const { undo, redo, canUndo, canRedo } = useUndo()
   const [mobileView, setMobileView] = useState<MobileView>('editor')
@@ -1121,6 +1140,7 @@ function IssueEditorContent({
                     scenePages={currentScenePages}
                     onUpdate={refreshIssue}
                     setSaveStatus={setSaveStatus}
+                    filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
                   />
                 </div>
               </div>
@@ -1188,6 +1208,7 @@ function IssueEditorContent({
                   scenePages={currentScenePages}
                   onUpdate={refreshIssue}
                   setSaveStatus={setSaveStatus}
+                  filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
                 />
               </div>
             </>
