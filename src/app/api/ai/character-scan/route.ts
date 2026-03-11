@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const { characterId, seriesId } = await request.json()
 
-    // 1. Fetch existing character data
+    // 1. Fetch existing character data (including aliases)
     const { data: character } = await supabase
       .from('characters')
       .select('*')
@@ -43,15 +43,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Character not found' }, { status: 404 })
     }
 
-    // 2. Gather all visual descriptions mentioning this character
-    const { data: panels } = await supabase
-      .from('panels')
-      .select('visual_description, page_id')
-      .contains('characters_present', [characterId])
-      .not('visual_description', 'is', null)
-      .limit(50)
+    // 2. Build list of all names to search for (primary + display + aliases)
+    const allNames: string[] = [character.name]
+    if (character.aliases && Array.isArray(character.aliases)) {
+      for (const alias of character.aliases) {
+        if (alias && !allNames.includes(alias)) {
+          allNames.push(alias)
+        }
+      }
+    }
+    if (
+      character.display_name &&
+      !allNames.includes(character.display_name)
+    ) {
+      allNames.push(character.display_name)
+    }
 
-    // 3. Gather all dialogue for this character
+    // 3. Query panels via nested joins, then filter in JS with word-boundary regex
+    const { data: allPanels } = await supabase
+      .from('panels')
+      .select(
+        'visual_description, page_id, page:page_id(scene:scene_id(act:act_id(issue:issue_id(series_id))))'
+      )
+      .not('visual_description', 'is', null)
+
+    const nameRegexes = allNames.map(name => {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      return new RegExp(`\\b${escaped}\\b`, 'i')
+    })
+
+    const matchingPanels = (allPanels || []).filter(p => {
+      const panelSeriesId = (p as any)?.page?.scene?.act?.issue?.series_id
+      if (panelSeriesId !== seriesId) return false
+      const desc = p.visual_description || ''
+      return nameRegexes.some(regex => regex.test(desc))
+    }).slice(0, 50)
+
+    // 4. Gather all dialogue for this character
     const { data: dialogues } = await supabase
       .from('dialogue_blocks')
       .select('text, dialogue_type, delivery_instruction')
@@ -59,7 +87,7 @@ export async function POST(request: NextRequest) {
       .not('text', 'is', null)
       .limit(100)
 
-    const descriptions = (panels || []).map(p => p.visual_description).filter(Boolean)
+    const descriptions = matchingPanels.map(p => p.visual_description).filter(Boolean)
     const dialogueTexts = (dialogues || []).map(d => d.text).filter(Boolean)
 
     if (descriptions.length === 0 && dialogueTexts.length === 0) {
@@ -71,8 +99,11 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 4. Build extraction prompt
-    const prompt = `Analyze these comic script excerpts for the character "${character.name}" (display name: ${character.display_name || character.name}).
+    // 5. Build extraction prompt (includes aliases)
+    const aliasNote = character.aliases?.length
+      ? ` (also known as: ${character.aliases.join(', ')})`
+      : ''
+    const prompt = `Analyze these comic script excerpts for the character "${character.name}"${aliasNote} (display name: ${character.display_name || character.name}).
 
 VISUAL DESCRIPTIONS WHERE THIS CHARACTER APPEARS:
 ${descriptions.join('\n---\n')}
@@ -105,7 +136,7 @@ Rules:
 
 Return a single JSON object with these field names as keys.`
 
-    // 5. Call Claude
+    // 6. Call Claude
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
@@ -116,7 +147,7 @@ Return a single JSON object with these field names as keys.`
     const textBlock = response.content.find(b => b.type === 'text')
     const rawText = textBlock?.type === 'text' ? textBlock.text : null
 
-    // 6. Parse JSON response
+    // 7. Parse JSON response
     let suggestions = null
     if (rawText) {
       try {
