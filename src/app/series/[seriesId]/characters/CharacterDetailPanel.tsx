@@ -19,6 +19,7 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  Check,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
@@ -936,13 +937,326 @@ function AppearancesTab({
 }
 
 // ===========================================================================
-// Placeholder tabs (to be implemented in subsequent tasks)
+// AI Scan Tab
 // ===========================================================================
 
-function PlaceholderTab({ label }: { label: string }) {
+const SCAN_FIELDS: Array<{ key: string; label: string }> = [
+  { key: 'age', label: 'Age' },
+  { key: 'eye_color', label: 'Eye Color' },
+  { key: 'hair_color_style', label: 'Hair Color & Style' },
+  { key: 'height', label: 'Height' },
+  { key: 'build', label: 'Build' },
+  { key: 'skin_tone', label: 'Skin Tone' },
+  { key: 'distinguishing_marks', label: 'Distinguishing Marks' },
+  { key: 'style_wardrobe', label: 'Style / Wardrobe' },
+  { key: 'physical_description', label: 'Physical Description' },
+  { key: 'personality_traits', label: 'Personality Traits' },
+  { key: 'speech_patterns', label: 'Speech Patterns' },
+  { key: 'relationships', label: 'Relationships' },
+  { key: 'arc_notes', label: 'Arc Notes' },
+]
+
+interface ScanResult {
+  suggestions: Record<string, string | null> | null
+  descriptionsAnalyzed: number
+  dialoguesAnalyzed: number
+  message?: string
+}
+
+function AIScanTab({
+  character,
+  seriesId,
+  onCharacterUpdate,
+}: {
+  character: CharacterWithStats
+  seriesId: string
+  onCharacterUpdate: (updated: CharacterWithStats) => void
+}) {
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
+  const [checkedFields, setCheckedFields] = useState<Set<string>>(new Set())
+  const [isApplying, setIsApplying] = useState(false)
+  const { showToast } = useToast()
+
+  // Reset scan results when character changes
+  useEffect(() => {
+    setScanResult(null)
+    setCheckedFields(new Set())
+  }, [character.id])
+
+  const handleScan = useCallback(async () => {
+    setIsScanning(true)
+    setScanResult(null)
+    setCheckedFields(new Set())
+
+    try {
+      const res = await fetch('/api/ai/character-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId: character.id,
+          seriesId,
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Scan failed')
+      }
+
+      const data: ScanResult = await res.json()
+      setScanResult(data)
+
+      // Pre-check fields that are currently empty on the character
+      if (data.suggestions) {
+        const preChecked = new Set<string>()
+        for (const field of SCAN_FIELDS) {
+          const currentVal = (character as any)[field.key]
+          const suggestedVal = data.suggestions[field.key]
+          if (
+            suggestedVal &&
+            (!currentVal ||
+              (typeof currentVal === 'string' && currentVal.trim() === ''))
+          ) {
+            preChecked.add(field.key)
+          }
+        }
+        setCheckedFields(preChecked)
+      }
+    } catch (err) {
+      showToast(
+        'Scan failed: ' +
+          (err instanceof Error ? err.message : 'Unknown error'),
+        'error'
+      )
+    } finally {
+      setIsScanning(false)
+    }
+  }, [character, seriesId, showToast])
+
+  const handleApply = useCallback(async () => {
+    if (!scanResult?.suggestions || checkedFields.size === 0) return
+
+    setIsApplying(true)
+    try {
+      const updates: Record<string, string | null> = {}
+      for (const fieldKey of checkedFields) {
+        const val = scanResult.suggestions[fieldKey]
+        if (val !== undefined) {
+          updates[fieldKey] = val
+        }
+      }
+
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('characters')
+        .update(updates)
+        .eq('id', character.id)
+
+      if (error) throw new Error(error.message)
+
+      onCharacterUpdate({ ...character, ...updates } as CharacterWithStats)
+      showToast(`Applied ${checkedFields.size} field(s)`, 'success')
+    } catch (err) {
+      showToast(
+        'Failed to apply: ' +
+          (err instanceof Error ? err.message : 'Unknown error'),
+        'error'
+      )
+    } finally {
+      setIsApplying(false)
+    }
+  }, [scanResult, checkedFields, character, onCharacterUpdate, showToast])
+
+  const toggleField = (key: string) => {
+    setCheckedFields(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  // Initial state: show scan button
+  if (!scanResult && !isScanning) {
+    return (
+      <div className="text-center py-12">
+        <ScanLine
+          size={32}
+          className="mx-auto mb-3 text-[var(--text-muted)]"
+        />
+        <p className="text-sm text-[var(--text-secondary)] mb-1">
+          AI Manuscript Scan
+        </p>
+        <p className="text-xs text-[var(--text-muted)] mb-4 max-w-[280px] mx-auto">
+          Analyze the manuscript to discover physical details, personality
+          traits, speech patterns, and more for this character.
+        </p>
+        <button
+          onClick={handleScan}
+          className="inline-flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-4 py-2 hover:opacity-90 transition-opacity"
+        >
+          <ScanLine size={14} />
+          Scan Manuscript
+        </button>
+      </div>
+    )
+  }
+
+  // Scanning state
+  if (isScanning) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2
+          size={24}
+          className="animate-spin text-[var(--color-primary)] mb-3"
+        />
+        <p className="text-sm text-[var(--text-secondary)]">
+          Scanning manuscript...
+        </p>
+        <p className="text-xs text-[var(--text-muted)] mt-1">
+          This may take a few seconds.
+        </p>
+      </div>
+    )
+  }
+
+  // No content found
+  if (scanResult && !scanResult.suggestions) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle
+          size={24}
+          className="mx-auto mb-2 text-[var(--text-muted)]"
+        />
+        <p className="text-sm text-[var(--text-muted)]">
+          {scanResult.message ||
+            'No script content found for this character.'}
+        </p>
+        <button
+          onClick={handleScan}
+          className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary)] hover:underline"
+        >
+          <RefreshCw size={12} />
+          Try Again
+        </button>
+      </div>
+    )
+  }
+
+  // Results
+  const suggestions = scanResult!.suggestions!
+  const suggestedFields = SCAN_FIELDS.filter(
+    f => suggestions[f.key] != null && suggestions[f.key] !== ''
+  )
+
   return (
-    <div className="text-center py-12 text-[var(--text-muted)] text-sm">
-      {label} tab coming soon.
+    <div className="space-y-4">
+      {/* Stats line */}
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-[var(--text-muted)]">
+          Analyzed {scanResult!.descriptionsAnalyzed} description
+          {scanResult!.descriptionsAnalyzed !== 1 ? 's' : ''},{' '}
+          {scanResult!.dialoguesAnalyzed} dialogue
+          {scanResult!.dialoguesAnalyzed !== 1 ? 's' : ''}
+        </div>
+        <button
+          onClick={handleScan}
+          className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline"
+        >
+          <RefreshCw size={12} />
+          Rescan
+        </button>
+      </div>
+
+      {suggestedFields.length === 0 ? (
+        <div className="text-center py-8 text-sm text-[var(--text-muted)]">
+          No suggestions found from the manuscript.
+        </div>
+      ) : (
+        <>
+          {/* Suggestion checklist */}
+          <div className="space-y-2">
+            {suggestedFields.map(field => {
+              const currentVal = (character as any)[field.key]
+              const suggestedVal = suggestions[field.key]
+              const isChecked = checkedFields.has(field.key)
+              const isEmpty =
+                !currentVal ||
+                (typeof currentVal === 'string' &&
+                  currentVal.trim() === '')
+
+              return (
+                <div
+                  key={field.key}
+                  className={`px-3 py-2.5 border rounded cursor-pointer transition-colors ${
+                    isChecked
+                      ? 'border-[var(--color-primary)]/50 bg-[var(--color-primary)]/5'
+                      : 'border-[var(--border)] bg-[var(--bg-secondary)]'
+                  }`}
+                  onClick={() => toggleField(field.key)}
+                >
+                  <div className="flex items-start gap-2">
+                    <div
+                      className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                        isChecked
+                          ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                          : 'border-[var(--text-secondary)] bg-[var(--bg-primary)]'
+                      }`}
+                    >
+                      {isChecked && (
+                        <Check size={10} className="text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-xs font-semibold text-[var(--text-primary)]">
+                          {field.label}
+                        </span>
+                        {isEmpty && (
+                          <span className="text-[10px] px-1.5 py-0 rounded bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                            NEW
+                          </span>
+                        )}
+                      </div>
+                      {!isEmpty && (
+                        <p className="text-[10px] text-[var(--text-muted)] line-through mb-0.5 truncate">
+                          {currentVal}
+                        </p>
+                      )}
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        {suggestedVal}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Apply button */}
+          <button
+            onClick={handleApply}
+            disabled={checkedFields.size === 0 || isApplying}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isApplying ? (
+              <>
+                <Loader2 size={12} className="animate-spin" />
+                Applying...
+              </>
+            ) : (
+              <>
+                <Check size={14} />
+                Apply {checkedFields.size} Selected
+              </>
+            )}
+          </button>
+        </>
+      )}
     </div>
   )
 }
@@ -1066,7 +1380,13 @@ export default function CharacterDetailPanel({
           {activeTab === 'appearances' && (
             <AppearancesTab character={character} issues={issues} />
           )}
-          {activeTab === 'scan' && <PlaceholderTab label="AI Scan" />}
+          {activeTab === 'scan' && (
+            <AIScanTab
+              character={character}
+              seriesId={seriesId}
+              onCharacterUpdate={onCharacterUpdate}
+            />
+          )}
         </div>
       </div>
     </>
