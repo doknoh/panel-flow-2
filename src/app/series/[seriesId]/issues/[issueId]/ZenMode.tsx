@@ -302,13 +302,13 @@ export default function ZenMode({
         <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="type-micro text-[var(--text-secondary)]">
-              PAGE {page.page_number} // PANEL {currentPanel.panel_number}
+              PAGE {page.page_number} {'//'}  PANEL {currentPanel.panel_number}
             </span>
             {sceneContext && (
               <>
                 <span className="text-[var(--border)]">/</span>
                 <span className="type-micro text-[var(--text-muted)]">
-                  {sceneContext.actName} // {sceneContext.sceneName}
+                  {sceneContext.actName} {'//'}  {sceneContext.sceneName}
                   {sceneContext.plotlineName && (
                     <span className="text-[var(--color-primary)] ml-1">({sceneContext.plotlineName})</span>
                   )}
