@@ -52,6 +52,7 @@ interface StatsRow {
 // --- Regex Helpers ---
 
 const POSTGRES_REGEX_CHARS = /[.*+?^${}()|[\]\\'/]/g
+const JS_REGEX_CHARS = /[.*+?^${}()|[\]\\]/g
 
 export function escapeRegexForPostgres(name: string): string {
   return name.replace(POSTGRES_REGEX_CHARS, '\\$&')
@@ -69,12 +70,30 @@ export function buildNameMatchCondition(
   return `(${conditions.join(' OR ')})`
 }
 
+/**
+ * Word-boundary check for character name matching in JavaScript.
+ * Prevents false positives (e.g., "ART" matching "PART" or "STARTING").
+ */
+export function nameMatchesText(name: string, text: string): boolean {
+  const escaped = name.replace(JS_REGEX_CHARS, '\\$&')
+  const regex = new RegExp(`\\b${escaped}\\b`, 'i')
+  return regex.test(text)
+}
+
+/**
+ * Escape special characters for Supabase .ilike() filter values.
+ * % and _ are wildcards in SQL LIKE patterns and must be escaped.
+ */
+function escapeForIlike(name: string): string {
+  return name.replace(/%/g, '\\%').replace(/_/g, '\\_')
+}
+
 // --- Stats Computation ---
 
 /**
  * Compute stats for ALL characters in a series using batch queries.
- * Uses Supabase client .or() with .ilike() patterns for panel text matching,
- * then filters to the correct series in JavaScript.
+ * Uses Supabase client .or() with .ilike() patterns for panel text matching
+ * (broad filter), then applies word-boundary matching in JavaScript for accuracy.
  * Returns a map of characterId -> CharacterStats.
  */
 export async function computeAllCharacterStats(
@@ -86,9 +105,11 @@ export async function computeAllCharacterStats(
 
   if (characters.length === 0) return results
 
-  // Collect all unique names across all characters for a single batch query
+  // Build a map of lowercase name -> set of character IDs for O(1) lookup
+  // Also build a list of pre-compiled word-boundary regexes per name
   const allNamesForQuery: string[] = []
   const nameToCharMap = new Map<string, Set<string>>() // lowercase name -> set of character IDs
+  const nameRegexMap = new Map<string, RegExp>() // lowercase name -> word-boundary regex
 
   for (const char of characters) {
     const names = [char.name, ...(char.aliases || [])].filter(Boolean)
@@ -97,18 +118,21 @@ export async function computeAllCharacterStats(
       const lower = name.toLowerCase()
       if (!nameToCharMap.has(lower)) {
         nameToCharMap.set(lower, new Set())
+        // Pre-compile word-boundary regex for this name
+        const escaped = name.replace(JS_REGEX_CHARS, '\\$&')
+        nameRegexMap.set(lower, new RegExp(`\\b${escaped}\\b`, 'i'))
       }
       nameToCharMap.get(lower)!.add(char.id)
     }
   }
 
-  // Build OR conditions for ilike matching
+  // Build OR conditions for ilike matching (broad filter, escaped for safety)
   const orConditions = allNamesForQuery
-    .map(name => `visual_description.ilike.%${name}%`)
+    .map(name => `visual_description.ilike.%${escapeForIlike(name)}%`)
     .join(',')
 
   // Query panels with nested joins to get series/issue/scene context
-  const { data: panelData } = await supabase
+  const { data: panelData, error: panelError } = await supabase
     .from('panels')
     .select(
       'id, visual_description, page_id, page:page_id(id, scene_id, scene:scene_id(id, act_id, act:act_id(id, issue_id, issue:issue_id(id, series_id))))'
@@ -116,16 +140,25 @@ export async function computeAllCharacterStats(
     .or(orConditions)
     .not('visual_description', 'is', null)
 
+  if (panelError) {
+    console.error('[character-stats] Failed to query panels:', panelError.message)
+  }
+
   // Query all dialogue blocks for characters in this series
   const characterIds = characters.map(c => c.id)
-  const { data: dialogueData } = await supabase
+  const { data: dialogueData, error: dialogueError } = await supabase
     .from('dialogue_blocks')
     .select(
       'id, character_id, panel:panel_id(id, page:page_id(id, scene:scene_id(id, act:act_id(id, issue:issue_id(id, series_id)))))'
     )
     .in('character_id', characterIds)
 
-  // Initialize results for all characters
+  if (dialogueError) {
+    console.error('[character-stats] Failed to query dialogues:', dialogueError.message)
+  }
+
+  // Initialize results for all characters (use Set for sceneIds deduplication)
+  const sceneIdSets = new Map<string, Set<string>>()
   for (const char of characters) {
     results.set(char.id, {
       characterId: char.id,
@@ -135,9 +168,10 @@ export async function computeAllCharacterStats(
       sceneIds: [],
       computedAt: new Date().toISOString(),
     })
+    sceneIdSets.set(char.id, new Set())
   }
 
-  // Process panel mentions
+  // Process panel mentions using nameToCharMap for O(names) lookup per panel
   if (panelData && Array.isArray(panelData)) {
     for (const panel of panelData) {
       // Navigate nested joins to find series_id and issue_id
@@ -151,27 +185,31 @@ export async function computeAllCharacterStats(
 
       const issueId = issue.id as string
       const sceneId = scene?.id as string
-      const description = (panel.visual_description || '').toLowerCase()
+      const description = panel.visual_description || ''
 
-      // Check which characters are mentioned in this panel
-      for (const char of characters) {
-        const names = [char.name, ...(char.aliases || [])].filter(Boolean)
-        const mentioned = names.some(name =>
-          description.includes(name.toLowerCase())
-        )
-
-        if (mentioned) {
-          const stats = results.get(char.id)!
-          stats.totalPanels += 1
-
-          if (!stats.issueBreakdown[issueId]) {
-            stats.issueBreakdown[issueId] = { panels: 0, dialogues: 0 }
+      // Use nameToCharMap: for each known name, check word-boundary match
+      // then attribute to all characters that share that name/alias
+      const matchedCharIds = new Set<string>()
+      for (const [lowerName, charIds] of nameToCharMap) {
+        const regex = nameRegexMap.get(lowerName)
+        if (regex && regex.test(description)) {
+          for (const cid of charIds) {
+            matchedCharIds.add(cid)
           }
-          stats.issueBreakdown[issueId].panels += 1
+        }
+      }
 
-          if (sceneId && !stats.sceneIds.includes(sceneId)) {
-            stats.sceneIds.push(sceneId)
-          }
+      for (const charId of matchedCharIds) {
+        const stats = results.get(charId)!
+        stats.totalPanels += 1
+
+        if (!stats.issueBreakdown[issueId]) {
+          stats.issueBreakdown[issueId] = { panels: 0, dialogues: 0 }
+        }
+        stats.issueBreakdown[issueId].panels += 1
+
+        if (sceneId) {
+          sceneIdSets.get(charId)!.add(sceneId)
         }
       }
     }
@@ -203,6 +241,14 @@ export async function computeAllCharacterStats(
     }
   }
 
+  // Convert sceneId Sets to arrays on the final results
+  for (const [charId, sceneSet] of sceneIdSets) {
+    const stats = results.get(charId)
+    if (stats) {
+      stats.sceneIds = Array.from(sceneSet)
+    }
+  }
+
   return results
 }
 
@@ -212,10 +258,14 @@ export async function getCachedStats(
   supabase: SupabaseClient,
   seriesId: string
 ): Promise<Map<string, CharacterStats>> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('character_stats_cache')
     .select('*')
     .eq('series_id', seriesId)
+
+  if (error) {
+    console.error('[character-stats] Failed to read cache:', error.message)
+  }
 
   const results = new Map<string, CharacterStats>()
   if (data) {
@@ -237,8 +287,8 @@ export async function isStatsCacheStale(
   supabase: SupabaseClient,
   seriesId: string
 ): Promise<boolean> {
-  // Get oldest cache entry
-  const { data: cacheData } = await supabase
+  // TTL-based staleness: if oldest cache entry is more than 5 minutes old, recompute
+  const { data: cacheData, error } = await supabase
     .from('character_stats_cache')
     .select('computed_at')
     .eq('series_id', seriesId)
@@ -246,38 +296,16 @@ export async function isStatsCacheStale(
     .limit(1)
     .single()
 
+  if (error && error.code !== 'PGRST116') {
+    // PGRST116 = no rows found, which is expected when no cache exists
+    console.error('[character-stats] Failed to check cache staleness:', error.message)
+  }
+
   if (!cacheData) return true // No cache exists
 
-  // Get recent panels and filter to series in JavaScript
-  const { data: recentPanels } = await supabase
-    .from('panels')
-    .select(
-      'updated_at, page:page_id(scene:scene_id(act:act_id(issue:issue_id(series_id))))'
-    )
-    .order('updated_at', { ascending: false })
-    .limit(100)
-
-  if (!recentPanels || recentPanels.length === 0) {
-    return false // No panels exist, cache is fine
-  }
-
-  // Filter to panels belonging to this series
-  const seriesPanels = recentPanels.filter(p => {
-    const page = (p as any).page
-    const scene = page?.scene
-    const act = scene?.act
-    const issue = act?.issue
-    return issue?.series_id === seriesId
-  })
-
-  if (seriesPanels.length === 0) {
-    return false // No panels for this series
-  }
-
-  // Compare latest panel update with cache timestamp
-  const latestUpdate = new Date(seriesPanels[0].updated_at).getTime()
   const cacheTime = new Date(cacheData.computed_at).getTime()
-  return latestUpdate > cacheTime
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000
+  return cacheTime < fiveMinutesAgo
 }
 
 export async function writeStatsCache(
@@ -285,13 +313,6 @@ export async function writeStatsCache(
   seriesId: string,
   stats: Map<string, CharacterStats>
 ): Promise<void> {
-  // Delete existing cache for this series
-  await supabase
-    .from('character_stats_cache')
-    .delete()
-    .eq('series_id', seriesId)
-
-  // Insert new cache rows
   const rows = Array.from(stats.values()).map(s => ({
     character_id: s.characterId,
     series_id: seriesId,
@@ -303,7 +324,36 @@ export async function writeStatsCache(
   }))
 
   if (rows.length > 0) {
-    await supabase.from('character_stats_cache').insert(rows)
+    // Atomic upsert using UNIQUE(character_id) constraint
+    const { error: upsertError } = await supabase
+      .from('character_stats_cache')
+      .upsert(rows, { onConflict: 'character_id' })
+
+    if (upsertError) {
+      console.error('[character-stats] Failed to upsert cache:', upsertError.message)
+    }
+
+    // Remove stale rows for characters that no longer exist in this series
+    const currentCharIds = rows.map(r => r.character_id)
+    const { error: cleanupError } = await supabase
+      .from('character_stats_cache')
+      .delete()
+      .eq('series_id', seriesId)
+      .not('character_id', 'in', `(${currentCharIds.join(',')})`)
+
+    if (cleanupError) {
+      console.error('[character-stats] Failed to clean stale cache rows:', cleanupError.message)
+    }
+  } else {
+    // No characters: clear all cache rows for this series
+    const { error } = await supabase
+      .from('character_stats_cache')
+      .delete()
+      .eq('series_id', seriesId)
+
+    if (error) {
+      console.error('[character-stats] Failed to clear empty cache:', error.message)
+    }
   }
 }
 
