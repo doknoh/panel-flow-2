@@ -529,6 +529,7 @@ export interface AIContext {
     id: string
     name: string
     display_name: string
+    aliases?: string[]
     physical_description?: string
     speech_patterns?: string
     relationships?: string
@@ -652,7 +653,10 @@ export function buildContextString(context: AIContext): string {
   if (context.characters && context.characters.length > 0) {
     parts.push(`## Characters (${context.characters.length})`)
     for (const char of context.characters) {
-      let line = `- **${char.display_name}** (${char.name}) [id:${char.id}]`
+      const aliasStr = char.aliases && char.aliases.length > 0
+        ? ` aka ${char.aliases.join(', ')}`
+        : ''
+      let line = `- **${char.display_name}** (${char.name}${aliasStr}) [id:${char.id}]`
       if (char.physical_description) line += ` — ${char.physical_description}`
       parts.push(line)
       if (char.speech_patterns) parts.push(`  Speech: ${char.speech_patterns}`)

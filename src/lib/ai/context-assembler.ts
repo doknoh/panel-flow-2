@@ -118,16 +118,22 @@ export async function assembleWriterContext(
     const { data: characters } = await withTimeout(
       supabase
         .from('characters')
-        .select('display_name')
+        .select('display_name, aliases')
         .eq('series_id', seriesId)
         .limit(30),
       DB_TIMEOUT,
     )
 
     if (characters && (characters as unknown[]).length > 0) {
-      const charList = characters as Array<{ display_name: string }>
+      const charList = characters as Array<{ display_name: string; aliases?: string[] }>
       seriesContext.characterCount = charList.length
-      seriesContext.characterNames = charList.map(c => c.display_name)
+      seriesContext.characterNames = charList.map(c => {
+        const aliases = (c.aliases || []).filter(Boolean)
+        if (aliases.length > 0) {
+          return `${c.display_name} (aka ${aliases.join(', ')})`
+        }
+        return c.display_name
+      })
     }
 
     // Fetch plotline names
@@ -238,7 +244,7 @@ export async function assembleContext(
   const { data: characters } = await withTimeout(
     supabase
       .from('characters')
-      .select('id, name, display_name, physical_description, speech_patterns, relationships, arc_notes')
+      .select('id, name, display_name, aliases, physical_description, speech_patterns, relationships, arc_notes')
       .eq('series_id', seriesId)
       .limit(30),
     DB_TIMEOUT,
@@ -246,13 +252,14 @@ export async function assembleContext(
 
   if (characters && (characters as unknown[]).length > 0) {
     context.characters = (characters as Array<{
-      id: string; name: string; display_name: string;
+      id: string; name: string; display_name: string; aliases?: string[];
       physical_description?: string; speech_patterns?: string;
       relationships?: string; arc_notes?: string
     }>).map(c => ({
       id: c.id,
       name: c.name,
       display_name: c.display_name,
+      aliases: (c.aliases || []).filter(Boolean).length > 0 ? c.aliases!.filter(Boolean) : undefined,
       physical_description: c.physical_description || undefined,
       speech_patterns: c.speech_patterns || undefined,
       relationships: c.relationships || undefined,
