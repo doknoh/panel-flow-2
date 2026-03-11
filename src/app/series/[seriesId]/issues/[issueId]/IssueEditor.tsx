@@ -1407,8 +1407,8 @@ function IssueEditorContent({
                       <span className="text-xs font-semibold text-[var(--text-secondary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
                         Panel {panel.panel_number}
                       </span>
-                      {panel.shot_type && (
-                        <span className="text-[10px] text-[var(--text-muted)]">{panel.shot_type}</span>
+                      {panel.camera && (
+                        <span className="text-[10px] text-[var(--text-muted)]">{panel.camera}</span>
                       )}
                     </div>
                     {panel.visual_description && (

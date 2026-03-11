@@ -10,8 +10,8 @@ interface Panel {
   panel_number: number
   sort_order: number
   visual_description: string | null
-  shot_type: string | null
-  notes: string | null
+  camera: string | null
+  internal_notes: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -22,7 +22,7 @@ interface DialogueBlock {
   character_id: string | null
   text: string | null
   dialogue_type: string | null
-  modifier: string | null
+  delivery_instruction: string | null
   sort_order: number
   character?: { id: string; name: string } | null
 }
@@ -242,7 +242,7 @@ export default function ZenMode({
         .from('panels')
         .update({
           visual_description: currentPanel.visual_description,
-          notes: currentPanel.notes,
+          internal_notes: currentPanel.internal_notes,
         })
         .eq('id', currentPanel.id)
 
@@ -258,7 +258,7 @@ export default function ZenMode({
     }
   }
 
-  const updatePanelField = (field: 'visual_description' | 'notes', value: string) => {
+  const updatePanelField = (field: 'visual_description' | 'internal_notes', value: string) => {
     setPanels(prev => prev.map((p, i) =>
       i === currentPanelIndex ? { ...p, [field]: value } : p
     ))
@@ -267,12 +267,12 @@ export default function ZenMode({
 
   if (!currentPanel) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="text-white text-center">
-          <p className="text-xl mb-4">No panels on this page</p>
+      <div className="fixed inset-0 bg-[var(--bg-primary)] z-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-[var(--text-secondary)] mb-4">No panels on this page</p>
           <button
             onClick={onExit}
-            className="text-sm text-[var(--text-muted)] hover:text-white"
+            className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             Press Escape to exit
           </button>
@@ -284,53 +284,55 @@ export default function ZenMode({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 bg-black z-50 flex flex-col overflow-hidden"
+      className="fixed inset-0 bg-[var(--bg-primary)] z-50 flex flex-col overflow-hidden"
     >
-      {/* Always-visible X button in top right */}
+      {/* Close button */}
       <button
         onClick={onExit}
-        className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-white transition-colors text-xl"
+        className="absolute top-4 right-4 z-20 w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         title="Exit Zen Mode (Esc)"
       >
-        ×
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
 
-      {/* Minimal header - fades on scroll/focus */}
-      <div className="absolute top-0 left-0 right-16 p-4 flex items-center justify-between text-[var(--text-muted)] text-sm opacity-50 hover:opacity-100 transition-opacity z-10">
-        <div className="flex items-center gap-4">
-          <span className="font-mono">
-            Page {page.page_number} • Panel {currentPanel.panel_number}
-          </span>
-          <span className="text-[var(--text-secondary)]">{pagePosition}</span>
-          {sceneContext && (
-            <span className="text-[var(--text-muted)] text-xs">
-              {sceneContext.actName} / {sceneContext.sceneName}
-              {sceneContext.plotlineName && (
-                <span className="text-[var(--color-primary)] ml-1">({sceneContext.plotlineName})</span>
-              )}
-              {sceneContext.pagePositionInScene != null && sceneContext.totalPagesInScene != null && (
-                <span className="ml-1">
-                  [{sceneContext.pagePositionInScene}/{sceneContext.totalPagesInScene} in scene]
-                </span>
-              )}
+      {/* Minimal header bar */}
+      <div className="border-b border-[var(--border)] bg-[var(--bg-primary)]">
+        <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="type-micro text-[var(--text-secondary)]">
+              PAGE {page.page_number} // PANEL {currentPanel.panel_number}
             </span>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-          {hasChanges && (
-            <span className="text-[var(--color-warning)]">Unsaved</span>
-          )}
-          {isSaving && (
-            <span className="text-[var(--color-primary)]">Saving...</span>
-          )}
+            {sceneContext && (
+              <>
+                <span className="text-[var(--border)]">/</span>
+                <span className="type-micro text-[var(--text-muted)]">
+                  {sceneContext.actName} // {sceneContext.sceneName}
+                  {sceneContext.plotlineName && (
+                    <span className="text-[var(--color-primary)] ml-1">({sceneContext.plotlineName})</span>
+                  )}
+                </span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {hasChanges && (
+              <span className="type-micro text-[var(--color-warning)]">UNSAVED</span>
+            )}
+            {isSaving && (
+              <span className="type-micro text-[var(--color-primary)]">SAVING...</span>
+            )}
+            <span className="type-micro text-[var(--text-muted)]">{pagePosition}</span>
+          </div>
         </div>
       </div>
 
-      {/* Main writing area - centered with typewriter scroll */}
-      <div className="flex-1 flex items-center justify-center px-8 py-20 overflow-y-auto">
-        <div className="w-full max-w-2xl space-y-8">
-          {/* Panel indicator */}
-          <div className="flex items-center justify-center gap-2">
+      {/* Main writing area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-6 py-12">
+          {/* Panel indicator dots */}
+          <div className="flex items-center justify-center gap-1.5 mb-10">
             {panels.map((_, i) => (
               <button
                 key={i}
@@ -341,10 +343,10 @@ export default function ZenMode({
                     setCurrentPanelIndex(i)
                   }
                 }}
-                className={`w-2 h-2 rounded-full transition-all ${
+                className={`h-1.5 rounded-full transition-all ${
                   i === currentPanelIndex
-                    ? 'w-8 bg-white'
-                    : 'bg-[var(--bg-tertiary)] hover:bg-[var(--text-muted)]'
+                    ? 'w-6 bg-[var(--color-primary)]'
+                    : 'w-1.5 bg-[var(--border)] hover:bg-[var(--text-muted)]'
                 }`}
               />
             ))}
@@ -352,37 +354,35 @@ export default function ZenMode({
 
           {/* Characters present in current panel */}
           {(() => {
-            // Collect character names from dialogue blocks in this panel
             const charIds = new Set<string>()
             for (const d of currentPanel.dialogue_blocks) {
               if (d.character?.id) charIds.add(d.character.id)
               else if (d.character_id) charIds.add(d.character_id)
             }
-            // Resolve names from the characters list
             const presentChars = characters.filter(c => charIds.has(c.id))
             if (presentChars.length === 0) return null
             return (
-              <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
-                <span className="uppercase tracking-wider text-[10px]">Characters:</span>
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <span className="type-micro text-[var(--text-muted)]">CHARACTERS:</span>
                 {presentChars.map(c => (
-                  <span key={c.id} className="text-[var(--color-primary)] font-medium">{c.name}</span>
+                  <span key={c.id} className="type-micro text-[var(--color-primary)]">{c.name.toUpperCase()}</span>
                 ))}
               </div>
             )
           })()}
 
-          {/* Previous panel context (faded) */}
+          {/* Previous panel context */}
           {currentPanelIndex > 0 && panels[currentPanelIndex - 1] && (
-            <div className="opacity-20 text-sm text-[var(--text-muted)] italic border-b border-[var(--border)] pb-4 line-clamp-3">
-              <span className="text-xs uppercase tracking-wider block mb-1">Panel {panels[currentPanelIndex - 1].panel_number}</span>
-              {panels[currentPanelIndex - 1].visual_description || 'No description'}
+            <div className="opacity-30 text-sm text-[var(--text-muted)] mb-8 pb-6 border-b border-[var(--border)]">
+              <span className="type-micro block mb-2">PANEL {panels[currentPanelIndex - 1].panel_number}</span>
+              <p className="line-clamp-2 leading-relaxed">{panels[currentPanelIndex - 1].visual_description || 'No description'}</p>
             </div>
           )}
 
-          {/* Visual Description */}
-          <div className="space-y-2">
-            <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
-              Visual Description
+          {/* Visual Description — main writing surface */}
+          <div className="mb-8">
+            <label className="type-micro text-[var(--text-muted)] block mb-3">
+              VISUAL DESCRIPTION
             </label>
             <ScriptEditor
               variant="description"
@@ -393,34 +393,34 @@ export default function ZenMode({
             />
           </div>
 
-          {/* Existing dialogue (read-only in zen mode for focus) */}
+          {/* Existing dialogue (read-only reference) */}
           {currentPanel.dialogue_blocks.length > 0 && (
-            <div className="space-y-2 border-t border-[var(--border)] pt-6">
-              <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
-                Dialogue
+            <div className="mb-8 pt-6 border-t border-[var(--border)]">
+              <label className="type-micro text-[var(--text-muted)] block mb-3">
+                DIALOGUE
               </label>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {currentPanel.dialogue_blocks.map((d) => (
-                  <div key={d.id} className="text-[var(--text-secondary)]">
-                    <span className="text-[var(--color-primary)] font-medium">
-                      {d.character?.name || 'Unknown'}:
+                  <div key={d.id} className="pl-4 border-l-2 border-[var(--color-primary)]/30">
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">
+                      {(d.character?.name || 'Unknown').toUpperCase()}:
                     </span>{' '}
-                    <span className="italic">{d.text}</span>
+                    <span className="text-sm text-[var(--text-secondary)] leading-relaxed">{d.text}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Captions */}
+          {/* Captions (read-only reference) */}
           {currentPanel.captions.length > 0 && (
-            <div className="space-y-2 border-t border-[var(--border)] pt-6">
-              <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
-                Captions
+            <div className="mb-8 pt-6 border-t border-[var(--border)]">
+              <label className="type-micro text-[var(--text-muted)] block mb-3">
+                CAPTIONS
               </label>
               <div className="space-y-2">
                 {currentPanel.captions.map((c) => (
-                  <div key={c.id} className="text-[var(--color-warning)] italic">
+                  <div key={c.id} className="pl-4 border-l-2 border-[var(--color-warning)]/30 text-sm text-[var(--text-secondary)] italic">
                     {c.text}
                   </div>
                 ))}
@@ -428,52 +428,41 @@ export default function ZenMode({
             </div>
           )}
 
-          {/* Notes */}
-          <div className="space-y-2 border-t border-[var(--border)] pt-6">
-            <label className="block text-[var(--text-muted)] text-xs uppercase tracking-wider">
-              Notes (Internal)
+          {/* Internal Notes */}
+          <div className="pt-6 border-t border-[var(--border)]">
+            <label className="type-micro text-[var(--text-muted)] block mb-3">
+              INTERNAL NOTES
             </label>
             <ScriptEditor
               variant="notes"
-              initialContent={currentPanel.notes || ''}
-              onUpdate={(md) => updatePanelField('notes', md)}
+              initialContent={currentPanel.internal_notes || ''}
+              onUpdate={(md) => updatePanelField('internal_notes', md)}
               placeholder="Internal notes..."
               className="zen-editor zen-editor--notes"
             />
           </div>
 
-          {/* Next panel context (faded) */}
+          {/* Next panel context */}
           {currentPanelIndex < panels.length - 1 && panels[currentPanelIndex + 1] && (
-            <div className="opacity-20 text-sm text-[var(--text-muted)] italic border-t border-[var(--border)] pt-4 line-clamp-3">
-              <span className="text-xs uppercase tracking-wider block mb-1">Panel {panels[currentPanelIndex + 1].panel_number}</span>
-              {panels[currentPanelIndex + 1].visual_description || 'No description'}
+            <div className="opacity-30 text-sm text-[var(--text-muted)] mt-8 pt-6 border-t border-[var(--border)]">
+              <span className="type-micro block mb-2">PANEL {panels[currentPanelIndex + 1].panel_number}</span>
+              <p className="line-clamp-2 leading-relaxed">{panels[currentPanelIndex + 1].visual_description || 'No description'}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom bar with word count and hints */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between text-[var(--text-secondary)] text-xs opacity-50 hover:opacity-100 transition-opacity">
-        {/* Session word count */}
-        <div className="text-[var(--text-muted)] font-mono">
-          +{sessionWordCount} words this session
-        </div>
-        <div className="flex items-center gap-6">
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">Tab</kbd> Next panel
+      {/* Bottom status bar */}
+      <div className="border-t border-[var(--border)] bg-[var(--bg-primary)]">
+        <div className="max-w-2xl mx-auto px-6 py-2.5 flex items-center justify-between">
+          <span className="type-micro text-[var(--text-muted)]">
+            +{sessionWordCount} WORDS THIS SESSION
           </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">Shift+Tab</kbd> Prev panel
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">⌘⇧→</kbd> Next page
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">⌘⇧←</kbd> Prev page
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded">Esc</kbd> Exit
-          </span>
+          <div className="flex items-center gap-4 type-micro text-[var(--text-muted)]">
+            <span><kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-[10px]">Tab</kbd> Next</span>
+            <span><kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-[10px]">Shift+Tab</kbd> Prev</span>
+            <span><kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-[10px]">Esc</kbd> Exit</span>
+          </div>
         </div>
       </div>
     </div>

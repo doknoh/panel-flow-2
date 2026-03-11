@@ -137,8 +137,9 @@ export default function VersionHistoryClient({
             id,
             panel_number,
             visual_description,
-            shot_type,
-            notes,
+            camera,
+            notes_to_artist,
+            internal_notes,
             dialogue_blocks (id, character_id, dialogue_type, text, sort_order),
             captions (id, caption_type, text, sort_order),
             sound_effects (id, text, sort_order)

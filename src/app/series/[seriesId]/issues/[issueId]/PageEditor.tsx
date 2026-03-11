@@ -45,7 +45,7 @@ interface DialogueBlock {
   dialogue_type: string
   text: string
   sort_order: number
-  modifier: string | null
+  delivery_instruction: string | null
 }
 
 interface Caption {
@@ -65,8 +65,9 @@ interface Panel {
   id: string
   panel_number: number
   visual_description: string | null
-  shot_type: string | null
-  notes: string | null
+  camera: string | null
+  notes_to_artist: string | null
+  internal_notes: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -344,8 +345,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           operation: 'update',
           data: {
             visual_description: panel.visual_description,
-            shot_type: panel.shot_type,
-            notes: panel.notes,
+            camera: panel.camera,
+            notes_to_artist: panel.notes_to_artist,
+            internal_notes: panel.internal_notes,
           },
           filter: { column: 'id', value: panel.id },
         })
@@ -363,8 +365,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
         .from('panels')
         .update({
           visual_description: panel.visual_description,
-          shot_type: panel.shot_type,
-          notes: panel.notes,
+          camera: panel.camera,
+          notes_to_artist: panel.notes_to_artist,
+          internal_notes: panel.internal_notes,
         })
         .eq('id', panel.id)
     )
@@ -495,8 +498,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
       .from('panels')
       .update({
         visual_description: panel.visual_description,
-        shot_type: panel.shot_type,
-        notes: panel.notes,
+        camera: panel.camera,
+        notes_to_artist: panel.notes_to_artist,
+        internal_notes: panel.internal_notes,
       })
       .eq('id', panel.id)
 
@@ -520,8 +524,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
       id: tempId,
       panel_number: panelNumber,
       visual_description: '',
-      shot_type: null,
-      notes: null,
+      camera: null,
+      notes_to_artist: null,
+      internal_notes: null,
       dialogue_blocks: [],
       captions: [],
       sound_effects: [],
@@ -637,7 +642,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   }
 
   // Handle other panel field blur (notes, etc.) with undo recording
-  const handleOtherFieldBlur = (panel: Panel, field: 'notes' | 'shot_type') => {
+  const handleOtherFieldBlur = (panel: Panel, field: 'notes_to_artist' | 'camera') => {
     endTextEdit(panel.id, field, panel[field] || null)
     handlePanelBlur(panel)
   }
@@ -734,7 +739,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
       dialogue_type: 'dialogue',
       text: '',
       sort_order: sortOrder,
-      modifier: null,
+      delivery_instruction: null,
     }
     setPanels(prev => prev.map(p =>
       p.id === panelId
@@ -873,7 +878,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           text: dataForUndo.text,
           sort_order: dataForUndo.sort_order,
           character_id: dataForUndo.character_id,
-          modifier: dataForUndo.modifier,
+          delivery_instruction: dataForUndo.delivery_instruction,
         },
         description: 'Delete dialogue',
       })
@@ -1195,8 +1200,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
         data: {
           panel_number: panel.panel_number,
           visual_description: panel.visual_description,
-          shot_type: panel.shot_type,
-          notes: panel.notes,
+          camera: panel.camera,
+          notes_to_artist: panel.notes_to_artist,
+          internal_notes: panel.internal_notes,
           sort_order: panel.panel_number,
           dialogue_blocks: panel.dialogue_blocks || [],
           captions: panel.captions || [],
@@ -1467,8 +1473,8 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                 onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
                                 className="type-micro px-2 py-1 bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center gap-1 hover:bg-[var(--bg-secondary)] transition-colors"
                               >
-                                {panel.shot_type
-                                  ? { wide: 'WIDE', medium: 'MEDIUM', close: 'CLOSE-UP', extreme_close: 'EXTREME CU', bird: "BIRD'S EYE", worm: "WORM'S EYE", pov: 'POV' }[panel.shot_type] || 'SHOT TYPE'
+                                {panel.camera
+                                  ? { wide: 'WIDE', medium: 'MEDIUM', close: 'CLOSE-UP', extreme_close: 'EXTREME CU', bird: "BIRD'S EYE", worm: "WORM'S EYE", pov: 'POV' }[panel.camera] || 'SHOT TYPE'
                                   : 'SHOT TYPE'}
                                 <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                               </button>
@@ -1487,12 +1493,12 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                     <button
                                       key={opt.value}
                                       onClick={() => {
-                                        updatePanelField(panel.id, 'shot_type', opt.value)
+                                        updatePanelField(panel.id, 'camera', opt.value)
                                         setOpenDropdown(null)
                                       }}
-                                      className={`dropdown-item ${panel.shot_type === opt.value || (!panel.shot_type && opt.value === '') ? 'active' : ''}`}
+                                      className={`dropdown-item ${panel.camera === opt.value || (!panel.camera && opt.value === '') ? 'active' : ''}`}
                                     >
-                                      {(panel.shot_type === opt.value || (!panel.shot_type && opt.value === '')) && <span className="mr-1.5 text-xs">✓</span>}
+                                      {(panel.camera === opt.value || (!panel.camera && opt.value === '')) && <span className="mr-1.5 text-xs">✓</span>}
                                       {opt.label}
                                     </button>
                                   ))}
@@ -1560,7 +1566,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                               />
                               <DescriptionAnalysis
                                 visualDescription={panel.visual_description || ''}
-                                shotType={panel.shot_type}
+                                shotType={panel.camera}
                               />
                             </div>
 
@@ -1881,18 +1887,18 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                               <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
                               <ScriptEditor
                                 variant="notes"
-                                initialContent={panel.notes || ''}
+                                initialContent={panel.notes_to_artist || ''}
                                 onUpdate={(md) => {
-                                  updatePanelField(panel.id, 'notes', md)
+                                  updatePanelField(panel.id, 'notes_to_artist', md)
                                 }}
-                                onFocus={() => handleTextFieldFocus(panel.id, 'notes', panel.notes)}
+                                onFocus={() => handleTextFieldFocus(panel.id, 'notes_to_artist', panel.notes_to_artist)}
                                 onBlur={(md) => {
                                   // Update with latest text, then end text edit
-                                  if (md !== panel.notes) {
-                                    updatePanelField(panel.id, 'notes', md)
+                                  if (md !== panel.notes_to_artist) {
+                                    updatePanelField(panel.id, 'notes_to_artist', md)
                                   }
                                   setTimeout(() => handleOtherFieldBlur(
-                                    { ...panel, notes: md }, 'notes'
+                                    { ...panel, notes_to_artist: md }, 'notes_to_artist'
                                   ), 0)
                                 }}
                                 placeholder="Additional notes for the artist..."

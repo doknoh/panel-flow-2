@@ -52,8 +52,8 @@ export default function ZoomPanel({
     levels.push({
       type: 'series',
       id: seriesId,
-      label: seriesTitle,
-      icon: '📚',
+      label: seriesTitle.toUpperCase(),
+      icon: 'SER',
       isActive: false,
       depth: 0,
     })
@@ -62,8 +62,8 @@ export default function ZoomPanel({
     levels.push({
       type: 'issue',
       id: issue.id,
-      label: `Issue #${issue.number}${issue.title ? `: ${issue.title}` : ''}`,
-      icon: '📖',
+      label: `ISSUE #${issue.number}${issue.title ? ` — ${issue.title}` : ''}`,
+      icon: 'ISS',
       isActive: false,
       depth: 1,
     })
@@ -92,11 +92,11 @@ export default function ZoomPanel({
       levels.push({
         type: 'act',
         id: act.id,
-        label: act.name || `Act ${act.sort_order + 1}`,
-        icon: '🎭',
+        label: (act.name || `Act ${act.sort_order + 1}`).toUpperCase(),
+        icon: 'ACT',
         isActive: isCurrentAct,
         depth: 2,
-        metadata: `${(act.scenes || []).length} scene${(act.scenes || []).length !== 1 ? 's' : ''}`,
+        metadata: `${(act.scenes || []).length} sc`,
       })
 
       // Add scenes for current act (or all if expanded)
@@ -106,11 +106,11 @@ export default function ZoomPanel({
           levels.push({
             type: 'scene',
             id: scene.id,
-            label: scene.name || 'Untitled Scene',
-            icon: '🎬',
+            label: (scene.name || 'Untitled Scene').toUpperCase(),
+            icon: 'SC',
             isActive: isCurrentScene,
             depth: 3,
-            metadata: `${(scene.pages || []).length} page${(scene.pages || []).length !== 1 ? 's' : ''}`,
+            metadata: `${(scene.pages || []).length} pg`,
           })
 
           // Add pages for current scene
@@ -127,11 +127,11 @@ export default function ZoomPanel({
               levels.push({
                 type: 'page',
                 id: page.id,
-                label: `Page ${pageNum}${pageTypeLabel}`,
-                icon: '📄',
+                label: `PAGE ${pageNum}${pageTypeLabel}`,
+                icon: 'PG',
                 isActive: isCurrentPage,
                 depth: 4,
-                metadata: isLeftPage ? '(L)' : '(R)',
+                metadata: isLeftPage ? 'L' : 'R',
                 onClick: () => onSelectPage(page.id),
               })
 
@@ -144,18 +144,19 @@ export default function ZoomPanel({
                   const hasCaptions = (panel.captions || []).length > 0
 
                   let panelMeta = ''
-                  if (hasDialogue && hasCaptions) panelMeta = '💬📝'
-                  else if (hasDialogue) panelMeta = '💬'
-                  else if (hasCaptions) panelMeta = '📝'
-                  else panelMeta = '🖼️'
+                  if (hasDialogue && hasCaptions) panelMeta = 'D+C'
+                  else if (hasDialogue) panelMeta = 'DLG'
+                  else if (hasCaptions) panelMeta = 'CAP'
+                  else panelMeta = 'VIS'
 
                   levels.push({
                     type: 'panel',
                     id: panel.id,
-                    label: `Panel ${i + 1}`,
-                    icon: panelMeta,
+                    label: `PANEL ${i + 1}`,
+                    icon: 'PN',
                     isActive: isCurrentPanel,
                     depth: 5,
+                    metadata: panelMeta,
                   })
                 }
               }
@@ -193,47 +194,41 @@ export default function ZoomPanel({
   const nextPage = currentPageIndex < siblingPages.length - 1 ? siblingPages[currentPageIndex + 1] : null
 
   return (
-    <div className="fixed right-4 top-20 z-50 w-72 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl overflow-hidden">
+    <div className="fixed right-4 top-20 z-50 w-72 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg shadow-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[var(--bg-tertiary)] border-b border-[var(--border)]">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">📍</span>
-          <span className="font-medium text-sm">Context Ladder</span>
-        </div>
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[var(--border)]">
+        <span className="type-micro text-[var(--text-secondary)]">CONTEXT LADDER</span>
         <button
           onClick={onClose}
-          className="p-1 rounded hover:bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
       {/* Hierarchy Tree */}
-      <div className="max-h-80 overflow-y-auto py-2">
+      <div className="max-h-80 overflow-y-auto py-1">
         {hierarchy.map((level, index) => (
           <div
             key={`${level.type}-${level.id}-${index}`}
             className={`
-              flex items-center gap-2 px-3 py-1.5 text-sm
-              ${level.isActive ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'}
-              ${level.onClick ? 'cursor-pointer hover:bg-[var(--bg-tertiary)]' : ''}
+              flex items-center gap-2 px-3 py-1.5
+              ${level.isActive ? 'bg-[var(--color-primary)]/10 border-l-2 border-[var(--color-primary)]' : 'border-l-2 border-transparent'}
+              ${level.onClick ? 'cursor-pointer hover:bg-[var(--bg-secondary)]' : ''}
             `}
-            style={{ paddingLeft: `${12 + level.depth * 16}px` }}
+            style={{ paddingLeft: `${8 + level.depth * 14}px` }}
             onClick={level.onClick}
           >
-            {/* Connector line */}
-            {level.depth > 0 && (
-              <span className="text-[var(--text-muted)] opacity-30">└</span>
-            )}
-            <span>{level.icon}</span>
-            <span className="truncate flex-1">{level.label}</span>
+            <span className={`type-micro shrink-0 w-6 text-center ${level.isActive ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)]'}`}>
+              {level.icon}
+            </span>
+            <span className={`text-xs truncate flex-1 ${level.isActive ? 'text-[var(--color-primary)] font-medium' : 'text-[var(--text-secondary)]'}`}>
+              {level.label}
+            </span>
             {level.metadata && (
-              <span className="text-xs text-[var(--text-muted)] shrink-0">{level.metadata}</span>
-            )}
-            {level.isActive && (
-              <span className="text-[var(--color-primary)] shrink-0">◀</span>
+              <span className="type-micro text-[var(--text-muted)] shrink-0">{level.metadata}</span>
             )}
           </div>
         ))}
@@ -241,36 +236,33 @@ export default function ZoomPanel({
 
       {/* Quick Navigation */}
       {selectedPageId && (
-        <div className="px-3 py-2 border-t border-[var(--border)] bg-[var(--bg-tertiary)]">
-          <div className="flex items-center justify-between text-xs">
+        <div className="px-3 py-2 border-t border-[var(--border)]">
+          <div className="flex items-center justify-between">
             <button
               onClick={() => prevPage && onSelectPage(prevPage.id)}
               disabled={!prevPage}
-              className={`px-2 py-1 rounded transition-colors ${
+              className={`type-micro px-2 py-1 rounded transition-colors ${
                 prevPage
-                  ? 'hover:bg-[var(--bg-primary)] text-[var(--text-secondary)]'
-                  : 'text-[var(--text-muted)] opacity-50 cursor-not-allowed'
+                  ? 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                  : 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'
               }`}
             >
-              ◀ Prev Page
+              &larr; PREV
             </button>
-            <span className="text-[var(--text-muted)]">
+            <span className="type-micro text-[var(--text-muted)]">
               {currentPageIndex + 1} / {siblingPages.length}
             </span>
             <button
               onClick={() => nextPage && onSelectPage(nextPage.id)}
               disabled={!nextPage}
-              className={`px-2 py-1 rounded transition-colors ${
+              className={`type-micro px-2 py-1 rounded transition-colors ${
                 nextPage
-                  ? 'hover:bg-[var(--bg-primary)] text-[var(--text-secondary)]'
-                  : 'text-[var(--text-muted)] opacity-50 cursor-not-allowed'
+                  ? 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                  : 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'
               }`}
             >
-              Next Page ▶
+              NEXT &rarr;
             </button>
-          </div>
-          <div className="mt-2 text-center text-xs text-[var(--text-muted)]">
-            <kbd className="px-1 py-0.5 bg-[var(--bg-primary)] rounded">⌘↑</kbd> / <kbd className="px-1 py-0.5 bg-[var(--bg-primary)] rounded">⌘↓</kbd> Navigate
           </div>
         </div>
       )}

@@ -5,7 +5,7 @@ interface DialogueBlock {
   character_id: string | null
   speaker_name: string | null
   dialogue_type: string
-  modifier: string | null
+  delivery_instruction: string | null
   text: string
   sort_order: number
 }
@@ -24,8 +24,8 @@ interface SoundEffect {
 interface Panel {
   panel_number: number
   visual_description: string | null
-  shot_type: string | null
-  notes: string | null
+  camera: string | null
+  notes_to_artist: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -327,7 +327,7 @@ export function exportIssueToPdf(
           }
           sortedRightPanels.forEach((panel, panelIndex) => {
             const displayPanelNumber = panelIndex + 1
-            const shotType = panel.shot_type ? ` (${panel.shot_type.replace('_', ' ').toUpperCase()})` : ''
+            const shotType = panel.camera ? ` (${panel.camera.replace('_', ' ').toUpperCase()})` : ''
             addText(`PANEL ${displayPanelNumber}:${shotType}`, 11, true, 20)
             if (panel.visual_description) {
               const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
@@ -346,8 +346,8 @@ export function exportIssueToPdf(
               const characterName = dialogue.speaker_name ? dialogue.speaker_name.toUpperCase() : dialogue.character_id ? (characterMap.get(dialogue.character_id) || 'UNKNOWN').toUpperCase() : 'UNKNOWN'
               const dialogueSuffix = getDialogueSuffix(dialogue.dialogue_type)
               let modifierSuffix = ''
-              if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') {
-                modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]`
+              if (dialogue.delivery_instruction && dialogue.dialogue_type === 'dialogue') {
+                modifierSuffix = ` [${dialogue.delivery_instruction.toUpperCase()}]`
               }
               addText(`${characterName}${dialogueSuffix}${modifierSuffix}:`, 10, true, 40)
               addMarkdownText(dialogue.text, 10, 60)
@@ -391,7 +391,7 @@ export function exportIssueToPdf(
           const displayPanelNumber = panelIndex + 1
 
           // Panel header with shot type
-          const shotType = panel.shot_type ? ` (${panel.shot_type.replace('_', ' ').toUpperCase()})` : ''
+          const shotType = panel.camera ? ` (${panel.camera.replace('_', ' ').toUpperCase()})` : ''
           addText(`PANEL ${displayPanelNumber}:${shotType}`, 11, true, 20)
 
           // Visual description with auto-capitalized character names (supports markdown bold/italic)
@@ -430,8 +430,8 @@ export function exportIssueToPdf(
 
             // Add modifier/instruction in bracket format if present and type is standard dialogue
             let modifierSuffix = ''
-            if (dialogue.modifier && dialogue.dialogue_type === 'dialogue') {
-              modifierSuffix = ` [${dialogue.modifier.toUpperCase()}]`
+            if (dialogue.delivery_instruction && dialogue.dialogue_type === 'dialogue') {
+              modifierSuffix = ` [${dialogue.delivery_instruction.toUpperCase()}]`
             }
 
             addText(`${characterName}${dialogueSuffix}${modifierSuffix}:`, 10, true, 40)
@@ -452,8 +452,8 @@ export function exportIssueToPdf(
 
           // Artist notes (optional)
           const includeNotes = options?.includeNotes === true // default false
-          if (includeNotes && panel.notes) {
-            addText(`*Note to Artist: ${panel.notes}*`, 9, false, 40)
+          if (includeNotes && panel.notes_to_artist) {
+            addText(`*Note to Artist: ${panel.notes_to_artist}*`, 9, false, 40)
             addSpace(4)
           }
 

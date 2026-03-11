@@ -47,7 +47,7 @@ interface BaseAction {
 interface PanelFieldAction extends BaseAction {
   type: 'panel_field_update'
   panelId: string
-  field: 'visual_description' | 'shot_type' | 'notes'
+  field: 'visual_description' | 'camera' | 'notes_to_artist'
   oldValue: string | null
   newValue: string | null
 }
@@ -397,7 +397,7 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
       recordAction({
         type: 'panel_field_update',
         panelId,
-        field: field as 'visual_description' | 'shot_type' | 'notes',
+        field: field as 'visual_description' | 'camera' | 'notes_to_artist',
         oldValue: edit.initialValue,
         newValue: finalValue,
         description: `Update ${field.replace('_', ' ')}`,
@@ -477,7 +477,7 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
           recordAction({
             type: 'panel_field_update',
             panelId: entityId,
-            field: field as 'visual_description' | 'shot_type' | 'notes',
+            field: field as 'visual_description' | 'camera' | 'notes_to_artist',
             oldValue: edit.initialValue,
             newValue: finalValue,
             description: `Update ${field.replace('_', ' ')}`,

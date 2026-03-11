@@ -13,7 +13,7 @@ interface DialogueBlock {
   speaker_name: string | null
   dialogue_type: string
   text: string
-  modifier: string | null
+  delivery_instruction: string | null
   sort_order: number
 }
 
@@ -32,7 +32,7 @@ interface Panel {
   panel_number: number
   sort_order: number
   visual_description: string | null
-  shot_type: string | null
+  camera: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -179,12 +179,12 @@ export default function ReadingView({
         <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
           <Link
             href={`/series/${seriesId}/issues/${issueId}`}
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors type-micro"
           >
-            &larr; Back to Editor
+            &larr; BACK TO EDITOR
           </Link>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--text-secondary)]">Reading Mode</span>
+            <span className="type-micro text-[var(--text-muted)]">READING MODE</span>
             <ThemeToggle />
           </div>
         </div>
@@ -265,9 +265,9 @@ export default function ReadingView({
                       )}
 
                       {/* Shot type note */}
-                      {panel.shot_type && (
+                      {panel.camera && (
                         <p className="text-[var(--text-secondary)] text-xs mb-1 ml-4">
-                          [{panel.shot_type}]
+                          [{panel.camera}]
                         </p>
                       )}
 
@@ -275,8 +275,8 @@ export default function ReadingView({
                       {panel.dialogue_blocks.map((dialogue, dIdx) => {
                         const speaker = getSpeakerName(dialogue)
                         const typeIndicator = formatDialogueType(dialogue.dialogue_type)
-                        const modifierText = dialogue.modifier
-                          ? ` [${dialogue.modifier.toUpperCase()}]`
+                        const modifierText = dialogue.delivery_instruction
+                          ? ` [${dialogue.delivery_instruction.toUpperCase()}]`
                           : ''
 
                         return (
