@@ -4,16 +4,27 @@ import { createContext, useContext, useState, useCallback, useRef, ReactNode } f
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 
+interface ToastAction {
+  label: string
+  onClick: () => void | Promise<void>
+}
+
+interface ToastOptions {
+  action?: ToastAction
+  duration?: number
+}
+
 interface Toast {
   id: string
   message: string
   type: ToastType
   exiting?: boolean
+  action?: ToastAction
 }
 
 interface ToastContextType {
   toasts: Toast[]
-  showToast: (message: string, type?: ToastType) => void
+  showToast: (message: string, type?: ToastType, options?: ToastOptions) => void
   dismissToast: (id: string) => void
 }
 
@@ -46,27 +57,67 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, 200)
   }, [])
 
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    const id = Math.random().toString(36).substring(2, 9)
-    setToasts(prev => [...prev, { id, message, type }])
+  const handleAction = useCallback(async (toast: Toast) => {
+    // Clear auto-dismiss timer
+    const timer = timersRef.current.get(toast.id)
+    if (timer) {
+      clearTimeout(timer)
+      timersRef.current.delete(toast.id)
+    }
+    // Show restoring state
+    setToasts(prev => prev.map(t =>
+      t.id === toast.id ? { ...t, message: 'Restoring...', action: undefined } : t
+    ))
+    // Execute the action
+    try {
+      await toast.action!.onClick()
+    } catch {
+      // Show error toast after dismissing the current one
+      setToasts(prev => prev.filter(t => t.id !== toast.id))
+      const errorId = Math.random().toString(36).substring(2, 9)
+      setToasts(prev => [...prev, { id: errorId, message: 'Undo failed', type: 'error' }])
+      const errorTimer = setTimeout(() => {
+        timersRef.current.delete(errorId)
+        dismissToast(errorId)
+      }, 4000)
+      timersRef.current.set(errorId, errorTimer)
+      return
+    }
+    // Dismiss the toast
+    dismissToast(toast.id)
+  }, [dismissToast])
 
-    // Auto-dismiss after 4 seconds
+  const showToast = useCallback((message: string, type: ToastType = 'info', options?: ToastOptions) => {
+    const id = Math.random().toString(36).substring(2, 9)
+    const toast: Toast = { id, message, type, action: options?.action }
+    setToasts(prev => [...prev, toast])
+
+    // Auto-dismiss (default 4s, configurable via options.duration)
+    const duration = options?.duration ?? 4000
     const timer = setTimeout(() => {
       timersRef.current.delete(id)
       dismissToast(id)
-    }, 4000)
+    }, duration)
     timersRef.current.set(id, timer)
   }, [dismissToast])
 
   return (
     <ToastContext.Provider value={{ toasts, showToast, dismissToast }}>
       {children}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} onAction={handleAction} />
     </ToastContext.Provider>
   )
 }
 
-function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
+function ToastContainer({
+  toasts,
+  onDismiss,
+  onAction,
+}: {
+  toasts: Toast[]
+  onDismiss: (id: string) => void
+  onAction: (toast: Toast) => void
+}) {
   if (toasts.length === 0) return null
 
   return (
@@ -84,6 +135,14 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
           }`}
         >
           <span className="flex-1 text-sm">{toast.message}</span>
+          {toast.action && (
+            <button
+              onClick={() => onAction(toast)}
+              className="text-sm font-semibold underline underline-offset-2 hover:no-underline whitespace-nowrap"
+            >
+              {toast.action.label}
+            </button>
+          )}
           <button
             onClick={() => onDismiss(toast.id)}
             className="text-white/70 hover:text-white active:scale-[0.97] transition-all duration-150 ease-out"
