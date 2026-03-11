@@ -20,6 +20,8 @@ import type { CharacterWithStats, CharacterStats } from '@/lib/character-stats'
 import CharacterCard from './CharacterCard'
 import CharacterMiniCard from './CharacterMiniCard'
 import CharacterDetailPanel from './CharacterDetailPanel'
+import MergeModal from './MergeModal'
+import ManuscriptScanModal from './ManuscriptScanModal'
 
 const MINOR_THRESHOLD = 5
 
@@ -76,6 +78,8 @@ export default function CharacterGrid({
   const [plotlineFilter, setPlotlineFilter] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showMergeModal, setShowMergeModal] = useState(false)
+  const [showScanModal, setShowScanModal] = useState(false)
 
   const { showToast } = useToast()
   const { confirm, dialogProps } = useConfirmDialog()
@@ -290,12 +294,63 @@ export default function CharacterGrid({
       const character = characters.find(c => c.id === characterId)
       if (!character) return
 
+      const supabase = createClient()
+
+      // Query dialogue count for impact display
+      const { count: dialogueCount } = await supabase
+        .from('dialogue_blocks')
+        .select('id', { count: 'exact', head: true })
+        .eq('character_id', characterId)
+
+      const impactDesc = dialogueCount && dialogueCount > 0
+        ? `This character will be permanently removed. ${dialogueCount} dialogue block${dialogueCount !== 1 ? 's' : ''} will be unlinked.`
+        : 'This character will be permanently removed.'
+
       const confirmed = await confirm({
         title: `Delete "${character.display_name || character.name}"?`,
-        description: 'This character will be permanently removed.',
+        description: impactDesc,
       })
       if (!confirmed) return
 
+      // Snapshot the character
+      const { data: charSnapshot } = await supabase
+        .from('characters')
+        .select('*')
+        .eq('id', characterId)
+        .single()
+
+      // C5: Snapshot dialogue block mappings
+      const { data: dialogueSnapshot } = await supabase
+        .from('dialogue_blocks')
+        .select('id, character_id')
+        .eq('character_id', characterId)
+
+      // Nullify dialogue_blocks.character_id
+      if (dialogueSnapshot && dialogueSnapshot.length > 0) {
+        await supabase
+          .from('dialogue_blocks')
+          .update({ character_id: null })
+          .eq('character_id', characterId)
+      }
+
+      // Delete the character
+      const { error } = await supabase.from('characters').delete().eq('id', characterId)
+
+      if (error) {
+        // Rollback dialogue blocks
+        if (dialogueSnapshot && dialogueSnapshot.length > 0) {
+          for (const d of dialogueSnapshot) {
+            await supabase
+              .from('dialogue_blocks')
+              .update({ character_id: d.character_id })
+              .eq('id', d.id)
+          }
+        }
+        showToast('Failed to delete character: ' + error.message, 'error')
+        return
+      }
+
+      // Remove from state
       setCharacters(prev => prev.filter(c => c.id !== characterId))
       setSelectedIds(prev => {
         const next = new Set(prev)
@@ -305,15 +360,34 @@ export default function CharacterGrid({
       if (selectedCharacterId === characterId) {
         setSelectedCharacterId(null)
       }
-      showToast('Character deleted', 'success')
 
-      const supabase = createClient()
-      const { error } = await supabase.from('characters').delete().eq('id', characterId)
-
-      if (error) {
-        setCharacters(prev => [...prev, character].sort((a, b) => a.name.localeCompare(b.name)))
-        showToast('Failed to delete character: ' + error.message, 'error')
-      }
+      // Undo toast (10s)
+      showToast('Character deleted', 'success', {
+        duration: 10000,
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            if (charSnapshot) {
+              await supabase.from('characters').insert(charSnapshot)
+            }
+            if (dialogueSnapshot && dialogueSnapshot.length > 0) {
+              for (const d of dialogueSnapshot) {
+                await supabase
+                  .from('dialogue_blocks')
+                  .update({ character_id: d.character_id })
+                  .eq('id', d.id)
+              }
+            }
+            // Re-add to state
+            if (charSnapshot) {
+              setCharacters(prev =>
+                [...prev, { ...charSnapshot, stats: character.stats } as CharacterWithStats]
+                  .sort((a, b) => a.name.localeCompare(b.name))
+              )
+            }
+          },
+        },
+      })
     },
     [characters, confirm, selectedCharacterId, showToast]
   )
@@ -321,36 +395,106 @@ export default function CharacterGrid({
   const handleDeleteSelected = useCallback(async () => {
     if (selectedIds.size === 0) return
 
-    const names = characters
-      .filter(c => selectedIds.has(c.id))
-      .map(c => c.display_name || c.name)
+    const supabase = createClient()
+    const toDeleteIds = Array.from(selectedIds)
+    const toDeleteChars = characters.filter(c => selectedIds.has(c.id))
+    const names = toDeleteChars.map(c => c.display_name || c.name)
+
+    // Query dialogue count for impact display
+    const { count: dialogueCount } = await supabase
+      .from('dialogue_blocks')
+      .select('id', { count: 'exact', head: true })
+      .in('character_id', toDeleteIds)
+
+    const impactDesc = dialogueCount && dialogueCount > 0
+      ? `This will permanently remove: ${names.join(', ')}. ${dialogueCount} dialogue block${dialogueCount !== 1 ? 's' : ''} will be unlinked.`
+      : `This will permanently remove: ${names.join(', ')}`
 
     const confirmed = await confirm({
       title: `Delete ${selectedIds.size} character(s)?`,
-      description: `This will permanently remove: ${names.join(', ')}`,
+      description: impactDesc,
     })
     if (!confirmed) return
 
-    const toDelete = new Set(selectedIds)
-    const removed = characters.filter(c => toDelete.has(c.id))
+    // Snapshot characters
+    const { data: charSnapshots } = await supabase
+      .from('characters')
+      .select('*')
+      .in('id', toDeleteIds)
 
-    setCharacters(prev => prev.filter(c => !toDelete.has(c.id)))
-    setSelectedIds(new Set())
-    if (selectedCharacterId && toDelete.has(selectedCharacterId)) {
-      setSelectedCharacterId(null)
+    // C5: Snapshot dialogue block mappings
+    const { data: dialogueSnapshot } = await supabase
+      .from('dialogue_blocks')
+      .select('id, character_id')
+      .in('character_id', toDeleteIds)
+
+    // Nullify dialogue_blocks.character_id
+    if (dialogueSnapshot && dialogueSnapshot.length > 0) {
+      await supabase
+        .from('dialogue_blocks')
+        .update({ character_id: null })
+        .in('character_id', toDeleteIds)
     }
-    showToast(`${toDelete.size} character(s) deleted`, 'success')
 
-    const supabase = createClient()
+    // Delete characters
     const { error } = await supabase
       .from('characters')
       .delete()
-      .in('id', Array.from(toDelete))
+      .in('id', toDeleteIds)
 
     if (error) {
-      setCharacters(prev => [...prev, ...removed].sort((a, b) => a.name.localeCompare(b.name)))
+      // Rollback dialogue blocks
+      if (dialogueSnapshot && dialogueSnapshot.length > 0) {
+        for (const d of dialogueSnapshot) {
+          await supabase
+            .from('dialogue_blocks')
+            .update({ character_id: d.character_id })
+            .eq('id', d.id)
+        }
+      }
       showToast('Failed to delete characters: ' + error.message, 'error')
+      return
     }
+
+    // Remove from state
+    setCharacters(prev => prev.filter(c => !selectedIds.has(c.id)))
+    setSelectedIds(new Set())
+    if (selectedCharacterId && selectedIds.has(selectedCharacterId)) {
+      setSelectedCharacterId(null)
+    }
+
+    // One undo toast for all
+    showToast(`${toDeleteIds.length} character(s) deleted`, 'success', {
+      duration: 10000,
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          if (charSnapshots && charSnapshots.length > 0) {
+            for (const char of charSnapshots) {
+              await supabase.from('characters').insert(char)
+            }
+          }
+          if (dialogueSnapshot && dialogueSnapshot.length > 0) {
+            for (const d of dialogueSnapshot) {
+              await supabase
+                .from('dialogue_blocks')
+                .update({ character_id: d.character_id })
+                .eq('id', d.id)
+            }
+          }
+          // Re-add to state
+          if (charSnapshots) {
+            const restored = charSnapshots.map(cs => {
+              const original = toDeleteChars.find(c => c.id === cs.id)
+              return { ...cs, stats: original?.stats ?? null } as CharacterWithStats
+            })
+            setCharacters(prev =>
+              [...prev, ...restored].sort((a, b) => a.name.localeCompare(b.name))
+            )
+          }
+        },
+      },
+    })
   }, [selectedIds, characters, confirm, selectedCharacterId, showToast])
 
   const handleSelect = useCallback((id: string) => {
@@ -372,6 +516,27 @@ export default function CharacterGrid({
       )
     },
     []
+  )
+
+  const handleMergeComplete = useCallback(
+    (primaryId: string, absorbedIds: string[]) => {
+      setCharacters(prev => prev.filter(c => !absorbedIds.includes(c.id)))
+      setSelectedIds(new Set())
+      if (selectedCharacterId && absorbedIds.includes(selectedCharacterId)) {
+        setSelectedCharacterId(null)
+      }
+    },
+    [selectedCharacterId]
+  )
+
+  const handleScanCharactersAdded = useCallback(() => {
+    // Refresh the page to pick up newly created characters
+    window.location.reload()
+  }, [])
+
+  const mergeCharacters = useMemo(
+    () => characters.filter(c => selectedIds.has(c.id)),
+    [characters, selectedIds]
   )
 
   const handleCardClick = useCallback((id: string) => {
@@ -474,8 +639,9 @@ export default function CharacterGrid({
 
         {/* Row 2: Toolbar */}
         <div className="flex items-center gap-2">
-          {/* Scan Manuscript placeholder */}
+          {/* Scan Manuscript */}
           <button
+            onClick={() => setShowScanModal(true)}
             className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors"
             title="Scan manuscript for characters"
           >
@@ -542,6 +708,7 @@ export default function CharacterGrid({
             <div className="flex-1" />
             {selectedIds.size >= 2 && (
               <button
+                onClick={() => setShowMergeModal(true)}
                 className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors"
                 title="Merge selected characters"
               >
@@ -642,11 +809,27 @@ export default function CharacterGrid({
         )
       })()}
 
-      {/* MergeModal placeholder */}
-      {/* MergeModal will be rendered here in a later task */}
+      {/* MergeModal */}
+      {showMergeModal && mergeCharacters.length >= 2 && (
+        <MergeModal
+          open={showMergeModal}
+          characters={mergeCharacters}
+          seriesId={seriesId}
+          onClose={() => setShowMergeModal(false)}
+          onMergeComplete={handleMergeComplete}
+        />
+      )}
 
-      {/* ManuscriptScanModal placeholder */}
-      {/* ManuscriptScanModal will be rendered here in a later task */}
+      {/* ManuscriptScanModal */}
+      {showScanModal && (
+        <ManuscriptScanModal
+          open={showScanModal}
+          seriesId={seriesId}
+          existingCharacters={allCharactersLookup}
+          onClose={() => setShowScanModal(false)}
+          onCharactersAdded={handleScanCharactersAdded}
+        />
+      )}
     </div>
   )
 }
