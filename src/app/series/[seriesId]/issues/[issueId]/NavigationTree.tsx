@@ -98,6 +98,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     x: number; y: number; type: 'act' | 'scene' | 'page'; id: string; title: string
   } | null>(null)
   const [contextSubmenu, setContextSubmenu] = useState<'move-to-act' | 'move-to-scene' | null>(null)
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectionType, setSelectionType] = useState<'page' | 'scene' | 'act' | null>(null)
+  const [lastClickedId, setLastClickedId] = useState<string | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const pageSummaryInputRef = useRef<HTMLTextAreaElement>(null)
@@ -174,6 +178,115 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     return null
   }
 
+  // --- Multi-select helpers ---
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+    setSelectionType(null)
+    setLastClickedId(null)
+  }, [])
+
+  const getVisibleItemIds = useCallback((type: 'page' | 'scene' | 'act'): string[] => {
+    const ids: string[] = []
+    const sorted = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
+
+    if (type === 'act') {
+      return sorted.map(a => a.id)
+    }
+
+    for (const act of sorted) {
+      const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+      if (type === 'scene') {
+        if (expandedActs.has(act.id)) {
+          ids.push(...sortedScenes.map((s: any) => s.id))
+        }
+      } else {
+        // pages
+        for (const scene of sortedScenes) {
+          if (expandedActs.has(act.id) && expandedScenes.has(scene.id)) {
+            const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+            ids.push(...sortedPages.map((p: any) => p.id))
+          }
+        }
+      }
+    }
+    return ids
+  }, [issue.acts, expandedActs, expandedScenes])
+
+  const handleMultiSelectClick = useCallback((
+    itemId: string,
+    itemType: 'page' | 'scene' | 'act',
+    e: React.MouseEvent
+  ) => {
+    const isMetaKey = e.metaKey || e.ctrlKey
+    const isShiftKey = e.shiftKey
+
+    if (!isMetaKey && !isShiftKey) {
+      // Plain click — clear selection, navigate as usual
+      clearSelection()
+      return false // signals caller to do normal navigation
+    }
+
+    if (isMetaKey) {
+      // Cmd/Ctrl+click: toggle item in selection
+      if (selectionType && selectionType !== itemType) {
+        // Different type — start new selection
+        setSelectedIds(new Set([itemId]))
+        setSelectionType(itemType)
+        setLastClickedId(itemId)
+        return true
+      }
+
+      const newSelected = new Set(selectedIds)
+      if (newSelected.has(itemId)) {
+        newSelected.delete(itemId)
+        if (newSelected.size === 0) {
+          setSelectionType(null)
+        }
+      } else {
+        newSelected.add(itemId)
+      }
+      setSelectedIds(newSelected)
+      setSelectionType(itemType)
+      setLastClickedId(itemId)
+      return true
+    }
+
+    if (isShiftKey) {
+      // Shift+click: range selection
+      if (selectionType && selectionType !== itemType) {
+        // Different type — start new selection
+        setSelectedIds(new Set([itemId]))
+        setSelectionType(itemType)
+        setLastClickedId(itemId)
+        return true
+      }
+
+      const visibleIds = getVisibleItemIds(itemType)
+      const anchorId = lastClickedId || itemId
+      const anchorIndex = visibleIds.indexOf(anchorId)
+      const currentIndex = visibleIds.indexOf(itemId)
+
+      if (anchorIndex === -1 || currentIndex === -1) {
+        setSelectedIds(new Set([itemId]))
+        setSelectionType(itemType)
+        setLastClickedId(itemId)
+        return true
+      }
+
+      const start = Math.min(anchorIndex, currentIndex)
+      const end = Math.max(anchorIndex, currentIndex)
+      const rangeIds = visibleIds.slice(start, end + 1)
+
+      setSelectedIds(new Set(rangeIds))
+      setSelectionType(itemType)
+      // Don't update lastClickedId on shift+click (anchor stays)
+      return true
+    }
+
+    return false
+  }, [selectedIds, selectionType, lastClickedId, clearSelection, getVisibleItemIds])
+
   const toggleAct = (actId: string) => {
     const newExpanded = new Set(expandedActs)
     if (newExpanded.has(actId)) {
@@ -231,6 +344,20 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [contextMenu])
+
+  // Clear multi-selection on Escape
+  useEffect(() => {
+    if (selectedIds.size === 0) return
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !contextMenu) {
+        clearSelection()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [selectedIds.size, contextMenu, clearSelection])
 
   // --- Unified title editing ---
 
@@ -1748,8 +1875,16 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                       <div
                         className={`flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
                           dragOverContainerId === act.id && (activeDragItem?.type === 'scene' || activeDragItem?.type === 'page') ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                        }`}
-                        onClick={() => !editingItemId && toggleAct(act.id)}
+                        } ${selectedIds.has(act.id) ? 'bg-[var(--color-primary)]/15 border-l-2 border-l-[var(--color-primary)]' : ''}`}
+                        onClick={(e) => {
+                          if (editingItemId) return
+                          if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                            handleMultiSelectClick(act.id, 'act', e)
+                          } else {
+                            clearSelection()
+                            toggleAct(act.id)
+                          }
+                        }}
                         onContextMenu={(e) => handleContextMenu(e, 'act', act.id, act.name || `Act ${act.number}`)}
                       >
                         <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedActs.has(act.id) ? 'rotate-90' : ''}`} />
@@ -1814,9 +1949,17 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                     <div
                                       className={`flex items-center gap-2 pl-6 pr-2 py-1.5 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
                                         dragOverContainerId === scene.id && activeDragItem?.type === 'page' ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                                      }`}
+                                      } ${selectedIds.has(scene.id) ? 'bg-[var(--color-primary)]/15 border-l-2 border-l-[var(--color-primary)]' : ''}`}
                                       style={{ borderLeft: `3px solid ${scene.plotline?.color || 'transparent'}` }}
-                                      onClick={() => !editingItemId && toggleScene(scene.id)}
+                                      onClick={(e) => {
+                                        if (editingItemId) return
+                                        if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                                          handleMultiSelectClick(scene.id, 'scene', e)
+                                        } else {
+                                          clearSelection()
+                                          toggleScene(scene.id)
+                                        }
+                                      }}
                                       onContextMenu={(e) => handleContextMenu(e, 'scene', scene.id, scene.title || 'Untitled Scene')}
                                     >
                                       <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedScenes.has(scene.id) ? 'rotate-90' : ''}`} />
@@ -1875,12 +2018,20 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                             return (
                                               <SortableItem key={page.id} id={page.id}>
                                                 <div
-                                                  onClick={() => !editingItemId && onSelectPage(page.id)}
+                                                  onClick={(e) => {
+                                                    if (editingItemId) return
+                                                    const handled = handleMultiSelectClick(page.id, 'page', e)
+                                                    if (!handled) {
+                                                      onSelectPage(page.id)
+                                                    }
+                                                  }}
                                                   onContextMenu={(e) => handleContextMenu(e, 'page', page.id, page.title || '')}
                                                   className={`flex items-center gap-2 pl-10 pr-2 py-1 cursor-pointer transition-colors group ${
                                                     isSelected
                                                       ? 'bg-[var(--color-primary)] text-white'
-                                                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
+                                                      : selectedIds.has(page.id)
+                                                        ? 'bg-[var(--color-primary)]/15 border-l-2 border-[var(--color-primary)] text-[var(--text-primary)]'
+                                                        : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
                                                   }`}
                                                 >
                                                   {editingItemId === page.id ? (
