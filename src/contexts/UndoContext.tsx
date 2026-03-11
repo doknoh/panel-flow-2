@@ -35,6 +35,13 @@ export type UndoActionType =
   | 'page_duplicate'
   | 'scene_duplicate'
   | 'page_summary_update'
+  // Batch operations
+  | 'batch_page_delete'
+  | 'batch_scene_delete'
+  | 'batch_act_delete'
+  | 'batch_page_add'
+  | 'batch_scene_add'
+  | 'batch_act_add'
 
 interface BaseAction {
   type: UndoActionType
@@ -269,6 +276,38 @@ interface PageSummaryUpdateAction extends BaseAction {
   newValue: string | null
 }
 
+// --- Batch operations ---
+
+interface BatchPageDeleteAction extends BaseAction {
+  type: 'batch_page_delete'
+  items: Array<{ pageId: string; sceneId: string; data: any }>
+}
+
+interface BatchSceneDeleteAction extends BaseAction {
+  type: 'batch_scene_delete'
+  items: Array<{ sceneId: string; actId: string; data: any }>
+}
+
+interface BatchActDeleteAction extends BaseAction {
+  type: 'batch_act_delete'
+  items: Array<{ actId: string; issueId: string; data: any }>
+}
+
+interface BatchPageAddAction extends BaseAction {
+  type: 'batch_page_add'
+  items: Array<{ pageId: string; sceneId: string; data: any }>
+}
+
+interface BatchSceneAddAction extends BaseAction {
+  type: 'batch_scene_add'
+  items: Array<{ sceneId: string; actId: string; data: any }>
+}
+
+interface BatchActAddAction extends BaseAction {
+  type: 'batch_act_add'
+  items: Array<{ actId: string; issueId: string; data: any }>
+}
+
 export type UndoAction =
   | PanelFieldAction
   | DialogueAddAction
@@ -298,6 +337,12 @@ export type UndoAction =
   | PageDuplicateAction
   | SceneDuplicateAction
   | PageSummaryUpdateAction
+  | BatchPageDeleteAction
+  | BatchSceneDeleteAction
+  | BatchActDeleteAction
+  | BatchPageAddAction
+  | BatchSceneAddAction
+  | BatchActAddAction
 
 // Helper type for recording actions without timestamp
 type RecordableAction = {
@@ -825,6 +870,82 @@ export function UndoProvider({ children, onRefresh }: { children: ReactNode; onR
           .update({ page_summary: a.oldValue }).eq('id', a.pageId)
         if (error) throw error
         return { ...a, oldValue: a.newValue, newValue: a.oldValue }
+      }
+
+      // === Batch delete (undo = restore all) ===
+      case 'batch_page_delete': {
+        const a = action as BatchPageDeleteAction
+        for (const item of a.items) {
+          await restorePageDeep(supabase, { id: item.pageId, ...item.data }, item.sceneId)
+        }
+        return {
+          type: 'batch_page_add' as const,
+          items: a.items,
+          timestamp: Date.now(),
+          description: `Add ${a.items.length} pages`,
+        }
+      }
+      case 'batch_scene_delete': {
+        const a = action as BatchSceneDeleteAction
+        for (const item of a.items) {
+          await restoreSceneDeep(supabase, { id: item.sceneId, ...item.data }, item.actId)
+        }
+        return {
+          type: 'batch_scene_add' as const,
+          items: a.items,
+          timestamp: Date.now(),
+          description: `Add ${a.items.length} scenes`,
+        }
+      }
+      case 'batch_act_delete': {
+        const a = action as BatchActDeleteAction
+        for (const item of a.items) {
+          await restoreActDeep(supabase, { id: item.actId, ...item.data }, item.issueId)
+        }
+        return {
+          type: 'batch_act_add' as const,
+          items: a.items,
+          timestamp: Date.now(),
+          description: `Add ${a.items.length} acts`,
+        }
+      }
+
+      // === Batch add (undo = delete all, i.e. reverse of batch delete undo) ===
+      case 'batch_page_add': {
+        const a = action as BatchPageAddAction
+        for (const item of a.items) {
+          await supabase.from('pages').delete().eq('id', item.pageId)
+        }
+        return {
+          type: 'batch_page_delete' as const,
+          items: a.items,
+          timestamp: Date.now(),
+          description: `Delete ${a.items.length} pages`,
+        }
+      }
+      case 'batch_scene_add': {
+        const a = action as BatchSceneAddAction
+        for (const item of a.items) {
+          await supabase.from('scenes').delete().eq('id', item.sceneId)
+        }
+        return {
+          type: 'batch_scene_delete' as const,
+          items: a.items,
+          timestamp: Date.now(),
+          description: `Delete ${a.items.length} scenes`,
+        }
+      }
+      case 'batch_act_add': {
+        const a = action as BatchActAddAction
+        for (const item of a.items) {
+          await supabase.from('acts').delete().eq('id', item.actId)
+        }
+        return {
+          type: 'batch_act_delete' as const,
+          items: a.items,
+          timestamp: Date.now(),
+          description: `Delete ${a.items.length} acts`,
+        }
       }
 
       default:
