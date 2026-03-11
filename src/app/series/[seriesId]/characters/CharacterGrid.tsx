@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   Plus,
   RefreshCw,
@@ -78,6 +78,7 @@ export default function CharacterGrid({
   const [plotlineFilter, setPlotlineFilter] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isStale, setIsStale] = useState(initialStale)
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [showScanModal, setShowScanModal] = useState(false)
 
@@ -256,6 +257,7 @@ export default function CharacterGrid({
         }))
       )
 
+      setIsStale(false)
       showToast('Stats refreshed', 'success')
     } catch {
       showToast('Failed to refresh stats', 'error')
@@ -263,6 +265,15 @@ export default function CharacterGrid({
       setIsRefreshing(false)
     }
   }, [seriesId, showToast])
+
+  // Auto-refresh stats on mount when cache is stale
+  const hasAutoRefreshed = useRef(false)
+  useEffect(() => {
+    if (isStale && !hasAutoRefreshed.current) {
+      hasAutoRefreshed.current = true
+      handleRefreshStats()
+    }
+  }, [isStale, handleRefreshStats])
 
   const handleRoleChange = useCallback(
     async (characterId: string, role: string) => {
@@ -727,7 +738,7 @@ export default function CharacterGrid({
         )}
 
         {/* Stale indicator */}
-        {initialStale && !isRefreshing && (
+        {isStale && !isRefreshing && (
           <div className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-xs text-[var(--text-muted)]">
             Stats may be outdated.
             <button
