@@ -586,12 +586,19 @@ export interface AIContext {
       id: string
       order: number
       visual_description?: string
+      camera?: string
       characters_present?: string[]
       dialogue?: Array<{
         speaker: string
         text: string
         delivery_type: string
+        delivery_instruction?: string
       }>
+      captions?: Array<{
+        text: string
+        type: string
+      }>
+      sound_effects?: string[]
     }>
   }
   /** Brief summaries of other issues in the series (for cross-issue awareness) */
@@ -696,13 +703,26 @@ export function buildContextString(context: AIContext): string {
     for (const panel of page.panels) {
       parts.push(`### Panel ${panel.order} [panel-id:${panel.id}]`)
       if (panel.visual_description) parts.push(`Visual: ${panel.visual_description}`)
+      if (panel.camera) parts.push(`Camera: ${panel.camera}`)
       if (panel.characters_present && panel.characters_present.length > 0) {
         parts.push(`Characters: ${panel.characters_present.join(', ')}`)
       }
       if (panel.dialogue && panel.dialogue.length > 0) {
         for (const d of panel.dialogue) {
           const delivery = d.delivery_type !== 'STANDARD' ? ` (${d.delivery_type})` : ''
-          parts.push(`  ${d.speaker}${delivery}: ${d.text}`)
+          const instruction = d.delivery_instruction ? ` [${d.delivery_instruction}]` : ''
+          parts.push(`  ${d.speaker}${delivery}${instruction}: ${d.text}`)
+        }
+      }
+      if (panel.captions && panel.captions.length > 0) {
+        for (const cap of panel.captions) {
+          const capType = cap.type ? ` (${cap.type.toUpperCase()})` : ''
+          parts.push(`  CAP${capType}: ${cap.text}`)
+        }
+      }
+      if (panel.sound_effects && panel.sound_effects.length > 0) {
+        for (const sfx of panel.sound_effects) {
+          parts.push(`  SFX: ${sfx}`)
         }
       }
     }

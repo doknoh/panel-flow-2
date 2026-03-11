@@ -396,15 +396,15 @@ export async function assembleContext(
         const { data: scenes } = await withTimeout(
           supabase
             .from('scenes')
-            .select('id, title, plotline_id, order')
+            .select('id, title, plotline_id, sort_order')
             .eq('act_id', act.id)
-            .order('order'),
+            .order('sort_order'),
           DB_TIMEOUT,
         )
 
         const sceneEntries = []
         for (const scene of (scenes || []) as Array<{
-          id: string; title?: string; plotline_id?: string; order: number
+          id: string; title?: string; plotline_id?: string; sort_order: number
         }>) {
           // Count pages in this scene
           const { count } = await withTimeout(
@@ -499,63 +499,63 @@ async function assembleScriptText(
     const { data: scenes } = await withTimeout(
       supabase
         .from('scenes')
-        .select('id, title, order')
+        .select('id, title, sort_order')
         .eq('act_id', act.id)
-        .order('order'),
+        .order('sort_order'),
       DB_TIMEOUT,
     )
 
     if (!scenes) continue
 
-    for (const scene of scenes as Array<{ id: string; title?: string; order: number }>) {
+    for (const scene of scenes as Array<{ id: string; title?: string; sort_order: number }>) {
       const { data: pages } = await withTimeout(
         supabase
           .from('pages')
-          .select('id, page_number, orientation, order')
+          .select('id, page_number, orientation, sort_order')
           .eq('scene_id', scene.id)
-          .order('order'),
+          .order('sort_order'),
         DB_TIMEOUT,
       )
 
       if (!pages) continue
 
       for (const page of pages as Array<{
-        id: string; page_number: number; orientation: string; order: number
+        id: string; page_number: number; orientation: string; sort_order: number
       }>) {
         scriptText += `\nPAGE ${page.page_number} (${page.orientation?.toLowerCase() || 'right'})\n`
 
         const { data: panels } = await withTimeout(
           supabase
             .from('panels')
-            .select('id, order, visual_description, camera, sfx')
+            .select('id, sort_order, visual_description, camera')
             .eq('page_id', page.id)
-            .order('order'),
+            .order('sort_order'),
           DB_TIMEOUT,
         )
 
         if (!panels) continue
 
         for (const panel of panels as Array<{
-          id: string; order: number; visual_description?: string; camera?: string; sfx?: string
+          id: string; sort_order: number; visual_description?: string; camera?: string
         }>) {
-          scriptText += `PANEL ${panel.order}: ${panel.visual_description || '(No description)'}\n`
+          scriptText += `PANEL ${panel.sort_order}: ${panel.visual_description || '(No description)'}\n`
           if (panel.camera) scriptText += `[Camera: ${panel.camera}]\n`
 
           // Get dialogue
           const { data: dialogue } = await withTimeout(
             supabase
               .from('dialogue_blocks')
-              .select('speaker_name, speaker_id, text, delivery_type, delivery_instruction, balloon_number, order')
+              .select('speaker_name, character_id, text, delivery_type, delivery_instruction, balloon_number, sort_order')
               .eq('panel_id', panel.id)
-              .order('order'),
+              .order('sort_order'),
             DB_TIMEOUT,
           )
 
           if (dialogue) {
             for (const d of dialogue as Array<{
-              speaker_name?: string; speaker_id?: string; text: string;
+              speaker_name?: string; character_id?: string; text: string;
               delivery_type: string; delivery_instruction?: string;
-              balloon_number: number; order: number
+              balloon_number: number; sort_order: number
             }>) {
               let speaker = d.speaker_name || 'UNKNOWN'
               if (d.delivery_type === 'VO') speaker += ' (V.O.)'
@@ -570,19 +570,35 @@ async function assembleScriptText(
           const { data: captions } = await withTimeout(
             supabase
               .from('captions')
-              .select('text, type, order')
+              .select('text, caption_type, sort_order')
               .eq('panel_id', panel.id)
-              .order('order'),
+              .order('sort_order'),
             DB_TIMEOUT,
           )
 
           if (captions) {
-            for (const cap of captions as Array<{ text: string; type: string; order: number }>) {
-              scriptText += `CAP: ${cap.text}\n`
+            for (const cap of captions as Array<{ text: string; caption_type: string; sort_order: number }>) {
+              const capType = cap.caption_type ? ` (${cap.caption_type.toUpperCase()})` : ''
+              scriptText += `CAP${capType}: ${cap.text}\n`
             }
           }
 
-          if (panel.sfx) scriptText += `SFX: ${panel.sfx}\n`
+          // Get sound effects
+          const { data: sfx } = await withTimeout(
+            supabase
+              .from('sound_effects')
+              .select('text, sort_order')
+              .eq('panel_id', panel.id)
+              .order('sort_order'),
+            DB_TIMEOUT,
+          )
+
+          if (sfx) {
+            for (const s of sfx as Array<{ text: string; sort_order: number }>) {
+              scriptText += `SFX: ${s.text}\n`
+            }
+          }
+
           scriptText += '\n'
         }
       }
@@ -626,9 +642,9 @@ async function assembleCurrentPage(
   const { data: panels } = await withTimeout(
     supabase
       .from('panels')
-      .select('id, order, visual_description')
+      .select('id, sort_order, visual_description, camera')
       .eq('page_id', pageId)
-      .order('order'),
+      .order('sort_order'),
     DB_TIMEOUT,
   )
 
@@ -640,7 +656,7 @@ async function assembleCurrentPage(
 
   const panelContexts = []
   for (const panel of panels as Array<{
-    id: string; order: number; visual_description?: string
+    id: string; sort_order: number; visual_description?: string; camera?: string
   }>) {
     // Get characters present
     const { data: panelChars } = await withTimeout(
@@ -659,23 +675,54 @@ async function assembleCurrentPage(
     const { data: dialogue } = await withTimeout(
       supabase
         .from('dialogue_blocks')
-        .select('speaker_name, text, delivery_type, order')
+        .select('speaker_name, text, delivery_type, delivery_instruction, sort_order')
         .eq('panel_id', panel.id)
-        .order('order'),
+        .order('sort_order'),
+      DB_TIMEOUT,
+    )
+
+    // Get captions
+    const { data: captions } = await withTimeout(
+      supabase
+        .from('captions')
+        .select('text, caption_type, sort_order')
+        .eq('panel_id', panel.id)
+        .order('sort_order'),
+      DB_TIMEOUT,
+    )
+
+    // Get sound effects
+    const { data: sfx } = await withTimeout(
+      supabase
+        .from('sound_effects')
+        .select('text, sort_order')
+        .eq('panel_id', panel.id)
+        .order('sort_order'),
       DB_TIMEOUT,
     )
 
     panelContexts.push({
       id: panel.id,
-      order: panel.order,
+      order: panel.sort_order,
       visual_description: panel.visual_description || undefined,
+      camera: panel.camera || undefined,
       characters_present: characterNames.length > 0 ? characterNames : undefined,
       dialogue: dialogue && (dialogue as unknown[]).length > 0
-        ? (dialogue as Array<{ speaker_name?: string; text: string; delivery_type: string }>).map(d => ({
+        ? (dialogue as Array<{ speaker_name?: string; text: string; delivery_type: string; delivery_instruction?: string }>).map(d => ({
             speaker: d.speaker_name || 'UNKNOWN',
             text: d.text,
             delivery_type: d.delivery_type,
+            delivery_instruction: d.delivery_instruction || undefined,
           }))
+        : undefined,
+      captions: captions && (captions as unknown[]).length > 0
+        ? (captions as Array<{ text: string; caption_type: string }>).map(c => ({
+            text: c.text,
+            type: c.caption_type || 'narrative',
+          }))
+        : undefined,
+      sound_effects: sfx && (sfx as unknown[]).length > 0
+        ? (sfx as Array<{ text: string }>).map(s => s.text)
         : undefined,
     })
   }
