@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useUndo } from '@/contexts/UndoContext'
 import { fetchPageDeepData, fetchSceneDeepData, fetchActDeepData } from '@/lib/undoHelpers'
+import { batchDeletePages, batchDeleteScenes, batchDeleteActs } from '@/lib/batchActions'
 import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import {
   DndContext,
@@ -102,6 +103,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [selectionType, setSelectionType] = useState<'page' | 'scene' | 'act' | null>(null)
   const [lastClickedId, setLastClickedId] = useState<string | null>(null)
+  const [showMovePopover, setShowMovePopover] = useState(false)
   const editInputRef = useRef<HTMLInputElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const pageSummaryInputRef = useRef<HTMLTextAreaElement>(null)
@@ -184,6 +186,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     setSelectedIds(new Set())
     setSelectionType(null)
     setLastClickedId(null)
+    setShowMovePopover(false)
   }, [])
 
   const getVisibleItemIds = useCallback((type: 'page' | 'scene' | 'act'): string[] => {
@@ -1804,18 +1807,160 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     setContextSubmenu(null)
   }
 
-  // --- Batch action stubs (implemented in Task 5) ---
+  // --- Batch actions ---
 
   const handleBatchDelete = useCallback(async () => {
-    showToast('Batch delete coming soon', 'info')
-  }, [showToast])
+    if (!selectionType || selectedIds.size === 0) return
 
-  const handleBatchMove = async () => {
-    showToast('Batch move coming soon', 'info')
+    const count = selectedIds.size
+    const typeLabel = selectionType === 'page' ? 'page' : selectionType === 'scene' ? 'scene' : 'act'
+    const description = selectionType === 'page'
+      ? `This will permanently delete all panels on these pages.`
+      : selectionType === 'scene'
+        ? `This will permanently delete all pages and panels in these scenes.`
+        : `This will permanently delete all scenes, pages, and panels in these acts.`
+
+    const confirmed = await confirm({
+      title: `Delete ${count} ${typeLabel}${count !== 1 ? 's' : ''}?`,
+      description,
+    })
+    if (!confirmed) return
+
+    const supabase = createClient()
+    const ids = Array.from(selectedIds)
+
+    if (selectionType === 'page') {
+      const result = await batchDeletePages(supabase, ids, issue)
+      if (!result.success) {
+        showToast(`Failed to delete pages: ${result.error}`, 'error')
+        await onRefresh()
+        return
+      }
+
+      // Deselect deleted pages
+      if (selectedPageId && ids.includes(selectedPageId)) {
+        onSelectPage('')
+      }
+
+      // Optimistic UI update
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).map((s: any) => ({
+            ...s,
+            pages: (s.pages || []).filter((p: any) => !ids.includes(p.id)),
+          })),
+        })),
+      }))
+
+      // Record batch undo
+      recordAction({
+        type: 'batch_page_delete',
+        items: result.deletedItems.map(item => ({ pageId: item.id, sceneId: item.parentId, data: item.data })),
+        description: `Delete ${count} pages`,
+      })
+    } else if (selectionType === 'scene') {
+      const result = await batchDeleteScenes(supabase, ids, issue)
+      if (!result.success) {
+        showToast(`Failed to delete scenes: ${result.error}`, 'error')
+        await onRefresh()
+        return
+      }
+
+      // Deselect if current page was in deleted scenes
+      const deletedPageIds = new Set<string>()
+      for (const act of issue.acts || []) {
+        for (const scene of act.scenes || []) {
+          if (ids.includes(scene.id)) {
+            for (const page of scene.pages || []) {
+              deletedPageIds.add(page.id)
+            }
+          }
+        }
+      }
+      if (selectedPageId && deletedPageIds.has(selectedPageId)) {
+        onSelectPage('')
+      }
+
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.map((a: any) => ({
+          ...a,
+          scenes: (a.scenes || []).filter((s: any) => !ids.includes(s.id)),
+        })),
+      }))
+
+      recordAction({
+        type: 'batch_scene_delete',
+        items: result.deletedItems.map(item => ({ sceneId: item.id, actId: item.parentId, data: item.data })),
+        description: `Delete ${count} scenes`,
+      })
+    } else if (selectionType === 'act') {
+      const result = await batchDeleteActs(supabase, ids, issue)
+      if (!result.success) {
+        showToast(`Failed to delete acts: ${result.error}`, 'error')
+        await onRefresh()
+        return
+      }
+
+      // Deselect if current page was in deleted acts
+      const deletedPageIds = new Set<string>()
+      for (const act of issue.acts || []) {
+        if (ids.includes(act.id)) {
+          for (const scene of act.scenes || []) {
+            for (const page of scene.pages || []) {
+              deletedPageIds.add(page.id)
+            }
+          }
+        }
+      }
+      if (selectedPageId && deletedPageIds.has(selectedPageId)) {
+        onSelectPage('')
+      }
+
+      setIssue((prev: any) => ({
+        ...prev,
+        acts: prev.acts.filter((a: any) => !ids.includes(a.id)),
+      }))
+
+      recordAction({
+        type: 'batch_act_delete',
+        items: result.deletedItems.map(item => ({ actId: item.id, issueId: item.parentId, data: item.data })),
+        description: `Delete ${count} acts`,
+      })
+    }
+
+    clearSelection()
+    showToast(`Deleted ${count} ${typeLabel}${count !== 1 ? 's' : ''}`, 'success')
+  }, [selectionType, selectedIds, issue, selectedPageId, onSelectPage, setIssue, onRefresh, clearSelection, showToast, recordAction, confirm])
+
+  const handleBatchMove = () => {
+    setShowMovePopover(prev => !prev)
   }
 
   const handleBatchDuplicate = async () => {
-    showToast('Batch duplicate coming soon', 'info')
+    if (!selectionType || selectedIds.size === 0) return
+
+    // Sort IDs by visual position to maintain relative order
+    const ids = Array.from(selectedIds)
+    const visibleIds = getVisibleItemIds(selectionType)
+    ids.sort((a, b) => visibleIds.indexOf(a) - visibleIds.indexOf(b))
+    const count = ids.length
+
+    if (selectionType === 'page') {
+      for (const id of ids) {
+        await duplicatePage(id)
+      }
+    } else if (selectionType === 'scene') {
+      for (const id of ids) {
+        await duplicateScene(id)
+      }
+    }
+    // Acts don't have duplicate in the existing system
+
+    clearSelection()
+    showToast(`Duplicated ${count} ${selectionType}${count !== 1 ? 's' : ''}`, 'success')
   }
 
   // Batch delete on Delete/Backspace when items selected
@@ -2247,12 +2392,60 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             {selectedIds.size} {selectionType}{selectedIds.size !== 1 ? 's' : ''} selected
           </span>
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => handleBatchMove()}
-              className="px-2.5 py-1 text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-colors"
-            >
-              Move
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => handleBatchMove()}
+                className="px-2.5 py-1 text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-colors"
+              >
+                Move
+              </button>
+              {showMovePopover && selectionType === 'page' && (
+                <div className="absolute bottom-full mb-1 right-0 dropdown-panel py-1 min-w-[200px] max-h-48 overflow-y-auto z-50">
+                  {sortedActs.map((act: any) => {
+                    const actScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+                    return actScenes.map((scene: any) => (
+                      <button
+                        key={scene.id}
+                        onClick={async () => {
+                          const ids = Array.from(selectedIds)
+                          for (const id of ids) {
+                            await movePageToScene(id, scene.id)
+                          }
+                          clearSelection()
+                          setShowMovePopover(false)
+                          showToast(`Moved ${ids.length} pages to ${scene.title || 'scene'}`, 'success')
+                        }}
+                        className="dropdown-item text-xs"
+                      >
+                        <span className="opacity-50">{act.name || `Act ${act.number}`} → </span>
+                        {scene.title || 'Untitled Scene'}
+                      </button>
+                    ))
+                  })}
+                </div>
+              )}
+              {showMovePopover && selectionType === 'scene' && (
+                <div className="absolute bottom-full mb-1 right-0 dropdown-panel py-1 min-w-[160px] z-50">
+                  {sortedActs.map((act: any) => (
+                    <button
+                      key={act.id}
+                      onClick={async () => {
+                        const ids = Array.from(selectedIds)
+                        for (const id of ids) {
+                          await moveSceneToAct(id, act.id)
+                        }
+                        clearSelection()
+                        setShowMovePopover(false)
+                        showToast(`Moved ${ids.length} scenes to ${act.name || 'act'}`, 'success')
+                      }}
+                      className="dropdown-item text-xs"
+                    >
+                      {act.name || `Act ${act.number}`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               onClick={() => handleBatchDuplicate()}
               className="px-2.5 py-1 text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-colors"
