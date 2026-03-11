@@ -128,4 +128,22 @@ export const rateLimiters = {
     maxRequests: 20,
     windowMs: 60 * 1000,
   }),
+
+  // Manuscript scan (AI-powered, expensive): 3 per minute
+  manuscriptScan: (userId: string) => checkRateLimit(`manuscript-scan:${userId}`, {
+    maxRequests: 3,
+    windowMs: 60 * 1000,
+  }),
+
+  // Stats recompute: 10 per minute
+  statsRecompute: (userId: string) => checkRateLimit(`stats-recompute:${userId}`, {
+    maxRequests: 10,
+    windowMs: 60 * 1000,
+  }),
+
+  // Voice data (lazy-load): 30 per minute
+  voiceData: (userId: string) => checkRateLimit(`voice-data:${userId}`, {
+    maxRequests: 30,
+    windowMs: 60 * 1000,
+  }),
 }
