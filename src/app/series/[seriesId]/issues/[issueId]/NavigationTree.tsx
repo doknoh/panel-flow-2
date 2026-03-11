@@ -362,6 +362,23 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     return () => document.removeEventListener('keydown', handleEscape)
   }, [selectedIds.size, contextMenu, clearSelection])
 
+  // Close move popover on click outside
+  useEffect(() => {
+    if (!showMovePopover) return
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-move-popover]')) {
+        setShowMovePopover(false)
+      }
+    }
+    // Slight delay to not close immediately on the button click that opened it
+    const timer = setTimeout(() => document.addEventListener('click', handleClick), 0)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [showMovePopover])
+
   // --- Unified title editing ---
 
   const startEditing = (id: string, title: string) => {
@@ -2452,7 +2469,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             {selectedIds.size} {selectionType}{selectedIds.size !== 1 ? 's' : ''} selected
           </span>
           <div className="flex items-center gap-1.5">
-            <div className="relative">
+            <div className="relative" data-move-popover>
               <button
                 onClick={() => handleBatchMove()}
                 className="px-2.5 py-1 text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-colors"
