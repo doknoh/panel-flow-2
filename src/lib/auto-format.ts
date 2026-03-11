@@ -4,6 +4,7 @@ interface Character {
   id: string
   name: string
   display_name: string
+  aliases?: string[]
 }
 
 /**
@@ -32,6 +33,15 @@ export function capitalizeCharacterNames(
 
     // Replace with uppercase version
     result = result.replace(regex, displayName.toUpperCase())
+
+    // Also capitalize any aliases
+    for (const alias of character.aliases || []) {
+      if (alias && alias.length >= 2) {
+        const escapedAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const aliasRegex = new RegExp(`\\b${escapedAlias}\\b`, 'gi')
+        result = result.replace(aliasRegex, alias.toUpperCase())
+      }
+    }
   }
 
   return result
@@ -60,6 +70,21 @@ export function hasUncapitalizedCharacterNames(
       const uppercaseName = displayName.toUpperCase()
       if (matches.some(match => match !== uppercaseName)) {
         return true
+      }
+    }
+
+    // Also check aliases
+    for (const alias of character.aliases || []) {
+      if (alias && alias.length >= 2) {
+        const escapedAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const aliasRegex = new RegExp(`\\b${escapedAlias}\\b`, 'gi')
+        const aliasMatches = text.match(aliasRegex)
+        if (aliasMatches) {
+          const uppercaseAlias = alias.toUpperCase()
+          if (aliasMatches.some(match => match !== uppercaseAlias)) {
+            return true
+          }
+        }
       }
     }
   }
