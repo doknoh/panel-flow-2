@@ -1840,6 +1840,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   ) => {
     e.preventDefault()
     e.stopPropagation()
+    // If right-clicking an item not in the current selection, clear selection
+    if (selectedIds.size > 0 && !selectedIds.has(id)) {
+      clearSelection()
+    }
     setContextMenu({ x: e.clientX, y: e.clientY, type, id, title })
     setContextSubmenu(null)
   }
@@ -2022,6 +2026,8 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [selectedIds.size, handleBatchDelete])
+
+  const isContextMenuItemMultiSelected = contextMenu && selectedIds.has(contextMenu.id) && selectedIds.size > 1
 
   // --- Render ---
 
@@ -2548,7 +2554,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           {(contextMenu.type === 'scene' || contextMenu.type === 'page') && (
             <button
               onClick={() => {
-                if (contextMenu.type === 'page') {
+                if (isContextMenuItemMultiSelected) {
+                  handleBatchDuplicate()
+                } else if (contextMenu.type === 'page') {
                   duplicatePage(contextMenu.id)
                 } else {
                   duplicateScene(contextMenu.id)
@@ -2557,7 +2565,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               }}
               className="dropdown-item text-xs"
             >
-              Duplicate
+              {isContextMenuItemMultiSelected
+                ? `Duplicate ${selectedIds.size} ${selectionType}${selectedIds.size !== 1 ? 's' : ''}`
+                : 'Duplicate'
+              }
             </button>
           )}
 
@@ -2589,14 +2600,23 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           {contextMenu.type === 'scene' && (
             <div
               className="relative"
-              onMouseEnter={() => setContextSubmenu('move-to-act')}
+              onMouseEnter={() => !isContextMenuItemMultiSelected ? setContextSubmenu('move-to-act') : undefined}
               onMouseLeave={() => setContextSubmenu(null)}
             >
               <button
+                onClick={() => {
+                  if (isContextMenuItemMultiSelected) {
+                    handleBatchMove()
+                    closeContextMenu()
+                  }
+                }}
                 className="dropdown-item text-xs justify-between"
               >
-                <span>Move to Act</span>
-                <ChevronRight className="w-3 h-3 opacity-40" />
+                {isContextMenuItemMultiSelected
+                  ? <span>{`Move ${selectedIds.size} ${selectionType}${selectedIds.size !== 1 ? 's' : ''}`}</span>
+                  : <span>Move to Act</span>
+                }
+                {!isContextMenuItemMultiSelected && <ChevronRight className="w-3 h-3 opacity-40" />}
               </button>
               {contextSubmenu === 'move-to-act' && (
                 <div className="dropdown-panel absolute left-full top-0 py-1 min-w-[140px]">
@@ -2633,14 +2653,23 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           {contextMenu.type === 'page' && (
             <div
               className="relative"
-              onMouseEnter={() => setContextSubmenu('move-to-scene')}
+              onMouseEnter={() => !isContextMenuItemMultiSelected ? setContextSubmenu('move-to-scene') : undefined}
               onMouseLeave={() => setContextSubmenu(null)}
             >
               <button
+                onClick={() => {
+                  if (isContextMenuItemMultiSelected) {
+                    handleBatchMove()
+                    closeContextMenu()
+                  }
+                }}
                 className="dropdown-item text-xs justify-between"
               >
-                <span>Move to Scene</span>
-                <ChevronRight className="w-3 h-3 opacity-40" />
+                {isContextMenuItemMultiSelected
+                  ? <span>{`Move ${selectedIds.size} ${selectionType}${selectedIds.size !== 1 ? 's' : ''}`}</span>
+                  : <span>Move to Scene</span>
+                }
+                {!isContextMenuItemMultiSelected && <ChevronRight className="w-3 h-3 opacity-40" />}
               </button>
               {contextSubmenu === 'move-to-scene' && (
                 <div className="dropdown-panel absolute left-full top-0 py-1 min-w-[180px] max-h-64 overflow-y-auto">
@@ -2683,7 +2712,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           {/* Delete */}
           <button
             onClick={() => {
-              if (contextMenu.type === 'act') {
+              if (isContextMenuItemMultiSelected) {
+                handleBatchDelete()
+              } else if (contextMenu.type === 'act') {
                 deleteAct(contextMenu.id, contextMenu.title)
               } else if (contextMenu.type === 'scene') {
                 const sceneLocation = findSceneLocation(contextMenu.id)
@@ -2697,7 +2728,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             }}
             className="dropdown-item text-xs !text-red-400 hover:!text-red-300"
           >
-            Delete
+            {isContextMenuItemMultiSelected
+              ? `Delete ${selectedIds.size} ${selectionType}${selectedIds.size !== 1 ? 's' : ''}`
+              : 'Delete'
+            }
           </button>
         </div>
       )}
