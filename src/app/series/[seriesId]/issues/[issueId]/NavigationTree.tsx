@@ -1804,6 +1804,38 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     setContextSubmenu(null)
   }
 
+  // --- Batch action stubs (implemented in Task 5) ---
+
+  const handleBatchDelete = useCallback(async () => {
+    showToast('Batch delete coming soon', 'info')
+  }, [showToast])
+
+  const handleBatchMove = async () => {
+    showToast('Batch move coming soon', 'info')
+  }
+
+  const handleBatchDuplicate = async () => {
+    showToast('Batch duplicate coming soon', 'info')
+  }
+
+  // Batch delete on Delete/Backspace when items selected
+  useEffect(() => {
+    if (selectedIds.size < 2) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Don't trigger when editing text
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        handleBatchDelete()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedIds.size, handleBatchDelete])
+
   // --- Render ---
 
   return (
@@ -2206,6 +2238,42 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
             })()}
           </DragOverlay>
         </DndContext>
+      )}
+
+      {/* Multi-select action bar */}
+      {selectedIds.size >= 2 && (
+        <div className="sticky bottom-0 bg-[var(--bg-elevated)] border-t-2 border-[var(--color-primary)] px-3 py-2.5 flex items-center justify-between z-10 animate-in slide-in-from-bottom-2 duration-200">
+          <span className="text-xs font-semibold text-[var(--text-primary)]">
+            {selectedIds.size} {selectionType}{selectedIds.size !== 1 ? 's' : ''} selected
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => handleBatchMove()}
+              className="px-2.5 py-1 text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-colors"
+            >
+              Move
+            </button>
+            <button
+              onClick={() => handleBatchDuplicate()}
+              className="px-2.5 py-1 text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-colors"
+            >
+              Duplicate
+            </button>
+            <button
+              onClick={() => handleBatchDelete()}
+              className="px-2.5 py-1 text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 rounded transition-colors"
+            >
+              Delete
+            </button>
+            <button
+              onClick={clearSelection}
+              className="px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] rounded transition-colors ml-1"
+              aria-label="Clear selection"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Context Menu */}
