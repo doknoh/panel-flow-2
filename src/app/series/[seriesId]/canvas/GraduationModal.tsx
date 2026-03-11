@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CanvasItemData, Character, Location } from './CanvasClient'
+import { CanvasItemData, Character, Location } from './NotebookClient'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface GraduationModalProps {
@@ -181,7 +181,7 @@ export default function GraduationModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleSelectMode('new')}
-                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-success)] rounded-lg text-left transition-all"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-primary)] rounded-lg text-left transition-all"
                 >
                   <div className="text-2xl mb-2">✨</div>
                   <div className="font-medium">Create New</div>
@@ -312,7 +312,7 @@ export default function GraduationModal({
                 (graduationMode === 'new' && !newName.trim()) ||
                 (graduationMode === 'existing' && !selectedExistingId)
               }
-              className="px-4 py-2 bg-[var(--color-success)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg font-medium transition-colors"
+              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg font-medium transition-colors text-white"
             >
               {isSubmitting ? 'Graduating...' : '🎓 Graduate'}
             </button>

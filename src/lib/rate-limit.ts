@@ -111,6 +111,12 @@ export const rateLimiters = {
     windowMs: 60 * 1000,
   }),
 
+  // AI character scan: 5 per minute
+  aiCharacterScan: (userId: string) => checkRateLimit(`ai-character-scan:${userId}`, {
+    maxRequests: 5,
+    windowMs: 60 * 1000,
+  }),
+
   // AI debrief: 10 per minute
   aiDebrief: (userId: string) => checkRateLimit(`ai-debrief:${userId}`, {
     maxRequests: 10,

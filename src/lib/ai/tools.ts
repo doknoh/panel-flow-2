@@ -64,6 +64,38 @@ export const EDITOR_TOOLS: Anthropic.Tool[] = [
           type: 'string',
           description: 'Updated character arc notes',
         },
+        age: {
+          type: 'string',
+          description: 'Character age or age range (e.g. "mid-30s")',
+        },
+        eye_color: {
+          type: 'string',
+          description: 'Eye color description',
+        },
+        hair_color_style: {
+          type: 'string',
+          description: 'Hair color and style',
+        },
+        height: {
+          type: 'string',
+          description: 'Height (e.g. "tall", "5\'11\\"")',
+        },
+        build: {
+          type: 'string',
+          description: 'Body build (e.g. "athletic", "stocky")',
+        },
+        skin_tone: {
+          type: 'string',
+          description: 'Skin tone description',
+        },
+        distinguishing_marks: {
+          type: 'string',
+          description: 'Scars, tattoos, birthmarks, etc.',
+        },
+        style_wardrobe: {
+          type: 'string',
+          description: 'Typical clothing, accessories, look',
+        },
       },
       required: ['characterId'],
     },
@@ -450,6 +482,14 @@ export async function executeToolCall(
         if (input.speech_patterns) updates.speech_patterns = input.speech_patterns
         if (input.relationships) updates.relationships = input.relationships
         if (input.arc_notes) updates.arc_notes = input.arc_notes
+        if (input.age) updates.age = input.age
+        if (input.eye_color) updates.eye_color = input.eye_color
+        if (input.hair_color_style) updates.hair_color_style = input.hair_color_style
+        if (input.height) updates.height = input.height
+        if (input.build) updates.build = input.build
+        if (input.skin_tone) updates.skin_tone = input.skin_tone
+        if (input.distinguishing_marks) updates.distinguishing_marks = input.distinguishing_marks
+        if (input.style_wardrobe) updates.style_wardrobe = input.style_wardrobe
 
         const { data, error } = await supabase
           .from('characters')

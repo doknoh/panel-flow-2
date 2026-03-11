@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import CanvasClient from './CanvasClient'
+import NotebookClient from './NotebookClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,7 +56,7 @@ export default async function CanvasPage({ params }: PageProps) {
     .order('name')
 
   return (
-    <CanvasClient
+    <NotebookClient
       seriesId={seriesId}
       seriesTitle={series.title}
       initialItems={canvasItems || []}
