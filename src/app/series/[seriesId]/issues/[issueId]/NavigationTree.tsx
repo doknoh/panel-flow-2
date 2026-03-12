@@ -30,6 +30,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronRight } from 'lucide-react'
+import { getSelectionGroups, GroupPosition } from '@/lib/selection-groups'
 
 interface Plotline {
   id: string
@@ -78,6 +79,53 @@ function SortableItem({ id, children, isPartOfMultiDrag }: { id: string; childre
       {children}
     </div>
   )
+}
+
+/** Shared margin/border constants for selection group styling */
+const GROUP_MARGIN: Record<'page' | 'scene' | 'act', string> = { page: 'ml-8', scene: 'ml-4', act: 'ml-1' }
+const GROUP_BG = 'bg-[var(--color-primary)]/12'
+const GROUP_BORDER = 'border-[var(--color-primary)]/35'
+const GROUP_DIVIDER = 'border-t border-t-[var(--color-primary)]/20'
+
+/** Build className for a multi-selected item based on its group position */
+function selectionGroupClass(position: GroupPosition | undefined, level: 'page' | 'scene' | 'act', hasSummaryBelow = false): string {
+  if (!position) return ''
+
+  const base = `${GROUP_MARGIN[level]} mr-1.5 ${GROUP_BG} text-[var(--text-primary)]`
+
+  switch (position) {
+    case 'solo':
+      // When summary follows, row only gets top rounding — summary gets bottom rounding
+      return hasSummaryBelow
+        ? `${base} rounded-t-md border-t border-x ${GROUP_BORDER}`
+        : `${base} rounded-md border ${GROUP_BORDER}`
+    case 'first':
+      return `${base} rounded-t-lg border-t border-x ${GROUP_BORDER}`
+    case 'middle':
+      return `${base} border-x ${GROUP_BORDER} ${GROUP_DIVIDER}`
+    case 'last':
+      // When summary follows, row loses bottom rounding — summary gets it
+      return hasSummaryBelow
+        ? `${base} border-x ${GROUP_BORDER} ${GROUP_DIVIDER}`
+        : `${base} rounded-b-lg border-b border-x ${GROUP_BORDER} ${GROUP_DIVIDER}`
+  }
+}
+
+/** Build className for a page summary div inside a selection group */
+function selectionGroupSummaryClass(position: GroupPosition | undefined, level: 'page' | 'scene' | 'act'): string {
+  if (!position) return ''
+
+  const base = `${GROUP_MARGIN[level]} mr-1.5 ${GROUP_BG} px-3 pb-1.5`
+
+  switch (position) {
+    case 'solo':
+      return `${base} rounded-b-md border-b border-x ${GROUP_BORDER}`
+    case 'first':
+    case 'middle':
+      return `${base} border-x ${GROUP_BORDER}`
+    case 'last':
+      return `${base} rounded-b-lg border-b border-x ${GROUP_BORDER}`
+  }
 }
 
 export default function NavigationTree({ issue, setIssue, plotlines, selectedPageId, onSelectPage, onRefresh }: NavigationTreeProps) {
@@ -1819,6 +1867,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   // --- Computed values ---
 
   const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
+  const actGroups = selectionType === 'act' && selectedIds.size > 0
+    ? getSelectionGroups(selectedIds, sortedActs.map((a: any) => a.id))
+    : new Map<string, GroupPosition>()
 
   // Calculate global page position map (page.id -> position number across entire issue)
   const pagePositionMap = useMemo(() => {
@@ -2109,15 +2160,21 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                 const actPageCount = sortedScenes.reduce(
                   (sum: number, s: any) => sum + (s.pages?.length || 0), 0
                 )
+                const sceneGroups = selectionType === 'scene' && selectedIds.size > 0
+                  ? getSelectionGroups(selectedIds, sortedScenes.map((s: any) => s.id))
+                  : new Map<string, GroupPosition>()
 
                 return (
                   <SortableItem key={act.id} id={act.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(act.id) && activeDragItem.id !== act.id)}>
                     <div>
                       {/* Act Header */}
                       <div
-                        className={`flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
+                        className={`flex items-center gap-2 py-2 cursor-pointer transition-colors group ${
                           dragOverContainerId === act.id && (activeDragItem?.type === 'scene' || activeDragItem?.type === 'page') ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                        } ${selectedIds.has(act.id) ? 'bg-[var(--color-primary)]/15 border-l-2 border-l-[var(--color-primary)]' : ''}`}
+                        } ${actGroups.has(act.id)
+                            ? `px-2 ${selectionGroupClass(actGroups.get(act.id), 'act')}`
+                            : 'px-2 hover:bg-[var(--bg-secondary)]'
+                        }`}
                         onClick={(e) => {
                           if (editingItemId) return
                           if (e.metaKey || e.ctrlKey || e.shiftKey) {
@@ -2183,15 +2240,21 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                             {sortedScenes.map((scene: any) => {
                               const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
                               const scenePageCount = sortedPages.length
+                              const pageGroups = selectionType === 'page' && selectedIds.size > 0
+                                ? getSelectionGroups(selectedIds, sortedPages.map((p: any) => p.id))
+                                : new Map<string, GroupPosition>()
 
                               return (
                                 <SortableItem key={scene.id} id={scene.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(scene.id) && activeDragItem.id !== scene.id)}>
                                   <div>
                                     {/* Scene Header */}
                                     <div
-                                      className={`flex items-center gap-2 pl-6 pr-2 py-1.5 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
+                                      className={`flex items-center gap-2 pr-2 py-1.5 cursor-pointer transition-colors group ${
                                         dragOverContainerId === scene.id && activeDragItem?.type === 'page' ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                                      } ${selectedIds.has(scene.id) ? 'bg-[var(--color-primary)]/15 ring-1 ring-inset ring-[var(--color-primary)]' : ''}`}
+                                      } ${sceneGroups.has(scene.id)
+                                          ? `pl-2 ${selectionGroupClass(sceneGroups.get(scene.id), 'scene')}`
+                                          : 'pl-6 hover:bg-[var(--bg-secondary)]'
+                                      }`}
                                       style={{ borderLeft: `3px solid ${scene.plotline?.color || 'transparent'}` }}
                                       onClick={(e) => {
                                         if (editingItemId) return
@@ -2256,6 +2319,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                           {sortedPages.map((page: any) => {
                                             const panelCount = page.panels?.length || 0
                                             const isSelected = selectedPageId === page.id
+                                            const hasVisibleSummary = !!(editingPageSummaryId === page.id || page.page_summary || (page.panels || []).length > 0)
 
                                             return (
                                               <SortableItem key={page.id} id={page.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(page.id) && activeDragItem.id !== page.id)}>
@@ -2268,12 +2332,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                     }
                                                   }}
                                                   onContextMenu={(e) => handleContextMenu(e, 'page', page.id, page.title || '')}
-                                                  className={`flex items-center gap-2 pl-10 pr-2 py-1 cursor-pointer transition-colors group ${
-                                                    isSelected
-                                                      ? 'bg-[var(--color-primary)] text-white'
-                                                      : selectedIds.has(page.id)
-                                                        ? 'bg-[var(--color-primary)]/15 border-l-2 border-[var(--color-primary)] text-[var(--text-primary)]'
-                                                        : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
+                                                  className={`flex items-center gap-2 pr-2 py-1 cursor-pointer transition-colors group ${
+                                                    pageGroups.has(page.id)
+                                                      ? `pl-3 ${selectionGroupClass(pageGroups.get(page.id), 'page', hasVisibleSummary)}`
+                                                      : isSelected && selectedIds.size === 0
+                                                        ? 'pl-10 bg-[var(--color-primary)] text-white'
+                                                        : 'pl-10 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
                                                   }`}
                                                 >
                                                   {editingItemId === page.id ? (
@@ -2296,7 +2360,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       )}
                                                     </span>
                                                   )}
-                                                  <span className={`type-micro tabular-nums ${isSelected ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
+                                                  <span className={`type-micro tabular-nums ${isSelected && selectedIds.size === 0 ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
                                                     {panelCount} pnl
                                                   </span>
                                                   <button
@@ -2313,7 +2377,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       }
                                                     }}
                                                     className={`opacity-0 group-hover:opacity-100 p-0.5 transition-opacity ${
-                                                      isSelected
+                                                      isSelected && selectedIds.size === 0
                                                         ? 'hover:bg-white/20 text-white/60 hover:text-white'
                                                         : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                                                     }`}
@@ -2324,7 +2388,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                 </div>
                                                 {/* Page Summary */}
                                                 {editingPageSummaryId === page.id ? (
-                                                  <div className="ml-10 mt-0.5 mb-1">
+                                                  <div className={pageGroups.has(page.id)
+                                                    ? selectionGroupSummaryClass(pageGroups.get(page.id), 'page')
+                                                    : 'ml-10 mt-0.5 mb-1'
+                                                  }>
                                                     <textarea
                                                       ref={pageSummaryInputRef}
                                                       value={editingPageSummary}
@@ -2343,7 +2410,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                   </div>
                                                 ) : page.page_summary ? (
                                                   <div
-                                                    className="ml-10 mt-0.5 mb-1 cursor-pointer group/pagesummary"
+                                                    className={`${pageGroups.has(page.id)
+                                                      ? selectionGroupSummaryClass(pageGroups.get(page.id), 'page')
+                                                      : 'ml-10 mt-0.5 mb-1'
+                                                    } cursor-pointer group/pagesummary`}
                                                     onClick={(e) => {
                                                       e.stopPropagation()
                                                       startEditingPageSummary(page.id, page.page_summary)
@@ -2359,7 +2429,10 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                   </div>
                                                 ) : (page.panels || []).length > 0 ? (
                                                   <div
-                                                    className="ml-10 mt-0.5 mb-1 cursor-pointer"
+                                                    className={`${pageGroups.has(page.id)
+                                                      ? selectionGroupSummaryClass(pageGroups.get(page.id), 'page')
+                                                      : 'ml-10 mt-0.5 mb-1'
+                                                    } cursor-pointer`}
                                                     onClick={(e) => {
                                                       e.stopPropagation()
                                                       generatePageSummary(page.id)
