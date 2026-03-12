@@ -10,8 +10,8 @@ interface Panel {
   panel_number: number
   sort_order: number
   visual_description: string | null
-  shot_type: string | null
-  notes: string | null
+  camera: string | null
+  internal_notes: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -22,7 +22,7 @@ interface DialogueBlock {
   character_id: string | null
   text: string | null
   dialogue_type: string | null
-  modifier: string | null
+  delivery_instruction: string | null
   sort_order: number
   character?: { id: string; name: string } | null
 }
@@ -76,7 +76,7 @@ function countWords(text: string | null): number {
 /** Count all words across all editable content in a panel */
 function countPanelWords(panel: Panel): number {
   let total = countWords(panel.visual_description)
-  total += countWords(panel.notes)
+  total += countWords(panel.internal_notes)
   for (const d of panel.dialogue_blocks) total += countWords(d.text)
   for (const c of panel.captions) total += countWords(c.text)
   for (const s of panel.sound_effects) total += countWords(s.text)
@@ -96,7 +96,7 @@ function formatSpeaker(d: DialogueBlock): string {
     : type === 'electronic' ? '(ELECTRONIC)'
     : type === 'radio' ? '(RADIO)'
     : ''
-  const mod = d.modifier ? ` [${d.modifier.toUpperCase()}]` : ''
+  const mod = d.delivery_instruction ? ` [${d.delivery_instruction.toUpperCase()}]` : ''
   return `${name} ${suffix}${mod}:`
 }
 
@@ -167,7 +167,7 @@ export default function ZenMode({
 
   const updateNotes = useCallback((md: string) => {
     setPanels(prev => prev.map((p, i) =>
-      i === currentPanelIndex ? { ...p, notes: md } : p
+      i === currentPanelIndex ? { ...p, internal_notes: md } : p
     ))
   }, [currentPanelIndex])
 
@@ -310,7 +310,7 @@ export default function ZenMode({
           <p className="text-[17px] text-[var(--zen-ghost)] mb-4" style={{ fontFamily: "'Georgia', serif" }}>
             No panels on this page
           </p>
-          <p className="text-[9px] tracking-[0.1em] uppercase text-[var(--zen-ghost)]" style={{ fontFamily: 'var(--font-mono)' }}>
+          <p className="text-[10px] tracking-[0.1em] uppercase text-[var(--zen-ghost)]" style={{ fontFamily: 'var(--font-mono)' }}>
             Press Escape to exit
           </p>
         </div>
@@ -340,14 +340,14 @@ export default function ZenMode({
       {/* Header — centered, no border */}
       <div className="py-4 text-center">
         <div
-          className="text-[10px] tracking-[0.12em] uppercase"
+          className="text-[11px] tracking-[0.12em] uppercase"
           style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
         >
           Page {page.page_number} &middot; Panel {currentPanel.panel_number}
         </div>
         {sceneContext && (
           <div
-            className="text-[9px] tracking-[0.08em] mt-0.5"
+            className="text-[10px] tracking-[0.08em] mt-0.5"
             style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
           >
             {sceneContext.actName} &middot; {sceneContext.sceneName}
@@ -383,7 +383,7 @@ export default function ZenMode({
           {currentPanelIndex > 0 && panels[currentPanelIndex - 1] && (
             <div className="mb-8">
               <span
-                className="block mb-1.5 text-[9px] tracking-[0.1em] uppercase"
+                className="block mb-1.5 text-[10px] tracking-[0.1em] uppercase"
                 style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-ghost)' }}
               >
                 Panel {panels[currentPanelIndex - 1].panel_number}
@@ -400,7 +400,7 @@ export default function ZenMode({
           {/* VISUAL DESCRIPTION */}
           <div className="mb-2">
             <span
-              className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+              className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
               style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
             >
               Visual Description
@@ -420,7 +420,7 @@ export default function ZenMode({
             <>
               <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
               <span
-                className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+                className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
                 style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
               >
                 Dialogue
@@ -457,7 +457,7 @@ export default function ZenMode({
             <>
               <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
               <span
-                className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+                className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
                 style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
               >
                 Captions
@@ -470,7 +470,7 @@ export default function ZenMode({
                     style={{ borderColor: 'var(--zen-border-dialogue)' }}
                   >
                     <div
-                      className="mb-0.5 text-[9px] tracking-[0.06em] uppercase"
+                      className="mb-0.5 text-[10px] tracking-[0.06em] uppercase"
                       style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-accent)' }}
                     >
                       {(c.caption_type || 'narrative').toUpperCase()}
@@ -494,7 +494,7 @@ export default function ZenMode({
             <>
               <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
               <span
-                className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+                className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
                 style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
               >
                 SFX
@@ -518,16 +518,16 @@ export default function ZenMode({
           {/* INTERNAL NOTES */}
           <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
           <span
-            className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+            className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
             style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
           >
             Internal Notes
           </span>
           <ScriptEditor
             variant="notes"
-            initialContent={currentPanel.notes || ''}
+            initialContent={currentPanel.internal_notes || ''}
             onUpdate={updateNotes}
-            onBlur={(md) => saveField('panels', currentPanel.id, 'notes', md)}
+            onBlur={(md) => saveField('panels', currentPanel.id, 'internal_notes', md)}
             placeholder="Internal notes..."
             hideToolbar
           />
@@ -538,7 +538,7 @@ export default function ZenMode({
               <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
               <div>
                 <span
-                  className="block mb-1.5 text-[9px] tracking-[0.1em] uppercase"
+                  className="block mb-1.5 text-[10px] tracking-[0.1em] uppercase"
                   style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-ghost)' }}
                 >
                   Panel {panels[currentPanelIndex + 1].panel_number}
@@ -559,13 +559,13 @@ export default function ZenMode({
       <div className="py-3 px-8">
         <div className="max-w-[620px] mx-auto flex items-center justify-between">
           <span
-            className="text-[9px] tracking-[0.08em] uppercase"
+            className="text-[10px] tracking-[0.08em] uppercase"
             style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
           >
             +{sessionWordCount} words this session
           </span>
           <div
-            className="flex items-center gap-4 text-[9px] tracking-[0.04em]"
+            className="flex items-center gap-4 text-[10px] tracking-[0.04em]"
             style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
           >
             <span><span className="font-semibold" style={{ color: 'var(--zen-label)' }}>Tab</span> next</span>
