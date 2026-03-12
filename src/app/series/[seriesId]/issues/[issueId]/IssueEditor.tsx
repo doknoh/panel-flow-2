@@ -896,13 +896,15 @@ function IssueEditorContent({
           </div>
           <div ref={dropdownRef} className="flex items-center gap-1.5 md:gap-2">
             {/* Direct access: Find */}
-            <button
-              onClick={() => setIsFindReplaceOpen(true)}
-              className="type-meta px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hidden md:block active:scale-[0.97] transition-all duration-150 ease-out"
-              title="Find & Replace (⌘F)"
-            >
-              FIND
-            </button>
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => setIsFindReplaceOpen(true)}
+                className="type-meta px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
+                title="Find & Replace (⌘F)"
+              >
+                FIND
+              </button>
+            </div>
 
             {/* View dropdown */}
             <div className="relative hidden md:block">
