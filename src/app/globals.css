@@ -1025,6 +1025,7 @@ html[data-theme-transitioning] * {
 
 .zen-mode {
   background-image: none;
+  color-scheme: light;
 
   --zen-bg: #faf8f4;
   --zen-text: #3d3428;
@@ -1040,20 +1041,7 @@ html[data-theme-transitioning] * {
   --zen-footer: #cdc4b4;
 }
 
-:is(.dark, [data-theme="dark"]) .zen-mode {
-  --zen-bg: #1c1a16;
-  --zen-text: #ddd6ca;
-  --zen-text-dialogue: #c8bfb0;
-  --zen-text-caption: #b0a898;
-  --zen-text-notes: #8a8070;
-  --zen-accent: #a89878;
-  --zen-label: #7a7060;
-  --zen-divider: #3a3630;
-  --zen-border-dialogue: #6a6050;
-  --zen-ghost: #5a5448;
-  --zen-dot: #4a4438;
-  --zen-footer: #6a6258;
-}
+/* Zen mode intentionally ignores dark mode — warm parchment IS the experience */
 
 /* Zen mode editor overrides */
 .zen-mode .script-editor {
@@ -1067,11 +1055,17 @@ html[data-theme-transitioning] * {
 
 .zen-mode .script-editor__content {
   font-family: 'Georgia', 'Times New Roman', serif;
+  color: var(--zen-text);
   outline: none;
 }
 
 .zen-mode .script-editor__content:focus {
   outline: none;
+}
+
+/* Override placeholder to match parchment palette (prevents dark mode leak) */
+.zen-mode .script-editor .ProseMirror p.is-empty:first-child::before {
+  color: var(--zen-ghost);
 }
 
 /* Description variant in zen mode */
