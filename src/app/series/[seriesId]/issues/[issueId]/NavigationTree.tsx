@@ -318,7 +318,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       }
 
       const visibleIds = getVisibleItemIds(itemType)
-      const anchorId = lastClickedId || itemId
+      // Use lastClickedId, or fall back to the currently active page
+      // (handles the case where user navigated via URL, not a tree click)
+      const anchorId = lastClickedId || (itemType === 'page' ? selectedPageId : null) || itemId
       const anchorIndex = visibleIds.indexOf(anchorId)
       const currentIndex = visibleIds.indexOf(itemId)
 
@@ -340,7 +342,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     }
 
     return false
-  }, [selectedIds, selectionType, lastClickedId, clearSelection, getVisibleItemIds])
+  }, [selectedIds, selectionType, lastClickedId, selectedPageId, clearSelection, getVisibleItemIds])
 
   const toggleAct = (actId: string) => {
     const newExpanded = new Set(expandedActs)
