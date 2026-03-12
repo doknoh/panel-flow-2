@@ -273,8 +273,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const isShiftKey = e.shiftKey
 
     if (!isMetaKey && !isShiftKey) {
-      // Plain click — clear selection, navigate as usual
-      clearSelection()
+      // Plain click — clear multi-selection, navigate as usual, but
+      // remember this item as the anchor for future shift+click ranges
+      setSelectedIds(new Set())
+      setSelectionType(null)
+      setShowMovePopover(false)
+      setLastClickedId(itemId)
       return false // signals caller to do normal navigation
     }
 
@@ -2100,7 +2104,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   // --- Render ---
 
   return (
-    <div className="p-3">
+    <div className="p-3 select-none">
       <ConfirmDialog {...dialogProps} />
       <div className="flex items-center justify-between mb-3">
         <h3 className="type-label">STRUCTURE</h3>
