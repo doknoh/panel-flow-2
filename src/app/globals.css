@@ -1042,17 +1042,17 @@ html[data-theme-transitioning] * {
 
 :is(.dark, [data-theme="dark"]) .zen-mode {
   --zen-bg: #1c1a16;
-  --zen-text: #d4ccc0;
-  --zen-text-dialogue: #b0a898;
-  --zen-text-caption: #908878;
-  --zen-text-notes: #5a5448;
-  --zen-accent: #8b7d65;
-  --zen-label: #4a4438;
-  --zen-divider: #302c26;
-  --zen-border-dialogue: #5a5040;
-  --zen-ghost: #3a3630;
-  --zen-dot: #302c26;
-  --zen-footer: #4a4438;
+  --zen-text: #ddd6ca;
+  --zen-text-dialogue: #c8bfb0;
+  --zen-text-caption: #b0a898;
+  --zen-text-notes: #8a8070;
+  --zen-accent: #a89878;
+  --zen-label: #7a7060;
+  --zen-divider: #3a3630;
+  --zen-border-dialogue: #6a6050;
+  --zen-ghost: #5a5448;
+  --zen-dot: #4a4438;
+  --zen-footer: #6a6258;
 }
 
 /* Zen mode editor overrides */
@@ -1077,14 +1077,14 @@ html[data-theme-transitioning] * {
 /* Description variant in zen mode */
 .zen-mode .script-editor--description .script-editor__content {
   min-height: 100px;
-  font-size: 17px;
+  font-size: 19px;
   line-height: 1.85;
   color: var(--zen-text);
 }
 
 /* Dialogue variant in zen mode */
 .zen-mode .script-editor--dialogue .script-editor__content {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.7;
   color: var(--zen-text-dialogue);
   font-style: italic;
@@ -1092,7 +1092,7 @@ html[data-theme-transitioning] * {
 
 /* Caption variant in zen mode */
 .zen-mode .script-editor--caption .script-editor__content {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.7;
   color: var(--zen-text-caption);
 }
@@ -1110,7 +1110,7 @@ html[data-theme-transitioning] * {
 /* Notes variant in zen mode */
 .zen-mode .script-editor--notes .script-editor__content {
   min-height: 40px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.7;
   color: var(--zen-text-notes);
 }
