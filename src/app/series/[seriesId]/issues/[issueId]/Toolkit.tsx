@@ -164,6 +164,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   const [localCharacters, setLocalCharacters] = useState(issue.series.characters)
   const [localLocations, setLocalLocations] = useState(issue.series.locations)
   const [characterSaving, setCharacterSaving] = useState(false)
+  const [showAllCharacters, setShowAllCharacters] = useState(false)
   const [locationSaving, setLocationSaving] = useState(false)
   const characterSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const locationSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -177,6 +178,18 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     setLocalLocations(issue.series.locations)
   }, [issue.series.locations])
 
+  // Helper: find character IDs mentioned in a visual description by name matching
+  const findCharacterIdsInText = useCallback((text: string | null | undefined): string[] => {
+    if (!text) return []
+    const upper = text.toUpperCase()
+    const found: string[] = []
+    for (const char of localCharacters) {
+      const name = (char.display_name || char.name || '').toUpperCase()
+      if (name && upper.includes(name)) found.push(char.id)
+    }
+    return found
+  }, [localCharacters])
+
   // Compute characters/locations in current scene for contextual filtering
   const sceneCharacterIds = useMemo(() => {
     if (!selectedPageContext?.scene?.id) return new Set<string>()
@@ -187,13 +200,17 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     for (const act of issue.acts || []) {
       for (const scene of act.scenes || []) {
         if (scene.id === selectedPageContext.scene.id) {
-          // Get all character IDs from dialogue blocks in this scene
           for (const page of scene.pages || []) {
             for (const panel of page.panels || []) {
+              // From dialogue blocks
               for (const dialogue of panel.dialogue_blocks || []) {
                 if (dialogue.character_id) {
                   characterIds.add(dialogue.character_id)
                 }
+              }
+              // From visual descriptions (name matching)
+              for (const id of findCharacterIdsInText(panel.visual_description)) {
+                characterIds.add(id)
               }
             }
           }
@@ -202,19 +219,24 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     }
 
     return characterIds
-  }, [issue.acts, selectedPageContext?.scene?.id])
+  }, [issue.acts, selectedPageContext?.scene?.id, findCharacterIdsInText])
 
-  // Compute characters on the current page (from dialogue blocks)
+  // Compute characters on the current page (from dialogue + visual descriptions)
   const pageCharacterIds = useMemo(() => {
     if (!selectedPageContext?.page?.panels) return new Set<string>()
     const ids = new Set<string>()
     for (const panel of selectedPageContext.page.panels) {
+      // From dialogue blocks
       for (const dlg of panel.dialogue_blocks || []) {
         if (dlg.character_id) ids.add(dlg.character_id)
       }
+      // From visual descriptions (name matching)
+      for (const id of findCharacterIdsInText(panel.visual_description)) {
+        ids.add(id)
+      }
     }
     return ids
-  }, [selectedPageContext?.page?.panels])
+  }, [selectedPageContext?.page?.panels, findCharacterIdsInText])
 
   // Split characters into three groups: on page / in scene / other
   const { pageCharacters, sceneCharacters, otherCharacters } = useMemo(() => {
@@ -1191,99 +1213,119 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
         {activeTab === 'characters' && (
           <div className="space-y-2 overflow-y-auto flex-1">
             {selectedCharacter ? (
-              /* Character Detail View */
+              /* Character Detail View — read-only quick reference */
               <div className="space-y-3">
-                <button
-                  onClick={() => setSelectedCharacterId(null)}
-                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                >
-                  <span>←</span> Back to list
-                </button>
-
-                <div className="space-y-3">
-                  {/* Name */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={selectedCharacter.name || ''}
-                      onChange={(e) => updateCharacterField('name', e.target.value)}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
-                    />
-                  </div>
-
-                  {/* Role */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Role</label>
-                    <input
-                      type="text"
-                      value={selectedCharacter.role || ''}
-                      onChange={(e) => updateCharacterField('role', e.target.value)}
-                      placeholder="e.g., Protagonist, Antagonist, Supporting"
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
-                    />
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Description</label>
-                    <textarea
-                      value={selectedCharacter.description || ''}
-                      onChange={(e) => updateCharacterField('description', e.target.value)}
-                      placeholder="Brief character description..."
-                      rows={2}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Visual Description */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Visual Description</label>
-                    <textarea
-                      value={selectedCharacter.visual_description || ''}
-                      onChange={(e) => updateCharacterField('visual_description', e.target.value)}
-                      placeholder="Physical appearance, clothing, distinguishing features..."
-                      rows={3}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Personality Traits */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Personality Traits</label>
-                    <textarea
-                      value={selectedCharacter.personality_traits || ''}
-                      onChange={(e) => updateCharacterField('personality_traits', e.target.value)}
-                      placeholder="Key personality characteristics..."
-                      rows={2}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Background */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Background</label>
-                    <textarea
-                      value={selectedCharacter.background || ''}
-                      onChange={(e) => updateCharacterField('background', e.target.value)}
-                      placeholder="Character history and backstory..."
-                      rows={3}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Save indicator */}
-                  <div className="text-xs text-[var(--text-muted)] text-right">
-                    {characterSaving ? 'Saving...' : 'Auto-saves'}
-                  </div>
-
-                  {/* Delete button */}
+                <div className="flex items-center justify-between">
                   <button
-                    onClick={() => deleteCharacter(selectedCharacter.id)}
-                    className="w-full mt-4 px-3 py-2 text-sm text-[var(--color-error)] hover:opacity-80 hover:bg-[var(--color-error)]/10 rounded transition-colors"
+                    onClick={() => setSelectedCharacterId(null)}
+                    className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                   >
-                    Delete Character
+                    <span>←</span> Back
                   </button>
+                  <a
+                    href={`/series/${issue.series.id}/characters`}
+                    className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors"
+                  >
+                    Edit on Characters Page →
+                  </a>
+                </div>
+
+                {/* Character name + role header */}
+                <div>
+                  <h3 className="type-label text-[var(--text-primary)]">{selectedCharacter.name}</h3>
+                  {selectedCharacter.display_name && selectedCharacter.display_name !== selectedCharacter.name && (
+                    <p className="text-xs text-[var(--text-muted)]">aka {selectedCharacter.display_name}</p>
+                  )}
+                  {selectedCharacter.role && (
+                    <p className="text-xs text-[var(--color-primary)]/80 mt-0.5">{selectedCharacter.role}</p>
+                  )}
+                  {selectedCharacter.aliases?.length > 0 && (
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                      Aliases: {selectedCharacter.aliases.join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                {/* Fields shown only if they have content */}
+                <div className="space-y-2.5">
+                  {selectedCharacter.physical_description && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">APPEARANCE</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.physical_description}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.personality_traits && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">PERSONALITY</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.personality_traits}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.speech_patterns && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">SPEECH PATTERNS</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.speech_patterns}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.relationships && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">RELATIONSHIPS</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.relationships}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.arc_notes && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">ARC NOTES</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.arc_notes}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.background && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">BACKGROUND</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.background}</p>
+                    </div>
+                  )}
+
+                  {/* Compact visual details row if any exist */}
+                  {(selectedCharacter.age || selectedCharacter.height || selectedCharacter.build) && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">DETAILS</label>
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        {[
+                          selectedCharacter.age && `Age: ${selectedCharacter.age}`,
+                          selectedCharacter.height,
+                          selectedCharacter.build,
+                          selectedCharacter.eye_color && `Eyes: ${selectedCharacter.eye_color}`,
+                          selectedCharacter.hair_color_style && `Hair: ${selectedCharacter.hair_color_style}`,
+                        ].filter(Boolean).join(' · ')}
+                      </p>
+                      {selectedCharacter.distinguishing_marks && (
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">{selectedCharacter.distinguishing_marks}</p>
+                      )}
+                      {selectedCharacter.style_wardrobe && (
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">Wardrobe: {selectedCharacter.style_wardrobe}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Empty state if character has no data filled in */}
+                  {!selectedCharacter.physical_description && !selectedCharacter.personality_traits &&
+                   !selectedCharacter.speech_patterns && !selectedCharacter.relationships &&
+                   !selectedCharacter.arc_notes && !selectedCharacter.background && (
+                    <p className="text-xs text-[var(--text-muted)] italic text-center py-3">
+                      No character details yet.{' '}
+                      <a
+                        href={`/series/${issue.series.id}/characters`}
+                        className="text-[var(--color-primary)] hover:underline"
+                      >
+                        Add them on the Characters page.
+                      </a>
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1349,36 +1391,44 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       </div>
                     )}
 
-                    {/* All other characters */}
+                    {/* All other characters — collapsed by default */}
                     {otherCharacters.length > 0 && (
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="type-label text-[var(--text-muted)]">
+                        <button
+                          onClick={() => setShowAllCharacters(prev => !prev)}
+                          className="flex items-center gap-2 mb-2 group"
+                        >
+                          <span className="text-xs text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
+                            {showAllCharacters ? '▾' : '▸'}
+                          </span>
+                          <h3 className="type-label text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
                             All Characters
                           </h3>
                           <span className="text-xs text-[var(--text-muted)]">({otherCharacters.length})</span>
-                        </div>
-                        <div className="space-y-1">
-                          {otherCharacters.map((char: any) => (
-                            <button
-                              key={char.id}
-                              onClick={() => setSelectedCharacterId(char.id)}
-                              className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm">{char.name}</div>
-                                <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
-                              </div>
-                              {char.role && (
-                                <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
+                        </button>
+                        {showAllCharacters && (
+                          <div className="space-y-1">
+                            {otherCharacters.map((char: any) => (
+                              <button
+                                key={char.id}
+                                onClick={() => setSelectedCharacterId(char.id)}
+                                className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium text-sm">{char.name}</div>
+                                  <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                                </div>
+                                {char.role && (
+                                  <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {/* Empty state when no page selected */}
+                    {/* Empty state when no characters detected on page/scene */}
                     {pageCharacters.length === 0 && sceneCharacters.length === 0 && selectedPageContext && (
                       <p className="text-xs text-[var(--text-muted)] italic text-center py-2">
                         No characters have dialogue in this scene yet
