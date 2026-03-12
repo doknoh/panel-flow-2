@@ -30,6 +30,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronRight } from 'lucide-react'
+import { getSelectionGroups, GroupPosition } from '@/lib/selection-groups'
 
 interface Plotline {
   id: string
@@ -78,6 +79,28 @@ function SortableItem({ id, children, isPartOfMultiDrag }: { id: string; childre
       {children}
     </div>
   )
+}
+
+/** Build className for a multi-selected item based on its group position */
+function selectionGroupClass(position: GroupPosition | undefined, level: 'page' | 'scene' | 'act'): string {
+  if (!position) return ''
+
+  // Indentation margins: pages are deeper than scenes, scenes deeper than acts
+  const marginLeft = level === 'page' ? 'ml-8' : level === 'scene' ? 'ml-4' : 'ml-1'
+  const marginRight = 'mr-1.5'
+  const bg = 'bg-[var(--color-primary)]/12'
+  const textClass = 'text-[var(--text-primary)]'
+
+  switch (position) {
+    case 'solo':
+      return `${marginLeft} ${marginRight} ${bg} ${textClass} rounded-md border border-[var(--color-primary)]/35`
+    case 'first':
+      return `${marginLeft} ${marginRight} ${bg} ${textClass} rounded-t-lg border-t border-x border-[var(--color-primary)]/35`
+    case 'middle':
+      return `${marginLeft} ${marginRight} ${bg} ${textClass} border-x border-[var(--color-primary)]/35 border-t border-t-[var(--color-primary)]/20`
+    case 'last':
+      return `${marginLeft} ${marginRight} ${bg} ${textClass} rounded-b-lg border-b border-x border-[var(--color-primary)]/35 border-t border-t-[var(--color-primary)]/20`
+  }
 }
 
 export default function NavigationTree({ issue, setIssue, plotlines, selectedPageId, onSelectPage, onRefresh }: NavigationTreeProps) {
@@ -1819,6 +1842,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
   // --- Computed values ---
 
   const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
+  const actGroups = selectionType === 'act' && selectedIds.size > 0
+    ? getSelectionGroups(selectedIds, sortedActs.map((a: any) => a.id))
+    : new Map<string, GroupPosition>()
 
   // Calculate global page position map (page.id -> position number across entire issue)
   const pagePositionMap = useMemo(() => {
@@ -2109,15 +2135,21 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                 const actPageCount = sortedScenes.reduce(
                   (sum: number, s: any) => sum + (s.pages?.length || 0), 0
                 )
+                const sceneGroups = selectionType === 'scene' && selectedIds.size > 0
+                  ? getSelectionGroups(selectedIds, sortedScenes.map((s: any) => s.id))
+                  : new Map<string, GroupPosition>()
 
                 return (
                   <SortableItem key={act.id} id={act.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(act.id) && activeDragItem.id !== act.id)}>
                     <div>
                       {/* Act Header */}
                       <div
-                        className={`flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
+                        className={`flex items-center gap-2 py-2 cursor-pointer transition-colors group ${
                           dragOverContainerId === act.id && (activeDragItem?.type === 'scene' || activeDragItem?.type === 'page') ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                        } ${selectedIds.has(act.id) ? 'bg-[var(--color-primary)]/15 border-l-2 border-l-[var(--color-primary)]' : ''}`}
+                        } ${actGroups.has(act.id)
+                            ? `px-2 ${selectionGroupClass(actGroups.get(act.id), 'act')}`
+                            : 'px-2 hover:bg-[var(--bg-secondary)]'
+                        }`}
                         onClick={(e) => {
                           if (editingItemId) return
                           if (e.metaKey || e.ctrlKey || e.shiftKey) {
@@ -2183,15 +2215,21 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                             {sortedScenes.map((scene: any) => {
                               const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
                               const scenePageCount = sortedPages.length
+                              const pageGroups = selectionType === 'page' && selectedIds.size > 0
+                                ? getSelectionGroups(selectedIds, sortedPages.map((p: any) => p.id))
+                                : new Map<string, GroupPosition>()
 
                               return (
                                 <SortableItem key={scene.id} id={scene.id} isPartOfMultiDrag={!!(activeDragItem && selectedIds.size > 1 && selectedIds.has(scene.id) && activeDragItem.id !== scene.id)}>
                                   <div>
                                     {/* Scene Header */}
                                     <div
-                                      className={`flex items-center gap-2 pl-6 pr-2 py-1.5 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors group ${
+                                      className={`flex items-center gap-2 pr-2 py-1.5 cursor-pointer transition-colors group ${
                                         dragOverContainerId === scene.id && activeDragItem?.type === 'page' ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10' : ''
-                                      } ${selectedIds.has(scene.id) ? 'bg-[var(--color-primary)]/15 ring-1 ring-inset ring-[var(--color-primary)]' : ''}`}
+                                      } ${sceneGroups.has(scene.id)
+                                          ? `pl-2 ${selectionGroupClass(sceneGroups.get(scene.id), 'scene')}`
+                                          : 'pl-6 hover:bg-[var(--bg-secondary)]'
+                                      }`}
                                       style={{ borderLeft: `3px solid ${scene.plotline?.color || 'transparent'}` }}
                                       onClick={(e) => {
                                         if (editingItemId) return
@@ -2268,12 +2306,12 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                     }
                                                   }}
                                                   onContextMenu={(e) => handleContextMenu(e, 'page', page.id, page.title || '')}
-                                                  className={`flex items-center gap-2 pl-10 pr-2 py-1 cursor-pointer transition-colors group ${
-                                                    isSelected
-                                                      ? 'bg-[var(--color-primary)] text-white'
-                                                      : selectedIds.has(page.id)
-                                                        ? 'bg-[var(--color-primary)]/15 border-l-2 border-[var(--color-primary)] text-[var(--text-primary)]'
-                                                        : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
+                                                  className={`flex items-center gap-2 pr-2 py-1 cursor-pointer transition-colors group ${
+                                                    pageGroups.has(page.id)
+                                                      ? `pl-3 ${selectionGroupClass(pageGroups.get(page.id), 'page')}`
+                                                      : isSelected && selectedIds.size === 0
+                                                        ? 'pl-10 bg-[var(--color-primary)] text-white'
+                                                        : 'pl-10 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
                                                   }`}
                                                 >
                                                   {editingItemId === page.id ? (
@@ -2296,7 +2334,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       )}
                                                     </span>
                                                   )}
-                                                  <span className={`type-micro tabular-nums ${isSelected ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
+                                                  <span className={`type-micro tabular-nums ${isSelected && selectedIds.size === 0 ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
                                                     {panelCount} pnl
                                                   </span>
                                                   <button
@@ -2313,7 +2351,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       }
                                                     }}
                                                     className={`opacity-0 group-hover:opacity-100 p-0.5 transition-opacity ${
-                                                      isSelected
+                                                      isSelected && selectedIds.size === 0
                                                         ? 'hover:bg-white/20 text-white/60 hover:text-white'
                                                         : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                                                     }`}
@@ -2324,7 +2362,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                 </div>
                                                 {/* Page Summary */}
                                                 {editingPageSummaryId === page.id ? (
-                                                  <div className="ml-10 mt-0.5 mb-1">
+                                                  <div className={`${pageGroups.has(page.id) ? 'ml-3' : 'ml-10'} mt-0.5 mb-1`}>
                                                     <textarea
                                                       ref={pageSummaryInputRef}
                                                       value={editingPageSummary}
@@ -2343,7 +2381,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                   </div>
                                                 ) : page.page_summary ? (
                                                   <div
-                                                    className="ml-10 mt-0.5 mb-1 cursor-pointer group/pagesummary"
+                                                    className={`${pageGroups.has(page.id) ? 'ml-3' : 'ml-10'} mt-0.5 mb-1 cursor-pointer group/pagesummary`}
                                                     onClick={(e) => {
                                                       e.stopPropagation()
                                                       startEditingPageSummary(page.id, page.page_summary)
@@ -2359,7 +2397,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                   </div>
                                                 ) : (page.panels || []).length > 0 ? (
                                                   <div
-                                                    className="ml-10 mt-0.5 mb-1 cursor-pointer"
+                                                    className={`${pageGroups.has(page.id) ? 'ml-3' : 'ml-10'} mt-0.5 mb-1 cursor-pointer`}
                                                     onClick={(e) => {
                                                       e.stopPropagation()
                                                       generatePageSummary(page.id)
