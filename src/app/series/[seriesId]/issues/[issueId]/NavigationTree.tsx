@@ -81,33 +81,33 @@ function SortableItem({ id, children, isPartOfMultiDrag }: { id: string; childre
   )
 }
 
+/** Shared margin/border constants for selection group styling */
+const GROUP_MARGIN: Record<'page' | 'scene' | 'act', string> = { page: 'ml-8', scene: 'ml-4', act: 'ml-1' }
+const GROUP_BG = 'bg-[var(--color-primary)]/12'
+const GROUP_BORDER = 'border-[var(--color-primary)]/35'
+const GROUP_DIVIDER = 'border-t border-t-[var(--color-primary)]/20'
+
 /** Build className for a multi-selected item based on its group position */
 function selectionGroupClass(position: GroupPosition | undefined, level: 'page' | 'scene' | 'act', hasSummaryBelow = false): string {
   if (!position) return ''
 
-  // Indentation margins: pages are deeper than scenes, scenes deeper than acts
-  const marginLeft = level === 'page' ? 'ml-8' : level === 'scene' ? 'ml-4' : 'ml-1'
-  const marginRight = 'mr-1.5'
-  const bg = 'bg-[var(--color-primary)]/12'
-  const textClass = 'text-[var(--text-primary)]'
+  const base = `${GROUP_MARGIN[level]} mr-1.5 ${GROUP_BG} text-[var(--text-primary)]`
 
   switch (position) {
     case 'solo':
       // When summary follows, row only gets top rounding — summary gets bottom rounding
-      if (hasSummaryBelow) {
-        return `${marginLeft} ${marginRight} ${bg} ${textClass} rounded-t-md border-t border-x border-[var(--color-primary)]/35`
-      }
-      return `${marginLeft} ${marginRight} ${bg} ${textClass} rounded-md border border-[var(--color-primary)]/35`
+      return hasSummaryBelow
+        ? `${base} rounded-t-md border-t border-x ${GROUP_BORDER}`
+        : `${base} rounded-md border ${GROUP_BORDER}`
     case 'first':
-      return `${marginLeft} ${marginRight} ${bg} ${textClass} rounded-t-lg border-t border-x border-[var(--color-primary)]/35`
+      return `${base} rounded-t-lg border-t border-x ${GROUP_BORDER}`
     case 'middle':
-      return `${marginLeft} ${marginRight} ${bg} ${textClass} border-x border-[var(--color-primary)]/35 border-t border-t-[var(--color-primary)]/20`
+      return `${base} border-x ${GROUP_BORDER} ${GROUP_DIVIDER}`
     case 'last':
       // When summary follows, row loses bottom rounding — summary gets it
-      if (hasSummaryBelow) {
-        return `${marginLeft} ${marginRight} ${bg} ${textClass} border-x border-[var(--color-primary)]/35 border-t border-t-[var(--color-primary)]/20`
-      }
-      return `${marginLeft} ${marginRight} ${bg} ${textClass} rounded-b-lg border-b border-x border-[var(--color-primary)]/35 border-t border-t-[var(--color-primary)]/20`
+      return hasSummaryBelow
+        ? `${base} border-x ${GROUP_BORDER} ${GROUP_DIVIDER}`
+        : `${base} rounded-b-lg border-b border-x ${GROUP_BORDER} ${GROUP_DIVIDER}`
   }
 }
 
@@ -115,19 +115,16 @@ function selectionGroupClass(position: GroupPosition | undefined, level: 'page' 
 function selectionGroupSummaryClass(position: GroupPosition | undefined, level: 'page' | 'scene' | 'act'): string {
   if (!position) return ''
 
-  const marginLeft = level === 'page' ? 'ml-8' : level === 'scene' ? 'ml-4' : 'ml-1'
-  const marginRight = 'mr-1.5'
-  const bg = 'bg-[var(--color-primary)]/12'
+  const base = `${GROUP_MARGIN[level]} mr-1.5 ${GROUP_BG} px-3 pb-1.5`
 
   switch (position) {
     case 'solo':
-      return `${marginLeft} ${marginRight} ${bg} rounded-b-md border-b border-x border-[var(--color-primary)]/35 px-3 pb-1.5`
+      return `${base} rounded-b-md border-b border-x ${GROUP_BORDER}`
     case 'first':
-      return `${marginLeft} ${marginRight} ${bg} border-x border-[var(--color-primary)]/35 px-3 pb-1.5`
     case 'middle':
-      return `${marginLeft} ${marginRight} ${bg} border-x border-[var(--color-primary)]/35 px-3 pb-1.5`
+      return `${base} border-x ${GROUP_BORDER}`
     case 'last':
-      return `${marginLeft} ${marginRight} ${bg} rounded-b-lg border-b border-x border-[var(--color-primary)]/35 px-3 pb-1.5`
+      return `${base} rounded-b-lg border-b border-x ${GROUP_BORDER}`
   }
 }
 
