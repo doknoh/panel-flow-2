@@ -30,6 +30,7 @@ interface ScriptEditorProps {
   className?: string
   editable?: boolean
   speakerColor?: string
+  hideToolbar?: boolean
 }
 
 /**
@@ -57,6 +58,7 @@ export default function ScriptEditor({
   className = '',
   editable = true,
   speakerColor,
+  hideToolbar = false,
 }: ScriptEditorProps) {
   const [isFocused, setIsFocused] = useState(false)
   const onUpdateRef = useRef(onUpdate)
@@ -176,7 +178,7 @@ export default function ScriptEditor({
       style={speakerColor ? { '--speaker-color': speakerColor } as React.CSSProperties : undefined}
     >
       {/* Toolbar - shown on focus for compact variants, always for description */}
-      {variant !== 'sfx' && (variant === 'description' || variant === 'notes' || isFocused) && (
+      {!hideToolbar && variant !== 'sfx' && (variant === 'description' || variant === 'notes' || isFocused) && (
         <ScriptEditorToolbar editor={editor} variant={variant} />
       )}
 

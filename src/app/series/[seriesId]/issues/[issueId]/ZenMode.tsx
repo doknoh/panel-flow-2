@@ -10,8 +10,8 @@ interface Panel {
   panel_number: number
   sort_order: number
   visual_description: string | null
-  camera: string | null
-  internal_notes: string | null
+  shot_type: string | null
+  notes: string | null
   dialogue_blocks: DialogueBlock[]
   captions: Caption[]
   sound_effects: SoundEffect[]
@@ -22,7 +22,7 @@ interface DialogueBlock {
   character_id: string | null
   text: string | null
   dialogue_type: string | null
-  delivery_instruction: string | null
+  modifier: string | null
   sort_order: number
   character?: { id: string; name: string } | null
 }
@@ -60,11 +60,44 @@ interface ZenModeProps {
     panels: Panel[]
   }
   characters: Character[]
-  pagePosition: string // e.g., "Page 5 of 22"
+  pagePosition: string
   sceneContext?: SceneContext | null
   onExit: () => void
   onSave: () => void
   onNavigate: (direction: 'prev' | 'next') => void
+}
+
+/** Count words in a string, returning 0 for empty/whitespace-only */
+function countWords(text: string | null): number {
+  const trimmed = (text || '').trim()
+  return trimmed ? trimmed.split(/\s+/).length : 0
+}
+
+/** Count all words across all editable content in a panel */
+function countPanelWords(panel: Panel): number {
+  let total = countWords(panel.visual_description)
+  total += countWords(panel.notes)
+  for (const d of panel.dialogue_blocks) total += countWords(d.text)
+  for (const c of panel.captions) total += countWords(c.text)
+  for (const s of panel.sound_effects) total += countWords(s.text)
+  return total
+}
+
+/** Format dialogue type suffix for speaker label */
+function formatSpeaker(d: DialogueBlock): string {
+  const name = (d.character?.name || 'Unknown').toUpperCase()
+  const type = d.dialogue_type
+  if (!type || type === 'normal') return `${name}:`
+  const suffix = type === 'voice_over' ? '(V.O.)'
+    : type === 'off_screen' ? '(O.S.)'
+    : type === 'whisper' ? '(WHISPER)'
+    : type === 'shout' ? '(SHOUT)'
+    : type === 'thought' ? '(THOUGHT)'
+    : type === 'electronic' ? '(ELECTRONIC)'
+    : type === 'radio' ? '(RADIO)'
+    : ''
+  const mod = d.modifier ? ` [${d.modifier.toUpperCase()}]` : ''
+  return `${name} ${suffix}${mod}:`
 }
 
 export default function ZenMode({
@@ -78,204 +111,208 @@ export default function ZenMode({
 }: ZenModeProps) {
   const [currentPanelIndex, setCurrentPanelIndex] = useState(0)
   const [panels, setPanels] = useState<Panel[]>(page.panels || [])
-  const [isSaving, setIsSaving] = useState(false)
-  const [hasChanges, setHasChanges] = useState(false)
   const [sessionWordCount, setSessionWordCount] = useState(0)
   const initialWordCountRef = useRef(0)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
 
   const currentPanel = panels[currentPanelIndex]
 
-  // Update panels when page changes
+  // Update panels when page changes (navigating between pages)
   useEffect(() => {
     setPanels(page.panels || [])
     setCurrentPanelIndex(0)
   }, [page.id])
 
-  // Track initial word count on mount
+  // Track initial word count on mount (across all content)
   useEffect(() => {
-    const totalWords = (page.panels || []).reduce((sum, p) => {
-      const desc = (p.visual_description || '').trim()
-      return sum + (desc ? desc.split(/\s+/).length : 0)
-    }, 0)
-    initialWordCountRef.current = totalWords
+    const total = (page.panels || []).reduce((sum, p) => sum + countPanelWords(p), 0)
+    initialWordCountRef.current = total
   }, [])
 
   // Update session word count when panels change
   useEffect(() => {
-    const currentTotal = panels.reduce((sum, p) => {
-      const desc = (p.visual_description || '').trim()
-      return sum + (desc ? desc.split(/\s+/).length : 0)
-    }, 0)
+    const currentTotal = panels.reduce((sum, p) => sum + countPanelWords(p), 0)
     const delta = currentTotal - initialWordCountRef.current
     setSessionWordCount(Math.max(0, delta))
   }, [panels])
 
-  // Focus textarea on mount and panel change
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.focus()
+  // --- Save handler ---
+  const saveField = useCallback(async (
+    table: string,
+    id: string,
+    field: string,
+    value: string
+  ) => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from(table)
+      .update({ [field]: value })
+      .eq('id', id)
+
+    if (error) {
+      console.error(`[zen] Failed to save ${table}.${field}:`, error)
+      showToast('Failed to save changes', 'error')
+    } else {
+      onSave()
     }
+  }, [onSave, showToast])
+
+  // --- Local state updaters ---
+  const updateDescription = useCallback((md: string) => {
+    setPanels(prev => prev.map((p, i) =>
+      i === currentPanelIndex ? { ...p, visual_description: md } : p
+    ))
   }, [currentPanelIndex])
 
-  // Keyboard navigation
+  const updateNotes = useCallback((md: string) => {
+    setPanels(prev => prev.map((p, i) =>
+      i === currentPanelIndex ? { ...p, notes: md } : p
+    ))
+  }, [currentPanelIndex])
+
+  const updateDialogue = useCallback((dialogueId: string, md: string) => {
+    setPanels(prev => prev.map((p, i) =>
+      i === currentPanelIndex
+        ? {
+            ...p,
+            dialogue_blocks: p.dialogue_blocks.map(d =>
+              d.id === dialogueId ? { ...d, text: md } : d
+            ),
+          }
+        : p
+    ))
+  }, [currentPanelIndex])
+
+  const updateCaption = useCallback((captionId: string, md: string) => {
+    setPanels(prev => prev.map((p, i) =>
+      i === currentPanelIndex
+        ? {
+            ...p,
+            captions: p.captions.map(c =>
+              c.id === captionId ? { ...c, text: md } : c
+            ),
+          }
+        : p
+    ))
+  }, [currentPanelIndex])
+
+  const updateSfx = useCallback((sfxId: string, md: string) => {
+    setPanels(prev => prev.map((p, i) =>
+      i === currentPanelIndex
+        ? {
+            ...p,
+            sound_effects: p.sound_effects.map(s =>
+              s.id === sfxId ? { ...s, text: md } : s
+            ),
+          }
+        : p
+    ))
+  }, [currentPanelIndex])
+
+  // --- Navigation ---
+  const goToNextPanel = useCallback(() => {
+    // Blur triggers save automatically
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    if (currentPanelIndex < panels.length - 1) {
+      setCurrentPanelIndex(currentPanelIndex + 1)
+    } else {
+      onNavigate('next')
+    }
+  }, [currentPanelIndex, panels.length, onNavigate])
+
+  const goToPrevPanel = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    if (currentPanelIndex > 0) {
+      setCurrentPanelIndex(currentPanelIndex - 1)
+    } else {
+      onNavigate('prev')
+    }
+  }, [currentPanelIndex, onNavigate])
+
+  // --- Keyboard shortcuts ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey
 
-      // Escape to exit
       if (e.key === 'Escape') {
         e.preventDefault()
-        if (hasChanges) {
-          saveCurrentPanel().then(() => onExit())
-        } else {
-          onExit()
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur()
         }
+        // Small delay to let onBlur save fire
+        setTimeout(() => onExit(), 50)
         return
       }
 
-      // Cmd/Ctrl + Shift + Z to exit (same shortcut that entered)
-      if (isMod && e.shiftKey && e.key === 'z') {
-        e.preventDefault()
-        if (hasChanges) {
-          saveCurrentPanel().then(() => onExit())
-        } else {
-          onExit()
-        }
-        return
-      }
-
-      // Tab or Cmd+Down to go to next panel
       if (e.key === 'Tab' && !e.shiftKey) {
         e.preventDefault()
         goToNextPanel()
         return
       }
 
-      // Shift+Tab or Cmd+Up to go to previous panel
       if (e.key === 'Tab' && e.shiftKey) {
         e.preventDefault()
         goToPrevPanel()
         return
       }
 
-      // Cmd + Arrow keys for panel navigation
-      if (isMod && e.key === 'ArrowDown' && !e.shiftKey) {
-        e.preventDefault()
-        goToNextPanel()
-        return
-      }
-
-      if (isMod && e.key === 'ArrowUp' && !e.shiftKey) {
-        e.preventDefault()
-        goToPrevPanel()
-        return
-      }
-
-      // Cmd + Shift + Arrow for page navigation
       if (isMod && e.shiftKey && e.key === 'ArrowRight') {
         e.preventDefault()
-        if (hasChanges) {
-          saveCurrentPanel().then(() => onNavigate('next'))
-        } else {
-          onNavigate('next')
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur()
         }
+        setTimeout(() => onNavigate('next'), 50)
         return
       }
 
       if (isMod && e.shiftKey && e.key === 'ArrowLeft') {
         e.preventDefault()
-        if (hasChanges) {
-          saveCurrentPanel().then(() => onNavigate('prev'))
-        } else {
-          onNavigate('prev')
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur()
         }
+        setTimeout(() => onNavigate('prev'), 50)
         return
       }
 
-      // Cmd + S to save
       if (isMod && e.key === 's') {
         e.preventDefault()
-        saveCurrentPanel()
+        const active = document.activeElement
+        if (active instanceof HTMLElement) {
+          active.blur()
+          // Re-focus synchronously (optimistic save)
+          requestAnimationFrame(() => active.focus())
+        }
         return
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentPanelIndex, hasChanges, panels])
+  }, [currentPanelIndex, goToNextPanel, goToPrevPanel, onExit, onNavigate])
 
-  const goToNextPanel = useCallback(async () => {
-    if (hasChanges) {
-      await saveCurrentPanel()
-    }
-    if (currentPanelIndex < panels.length - 1) {
-      setCurrentPanelIndex(currentPanelIndex + 1)
-    } else {
-      // At last panel, go to next page
-      onNavigate('next')
-    }
-  }, [currentPanelIndex, panels.length, hasChanges, onNavigate])
-
-  const goToPrevPanel = useCallback(async () => {
-    if (hasChanges) {
-      await saveCurrentPanel()
-    }
-    if (currentPanelIndex > 0) {
-      setCurrentPanelIndex(currentPanelIndex - 1)
-    } else {
-      // At first panel, go to previous page
-      onNavigate('prev')
-    }
-  }, [currentPanelIndex, hasChanges, onNavigate])
-
-  const saveCurrentPanel = async () => {
-    if (!currentPanel || !hasChanges) return
-
-    setIsSaving(true)
-    const supabase = createClient()
-
-    try {
-      const { error } = await supabase
-        .from('panels')
-        .update({
-          visual_description: currentPanel.visual_description,
-          internal_notes: currentPanel.internal_notes,
-        })
-        .eq('id', currentPanel.id)
-
-      if (error) throw error
-
-      setHasChanges(false)
-      onSave()
-    } catch (error) {
-      console.error('Failed to save:', error)
-      showToast('Failed to save changes', 'error')
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const updatePanelField = (field: 'visual_description' | 'internal_notes', value: string) => {
-    setPanels(prev => prev.map((p, i) =>
-      i === currentPanelIndex ? { ...p, [field]: value } : p
-    ))
-    setHasChanges(true)
-  }
-
+  // --- Empty state ---
   if (!currentPanel) {
     return (
-      <div className="fixed inset-0 bg-[var(--bg-primary)] z-50 flex items-center justify-center">
+      <div className="zen-mode fixed inset-0 z-50 flex items-center justify-center bg-[var(--zen-bg)]">
+        <button
+          onClick={onExit}
+          className="absolute top-4 right-4 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none transition-colors"
+          title="Exit (Esc)"
+        >
+          &times;
+        </button>
         <div className="text-center">
-          <p className="text-lg text-[var(--text-secondary)] mb-4">No panels on this page</p>
-          <button
-            onClick={onExit}
-            className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          >
+          <p className="text-[17px] text-[var(--zen-ghost)] mb-4" style={{ fontFamily: "'Georgia', serif" }}>
+            No panels on this page
+          </p>
+          <p className="text-[9px] tracking-[0.1em] uppercase text-[var(--zen-ghost)]" style={{ fontFamily: 'var(--font-mono)' }}>
             Press Escape to exit
-          </button>
+          </p>
         </div>
       </div>
     )
@@ -284,184 +321,256 @@ export default function ZenMode({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 bg-[var(--bg-primary)] z-50 flex flex-col overflow-hidden"
+      className="zen-mode fixed inset-0 z-50 flex flex-col overflow-hidden bg-[var(--zen-bg)]"
     >
-      {/* Close button */}
+      {/* Close button — bare x */}
       <button
-        onClick={onExit}
-        className="absolute top-4 right-4 z-20 w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-        title="Exit Zen Mode (Esc)"
+        onClick={() => {
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur()
+          }
+          setTimeout(() => onExit(), 50)
+        }}
+        className="absolute top-4 right-4 z-20 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none transition-colors"
+        title="Exit (Esc)"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        &times;
       </button>
 
-      {/* Minimal header bar */}
-      <div className="border-b border-[var(--border)] bg-[var(--bg-primary)]">
-        <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="type-micro text-[var(--text-secondary)]">
-              PAGE {page.page_number} {'//'}  PANEL {currentPanel.panel_number}
-            </span>
-            {sceneContext && (
-              <>
-                <span className="text-[var(--border)]">/</span>
-                <span className="type-micro text-[var(--text-muted)]">
-                  {sceneContext.actName} {'//'}  {sceneContext.sceneName}
-                  {sceneContext.plotlineName && (
-                    <span className="text-[var(--color-primary)] ml-1">({sceneContext.plotlineName})</span>
-                  )}
-                </span>
-              </>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {hasChanges && (
-              <span className="type-micro text-[var(--color-warning)]">UNSAVED</span>
-            )}
-            {isSaving && (
-              <span className="type-micro text-[var(--color-primary)]">SAVING...</span>
-            )}
-            <span className="type-micro text-[var(--text-muted)]">{pagePosition}</span>
-          </div>
+      {/* Header — centered, no border */}
+      <div className="py-4 text-center">
+        <div
+          className="text-[10px] tracking-[0.12em] uppercase"
+          style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
+        >
+          Page {page.page_number} &middot; Panel {currentPanel.panel_number}
         </div>
+        {sceneContext && (
+          <div
+            className="text-[9px] tracking-[0.08em] mt-0.5"
+            style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
+          >
+            {sceneContext.actName} &middot; {sceneContext.sceneName}
+          </div>
+        )}
       </div>
 
       {/* Main writing area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-6 py-12">
+        <div className="max-w-[620px] mx-auto px-8 pb-12">
+
           {/* Panel indicator dots */}
           <div className="flex items-center justify-center gap-1.5 mb-10">
             {panels.map((_, i) => (
               <button
                 key={i}
                 onClick={() => {
-                  if (hasChanges) {
-                    saveCurrentPanel().then(() => setCurrentPanelIndex(i))
-                  } else {
-                    setCurrentPanelIndex(i)
+                  if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur()
                   }
+                  setCurrentPanelIndex(i)
                 }}
-                className={`h-1.5 rounded-full transition-all ${
+                className={`h-[3px] rounded-full transition-all ${
                   i === currentPanelIndex
-                    ? 'w-6 bg-[var(--color-primary)]'
-                    : 'w-1.5 bg-[var(--border)] hover:bg-[var(--text-muted)]'
+                    ? 'w-[20px] bg-[var(--zen-accent)]'
+                    : 'w-[5px] bg-[var(--zen-dot)] hover:bg-[var(--zen-accent)]'
                 }`}
               />
             ))}
           </div>
 
-          {/* Characters present in current panel */}
-          {(() => {
-            const charIds = new Set<string>()
-            for (const d of currentPanel.dialogue_blocks) {
-              if (d.character?.id) charIds.add(d.character.id)
-              else if (d.character_id) charIds.add(d.character_id)
-            }
-            const presentChars = characters.filter(c => charIds.has(c.id))
-            if (presentChars.length === 0) return null
-            return (
-              <div className="flex items-center justify-center gap-2 mb-8">
-                <span className="type-micro text-[var(--text-muted)]">CHARACTERS:</span>
-                {presentChars.map(c => (
-                  <span key={c.id} className="type-micro text-[var(--color-primary)]">{c.name.toUpperCase()}</span>
-                ))}
-              </div>
-            )
-          })()}
-
-          {/* Previous panel context */}
+          {/* Previous panel ghost */}
           {currentPanelIndex > 0 && panels[currentPanelIndex - 1] && (
-            <div className="opacity-30 text-sm text-[var(--text-muted)] mb-8 pb-6 border-b border-[var(--border)]">
-              <span className="type-micro block mb-2">PANEL {panels[currentPanelIndex - 1].panel_number}</span>
-              <p className="line-clamp-2 leading-relaxed">{panels[currentPanelIndex - 1].visual_description || 'No description'}</p>
+            <div className="mb-8">
+              <span
+                className="block mb-1.5 text-[9px] tracking-[0.1em] uppercase"
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-ghost)' }}
+              >
+                Panel {panels[currentPanelIndex - 1].panel_number}
+              </span>
+              <p
+                className="line-clamp-2 text-sm leading-relaxed"
+                style={{ fontFamily: "'Georgia', serif", color: 'var(--zen-ghost)' }}
+              >
+                {panels[currentPanelIndex - 1].visual_description || 'No description'}
+              </p>
             </div>
           )}
 
-          {/* Visual Description — main writing surface */}
-          <div className="mb-8">
-            <label className="type-micro text-[var(--text-muted)] block mb-3">
-              VISUAL DESCRIPTION
-            </label>
+          {/* VISUAL DESCRIPTION */}
+          <div className="mb-2">
+            <span
+              className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+              style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
+            >
+              Visual Description
+            </span>
             <ScriptEditor
               variant="description"
               initialContent={currentPanel.visual_description || ''}
-              onUpdate={(md) => updatePanelField('visual_description', md)}
+              onUpdate={updateDescription}
+              onBlur={(md) => saveField('panels', currentPanel.id, 'visual_description', md)}
               placeholder="Describe what we see in this panel..."
-              className="zen-editor"
+              hideToolbar
             />
           </div>
 
-          {/* Existing dialogue (read-only reference) */}
+          {/* DIALOGUE */}
           {currentPanel.dialogue_blocks.length > 0 && (
-            <div className="mb-8 pt-6 border-t border-[var(--border)]">
-              <label className="type-micro text-[var(--text-muted)] block mb-3">
-                DIALOGUE
-              </label>
-              <div className="space-y-3">
+            <>
+              <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
+              <span
+                className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
+              >
+                Dialogue
+              </span>
+              <div className="space-y-3.5">
                 {currentPanel.dialogue_blocks.map((d) => (
-                  <div key={d.id} className="pl-4 border-l-2 border-[var(--color-primary)]/30">
-                    <span className="text-sm font-semibold text-[var(--text-primary)]">
-                      {(d.character?.name || 'Unknown').toUpperCase()}:
-                    </span>{' '}
-                    <span className="text-sm text-[var(--text-secondary)] leading-relaxed">{d.text}</span>
+                  <div
+                    key={d.id}
+                    className="pl-4 border-l-2"
+                    style={{ borderColor: 'var(--zen-border-dialogue)' }}
+                  >
+                    <div
+                      className="mb-0.5 text-[11px] font-semibold tracking-[0.05em]"
+                      style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-accent)' }}
+                    >
+                      {formatSpeaker(d)}
+                    </div>
+                    <ScriptEditor
+                      variant="dialogue"
+                      initialContent={d.text || ''}
+                      onUpdate={(md) => updateDialogue(d.id, md)}
+                      onBlur={(md) => saveField('dialogue_blocks', d.id, 'text', md)}
+                      placeholder="Dialogue text..."
+                      hideToolbar
+                    />
                   </div>
                 ))}
               </div>
-            </div>
+            </>
           )}
 
-          {/* Captions (read-only reference) */}
+          {/* CAPTIONS */}
           {currentPanel.captions.length > 0 && (
-            <div className="mb-8 pt-6 border-t border-[var(--border)]">
-              <label className="type-micro text-[var(--text-muted)] block mb-3">
-                CAPTIONS
-              </label>
-              <div className="space-y-2">
+            <>
+              <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
+              <span
+                className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
+              >
+                Captions
+              </span>
+              <div className="space-y-3.5">
                 {currentPanel.captions.map((c) => (
-                  <div key={c.id} className="pl-4 border-l-2 border-[var(--color-warning)]/30 text-sm text-[var(--text-secondary)] italic">
-                    {c.text}
+                  <div
+                    key={c.id}
+                    className="pl-4 border-l-2"
+                    style={{ borderColor: 'var(--zen-border-dialogue)' }}
+                  >
+                    <div
+                      className="mb-0.5 text-[9px] tracking-[0.06em] uppercase"
+                      style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-accent)' }}
+                    >
+                      {(c.caption_type || 'narrative').toUpperCase()}
+                    </div>
+                    <ScriptEditor
+                      variant="caption"
+                      initialContent={c.text || ''}
+                      onUpdate={(md) => updateCaption(c.id, md)}
+                      onBlur={(md) => saveField('captions', c.id, 'text', md)}
+                      placeholder="Caption text..."
+                      hideToolbar
+                    />
                   </div>
                 ))}
               </div>
-            </div>
+            </>
           )}
 
-          {/* Internal Notes */}
-          <div className="pt-6 border-t border-[var(--border)]">
-            <label className="type-micro text-[var(--text-muted)] block mb-3">
-              INTERNAL NOTES
-            </label>
-            <ScriptEditor
-              variant="notes"
-              initialContent={currentPanel.internal_notes || ''}
-              onUpdate={(md) => updatePanelField('internal_notes', md)}
-              placeholder="Internal notes..."
-              className="zen-editor zen-editor--notes"
-            />
-          </div>
+          {/* SFX */}
+          {currentPanel.sound_effects.length > 0 && (
+            <>
+              <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
+              <span
+                className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
+              >
+                SFX
+              </span>
+              <div className="space-y-2 pl-4">
+                {currentPanel.sound_effects.map((s) => (
+                  <ScriptEditor
+                    key={s.id}
+                    variant="sfx"
+                    initialContent={s.text || ''}
+                    onUpdate={(md) => updateSfx(s.id, md)}
+                    onBlur={(md) => saveField('sound_effects', s.id, 'text', md)}
+                    placeholder="Sound effect..."
+                    hideToolbar
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
-          {/* Next panel context */}
+          {/* INTERNAL NOTES */}
+          <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
+          <span
+            className="block mb-2.5 text-[9px] tracking-[0.12em] uppercase"
+            style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
+          >
+            Internal Notes
+          </span>
+          <ScriptEditor
+            variant="notes"
+            initialContent={currentPanel.notes || ''}
+            onUpdate={updateNotes}
+            onBlur={(md) => saveField('panels', currentPanel.id, 'notes', md)}
+            placeholder="Internal notes..."
+            hideToolbar
+          />
+
+          {/* NEXT PANEL GHOST */}
           {currentPanelIndex < panels.length - 1 && panels[currentPanelIndex + 1] && (
-            <div className="opacity-30 text-sm text-[var(--text-muted)] mt-8 pt-6 border-t border-[var(--border)]">
-              <span className="type-micro block mb-2">PANEL {panels[currentPanelIndex + 1].panel_number}</span>
-              <p className="line-clamp-2 leading-relaxed">{panels[currentPanelIndex + 1].visual_description || 'No description'}</p>
-            </div>
+            <>
+              <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
+              <div>
+                <span
+                  className="block mb-1.5 text-[9px] tracking-[0.1em] uppercase"
+                  style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-ghost)' }}
+                >
+                  Panel {panels[currentPanelIndex + 1].panel_number}
+                </span>
+                <p
+                  className="line-clamp-2 text-sm leading-relaxed"
+                  style={{ fontFamily: "'Georgia', serif", color: 'var(--zen-ghost)' }}
+                >
+                  {panels[currentPanelIndex + 1].visual_description || 'No description'}
+                </p>
+              </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* Bottom status bar */}
-      <div className="border-t border-[var(--border)] bg-[var(--bg-primary)]">
-        <div className="max-w-2xl mx-auto px-6 py-2.5 flex items-center justify-between">
-          <span className="type-micro text-[var(--text-muted)]">
-            +{sessionWordCount} WORDS THIS SESSION
+      {/* Footer — no border */}
+      <div className="py-3 px-8">
+        <div className="max-w-[620px] mx-auto flex items-center justify-between">
+          <span
+            className="text-[9px] tracking-[0.08em] uppercase"
+            style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
+          >
+            +{sessionWordCount} words this session
           </span>
-          <div className="flex items-center gap-4 type-micro text-[var(--text-muted)]">
-            <span><kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-[10px]">Tab</kbd> Next</span>
-            <span><kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-[10px]">Shift+Tab</kbd> Prev</span>
-            <span><kbd className="px-1.5 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded text-[10px]">Esc</kbd> Exit</span>
+          <div
+            className="flex items-center gap-4 text-[9px] tracking-[0.04em]"
+            style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
+          >
+            <span><span className="font-semibold" style={{ color: 'var(--zen-label)' }}>Tab</span> next</span>
+            <span><span className="font-semibold" style={{ color: 'var(--zen-label)' }}>Shift+Tab</span> prev</span>
+            <span><span className="font-semibold" style={{ color: 'var(--zen-label)' }}>Esc</span> exit</span>
           </div>
         </div>
       </div>
