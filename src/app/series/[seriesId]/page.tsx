@@ -20,23 +20,32 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     redirect('/login')
   }
 
-  // Fetch series first (simple query)
-  const { data: series, error: seriesError } = await supabase
-    .from('series')
-    .select('*')
-    .eq('id', seriesId)
-    .single()
-
-  // If series found, fetch issues separately
-  let issues: any[] = []
-  if (series) {
-    const { data: issuesData } = await supabase
+  // Fetch series, issues, counts, and collaborator role in parallel
+  // Series must be fetched first to check existence, but issues, counts, and role are independent
+  const [seriesResult, issuesResult, charCountResult, locCountResult, plotCountResult, collabResult] = await Promise.all([
+    supabase
+      .from('series')
+      .select('*')
+      .eq('id', seriesId)
+      .single(),
+    supabase
       .from('issues')
       .select('id, number, title, tagline, status, updated_at')
       .eq('series_id', seriesId)
-      .order('number')
-    issues = issuesData || []
-  }
+      .order('number'),
+    supabase.from('characters').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
+    supabase.from('locations').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
+    supabase.from('plotlines').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
+    supabase
+      .from('series_collaborators')
+      .select('role')
+      .eq('series_id', seriesId)
+      .eq('user_id', user.id)
+      .single(),
+  ])
+
+  const { data: series, error: seriesError } = seriesResult
+  const issues = issuesResult.data || []
 
   if (seriesError || !series) {
     return (
@@ -52,35 +61,19 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     )
   }
 
-  // Fetch counts
-  const [{ count: characterCount }, { count: locationCount }, { count: plotlineCount }] = await Promise.all([
-    supabase.from('characters').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
-    supabase.from('locations').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
-    supabase.from('plotlines').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
-  ])
-
   const counts = {
-    characters: characterCount || 0,
-    locations: locationCount || 0,
-    plotlines: plotlineCount || 0,
+    characters: charCountResult.count || 0,
+    locations: locCountResult.count || 0,
+    plotlines: plotCountResult.count || 0,
   }
 
   // Check if user is the owner
   const isOwner = series.user_id === user.id
 
-  // If not owner, get their collaboration role
+  // Determine user role from parallel-fetched collaborator data
   let userRole: 'owner' | 'editor' | 'commenter' | 'viewer' = isOwner ? 'owner' : 'viewer'
-  if (!isOwner) {
-    const { data: collab } = await supabase
-      .from('series_collaborators')
-      .select('role')
-      .eq('series_id', seriesId)
-      .eq('user_id', user.id)
-      .single()
-
-    if (collab) {
-      userRole = collab.role as 'editor' | 'commenter' | 'viewer'
-    }
+  if (!isOwner && collabResult.data) {
+    userRole = collabResult.data.role as 'editor' | 'commenter' | 'viewer'
   }
 
   const canEdit = userRole === 'owner' || userRole === 'editor'

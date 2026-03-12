@@ -1875,6 +1875,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       <button
                                         onClick={() => deleteSoundEffect(sfx.id, panel.id)}
                                         className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
+                                        aria-label="Delete sound effect"
                                       >
                                         ×
                                       </button>

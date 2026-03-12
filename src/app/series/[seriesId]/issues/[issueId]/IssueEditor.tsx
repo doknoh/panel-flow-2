@@ -7,17 +7,21 @@ import NavigationTree from './NavigationTree'
 import PageEditor from './PageEditor'
 import PreviousPageContext, { findPreviousPage } from './PreviousPageContext'
 import Toolkit from './Toolkit'
-import FindReplaceModal from './FindReplaceModal'
-import KeyboardShortcutsModal from './KeyboardShortcutsModal'
+import dynamic from 'next/dynamic'
 import JumpToPageModal from './JumpToPageModal'
 import ZoomPanel from './ZoomPanel'
-import ZenMode from './ZenMode'
-import ScriptView from './ScriptView'
 import QuickNav from './QuickNav'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
 import { exportIssueToTxt } from '@/lib/exportTxt'
-import ExportModal, { type ExportOptions } from '@/components/ui/ExportModal'
+import type { ExportOptions } from '@/components/ui/ExportModal'
+
+// Dynamically import heavy/conditional components to reduce initial bundle
+const ScriptView = dynamic(() => import('./ScriptView'), { ssr: false })
+const ZenMode = dynamic(() => import('./ZenMode'), { ssr: false })
+const FindReplaceModal = dynamic(() => import('./FindReplaceModal'), { ssr: false })
+const KeyboardShortcutsModal = dynamic(() => import('./KeyboardShortcutsModal'), { ssr: false })
+const ExportModal = dynamic(() => import('@/components/ui/ExportModal'), { ssr: false })
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
 import ThemeToggle from '@/components/ui/ThemeToggle'

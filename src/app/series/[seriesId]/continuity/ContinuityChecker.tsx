@@ -348,7 +348,7 @@ ${ic.text.slice(0, 3000)}
         <button
           onClick={analyze}
           disabled={isAnalyzing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"
+          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"
         >
           {isAnalyzing ? 'Analyzing...' : hasAnalyzed ? 'Re-analyze' : 'Run Analysis'}
         </button>

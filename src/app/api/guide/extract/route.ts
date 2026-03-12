@@ -161,6 +161,7 @@ export async function POST(request: Request) {
           completion_areas: extractedData.insights.map(i => i.category).filter(Boolean)
         })
         .eq('id', sessionId)
+        .eq('user_id', user.id)
     }
 
     const duration = Math.round(performance.now() - start)

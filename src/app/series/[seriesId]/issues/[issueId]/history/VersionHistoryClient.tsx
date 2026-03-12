@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useRouter } from 'next/navigation'
@@ -43,16 +43,26 @@ interface SnapshotPanel {
   sound_effects?: SnapshotSfx[]
 }
 
+interface SnapshotData {
+  pages?: Array<{
+    id: string
+    page_number: number
+    panels?: SnapshotPanel[]
+  }>
+}
+
+// Full snapshot with data loaded
 interface Snapshot {
   id: string
   issue_id: string
-  snapshot_data: {
-    pages?: Array<{
-      id: string
-      page_number: number
-      panels?: SnapshotPanel[]
-    }>
-  }
+  snapshot_data: SnapshotData
+  created_at: string
+  description: string | null
+}
+
+// Lightweight snapshot from the server (no snapshot_data)
+interface SnapshotListItem {
+  id: string
   created_at: string
   description: string | null
 }
@@ -60,7 +70,7 @@ interface Snapshot {
 interface VersionHistoryClientProps {
   issueId: string
   seriesId: string
-  initialSnapshots: Snapshot[]
+  initialSnapshots: SnapshotListItem[]
 }
 
 function formatDate(dateStr: string): string {
@@ -133,17 +143,86 @@ export default function VersionHistoryClient({
   seriesId,
   initialSnapshots,
 }: VersionHistoryClientProps) {
-  const [snapshots, setSnapshots] = useState<Snapshot[]>(initialSnapshots)
+  const [snapshotList] = useState<SnapshotListItem[]>(initialSnapshots)
+  // Cache of fully loaded snapshots keyed by id
+  const [loadedSnapshots, setLoadedSnapshots] = useState<Map<string, Snapshot>>(new Map())
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [isLoadingSnapshot, setIsLoadingSnapshot] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
   const { showToast } = useToast()
   const { confirm, dialogProps } = useConfirmDialog()
   const router = useRouter()
 
-  const selectedSnapshot = selectedIndex !== null ? snapshots[selectedIndex] : null
-  const previousSnapshot = selectedIndex !== null && selectedIndex < snapshots.length - 1
-    ? snapshots[selectedIndex + 1]
+  const selectedListItem = selectedIndex !== null ? snapshotList[selectedIndex] : null
+  const selectedSnapshot = selectedListItem ? loadedSnapshots.get(selectedListItem.id) ?? null : null
+  const previousListItem = selectedIndex !== null && selectedIndex < snapshotList.length - 1
+    ? snapshotList[selectedIndex + 1]
     : null
+  const previousSnapshot = previousListItem ? loadedSnapshots.get(previousListItem.id) ?? null : null
+
+  // Lazy-load full snapshot data for a given snapshot ID
+  const loadSnapshotData = useCallback(async (snapshotId: string) => {
+    if (loadedSnapshots.has(snapshotId)) return
+
+    setIsLoadingSnapshot(true)
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('version_snapshots')
+        .select('id, issue_id, snapshot_data, created_at, description')
+        .eq('id', snapshotId)
+        .single()
+
+      if (data) {
+        setLoadedSnapshots(prev => {
+          const next = new Map(prev)
+          next.set(snapshotId, data as Snapshot)
+          return next
+        })
+      }
+    } catch {
+      showToast('Failed to load snapshot details', 'error')
+    } finally {
+      setIsLoadingSnapshot(false)
+    }
+  }, [loadedSnapshots, showToast])
+
+  const handleSelectSnapshot = useCallback(async (index: number) => {
+    setSelectedIndex(index)
+    const item = snapshotList[index]
+    // Load the selected snapshot and the one before it (for diff comparison)
+    const toLoad: string[] = []
+    if (!loadedSnapshots.has(item.id)) toLoad.push(item.id)
+    if (index < snapshotList.length - 1) {
+      const prevItem = snapshotList[index + 1]
+      if (!loadedSnapshots.has(prevItem.id)) toLoad.push(prevItem.id)
+    }
+
+    if (toLoad.length > 0) {
+      setIsLoadingSnapshot(true)
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('version_snapshots')
+          .select('id, issue_id, snapshot_data, created_at, description')
+          .in('id', toLoad)
+
+        if (data) {
+          setLoadedSnapshots(prev => {
+            const next = new Map(prev)
+            for (const snap of data as Snapshot[]) {
+              next.set(snap.id, snap)
+            }
+            return next
+          })
+        }
+      } catch {
+        showToast('Failed to load snapshot details', 'error')
+      } finally {
+        setIsLoadingSnapshot(false)
+      }
+    }
+  }, [snapshotList, loadedSnapshots, showToast])
 
   const handleRestore = async (snapshot: Snapshot) => {
     const confirmed = await confirm({
@@ -269,7 +348,7 @@ export default function VersionHistoryClient({
     }
   }
 
-  if (snapshots.length === 0) {
+  if (snapshotList.length === 0) {
     return (
       <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
         <p className="text-[var(--text-secondary)] mb-2">No version history available</p>
@@ -286,56 +365,41 @@ export default function VersionHistoryClient({
       {/* Version List */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold mb-4">Saved Versions</h2>
-        {snapshots.map((snapshot, index) => {
-          const diffs = findDifferences(
-            index < snapshots.length - 1 ? snapshots[index + 1] : null,
-            snapshot
-          )
-
-          return (
-            <button
-              key={snapshot.id}
-              onClick={() => setSelectedIndex(index)}
-              className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                selectedIndex === index
-                  ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]'
-                  : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border)]'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <p className="font-medium">{formatDate(snapshot.created_at)}</p>
-                  <p className="text-sm text-[var(--text-secondary)]">{getSnapshotSummary(snapshot)}</p>
-                </div>
-                {index === 0 && (
-                  <span className="text-xs bg-[var(--color-success)]/20 text-[var(--color-success)] px-2 py-0.5 rounded">
-                    Current
-                  </span>
-                )}
+        {snapshotList.map((item, index) => (
+          <button
+            key={item.id}
+            onClick={() => handleSelectSnapshot(index)}
+            className={`w-full text-left p-4 rounded-lg border transition-colors ${
+              selectedIndex === index
+                ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]'
+                : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border)]'
+            }`}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <p className="font-medium">{formatDate(item.created_at)}</p>
               </div>
-              {snapshot.description && (
-                <p className="text-sm text-[var(--text-secondary)] mb-2 italic">{snapshot.description}</p>
+              {index === 0 && (
+                <span className="text-xs bg-[var(--color-success)]/20 text-[var(--color-success)] px-2 py-0.5 rounded">
+                  Current
+                </span>
               )}
-              <div className="mt-2">
-                {diffs.slice(0, 3).map((diff, i) => (
-                  <p key={i} className="text-xs text-[var(--text-secondary)]">
-                    <span className="text-[var(--color-warning)] mr-1">&bull;</span>
-                    {diff}
-                  </p>
-                ))}
-                {diffs.length > 3 && (
-                  <p className="text-xs text-[var(--text-muted)]">+{diffs.length - 3} more changes</p>
-                )}
-              </div>
-            </button>
-          )
-        })}
+            </div>
+            {item.description && (
+              <p className="text-sm text-[var(--text-secondary)] mb-2 italic">{item.description}</p>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Version Preview */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Preview</h2>
-        {selectedSnapshot ? (
+        {selectedIndex !== null && isLoadingSnapshot && !selectedSnapshot ? (
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 text-center text-[var(--text-secondary)]">
+            Loading snapshot details...
+          </div>
+        ) : selectedSnapshot ? (
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <div>

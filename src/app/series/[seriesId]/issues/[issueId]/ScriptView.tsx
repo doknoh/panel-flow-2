@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { jsPDF } from 'jspdf'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useUndo } from '@/contexts/UndoContext'
@@ -1515,7 +1514,8 @@ export default function ScriptView({
   }, [generateScriptText, showToast])
 
   // Export script to PDF
-  const exportToPdf = useCallback(() => {
+  const exportToPdf = useCallback(async () => {
+    const { jsPDF } = await import('jspdf')
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'pt',

@@ -23,10 +23,10 @@ export default async function VersionHistoryPage({ params }: PageProps) {
 
   if (!issue) redirect('/dashboard')
 
-  // Get version snapshots (last 10)
+  // Get version snapshots (last 10) — only fetch list metadata, not full JSONB snapshot_data
   const { data: snapshots } = await supabase
     .from('version_snapshots')
-    .select('*')
+    .select('id, created_at, description')
     .eq('issue_id', issueId)
     .order('created_at', { ascending: false })
     .limit(10)
