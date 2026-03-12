@@ -443,6 +443,56 @@ export interface ToolResult {
   entityType?: string
 }
 
+// Verify an entity belongs to the given series before modifying it
+async function verifyEntityOwnership(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  table: string,
+  entityId: string,
+  seriesId: string,
+  seriesIdColumn = 'series_id'
+): Promise<boolean> {
+  const { data } = await supabase
+    .from(table)
+    .select('id')
+    .eq('id', entityId)
+    .eq(seriesIdColumn, seriesId)
+    .single()
+  return !!data
+}
+
+// Verify a panel belongs to a page in a scene in an act in an issue belonging to this series
+async function verifyPanelInSeries(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  panelId: string,
+  seriesId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('panels')
+    .select('page_id, pages!inner(scene_id, scenes!inner(act_id, acts!inner(issue_id, issues!inner(series_id))))')
+    .eq('id', panelId)
+    .single()
+  if (!data) return false
+  // Walk the join to verify series_id
+  const pages = data.pages as any
+  return pages?.scenes?.acts?.issues?.series_id === seriesId
+}
+
+// Verify a scene belongs to this series
+async function verifySceneInSeries(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sceneId: string,
+  seriesId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('scenes')
+    .select('act_id, acts!inner(issue_id, issues!inner(series_id))')
+    .eq('id', sceneId)
+    .single()
+  if (!data) return false
+  const acts = data.acts as any
+  return acts?.issues?.series_id === seriesId
+}
+
 export async function executeToolCall(
   toolName: string,
   input: Record<string, unknown>,
@@ -477,6 +527,11 @@ export async function executeToolCall(
       }
 
       case 'update_character': {
+        const charId = input.characterId as string
+        if (!charId) return { success: false, result: 'Missing characterId' }
+        const charOwned = await verifyEntityOwnership(supabase, 'characters', charId, seriesId)
+        if (!charOwned) return { success: false, result: 'Character not found in this series' }
+
         const updates: Record<string, unknown> = {}
         if (input.physical_description) updates.physical_description = input.physical_description
         if (input.speech_patterns) updates.speech_patterns = input.speech_patterns
@@ -494,7 +549,7 @@ export async function executeToolCall(
         const { data, error } = await supabase
           .from('characters')
           .update(updates)
-          .eq('id', input.characterId as string)
+          .eq('id', charId)
           .select('id, name')
           .single()
 
@@ -596,11 +651,16 @@ export async function executeToolCall(
       }
 
       case 'add_panel_note': {
+        const notesPanelId = input.panelId as string
+        if (!notesPanelId || !input.content) return { success: false, result: 'Missing panelId or content' }
+        const notesPanelOwned = await verifyPanelInSeries(supabase, notesPanelId, seriesId)
+        if (!notesPanelOwned) return { success: false, result: 'Panel not found in this series' }
+
         const { data, error } = await supabase
           .from('panel_notes')
           .insert({
             user_id: userId,
-            panel_id: input.panelId as string,
+            panel_id: notesPanelId,
             source: 'ai',
             content: input.content as string,
             status: 'pending',
@@ -618,6 +678,11 @@ export async function executeToolCall(
       }
 
       case 'update_scene_metadata': {
+        const sceneId = input.sceneId as string
+        if (!sceneId) return { success: false, result: 'Missing sceneId' }
+        const sceneOwned = await verifySceneInSeries(supabase, sceneId, seriesId)
+        if (!sceneOwned) return { success: false, result: 'Scene not found in this series' }
+
         const updates: Record<string, unknown> = {}
         if (input.title) updates.title = input.title
         if (input.notes) updates.notes = input.notes
@@ -625,7 +690,7 @@ export async function executeToolCall(
         const { data, error } = await supabase
           .from('scenes')
           .update(updates)
-          .eq('id', input.sceneId as string)
+          .eq('id', sceneId)
           .select('id, title')
           .single()
 
@@ -639,10 +704,15 @@ export async function executeToolCall(
       }
 
       case 'draft_panel_description': {
+        const draftPanelId = input.panelId as string
+        if (!draftPanelId || !input.visual_description) return { success: false, result: 'Missing panelId or visual_description' }
+        const draftPanelOwned = await verifyPanelInSeries(supabase, draftPanelId, seriesId)
+        if (!draftPanelOwned) return { success: false, result: 'Panel not found in this series' }
+
         const { data, error } = await supabase
           .from('panels')
           .update({ visual_description: input.visual_description as string })
-          .eq('id', input.panelId as string)
+          .eq('id', draftPanelId)
           .select('id, panel_number')
           .single()
 
@@ -656,11 +726,16 @@ export async function executeToolCall(
       }
 
       case 'add_dialogue': {
+        const dialoguePanelId = input.panelId as string
+        if (!dialoguePanelId || !input.speaker_name || !input.text) return { success: false, result: 'Missing panelId, speaker_name, or text' }
+        const dialoguePanelOwned = await verifyPanelInSeries(supabase, dialoguePanelId, seriesId)
+        if (!dialoguePanelOwned) return { success: false, result: 'Panel not found in this series' }
+
         // Get next order for dialogue blocks in this panel
         const { data: maxDialogue } = await supabase
           .from('dialogue_blocks')
           .select('sort_order')
-          .eq('panel_id', input.panelId as string)
+          .eq('panel_id', dialoguePanelId)
           .order('sort_order', { ascending: false })
           .limit(1)
           .single()
@@ -670,7 +745,7 @@ export async function executeToolCall(
         const { data, error } = await supabase
           .from('dialogue_blocks')
           .insert({
-            panel_id: input.panelId as string,
+            panel_id: dialoguePanelId,
             speaker_name: input.speaker_name as string,
             text: input.text as string,
             dialogue_type: (input.delivery_type as string) || 'dialogue',
@@ -723,10 +798,12 @@ export async function executeToolCall(
         const issueData: Array<{ id: string; number: number; title: string; summary?: string; scriptText: string }> = []
 
         for (const id of issueIds) {
+          // Verify each issue belongs to this series
           const { data: issue } = await supabase
             .from('issues')
             .select('id, number, title, summary')
             .eq('id', id)
+            .eq('series_id', seriesId)
             .single()
 
           if (!issue) continue
@@ -819,11 +896,23 @@ export async function executeToolCall(
       }
 
       case 'track_character_state': {
+        const stateCharId = input.characterId as string
+        const stateIssueId = input.issueId as string
+        if (!stateCharId || !stateIssueId) return { success: false, result: 'Missing characterId or issueId' }
+
+        // Verify character belongs to series
+        const charInSeries = await verifyEntityOwnership(supabase, 'characters', stateCharId, seriesId)
+        if (!charInSeries) return { success: false, result: 'Character not found in this series' }
+
+        // Verify issue belongs to series
+        const { data: issueCheck } = await supabase.from('issues').select('id').eq('id', stateIssueId).eq('series_id', seriesId).single()
+        if (!issueCheck) return { success: false, result: 'Issue not found in this series' }
+
         const { data, error } = await supabase
           .from('character_states')
           .upsert({
-            character_id: input.characterId as string,
-            issue_id: input.issueId as string,
+            character_id: stateCharId,
+            issue_id: stateIssueId,
             emotional_state: input.emotional_state as string,
             plot_position: input.plot_position as string,
             arc_summary: input.summary as string,
@@ -844,18 +933,20 @@ export async function executeToolCall(
 
       case 'continuity_check': {
         const scope = input.scope as string
-        const targetSeriesId = input.seriesId as string || seriesId
+        // Always use the authenticated seriesId — never trust AI-provided seriesId
+        const targetSeriesId = seriesId
         let report = ''
 
         if (scope === 'issue') {
           const targetIssueId = input.issueId as string
           if (!targetIssueId) return { success: false, result: 'issueId is required when scope is "issue"' }
 
-          // Fetch issue metadata
+          // Fetch issue metadata — verify it belongs to this series
           const { data: issue } = await supabase
             .from('issues')
             .select('number, title')
             .eq('id', targetIssueId)
+            .eq('series_id', seriesId)
             .single()
 
           if (!issue) return { success: false, result: 'Issue not found' }
@@ -981,11 +1072,13 @@ export async function executeToolCall(
 
       case 'extract_outline': {
         const targetIssueId = input.issueId as string
+        if (!targetIssueId) return { success: false, result: 'Missing issueId' }
 
         const { data: issue } = await supabase
           .from('issues')
           .select('id, number, title, summary, themes, stakes, motifs')
           .eq('id', targetIssueId)
+          .eq('series_id', seriesId)
           .single()
 
         if (!issue) return { success: false, result: 'Issue not found' }
@@ -1071,6 +1164,11 @@ export async function executeToolCall(
 
       case 'draft_scene_summary': {
         const targetSceneId = input.sceneId as string
+        if (!targetSceneId) return { success: false, result: 'Missing sceneId' }
+
+        // Verify scene belongs to this series
+        const summarySceneOwned = await verifySceneInSeries(supabase, targetSceneId, seriesId)
+        if (!summarySceneOwned) return { success: false, result: 'Scene not found in this series' }
 
         const { data: scene } = await supabase
           .from('scenes')
@@ -1148,13 +1246,18 @@ export async function executeToolCall(
       }
 
       case 'generate_art_prompt': {
-        const panelId = input.panelId as string
+        const artPanelId = input.panelId as string
+        if (!artPanelId || !input.prompt) return { success: false, result: 'Missing panelId or prompt' }
+
+        // Verify panel belongs to this series
+        const artPanelOwned = await verifyPanelInSeries(supabase, artPanelId, seriesId)
+        if (!artPanelOwned) return { success: false, result: 'Panel not found in this series' }
 
         // Fetch the panel to include context in the result
         const { data: panel } = await supabase
           .from('panels')
           .select('id, sort_order, visual_description, camera')
-          .eq('id', panelId)
+          .eq('id', artPanelId)
           .single()
 
         if (!panel) return { success: false, result: 'Panel not found' }
@@ -1164,7 +1267,7 @@ export async function executeToolCall(
         const { data: artPrompt, error } = await supabase
           .from('art_prompts')
           .upsert({
-            panel_id: panelId,
+            panel_id: artPanelId,
             prompt: input.prompt as string,
             style_notes: (input.style_notes as string) || null,
             lighting: (input.lighting as string) || null,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { userCanAccessSeries } from '@/lib/auth-helpers'
 
 export async function POST(
   request: NextRequest,
@@ -19,6 +20,7 @@ export async function POST(
     .from('issues')
     .select(`
       id,
+      series_id,
       acts (
         id,
         sort_order,
@@ -38,6 +40,12 @@ export async function POST(
 
   if (fetchError || !issue) {
     return NextResponse.json({ error: fetchError?.message || 'Issue not found' }, { status: 404 })
+  }
+
+  // Verify user has access to this series
+  const hasAccess = await userCanAccessSeries(supabase, user.id, issue.series_id)
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 })
   }
 
   // Sort acts by sort_order
