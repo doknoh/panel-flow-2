@@ -244,6 +244,7 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
 export default function PageEditor({ page, pageContext, characters, locations, scenePages = [], onUpdate, setSaveStatus, filedNotes }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
+  const [expandedArtistNotes, setExpandedArtistNotes] = useState<Set<string>>(new Set())
   const [openDropdown, setOpenDropdown] = useState<string | null>(null) // tracks "shotType-{panelId}" or "captionType-{captionId}"
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
   const [mentionState, setMentionState] = useState<{
@@ -1882,27 +1883,70 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                               </div>
                             </div>
 
-                            {/* Panel Notes */}
+                            {/* Artist Notes — collapsed when empty */}
                             <div>
-                              <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
-                              <ScriptEditor
-                                variant="notes"
-                                initialContent={panel.notes_to_artist || ''}
-                                onUpdate={(md) => {
-                                  updatePanelField(panel.id, 'notes_to_artist', md)
-                                }}
-                                onFocus={() => handleTextFieldFocus(panel.id, 'notes_to_artist', panel.notes_to_artist)}
-                                onBlur={(md) => {
-                                  // Update with latest text, then end text edit
-                                  if (md !== panel.notes_to_artist) {
-                                    updatePanelField(panel.id, 'notes_to_artist', md)
-                                  }
-                                  setTimeout(() => handleOtherFieldBlur(
-                                    { ...panel, notes_to_artist: md }, 'notes_to_artist'
-                                  ), 0)
-                                }}
-                                placeholder="Additional notes for the artist..."
-                              />
+                              {panel.notes_to_artist ? (
+                                <>
+                                  <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
+                                  <ScriptEditor
+                                    variant="notes"
+                                    initialContent={panel.notes_to_artist || ''}
+                                    onUpdate={(md) => {
+                                      updatePanelField(panel.id, 'notes_to_artist', md)
+                                    }}
+                                    onFocus={() => handleTextFieldFocus(panel.id, 'notes_to_artist', panel.notes_to_artist)}
+                                    onBlur={(md) => {
+                                      // Update with latest text, then end text edit
+                                      if (md !== panel.notes_to_artist) {
+                                        updatePanelField(panel.id, 'notes_to_artist', md)
+                                      }
+                                      setTimeout(() => handleOtherFieldBlur(
+                                        { ...panel, notes_to_artist: md }, 'notes_to_artist'
+                                      ), 0)
+                                    }}
+                                    placeholder="Additional notes for the artist..."
+                                  />
+                                </>
+                              ) : expandedArtistNotes.has(panel.id) ? (
+                                <>
+                                  <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
+                                  <ScriptEditor
+                                    variant="notes"
+                                    initialContent=""
+                                    onUpdate={(md) => {
+                                      updatePanelField(panel.id, 'notes_to_artist', md)
+                                    }}
+                                    onFocus={() => handleTextFieldFocus(panel.id, 'notes_to_artist', panel.notes_to_artist)}
+                                    onBlur={(md) => {
+                                      if (md !== panel.notes_to_artist) {
+                                        updatePanelField(panel.id, 'notes_to_artist', md)
+                                      }
+                                      // Collapse back if user left it empty
+                                      if (!md || md.trim() === '') {
+                                        setExpandedArtistNotes(prev => {
+                                          const next = new Set(prev)
+                                          next.delete(panel.id)
+                                          return next
+                                        })
+                                      }
+                                      setTimeout(() => handleOtherFieldBlur(
+                                        { ...panel, notes_to_artist: md }, 'notes_to_artist'
+                                      ), 0)
+                                    }}
+                                    placeholder="Additional notes for the artist..."
+                                  />
+                                </>
+                              ) : (
+                                <div className="flex items-center justify-between">
+                                  <label className="type-label">ARTIST NOTES</label>
+                                  <button
+                                    onClick={() => setExpandedArtistNotes(prev => new Set(prev).add(panel.id))}
+                                    className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                  >
+                                    [+ NOTES]
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

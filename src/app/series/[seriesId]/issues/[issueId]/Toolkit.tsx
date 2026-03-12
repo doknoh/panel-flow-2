@@ -1767,20 +1767,10 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               }}
             >
               {chatMessages.length === 0 && !streamingText ? (
-                <div className="text-center py-6 px-4">
-                  <p className="type-label mb-2">
-                    STRUCT_AI <span className="type-separator">{'\/\/'}</span> PARTNER
+                <div className="flex items-center justify-center h-full px-4">
+                  <p className="type-meta text-[var(--text-disabled)] text-center">
+                    Ask your editor anything about this project.
                   </p>
-                  <p className="type-meta mb-4">
-                    Your editor knows the full project — characters, plotlines, script, and structure.
-                    It can create characters, save ideas to canvas, draft panels, and more.
-                  </p>
-                  <div className="type-meta space-y-1.5 text-left bg-[var(--bg-tertiary)]/50 p-3">
-                    <p>&bull; &quot;What should this scene accomplish?&quot;</p>
-                    <p>&bull; &quot;Help me work out the act breaks&quot;</p>
-                    <p>&bull; &quot;Draft a tense establishing shot for this page&quot;</p>
-                    <p>&bull; &quot;Create a character for the detective&quot;</p>
-                  </div>
                 </div>
               ) : (
                 <>
