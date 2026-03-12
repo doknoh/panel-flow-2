@@ -6,6 +6,43 @@ import { useToast } from '@/contexts/ToastContext'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
+interface SnapshotDialogueBlock {
+  text: string
+  speaker_name?: string | null
+  character_id?: string | null
+  dialogue_type?: string
+  delivery_instruction?: string | null
+  modifier?: string | null
+  balloon_number?: number
+  sort_order?: number
+}
+
+interface SnapshotCaption {
+  text: string
+  caption_type?: string
+  sort_order?: number
+}
+
+interface SnapshotSfx {
+  text: string
+  sort_order?: number
+}
+
+interface SnapshotPanel {
+  id: string
+  panel_number: number
+  sort_order?: number
+  visual_description?: string
+  camera?: string | null
+  shot_type?: string | null
+  panel_size?: string | null
+  notes_to_artist?: string | null
+  internal_notes?: string | null
+  dialogue_blocks?: SnapshotDialogueBlock[]
+  captions?: SnapshotCaption[]
+  sound_effects?: SnapshotSfx[]
+}
+
 interface Snapshot {
   id: string
   issue_id: string
@@ -13,14 +50,7 @@ interface Snapshot {
     pages?: Array<{
       id: string
       page_number: number
-      panels?: Array<{
-        id: string
-        panel_number: number
-        visual_description?: string
-        dialogue_blocks?: Array<{ text: string }>
-        captions?: Array<{ text: string }>
-        sound_effects?: Array<{ text: string }>
-      }>
+      panels?: SnapshotPanel[]
     }>
   }
   created_at: string
@@ -174,14 +204,19 @@ export default function VersionHistoryClient({
         if (!newPage) continue
 
         // Recreate panels
-        for (const panel of page.panels || []) {
+        for (const [panelIdx, panel] of (page.panels || []).entries()) {
           const { data: newPanel } = await supabase
             .from('panels')
             .insert({
               page_id: newPage.id,
               panel_number: panel.panel_number,
               visual_description: panel.visual_description || '',
-              sort_order: panel.panel_number,
+              sort_order: panel.sort_order ?? panel.panel_number ?? panelIdx + 1,
+              camera: panel.camera || null,
+              shot_type: panel.shot_type || null,
+              panel_size: panel.panel_size || null,
+              notes_to_artist: panel.notes_to_artist || null,
+              internal_notes: panel.internal_notes || null,
             })
             .select()
             .single()
@@ -189,31 +224,36 @@ export default function VersionHistoryClient({
           if (!newPanel) continue
 
           // Recreate dialogue blocks
-          for (const db of panel.dialogue_blocks || []) {
+          for (const [dbIdx, db] of (panel.dialogue_blocks || []).entries()) {
             await supabase.from('dialogue_blocks').insert({
               panel_id: newPanel.id,
-              dialogue_type: 'dialogue',
               text: db.text,
-              sort_order: 1,
+              speaker_name: db.speaker_name || null,
+              character_id: db.character_id || null,
+              dialogue_type: db.dialogue_type || 'dialogue',
+              delivery_instruction: db.delivery_instruction || null,
+              modifier: db.modifier || null,
+              balloon_number: db.balloon_number ?? 1,
+              sort_order: db.sort_order ?? dbIdx + 1,
             })
           }
 
           // Recreate captions
-          for (const cap of panel.captions || []) {
+          for (const [capIdx, cap] of (panel.captions || []).entries()) {
             await supabase.from('captions').insert({
               panel_id: newPanel.id,
-              caption_type: 'narrative',
               text: cap.text,
-              sort_order: 1,
+              caption_type: cap.caption_type || 'narrative',
+              sort_order: cap.sort_order ?? capIdx + 1,
             })
           }
 
           // Recreate sound effects
-          for (const sfx of panel.sound_effects || []) {
+          for (const [sfxIdx, sfx] of (panel.sound_effects || []).entries()) {
             await supabase.from('sound_effects').insert({
               panel_id: newPanel.id,
               text: sfx.text,
-              sort_order: 1,
+              sort_order: sfx.sort_order ?? sfxIdx + 1,
             })
           }
         }

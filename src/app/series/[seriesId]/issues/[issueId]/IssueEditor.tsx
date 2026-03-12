@@ -16,8 +16,6 @@ import ScriptView from './ScriptView'
 import QuickNav from './QuickNav'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
-import { exportIssueToPdf } from '@/lib/exportPdf'
-import { exportIssueToDocx } from '@/lib/exportDocx'
 import { exportIssueToTxt } from '@/lib/exportTxt'
 import ExportModal, { type ExportOptions } from '@/components/ui/ExportModal'
 import { useToast } from '@/contexts/ToastContext'
@@ -304,10 +302,32 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         panels: (page.panels || []).map((panel: any) => ({
           id: panel.id,
           panel_number: panel.panel_number,
+          sort_order: panel.sort_order,
           visual_description: panel.visual_description,
-          dialogue_blocks: (panel.dialogue_blocks || []).map((db: any) => ({ text: db.text })),
-          captions: (panel.captions || []).map((c: any) => ({ text: c.text })),
-          sound_effects: (panel.sound_effects || []).map((sfx: any) => ({ text: sfx.text })),
+          camera: panel.camera || null,
+          shot_type: panel.shot_type || null,
+          panel_size: panel.panel_size || null,
+          notes_to_artist: panel.notes_to_artist || null,
+          internal_notes: panel.internal_notes || null,
+          dialogue_blocks: (panel.dialogue_blocks || []).map((db: any) => ({
+            text: db.text,
+            speaker_name: db.speaker_name || null,
+            character_id: db.character_id || null,
+            dialogue_type: db.dialogue_type || 'dialogue',
+            delivery_instruction: db.delivery_instruction || null,
+            modifier: db.modifier || null,
+            balloon_number: db.balloon_number || 1,
+            sort_order: db.sort_order || 1,
+          })),
+          captions: (panel.captions || []).map((c: any) => ({
+            text: c.text,
+            caption_type: c.caption_type || 'narrative',
+            sort_order: c.sort_order || 1,
+          })),
+          sound_effects: (panel.sound_effects || []).map((sfx: any) => ({
+            text: sfx.text,
+            sort_order: sfx.sort_order || 1,
+          })),
         })),
       })) || []
 
@@ -1025,8 +1045,10 @@ function IssueEditorContent({
                 setShowExportModal(false)
                 try {
                   if (opts.format === 'pdf') {
-                    exportIssueToPdf(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })
+                    const { exportIssueToPdf } = await import('@/lib/exportPdf')
+                    await exportIssueToPdf(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })
                   } else if (opts.format === 'docx') {
+                    const { exportIssueToDocx } = await import('@/lib/exportDocx')
                     await exportIssueToDocx(issue, opts.includeNotes, { includeSummary: opts.includeSummary })
                   } else {
                     exportIssueToTxt(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })

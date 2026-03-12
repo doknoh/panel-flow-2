@@ -221,16 +221,75 @@ export async function assembleContext(
   const supabase = await createClient()
   const context: AIContext = { seriesId, issueId, pageId }
 
-  // Fetch series metadata
-  const { data: series } = await withTimeout(
-    supabase
-      .from('series')
-      .select('title, central_theme, logline, visual_grammar, rules')
-      .eq('id', seriesId)
-      .single(),
-    DB_TIMEOUT,
-  )
+  // Parallelize all independent series-level queries
+  const [seriesResult, charactersResult, locationsResult, plotlinesResult, canvasResult, notesResult] = await Promise.all([
+    // Fetch series metadata
+    withTimeout(
+      supabase
+        .from('series')
+        .select('title, central_theme, logline, visual_grammar, rules')
+        .eq('id', seriesId)
+        .single(),
+      DB_TIMEOUT,
+    ).catch(() => ({ data: null })),
 
+    // Fetch characters (capped at 30)
+    withTimeout(
+      supabase
+        .from('characters')
+        .select('id, name, display_name, aliases, physical_description, speech_patterns, relationships, arc_notes')
+        .eq('series_id', seriesId)
+        .limit(30),
+      DB_TIMEOUT,
+    ).catch(() => ({ data: null })),
+
+    // Fetch locations (capped at 20)
+    withTimeout(
+      supabase
+        .from('locations')
+        .select('id, name, description, visual_details')
+        .eq('series_id', seriesId)
+        .limit(20),
+      DB_TIMEOUT,
+    ).catch(() => ({ data: null })),
+
+    // Fetch plotlines
+    withTimeout(
+      supabase
+        .from('plotlines')
+        .select('id, name, color, description')
+        .eq('series_id', seriesId),
+      DB_TIMEOUT,
+    ).catch(() => ({ data: null })),
+
+    // Fetch canvas beats (unfiled, most recent)
+    withTimeout(
+      supabase
+        .from('canvas_items')
+        .select('id, title, content, item_type')
+        .eq('series_id', seriesId)
+        .eq('archived', false)
+        .is('filed_to_scene_id', null)
+        .is('filed_to_page_id', null)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      DB_TIMEOUT,
+    ).catch(() => ({ data: null })),
+
+    // Fetch unresolved project notes
+    withTimeout(
+      supabase
+        .from('project_notes')
+        .select('content, type')
+        .eq('series_id', seriesId)
+        .eq('resolved', false)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      DB_TIMEOUT,
+    ).catch(() => ({ data: null })),
+  ])
+
+  const series = seriesResult.data
   if (series) {
     const s = series as { title: string; central_theme?: string; logline?: string; visual_grammar?: string; rules?: string }
     context.seriesTitle = s.title
@@ -240,16 +299,7 @@ export async function assembleContext(
     context.rules = s.rules || undefined
   }
 
-  // Fetch characters (capped at 30)
-  const { data: characters } = await withTimeout(
-    supabase
-      .from('characters')
-      .select('id, name, display_name, aliases, physical_description, speech_patterns, relationships, arc_notes')
-      .eq('series_id', seriesId)
-      .limit(30),
-    DB_TIMEOUT,
-  )
-
+  const characters = charactersResult.data
   if (characters && (characters as unknown[]).length > 0) {
     context.characters = (characters as Array<{
       id: string; name: string; display_name: string; aliases?: string[];
@@ -267,16 +317,7 @@ export async function assembleContext(
     }))
   }
 
-  // Fetch locations (capped at 20)
-  const { data: locations } = await withTimeout(
-    supabase
-      .from('locations')
-      .select('id, name, description, visual_details')
-      .eq('series_id', seriesId)
-      .limit(20),
-    DB_TIMEOUT,
-  )
-
+  const locations = locationsResult.data
   if (locations && (locations as unknown[]).length > 0) {
     context.locations = (locations as Array<{
       id: string; name: string; description?: string; visual_details?: string
@@ -288,15 +329,7 @@ export async function assembleContext(
     }))
   }
 
-  // Fetch plotlines
-  const { data: plotlines } = await withTimeout(
-    supabase
-      .from('plotlines')
-      .select('id, name, color, description')
-      .eq('series_id', seriesId),
-    DB_TIMEOUT,
-  )
-
+  const plotlines = plotlinesResult.data
   if (plotlines && (plotlines as unknown[]).length > 0) {
     context.plotlines = (plotlines as Array<{
       id: string; name: string; color: string; description?: string
@@ -308,20 +341,7 @@ export async function assembleContext(
     }))
   }
 
-  // Fetch canvas beats (unfiled, most recent)
-  const { data: canvasBeats } = await withTimeout(
-    supabase
-      .from('canvas_items')
-      .select('id, title, content, item_type')
-      .eq('series_id', seriesId)
-      .eq('archived', false)
-      .is('filed_to_scene_id', null)
-      .is('filed_to_page_id', null)
-      .order('created_at', { ascending: false })
-      .limit(20),
-    DB_TIMEOUT,
-  )
-
+  const canvasBeats = canvasResult.data
   if (canvasBeats && (canvasBeats as unknown[]).length > 0) {
     context.canvasBeats = (canvasBeats as Array<{
       id: string; title: string; content?: string; item_type?: string
@@ -333,17 +353,7 @@ export async function assembleContext(
     }))
   }
 
-  // Fetch unresolved project notes
-  const { data: notes } = await withTimeout(
-    supabase
-      .from('project_notes')
-      .select('content, type')
-      .eq('series_id', seriesId)
-      .eq('resolved', false)
-      .order('created_at', { ascending: false })
-      .limit(20),
-    DB_TIMEOUT,
-  )
+  const { data: notes } = notesResult as { data: Array<{ content: string; type: string }> | null }
 
   if (notes && (notes as unknown[]).length > 0) {
     context.projectNotes = (notes as Array<{ content: string; type: string }>).map(n => ({
@@ -382,63 +392,35 @@ export async function assembleContext(
       }
     }
 
-    // Fetch issue structure: acts → scenes with page counts
-    const { data: acts } = await withTimeout(
+    // Fetch issue structure: acts → scenes → pages (with counts) in a single query
+    const { data: actsWithScenes } = await withTimeout(
       supabase
         .from('acts')
-        .select('id, number, title')
+        .select('id, number, title, scenes(id, title, plotline_id, sort_order, pages(id))')
         .eq('issue_id', issueId)
         .order('number'),
       DB_TIMEOUT,
     )
 
-    if (acts && (acts as unknown[]).length > 0) {
+    if (actsWithScenes && (actsWithScenes as unknown[]).length > 0) {
       const plotlineMap = new Map(
         (context.plotlines || []).map(p => [p.id, p.name])
       )
 
-      const structure: AIContext['issueStructure'] = []
-
-      for (const act of acts as Array<{ id: string; number: number; title?: string }>) {
-        const { data: scenes } = await withTimeout(
-          supabase
-            .from('scenes')
-            .select('id, title, plotline_id, sort_order')
-            .eq('act_id', act.id)
-            .order('sort_order'),
-          DB_TIMEOUT,
-        )
-
-        const sceneEntries = []
-        for (const scene of (scenes || []) as Array<{
-          id: string; title?: string; plotline_id?: string; sort_order: number
-        }>) {
-          // Count pages in this scene
-          const { count } = await withTimeout(
-            supabase
-              .from('pages')
-              .select('id', { count: 'exact', head: true })
-              .eq('scene_id', scene.id),
-            DB_TIMEOUT,
-          )
-
-          sceneEntries.push({
-            sceneId: scene.id,
-            sceneTitle: scene.title || undefined,
-            plotlineName: scene.plotline_id ? plotlineMap.get(scene.plotline_id) : undefined,
-            pageCount: count || 0,
-          })
-        }
-
-        structure.push({
-          actId: act.id,
-          actNumber: act.number,
-          actTitle: act.title || undefined,
-          scenes: sceneEntries,
-        })
-      }
-
-      context.issueStructure = structure
+      context.issueStructure = (actsWithScenes as Array<{
+        id: string; number: number; title?: string;
+        scenes: Array<{ id: string; title?: string; plotline_id?: string; sort_order: number; pages: Array<{ id: string }> }>
+      }>).map(act => ({
+        actId: act.id,
+        actNumber: act.number,
+        actTitle: act.title || undefined,
+        scenes: [...(act.scenes || [])].sort((a, b) => a.sort_order - b.sort_order).map(scene => ({
+          sceneId: scene.id,
+          sceneTitle: scene.title || undefined,
+          plotlineName: scene.plotline_id ? plotlineMap.get(scene.plotline_id) : undefined,
+          pageCount: (scene.pages || []).length,
+        })),
+      }))
     }
 
     // Build full script text for the issue
@@ -481,18 +463,33 @@ export async function assembleContext(
 }
 
 /**
- * Assemble the full script text for an issue
+ * Assemble the full script text for an issue using a single nested query
+ * instead of N+1 loops (previously ~500 queries, now 1 query)
  */
 async function assembleScriptText(
   supabase: Awaited<ReturnType<typeof createClient>>,
   issueId: string,
   context: AIContext
 ) {
-  // Get all pages for this issue via acts → scenes → pages
+  // Single query: fetch the entire issue tree with all nested content
   const { data: acts } = await withTimeout(
     supabase
       .from('acts')
-      .select('id, number')
+      .select(`
+        id, number,
+        scenes (
+          id, title, sort_order,
+          pages (
+            id, page_number, orientation, sort_order,
+            panels (
+              id, sort_order, visual_description, camera,
+              dialogue_blocks (speaker_name, character_id, text, delivery_type, delivery_instruction, balloon_number, sort_order),
+              captions (text, caption_type, sort_order),
+              sound_effects (text, sort_order)
+            )
+          )
+        )
+      `)
       .eq('issue_id', issueId)
       .order('number'),
     DB_TIMEOUT,
@@ -502,108 +499,46 @@ async function assembleScriptText(
 
   let scriptText = ''
 
-  for (const act of acts as Array<{ id: string; number: number }>) {
-    const { data: scenes } = await withTimeout(
-      supabase
-        .from('scenes')
-        .select('id, title, sort_order')
-        .eq('act_id', act.id)
-        .order('sort_order'),
-      DB_TIMEOUT,
-    )
+  // Sort and iterate through the tree (Supabase nested sorts aren't guaranteed)
+  const sortedActs = [...(acts as any[])].sort((a, b) => a.number - b.number)
 
-    if (!scenes) continue
+  for (const act of sortedActs) {
+    const sortedScenes = [...(act.scenes || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
-    for (const scene of scenes as Array<{ id: string; title?: string; sort_order: number }>) {
-      const { data: pages } = await withTimeout(
-        supabase
-          .from('pages')
-          .select('id, page_number, orientation, sort_order')
-          .eq('scene_id', scene.id)
-          .order('sort_order'),
-        DB_TIMEOUT,
-      )
+    for (const scene of sortedScenes) {
+      const sortedPages = [...(scene.pages || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
-      if (!pages) continue
-
-      for (const page of pages as Array<{
-        id: string; page_number: number; orientation: string; sort_order: number
-      }>) {
+      for (const page of sortedPages) {
         scriptText += `\nPAGE ${page.page_number} (${page.orientation?.toLowerCase() || 'right'})\n`
 
-        const { data: panels } = await withTimeout(
-          supabase
-            .from('panels')
-            .select('id, sort_order, visual_description, camera')
-            .eq('page_id', page.id)
-            .order('sort_order'),
-          DB_TIMEOUT,
-        )
+        const sortedPanels = [...(page.panels || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
 
-        if (!panels) continue
-
-        for (const panel of panels as Array<{
-          id: string; sort_order: number; visual_description?: string; camera?: string
-        }>) {
+        for (const panel of sortedPanels) {
           scriptText += `PANEL ${panel.sort_order}: ${panel.visual_description || '(No description)'}\n`
           if (panel.camera) scriptText += `[Camera: ${panel.camera}]\n`
 
-          // Get dialogue
-          const { data: dialogue } = await withTimeout(
-            supabase
-              .from('dialogue_blocks')
-              .select('speaker_name, character_id, text, delivery_type, delivery_instruction, balloon_number, sort_order')
-              .eq('panel_id', panel.id)
-              .order('sort_order'),
-            DB_TIMEOUT,
-          )
-
-          if (dialogue) {
-            for (const d of dialogue as Array<{
-              speaker_name?: string; character_id?: string; text: string;
-              delivery_type: string; delivery_instruction?: string;
-              balloon_number: number; sort_order: number
-            }>) {
-              let speaker = d.speaker_name || 'UNKNOWN'
-              if (d.delivery_type === 'VO') speaker += ' (V.O.)'
-              else if (d.delivery_type === 'OS') speaker += ' (O.S.)'
-              if (d.delivery_instruction) speaker += ` [${d.delivery_instruction}]`
-              if (d.balloon_number > 1) speaker += ` ${d.balloon_number}`
-              scriptText += `${speaker}: ${d.text}\n`
-            }
+          // Dialogue
+          const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+          for (const d of sortedDialogue) {
+            let speaker = d.speaker_name || 'UNKNOWN'
+            if (d.delivery_type === 'VO') speaker += ' (V.O.)'
+            else if (d.delivery_type === 'OS') speaker += ' (O.S.)'
+            if (d.delivery_instruction) speaker += ` [${d.delivery_instruction}]`
+            if (d.balloon_number > 1) speaker += ` ${d.balloon_number}`
+            scriptText += `${speaker}: ${d.text}\n`
           }
 
-          // Get captions
-          const { data: captions } = await withTimeout(
-            supabase
-              .from('captions')
-              .select('text, caption_type, sort_order')
-              .eq('panel_id', panel.id)
-              .order('sort_order'),
-            DB_TIMEOUT,
-          )
-
-          if (captions) {
-            for (const cap of captions as Array<{ text: string; caption_type: string; sort_order: number }>) {
-              const capType = cap.caption_type ? ` (${cap.caption_type.toUpperCase()})` : ''
-              scriptText += `CAP${capType}: ${cap.text}\n`
-            }
+          // Captions
+          const sortedCaptions = [...(panel.captions || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+          for (const cap of sortedCaptions) {
+            const capType = cap.caption_type ? ` (${cap.caption_type.toUpperCase()})` : ''
+            scriptText += `CAP${capType}: ${cap.text}\n`
           }
 
-          // Get sound effects
-          const { data: sfx } = await withTimeout(
-            supabase
-              .from('sound_effects')
-              .select('text, sort_order')
-              .eq('panel_id', panel.id)
-              .order('sort_order'),
-            DB_TIMEOUT,
-          )
-
-          if (sfx) {
-            for (const s of sfx as Array<{ text: string; sort_order: number }>) {
-              scriptText += `SFX: ${s.text}\n`
-            }
+          // Sound effects
+          const sortedSfx = [...(panel.sound_effects || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
+          for (const s of sortedSfx) {
+            scriptText += `SFX: ${s.text}\n`
           }
 
           scriptText += '\n'
@@ -627,16 +562,26 @@ async function assembleScriptText(
 
 /**
  * Assemble context for the page the writer is currently viewing
+ * Single nested query instead of per-panel loops
  */
 async function assembleCurrentPage(
   supabase: Awaited<ReturnType<typeof createClient>>,
   pageId: string,
   context: AIContext
 ) {
+  // Single query: fetch page with all nested panel content
   const { data: page } = await withTimeout(
     supabase
       .from('pages')
-      .select('page_number, orientation')
+      .select(`
+        page_number, orientation,
+        panels (
+          id, sort_order, visual_description, camera,
+          dialogue_blocks (speaker_name, text, delivery_type, delivery_instruction, sort_order),
+          captions (text, caption_type, sort_order),
+          sound_effects (text, sort_order)
+        )
+      `)
       .eq('id', pageId)
       .single(),
     DB_TIMEOUT,
@@ -644,95 +589,48 @@ async function assembleCurrentPage(
 
   if (!page) return
 
-  const p = page as { page_number: number; orientation: string }
+  const p = page as {
+    page_number: number; orientation: string;
+    panels: Array<{
+      id: string; sort_order: number; visual_description?: string; camera?: string;
+      dialogue_blocks: Array<{ speaker_name?: string; text: string; delivery_type: string; delivery_instruction?: string; sort_order: number }>;
+      captions: Array<{ text: string; caption_type: string; sort_order: number }>;
+      sound_effects: Array<{ text: string; sort_order: number }>;
+    }>
+  }
 
-  const { data: panels } = await withTimeout(
-    supabase
-      .from('panels')
-      .select('id, sort_order, visual_description, camera')
-      .eq('page_id', pageId)
-      .order('sort_order'),
-    DB_TIMEOUT,
-  )
+  const sortedPanels = [...(p.panels || [])].sort((a, b) => a.sort_order - b.sort_order)
 
-  if (!panels) return
+  const panelContexts = sortedPanels.map(panel => {
+    const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a, b) => a.sort_order - b.sort_order)
+    const sortedCaptions = [...(panel.captions || [])].sort((a, b) => a.sort_order - b.sort_order)
+    const sortedSfx = [...(panel.sound_effects || [])].sort((a, b) => a.sort_order - b.sort_order)
 
-  const charMap = new Map(
-    (context.characters || []).map(c => [c.id, c.display_name])
-  )
-
-  const panelContexts = []
-  for (const panel of panels as Array<{
-    id: string; sort_order: number; visual_description?: string; camera?: string
-  }>) {
-    // Get characters present
-    const { data: panelChars } = await withTimeout(
-      supabase
-        .from('panel_characters')
-        .select('character_id')
-        .eq('panel_id', panel.id),
-      DB_TIMEOUT,
-    )
-
-    const characterNames = ((panelChars || []) as Array<{ character_id: string }>)
-      .map(pc => charMap.get(pc.character_id))
-      .filter(Boolean) as string[]
-
-    // Get dialogue
-    const { data: dialogue } = await withTimeout(
-      supabase
-        .from('dialogue_blocks')
-        .select('speaker_name, text, delivery_type, delivery_instruction, sort_order')
-        .eq('panel_id', panel.id)
-        .order('sort_order'),
-      DB_TIMEOUT,
-    )
-
-    // Get captions
-    const { data: captions } = await withTimeout(
-      supabase
-        .from('captions')
-        .select('text, caption_type, sort_order')
-        .eq('panel_id', panel.id)
-        .order('sort_order'),
-      DB_TIMEOUT,
-    )
-
-    // Get sound effects
-    const { data: sfx } = await withTimeout(
-      supabase
-        .from('sound_effects')
-        .select('text, sort_order')
-        .eq('panel_id', panel.id)
-        .order('sort_order'),
-      DB_TIMEOUT,
-    )
-
-    panelContexts.push({
+    return {
       id: panel.id,
       order: panel.sort_order,
       visual_description: panel.visual_description || undefined,
       camera: panel.camera || undefined,
-      characters_present: characterNames.length > 0 ? characterNames : undefined,
-      dialogue: dialogue && (dialogue as unknown[]).length > 0
-        ? (dialogue as Array<{ speaker_name?: string; text: string; delivery_type: string; delivery_instruction?: string }>).map(d => ({
+      characters_present: undefined as string[] | undefined,
+      dialogue: sortedDialogue.length > 0
+        ? sortedDialogue.map(d => ({
             speaker: d.speaker_name || 'UNKNOWN',
             text: d.text,
             delivery_type: d.delivery_type,
             delivery_instruction: d.delivery_instruction || undefined,
           }))
         : undefined,
-      captions: captions && (captions as unknown[]).length > 0
-        ? (captions as Array<{ text: string; caption_type: string }>).map(c => ({
+      captions: sortedCaptions.length > 0
+        ? sortedCaptions.map(c => ({
             text: c.text,
             type: c.caption_type || 'narrative',
           }))
         : undefined,
-      sound_effects: sfx && (sfx as unknown[]).length > 0
-        ? (sfx as Array<{ text: string }>).map(s => s.text)
+      sound_effects: sortedSfx.length > 0
+        ? sortedSfx.map(s => s.text)
         : undefined,
-    })
-  }
+    }
+  })
 
   context.currentPage = {
     pageNumber: p.page_number,

@@ -1,13 +1,4 @@
-import {
-  Document,
-  Packer,
-  Paragraph,
-  TextRun,
-  HeadingLevel,
-  AlignmentType,
-  PageBreak,
-} from 'docx'
-import { saveAs } from 'file-saver'
+import type { Paragraph as ParagraphType } from 'docx'
 
 interface DialogueBlock {
   character_id: string | null
@@ -130,10 +121,21 @@ export async function exportIssueToDocx(
     includeSummary?: boolean
   }
 ) {
+  const {
+    Document,
+    Packer,
+    Paragraph,
+    TextRun,
+    HeadingLevel,
+    AlignmentType,
+    PageBreak,
+  } = await import('docx')
+  const { saveAs } = await import('file-saver')
+
   const characterMap = new Map(issue.series.characters.map(c => [c.id, c.name]))
   const charNames = options?.characterNames || issue.series.characters.map(c => c.name)
 
-  const children: Paragraph[] = []
+  const children: ParagraphType[] = []
 
   // Title - spec format: "[SERIES TITLE] - ISSUE #[NUMBER]"
   children.push(
