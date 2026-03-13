@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import ThemeToggle from './ThemeToggle'
+import { Tip } from '@/components/ui/Tip'
 
 interface HeaderProps {
   // Existing
@@ -50,7 +51,7 @@ export default function Header({
               <>
                 <Link
                   href={backHref}
-                  className="type-meta text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  className="type-meta text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors hover-glow"
                 >
                   &larr; {backLabel}
                 </Link>
@@ -79,12 +80,14 @@ export default function Header({
             )}
             {userEmail && (
               <form action="/auth/signout" method="post" className="flex items-center">
-                <button
-                  type="submit"
-                  className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"
-                >
-                  Sign out
-                </button>
+                <Tip content="Sign out">
+                  <button
+                    type="submit"
+                    className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
+                  >
+                    Sign out
+                  </button>
+                </Tip>
               </form>
             )}
           </div>

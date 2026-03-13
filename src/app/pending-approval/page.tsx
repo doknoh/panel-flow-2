@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Tip } from '@/components/ui/Tip'
 
 export default function PendingApprovalPage() {
   const [email, setEmail] = useState<string | null>(null)
@@ -52,12 +53,14 @@ export default function PendingApprovalPage() {
         <p className="text-[var(--text-muted)] text-sm mb-6">
           Please contact the administrator if you believe this is an error.
         </p>
-        <button
-          onClick={handleSignOut}
-          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm underline"
-        >
-          Sign out
-        </button>
+        <Tip content="Sign out">
+          <button
+            onClick={handleSignOut}
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm underline hover-fade"
+          >
+            Sign out
+          </button>
+        </Tip>
       </div>
     </div>
   )

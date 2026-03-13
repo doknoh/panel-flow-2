@@ -107,7 +107,7 @@ export default function AcceptInvitation({
       <button
         onClick={handleAccept}
         disabled={accepting}
-        className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+        className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-opacity hover-lift"
       >
         {accepting ? 'Accepting...' : 'Accept Invitation'}
       </button>

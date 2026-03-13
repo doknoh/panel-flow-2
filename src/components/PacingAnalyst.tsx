@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import {
   BarChart3,
   TrendingUp,
@@ -123,16 +124,17 @@ function PanelEconomyStrip({
         {metrics.map((page) => {
           const color = densityColors[page.densityLabel] || 'bg-gray-400'
           return (
-            <button
-              key={page.pageId}
-              onClick={() => onPageClick?.(page.pageId)}
-              className={`flex-1 h-6 ${color} rounded-sm transition-opacity hover:opacity-80 flex items-center justify-center`}
-              title={`Page ${page.pageNumber}: ${page.panelCount} panels (${page.densityLabel})`}
-            >
-              <span className="text-[9px] text-white font-bold opacity-80">
-                {page.panelCount}
-              </span>
-            </button>
+            <Tip content={`Page ${page.pageNumber}: ${page.panelCount} panels (${page.densityLabel})`}>
+              <button
+                key={page.pageId}
+                onClick={() => onPageClick?.(page.pageId)}
+                className={`flex-1 h-6 ${color} rounded-sm transition-opacity hover:opacity-80 flex items-center justify-center hover-glow`}
+              >
+                <span className="text-[9px] text-white font-bold opacity-80">
+                  {page.panelCount}
+                </span>
+              </button>
+            </Tip>
           )
         })}
       </div>
@@ -217,24 +219,25 @@ function RhythmChart({
           else if (value < idealRange.min) barColor = 'bg-yellow-500'
 
           return (
-            <button
-              key={page.pageId}
-              onClick={() => onBarClick?.(page.pageId)}
-              className="flex-1 flex flex-col items-center group cursor-pointer"
-              title={`Page ${page.pageNumber}: ${value} ${title.toLowerCase().includes('word') ? 'words' : 'panels'}`}
-            >
-              <div
-                className={`w-full ${barColor} rounded-t transition-all group-hover:opacity-80`}
-                style={{ height: `${Math.max(height, 4)}%` }}
-              />
-              <span
-                className={`text-[10px] mt-1 ${
-                  isOddPage ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'
-                }`}
+            <Tip content={`Page ${page.pageNumber}: ${value} ${title.toLowerCase().includes('word') ? 'words' : 'panels'}`}>
+              <button
+                key={page.pageId}
+                onClick={() => onBarClick?.(page.pageId)}
+                className="flex-1 flex flex-col items-center group cursor-pointer hover-glow"
               >
-                {page.pageNumber}
-              </span>
-            </button>
+                <div
+                  className={`w-full ${barColor} rounded-t transition-all group-hover:opacity-80`}
+                  style={{ height: `${Math.max(height, 4)}%` }}
+                />
+                <span
+                  className={`text-[10px] mt-1 ${
+                    isOddPage ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {page.pageNumber}
+                </span>
+              </button>
+            </Tip>
           )
         })}
       </div>
@@ -327,7 +330,7 @@ function InsightsList({
     <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-[var(--bg-tertiary)] transition-colors hover-fade"
       >
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-[var(--text-muted)]" />
@@ -428,7 +431,7 @@ function InsightCard({
                 <button
                   key={pageNum}
                   onClick={() => onPageClick(pageNum)}
-                  className="px-2 py-0.5 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] rounded transition-colors"
+                  className="px-2 py-0.5 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] rounded transition-colors hover-glow"
                 >
                   Page {pageNum}
                 </button>

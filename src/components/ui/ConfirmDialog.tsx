@@ -96,7 +96,7 @@ export default function ConfirmDialog({
           <button
             ref={cancelRef}
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded transition-colors hover-fade"
           >
             {cancelLabel}
           </button>
@@ -105,8 +105,8 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
               variant === 'danger'
-                ? 'bg-[var(--color-error)] hover:bg-[var(--color-error)]/90 text-white'
-                : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white'
+                ? 'bg-[var(--color-error)] hover:bg-[var(--color-error)]/90 text-white hover-fade-danger'
+                : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white hover-lift'
             }`}
           >
             {confirmLabel}

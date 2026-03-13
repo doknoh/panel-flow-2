@@ -103,7 +103,7 @@ export default function LoginButton() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-[var(--color-primary)] text-white font-medium py-3 px-4 rounded-lg hover:bg-[var(--color-primary-hover)] active:scale-[0.97] transition-all duration-150 ease-out disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 bg-[var(--color-primary)] text-white font-medium py-3 px-4 rounded-lg hover:bg-[var(--color-primary-hover)] active:scale-[0.97] transition-all duration-150 ease-out disabled:opacity-50 hover-lift"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -117,7 +117,7 @@ export default function LoginButton() {
             setError(null)
             setMessage(null)
           }}
-          className="w-full text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
+          className="w-full text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
         >
           {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
         </button>
@@ -134,7 +134,7 @@ export default function LoginButton() {
       <button
         onClick={handleGoogleLogin}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-3 bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-strong)] font-medium py-3 px-4 rounded-lg hover:bg-[var(--bg-tertiary)] active:scale-[0.97] transition-all duration-150 ease-out disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-3 bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-strong)] font-medium py-3 px-4 rounded-lg hover:bg-[var(--bg-tertiary)] active:scale-[0.97] transition-all duration-150 ease-out disabled:opacity-50 hover-lift"
       >
         {loading ? (
           <div className="w-5 h-5 border-2 border-[var(--text-primary)] border-t-transparent rounded-full animate-spin" />

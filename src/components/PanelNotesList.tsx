@@ -1,5 +1,7 @@
 'use client'
 
+import { Tip } from '@/components/ui/Tip'
+
 interface PanelNote {
   id: string
   content: string
@@ -84,64 +86,66 @@ export default function PanelNotesList({ notes, onAccept, onDismiss }: PanelNote
             {/* Action buttons for pending notes */}
             {note.status === 'pending' && (
               <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => onAccept(note.id)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90"
-                  style={{
-                    backgroundColor: 'var(--color-success)',
-                    color: '#fff',
-                  }}
-                  title="Accept note"
-                >
-                  {/* Checkmark icon */}
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                <Tip content="Accept note">
+                  <button
+                    type="button"
+                    onClick={() => onAccept(note.id)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90 hover-lift"
+                    style={{
+                      backgroundColor: 'var(--color-success)',
+                      color: '#fff',
+                    }}
                   >
-                    <path
-                      d="M3 8.5l3.5 3.5L13 4"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Accept
-                </button>
+                    {/* Checkmark icon */}
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M3 8.5l3.5 3.5L13 4"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Accept
+                  </button>
+                </Tip>
 
-                <button
-                  type="button"
-                  onClick={() => onDismiss(note.id)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90"
-                  style={{
-                    backgroundColor: 'var(--bg-tertiary)',
-                    color: 'var(--color-error)',
-                    border: '1px solid var(--border)',
-                  }}
-                  title="Dismiss note"
-                >
-                  {/* X icon */}
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                <Tip content="Dismiss note">
+                  <button
+                    type="button"
+                    onClick={() => onDismiss(note.id)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90 hover-fade-danger"
+                    style={{
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--color-error)',
+                      border: '1px solid var(--border)',
+                    }}
                   >
-                    <path
-                      d="M4 4l8 8M12 4l-8 8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Dismiss
-                </button>
+                    {/* X icon */}
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4 4l8 8M12 4l-8 8"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Dismiss
+                  </button>
+                </Tip>
               </div>
             )}
           </div>

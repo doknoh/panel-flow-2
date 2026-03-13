@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Tip } from '@/components/ui/Tip'
 
 export type ViewMode = 'outline' | 'draft'
 
@@ -13,28 +14,30 @@ interface OutlineToggleProps {
 export default function OutlineToggle({ mode, onChange, className = '' }: OutlineToggleProps) {
   return (
     <div className={`flex gap-1 bg-[var(--bg-tertiary)] rounded-lg p-0.5 ${className}`}>
-      <button
-        onClick={() => onChange('outline')}
-        className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ease-out ${
-          mode === 'outline'
-            ? 'bg-[var(--accent-hover)] text-[var(--text-primary)]'
-            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-        }`}
-        title="View and edit story structure"
-      >
-        Outline
-      </button>
-      <button
-        onClick={() => onChange('draft')}
-        className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ease-out ${
-          mode === 'draft'
-            ? 'bg-[var(--color-success)] text-[var(--text-primary)]'
-            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-        }`}
-        title="Write panel descriptions and dialogue"
-      >
-        Draft
-      </button>
+      <Tip content="View and edit story structure">
+        <button
+          onClick={() => onChange('outline')}
+          className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ease-out hover-glow ${
+            mode === 'outline'
+              ? 'bg-[var(--accent-hover)] text-[var(--text-primary)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          Outline
+        </button>
+      </Tip>
+      <Tip content="Write panel descriptions and dialogue">
+        <button
+          onClick={() => onChange('draft')}
+          className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ease-out hover-glow ${
+            mode === 'draft'
+              ? 'bg-[var(--color-success)] text-[var(--text-primary)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          Draft
+        </button>
+      </Tip>
     </div>
   )
 }
