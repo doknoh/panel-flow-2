@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { Tip } from '@/components/ui/Tip'
 
 interface ZoomPanelProps {
   seriesTitle: string
@@ -198,14 +199,16 @@ export default function ZoomPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-[var(--border)]">
         <span className="type-micro text-[var(--text-secondary)]">CONTEXT LADDER</span>
-        <button
-          onClick={onClose}
-          className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <Tip content="Close">
+          <button
+            onClick={onClose}
+            className="hover-fade p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </Tip>
       </div>
 
       {/* Hierarchy Tree */}
@@ -238,31 +241,35 @@ export default function ZoomPanel({
       {selectedPageId && (
         <div className="px-3 py-2 border-t border-[var(--border)]">
           <div className="flex items-center justify-between">
-            <button
-              onClick={() => prevPage && onSelectPage(prevPage.id)}
-              disabled={!prevPage}
-              className={`type-micro px-2 py-1 rounded transition-colors ${
-                prevPage
-                  ? 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                  : 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'
-              }`}
-            >
-              &larr; PREV
-            </button>
+            <Tip content="Previous page">
+              <button
+                onClick={() => prevPage && onSelectPage(prevPage.id)}
+                disabled={!prevPage}
+                className={`hover-glow type-micro px-2 py-1 rounded transition-colors ${
+                  prevPage
+                    ? 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                    : 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'
+                }`}
+              >
+                &larr; PREV
+              </button>
+            </Tip>
             <span className="type-micro text-[var(--text-muted)]">
               {currentPageIndex + 1} / {siblingPages.length}
             </span>
-            <button
-              onClick={() => nextPage && onSelectPage(nextPage.id)}
-              disabled={!nextPage}
-              className={`type-micro px-2 py-1 rounded transition-colors ${
-                nextPage
-                  ? 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                  : 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'
-              }`}
-            >
-              NEXT &rarr;
-            </button>
+            <Tip content="Next page">
+              <button
+                onClick={() => nextPage && onSelectPage(nextPage.id)}
+                disabled={!nextPage}
+                className={`hover-glow type-micro px-2 py-1 rounded transition-colors ${
+                  nextPage
+                    ? 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                    : 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'
+                }`}
+              >
+                NEXT &rarr;
+              </button>
+            </Tip>
           </div>
         </div>
       )}

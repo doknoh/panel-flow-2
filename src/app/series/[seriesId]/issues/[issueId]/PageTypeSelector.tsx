@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 
 type PageType = 'SINGLE' | 'SPLASH' | 'SPREAD_LEFT' | 'SPREAD_RIGHT'
 
@@ -163,21 +164,21 @@ export default function PageTypeSelector({
     <>
       {/* Type Selector Button */}
       <div className="relative" ref={dropdownContainerRef}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setIsDropdownOpen(!isDropdownOpen)
-          }}
-          disabled={saving}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-            currentType === 'SINGLE'
-              ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-              : currentType === 'SPLASH'
-              ? 'bg-[var(--accent-hover)]/30 text-[var(--accent-hover)] border border-[var(--accent-hover)]/50'
-              : 'bg-[var(--color-primary)]/30 text-[var(--color-primary)] border border-[var(--color-primary)]/50'
-          }`}
-          title={currentTypeInfo.description}
-        >
+        <Tip content={currentTypeInfo.description}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsDropdownOpen(!isDropdownOpen)
+            }}
+            disabled={saving}
+            className={`hover-glow flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              currentType === 'SINGLE'
+                ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                : currentType === 'SPLASH'
+                ? 'bg-[var(--accent-hover)]/30 text-[var(--accent-hover)] border border-[var(--accent-hover)]/50'
+                : 'bg-[var(--color-primary)]/30 text-[var(--color-primary)] border border-[var(--color-primary)]/50'
+            }`}
+          >
           <span className="text-lg leading-none">{currentTypeInfo.icon}</span>
           <span className="hidden sm:inline">{currentTypeInfo.label}</span>
           {linkedPage && (
@@ -186,7 +187,8 @@ export default function PageTypeSelector({
           <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
-        </button>
+          </button>
+        </Tip>
 
         {/* Dropdown */}
         {isDropdownOpen && (
@@ -200,7 +202,7 @@ export default function PageTypeSelector({
               <button
                 key={type.value}
                 onClick={() => handleTypeSelect(type.value)}
-                className={`w-full px-3 py-2 text-left flex items-center gap-3 transition-colors ${
+                className={`hover-glow w-full px-3 py-2 text-left flex items-center gap-3 transition-colors ${
                   type.value === currentType
                     ? 'active bg-[var(--bg-tertiary)]'
                     : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'

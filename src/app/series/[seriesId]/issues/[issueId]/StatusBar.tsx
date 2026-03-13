@@ -4,6 +4,7 @@ import { useMemo, useRef, useEffect, useState, useCallback } from 'react'
 import { useUndo } from '@/contexts/UndoContext'
 import { createClient } from '@/lib/supabase/client'
 import { type WritingPhase, PHASE_LABELS } from '@/lib/ai/phases'
+import { Tip } from '@/components/ui/Tip'
 
 const WRITING_PHASES: WritingPhase[] = [
   'ideation', 'structure', 'weave', 'page_craft', 'drafting', 'editing', 'art_prompts',
@@ -170,13 +171,14 @@ export default function StatusBar({ issue, issueId, selectedPageId, saveStatus, 
       <div className="flex items-center gap-3">
         {/* Phase selector */}
         <div ref={phaseRef} className="relative">
-          <button
-            onClick={() => setIsPhaseOpen(!isPhaseOpen)}
-            className="px-2 py-0.5 type-micro font-mono border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] transition-all duration-150 ease-out active:scale-[0.97]"
-            title={`Writing phase: ${phaseLabel.full}`}
-          >
-            [{phaseLabel.short}]
-          </button>
+          <Tip content="Writing phase" side="top">
+            <button
+              onClick={() => setIsPhaseOpen(!isPhaseOpen)}
+              className="hover-glow px-2 py-0.5 type-micro font-mono border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] transition-all duration-150 ease-out active:scale-[0.97]"
+            >
+              [{phaseLabel.short}]
+            </button>
+          </Tip>
           {isPhaseOpen && (
             <div className="absolute bottom-full left-0 mb-1 bg-[var(--bg-primary)] border border-[var(--border-strong)] shadow-lg z-50 min-w-[160px]">
               {WRITING_PHASES.map((phase) => {
@@ -222,32 +224,34 @@ export default function StatusBar({ issue, issueId, selectedPageId, saveStatus, 
 
       {/* Center - Undo/Redo */}
       <div className="flex items-center gap-1">
-        <button
-          onClick={undo}
-          disabled={!canUndo}
-          className={`px-2 py-0.5 type-micro font-mono flex items-center gap-1 transition-all duration-150 ease-out border ${
-            canUndo
-              ? 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] active:scale-[0.97]'
-              : 'border-transparent text-[var(--text-disabled)] cursor-not-allowed'
-          }`}
-          title="Undo (⌘Z)"
-          aria-label={`Undo${undoStack.length > 0 ? ` (${undoStack.length} actions available)` : ''}`}
-        >
-          [UNDO{undoStack.length > 0 ? ` ${undoStack.length}` : ''}]
-        </button>
-        <button
-          onClick={redo}
-          disabled={!canRedo}
-          className={`px-2 py-0.5 type-micro font-mono flex items-center gap-1 transition-all duration-150 ease-out border ${
-            canRedo
-              ? 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] active:scale-[0.97]'
-              : 'border-transparent text-[var(--text-disabled)] cursor-not-allowed'
-          }`}
-          title="Redo (⌘⇧Z)"
-          aria-label={`Redo${redoStack.length > 0 ? ` (${redoStack.length} actions available)` : ''}`}
-        >
-          [REDO{redoStack.length > 0 ? ` ${redoStack.length}` : ''}]
-        </button>
+        <Tip content="Undo (⌘Z)">
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className={`hover-fade px-2 py-0.5 type-micro font-mono flex items-center gap-1 transition-all duration-150 ease-out border ${
+              canUndo
+                ? 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] active:scale-[0.97]'
+                : 'border-transparent text-[var(--text-disabled)] cursor-not-allowed'
+            }`}
+            aria-label={`Undo${undoStack.length > 0 ? ` (${undoStack.length} actions available)` : ''}`}
+          >
+            [UNDO{undoStack.length > 0 ? ` ${undoStack.length}` : ''}]
+          </button>
+        </Tip>
+        <Tip content="Redo (⌘⇧Z)">
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className={`hover-fade px-2 py-0.5 type-micro font-mono flex items-center gap-1 transition-all duration-150 ease-out border ${
+              canRedo
+                ? 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] active:scale-[0.97]'
+                : 'border-transparent text-[var(--text-disabled)] cursor-not-allowed'
+            }`}
+            aria-label={`Redo${redoStack.length > 0 ? ` (${redoStack.length} actions available)` : ''}`}
+          >
+            [REDO{redoStack.length > 0 ? ` ${redoStack.length}` : ''}]
+          </button>
+        </Tip>
       </div>
 
       {/* Right side - Issue stats and save status */}
@@ -260,16 +264,17 @@ export default function StatusBar({ issue, issueId, selectedPageId, saveStatus, 
           {stats.issueWords.toLocaleString()} WRDS
         </span>
         <span className="type-separator">{'\/\/'}</span>
-        <span
-          role="status"
-          aria-live="polite"
-          aria-label={`Save status: ${saveStatus === 'saved' ? 'All changes saved' : saveStatus === 'saving' ? 'Saving changes' : 'Unsaved changes'}`}
-          className={`flex items-center gap-1.5 transition-colors duration-200 ${
-            saveStatus === 'saved' ? 'text-[var(--color-success)]' :
-            saveStatus === 'saving' ? 'text-[var(--color-warning)]' :
-            'text-[var(--color-error)]'
-          }`}
-        >
+        <Tip content="Auto-save status">
+          <span
+            role="status"
+            aria-live="polite"
+            aria-label={`Save status: ${saveStatus === 'saved' ? 'All changes saved' : saveStatus === 'saving' ? 'Saving changes' : 'Unsaved changes'}`}
+            className={`flex items-center gap-1.5 transition-colors duration-200 ${
+              saveStatus === 'saved' ? 'text-[var(--color-success)]' :
+              saveStatus === 'saving' ? 'text-[var(--color-warning)]' :
+              'text-[var(--color-error)]'
+            }`}
+          >
           <span
             className={`inline-block w-[3px] h-[3px] transition-colors duration-200 ${
               showSaveConfirm ? 'animate-save-confirm' : ''
@@ -283,7 +288,8 @@ export default function StatusBar({ issue, issueId, selectedPageId, saveStatus, 
           {saveStatus === 'saved' ? 'SYNC: SAVED' :
            saveStatus === 'saving' ? 'SYNC: ACTIVE' :
            'SYNC: PENDING'}
-        </span>
+          </span>
+        </Tip>
       </div>
     </div>
   )
