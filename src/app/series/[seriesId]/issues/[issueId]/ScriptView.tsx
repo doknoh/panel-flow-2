@@ -169,7 +169,6 @@ export default function ScriptView({
   const containerRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const toolbarRef = useRef<HTMLDivElement>(null)
-  const blockRefs = useRef<Map<string, HTMLTextAreaElement | HTMLInputElement>>(new Map())
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const editorRegistry = useRef<Map<string, Editor>>(new Map())
   const initialFocusSet = useRef(false)
@@ -1344,104 +1343,6 @@ export default function ScriptView({
     showToast('Deleted sound effect — ⌘Z to undo', 'success')
   }, [blocks, supabase, showToast, recordAction, confirm])
 
-  // Delete a panel (with all its children)
-  const deletePanel = useCallback(async (panelId: string) => {
-    // Find all blocks belonging to this panel
-    const panelBlocks = blocks.filter(b => b.panelId === panelId)
-    const visualBlock = panelBlocks.find(b => b.type === 'visual')
-
-    if (!visualBlock) return
-
-    // Check if panel has any content
-    const hasContent = panelBlocks.some(b => b.content.trim())
-    if (hasContent) {
-      const confirmed = await confirm({
-        title: 'Delete this panel?',
-        description: 'All contents (dialogue, captions, sound effects) will be removed. This can be undone with \u2318Z.',
-      })
-      if (!confirmed) return
-    }
-
-    // Gather all children data for undo restoration
-    const dialogueBlocks = panelBlocks
-      .filter(b => b.type === 'dialogue')
-      .map(b => ({
-        id: b.id.replace('dialogue-', ''),
-        panel_id: panelId,
-        text: b.content,
-        character_id: b.characterId,
-        dialogue_type: b.dialogueType,
-        sort_order: b.sortOrder,
-      }))
-
-    const captions = panelBlocks
-      .filter(b => b.type === 'caption')
-      .map(b => ({
-        id: b.id.replace('caption-', ''),
-        panel_id: panelId,
-        text: b.content,
-        caption_type: b.captionType,
-        sort_order: b.sortOrder,
-      }))
-
-    const soundEffects = panelBlocks
-      .filter(b => b.type === 'sfx')
-      .map(b => ({
-        id: b.id.replace('sfx-', ''),
-        panel_id: panelId,
-        text: b.content,
-        sort_order: b.sortOrder,
-      }))
-
-    // Store full panel data including children
-    const fullPanelData = {
-      id: panelId,
-      page_id: visualBlock.pageId,
-      panel_number: visualBlock.panelNumber,
-      visual_description: visualBlock.content,
-      sort_order: visualBlock.sortOrder,
-      dialogue_blocks: dialogueBlocks,
-      captions: captions,
-      sound_effects: soundEffects,
-    }
-
-    // Optimistic removal
-    setBlocks(prev => prev.filter(b => b.panelId !== panelId))
-
-    // Delete from DB (cascade will handle children)
-    const { error } = await supabase
-      .from('panels')
-      .delete()
-      .eq('id', panelId)
-
-    if (error) {
-      // Rollback - re-add all panel blocks
-      setBlocks(prev => {
-        const newBlocks = [...prev]
-        // Find position to insert (after page header or at end of page blocks)
-        const pageBlocks = prev.filter(b => b.pageId === visualBlock.pageId)
-        const insertIndex = pageBlocks.length > 0
-          ? prev.findIndex(b => b.id === pageBlocks[pageBlocks.length - 1]?.id) + 1
-          : prev.length
-        newBlocks.splice(insertIndex, 0, ...panelBlocks)
-        return newBlocks
-      })
-      showToast('Failed to delete panel', 'error')
-      return
-    }
-
-    // Record undo action with full data for restoration
-    recordAction({
-      type: 'panel_delete',
-      panelId,
-      pageId: visualBlock.pageId,
-      data: fullPanelData,
-      description: 'Delete panel',
-    })
-
-    showToast('Panel deleted', 'success')
-  }, [blocks, supabase, showToast, recordAction])
-
   // ============================================================================
   // Quick-add menu handler
   // ============================================================================
@@ -1955,13 +1856,6 @@ export default function ScriptView({
                       onCharacterChange={(charId) => changeDialogueCharacter(block.id, charId)}
                       onDialogueTypeChange={(newType) => changeDialogueType(block.id, newType)}
                       onCaptionTypeChange={(newType) => changeCaptionType(block.id, newType)}
-                      registerRef={(el) => {
-                        if (el) {
-                          blockRefs.current.set(block.id, el)
-                        } else {
-                          blockRefs.current.delete(block.id)
-                        }
-                      }}
                       onEditorFocus={handleEditorFocus}
                       onRegisterEditor={registerEditor}
                       onUnregisterEditor={unregisterEditor}
@@ -2041,7 +1935,6 @@ interface ScriptBlockComponentProps {
   onCharacterChange?: (characterId: string | null) => void
   onDialogueTypeChange?: (newType: string) => void
   onCaptionTypeChange?: (newType: string) => void
-  registerRef: (el: HTMLTextAreaElement | HTMLInputElement | null) => void
   onEditorFocus: (editor: Editor, blockId: string) => void
   onRegisterEditor: (blockId: string, editor: Editor) => void
   onUnregisterEditor: (blockId: string) => void
@@ -2059,7 +1952,6 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   onCharacterChange,
   onDialogueTypeChange,
   onCaptionTypeChange,
-  registerRef,
   onEditorFocus,
   onRegisterEditor,
   onUnregisterEditor,
