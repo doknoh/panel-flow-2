@@ -15,6 +15,8 @@ import {
   stripMarkdown
 } from '@/lib/markdown'
 import ScriptEditor from '@/components/editor/ScriptEditor'
+import ScriptEditorToolbar from '@/components/editor/ScriptEditorToolbar'
+import { Editor } from '@tiptap/react'
 import { Tip } from '@/components/ui/Tip'
 
 // ============================================================================
@@ -158,8 +160,18 @@ export default function ScriptView({
     }
   }, [selectedPageId])
 
+  // Active editor tracking for adaptive toolbar
+  const [activeEditor, setActiveEditor] = useState<{
+    editor: Editor
+    blockId: string
+    variant: 'description' | 'dialogue' | 'caption' | 'sfx'
+    contextLabel: string
+  } | null>(null)
+
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const toolbarRef = useRef<HTMLDivElement>(null)
   const blockRefs = useRef<Map<string, HTMLTextAreaElement | HTMLInputElement>>(new Map())
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -486,6 +498,45 @@ export default function ScriptView({
       endGenericTextEdit(entityInfo.entityType, entityInfo.entityId, field, block.content)
     }
   }, [endGenericTextEdit])
+
+  // Called when any ScriptEditor instance receives focus
+  const handleEditorFocus = useCallback((editor: Editor, blockId: string) => {
+    const block = blocks.find(b => b.id === blockId)
+    let variant: 'description' | 'dialogue' | 'caption' | 'sfx' = 'description'
+    if (block?.type === 'dialogue') variant = 'dialogue'
+    else if (block?.type === 'caption') variant = 'caption'
+    else if (block?.type === 'sfx') variant = 'sfx'
+
+    // Compute context label
+    let contextLabel = ''
+    if (block) {
+      const panelNum = block.panelNumber || '?'
+      if (variant === 'description') {
+        contextLabel = `EDITING: PANEL ${panelNum} DESCRIPTION`
+      } else if (variant === 'dialogue') {
+        contextLabel = `EDITING: PANEL ${panelNum} → ${block.characterName || 'SELECT CHARACTER'}`
+      } else if (variant === 'caption') {
+        contextLabel = `EDITING: PANEL ${panelNum} CAPTION`
+      }
+      // SFX: no context label (toolbar hidden for SFX)
+    }
+
+    setActiveEditor({ editor, blockId, variant, contextLabel })
+  }, [blocks])
+
+  // When focus leaves the body+toolbar area entirely, clear active editor
+  const handleBodyFocusOut = useCallback((e: React.FocusEvent) => {
+    const relatedTarget = e.relatedTarget as HTMLElement | null
+    const body = bodyRef.current
+    const toolbar = toolbarRef.current
+    // If focus moved to another element within body or toolbar, keep active editor
+    if (relatedTarget && (body?.contains(relatedTarget) || toolbar?.contains(relatedTarget))) {
+      return
+    }
+    // Focus left the script area entirely — clear after brief delay
+    // (delay allows toolbar button preventDefault to work)
+    setTimeout(() => setActiveEditor(null), 150)
+  }, [])
 
   const updateBlock = useCallback((blockId: string, newContent: string) => {
     setBlocks(prev => prev.map(b =>
@@ -1599,8 +1650,19 @@ export default function ScriptView({
         </div>
       </div>
 
+      {/* Adaptive Toolbar — sticky below header */}
+      {activeEditor && activeEditor.variant !== 'sfx' && (
+        <div ref={toolbarRef} className="script-toolbar">
+          <ScriptEditorToolbar
+            editor={activeEditor.editor}
+            variant={activeEditor.variant}
+            contextLabel={activeEditor.contextLabel}
+          />
+        </div>
+      )}
+
       {/* Script content */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={bodyRef} className="flex-1 overflow-y-auto" onBlurCapture={handleBodyFocusOut}>
         <div className="max-w-4xl mx-auto px-6 py-8">
           {blocks.length === 0 ? (
             <div className="text-center text-[var(--text-muted)] py-20">
@@ -1653,6 +1715,7 @@ export default function ScriptView({
                         blockRefs.current.delete(block.id)
                       }
                     }}
+                    onEditorFocus={handleEditorFocus}
                   />
                 )
               })}
@@ -1712,6 +1775,7 @@ interface ScriptBlockComponentProps {
   isLastBlockInPanel?: boolean
   isLastBlockInPage?: boolean
   registerRef: (el: HTMLTextAreaElement | HTMLInputElement | null) => void
+  onEditorFocus: (editor: Editor, blockId: string) => void
 }
 
 const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
@@ -1735,6 +1799,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   isLastBlockInPanel,
   isLastBlockInPage,
   registerRef,
+  onEditorFocus,
 }: ScriptBlockComponentProps) {
   // Page header - non-editable
   if (block.type === 'page-header') {
@@ -1778,6 +1843,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
+            onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            hideToolbar={true}
             placeholder="Describe what we see in this panel..."
             showWordCount
             className="script-view-editor"
@@ -1877,6 +1944,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
+            onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            hideToolbar={true}
             placeholder="Dialogue..."
             showWordCount
             className="script-view-editor"
@@ -1957,6 +2026,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
+            onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            hideToolbar={true}
             placeholder="Caption text..."
             showWordCount
             className="script-view-editor"
@@ -2023,6 +2094,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
               onUpdate={(md) => onChange(md)}
               onFocus={onFocus}
               onBlur={() => onBlur?.()}
+              onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+              hideToolbar={true}
               placeholder="Sound effect..."
               className="script-view-editor script-view-editor--sfx"
             />
