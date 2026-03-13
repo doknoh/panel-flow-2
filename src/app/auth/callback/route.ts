@@ -1,14 +1,14 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { logger } from '@/lib/logger'
 
 // Send email notification for new users needing approval
 async function sendApprovalNotification(userEmail: string, userName: string | null) {
   // Using Resend API - you'll need to add RESEND_API_KEY to your environment
   const resendApiKey = process.env.RESEND_API_KEY
   if (!resendApiKey) {
-    console.log('RESEND_API_KEY not configured, skipping email notification')
-    console.log('To enable notifications, add RESEND_API_KEY to your Vercel environment variables')
+    logger.debug('RESEND_API_KEY not configured, skipping approval notification', { action: 'auth-callback' })
     return
   }
 
@@ -21,7 +21,7 @@ async function sendApprovalNotification(userEmail: string, userName: string | nu
       },
       body: JSON.stringify({
         from: 'Panel Flow <onboarding@resend.dev>',
-        to: 'doknoh@gmail.com',
+        to: process.env.ADMIN_NOTIFICATION_EMAIL || 'doknoh@gmail.com',
         subject: 'New User Awaiting Approval - Panel Flow',
         html: `
           <h2>New User Signup</h2>
@@ -37,12 +37,12 @@ async function sendApprovalNotification(userEmail: string, userName: string | nu
     })
 
     if (!response.ok) {
-      console.error('Failed to send approval notification:', await response.text())
+      logger.error('Failed to send approval notification', { action: 'auth-callback' })
     } else {
-      console.log('Approval notification sent for:', userEmail)
+      logger.info('Approval notification sent for new user', { action: 'auth-callback' })
     }
   } catch (error) {
-    console.error('Error sending approval notification:', error)
+    logger.error('Error sending approval notification', { action: 'auth-callback', error: error instanceof Error ? error.message : String(error) })
   }
 }
 
@@ -51,14 +51,14 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const nextParam = searchParams.get('next') ?? '/dashboard'
 
-  console.log('[Auth Callback] Starting auth callback...')
+  logger.debug('Auth callback started', { action: 'auth-callback' })
 
   // Validate next parameter to prevent open redirect attacks
   const isValidNext = nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.includes('://')
   const next = isValidNext ? nextParam : '/dashboard'
 
   if (!code) {
-    console.log('[Auth Callback] No code provided, redirecting to login')
+    logger.debug('Auth callback missing code parameter', { action: 'auth-callback' })
     return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
           return cookieStore.getAll()
         },
         setAll(newCookies) {
-          console.log('[Auth Callback] Setting cookies:', newCookies.map(c => c.name))
+          logger.debug('Auth callback setting cookies', { action: 'auth-callback', cookieCount: newCookies.length })
           newCookies.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options)
             // Also track for the redirect response
@@ -90,16 +90,16 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
-    console.error('[Auth Callback] Exchange error:', error)
+    logger.error('Auth callback code exchange failed', { action: 'auth-callback', error: error.message })
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
   }
 
-  console.log('[Auth Callback] Session exchanged successfully')
+  logger.debug('Auth callback session exchanged', { action: 'auth-callback' })
 
   // Check if user is in allowed_users table
   const { data: { user } } = await supabase.auth.getUser()
 
-  console.log('[Auth Callback] User:', user?.email || 'no user')
+  logger.debug('Auth callback user retrieved', { action: 'auth-callback', userId: user?.id })
 
   let redirectUrl = `${origin}${next}`
 
@@ -110,18 +110,18 @@ export async function GET(request: Request) {
       .eq('email', user.email)
       .single()
 
-    console.log('[Auth Callback] Allowed user check:', { allowedUser, allowedError: allowedError?.message })
+    logger.debug('Auth callback allowed user check', { action: 'auth-callback', userId: user.id, isAllowed: !!allowedUser })
 
     if (!allowedUser) {
       // User is not approved - send notification and redirect to pending page
-      console.log('[Auth Callback] User NOT in allowed_users, sending notification and redirecting to pending-approval')
+      logger.info('Auth callback user not in allowed_users, redirecting to pending-approval', { action: 'auth-callback', userId: user.id })
       await sendApprovalNotification(user.email || 'unknown', user.user_metadata?.full_name || null)
       redirectUrl = `${origin}/pending-approval`
     } else {
-      console.log('[Auth Callback] User IS allowed, redirecting to:', next)
+      logger.info('Auth callback user allowed, proceeding', { action: 'auth-callback', userId: user.id })
     }
   } else {
-    console.log('[Auth Callback] No user found after exchange, this should not happen')
+    logger.warn('Auth callback no user found after session exchange', { action: 'auth-callback' })
   }
 
   // Create redirect response and set all cookies on it
@@ -129,7 +129,7 @@ export async function GET(request: Request) {
 
   // CRITICAL: Copy session cookies to the redirect response
   // Without this, the session won't persist after the redirect
-  console.log('[Auth Callback] Setting', cookiesToSet.length, 'cookies on redirect response')
+  logger.debug('Auth callback setting cookies on redirect response', { action: 'auth-callback', cookieCount: cookiesToSet.length })
   cookiesToSet.forEach(({ name, value, options }) => {
     // Map Supabase cookie options to Next.js compatible options
     response.cookies.set(name, value, {
@@ -142,6 +142,6 @@ export async function GET(request: Request) {
     })
   })
 
-  console.log('[Auth Callback] Redirecting to:', redirectUrl)
+  logger.debug('Auth callback redirect complete', { action: 'auth-callback' })
   return response
 }

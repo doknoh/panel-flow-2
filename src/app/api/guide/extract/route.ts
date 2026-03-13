@@ -67,8 +67,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Rate limiting
-    const rateLimit = rateLimiters.chat(user.id)
+    // Rate limiting: Use aiHeavy limiter for expensive Anthropic API calls
+    const rateLimit = rateLimiters.aiHeavy(user.id)
     if (!rateLimit.success) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please wait before extracting.' },
@@ -161,6 +161,7 @@ export async function POST(request: Request) {
           completion_areas: extractedData.insights.map(i => i.category).filter(Boolean)
         })
         .eq('id', sessionId)
+        .eq('user_id', user.id)
     }
 
     const duration = Math.round(performance.now() - start)

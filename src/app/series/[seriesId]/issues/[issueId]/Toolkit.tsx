@@ -275,51 +275,51 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     const characterIds = issue.series.characters.map((c: any) => c.id)
     const locationIds = issue.series.locations.map((l: any) => l.id)
 
+    // Fetch character and location images in parallel
+    const [{ data: charImages }, { data: locImages }] = await Promise.all([
+      characterIds.length > 0
+        ? supabase
+            .from('image_attachments')
+            .select('*')
+            .eq('entity_type', 'character')
+            .in('entity_id', characterIds)
+            .order('is_primary', { ascending: false })
+            .order('sort_order', { ascending: true })
+        : Promise.resolve({ data: null }),
+      locationIds.length > 0
+        ? supabase
+            .from('image_attachments')
+            .select('*')
+            .eq('entity_type', 'location')
+            .in('entity_id', locationIds)
+            .order('is_primary', { ascending: false })
+            .order('sort_order', { ascending: true })
+        : Promise.resolve({ data: null }),
+    ])
+
     const allImages: VisualImage[] = []
 
-    // Fetch character images
-    if (characterIds.length > 0) {
-      const { data: charImages } = await supabase
-        .from('image_attachments')
-        .select('*')
-        .eq('entity_type', 'character')
-        .in('entity_id', characterIds)
-        .order('is_primary', { ascending: false })
-        .order('sort_order', { ascending: true })
-
-      if (charImages) {
-        for (const img of charImages) {
-          const character = issue.series.characters.find((c: any) => c.id === img.entity_id)
-          allImages.push({
-            ...img,
-            url: getImageUrl(img.storage_path),
-            entityName: character?.name || 'Unknown',
-            entityType: 'character',
-          })
-        }
+    if (charImages) {
+      for (const img of charImages) {
+        const character = issue.series.characters.find((c: any) => c.id === img.entity_id)
+        allImages.push({
+          ...img,
+          url: getImageUrl(img.storage_path),
+          entityName: character?.name || 'Unknown',
+          entityType: 'character',
+        })
       }
     }
 
-    // Fetch location images
-    if (locationIds.length > 0) {
-      const { data: locImages } = await supabase
-        .from('image_attachments')
-        .select('*')
-        .eq('entity_type', 'location')
-        .in('entity_id', locationIds)
-        .order('is_primary', { ascending: false })
-        .order('sort_order', { ascending: true })
-
-      if (locImages) {
-        for (const img of locImages) {
-          const location = issue.series.locations.find((l: any) => l.id === img.entity_id)
-          allImages.push({
-            ...img,
-            url: getImageUrl(img.storage_path),
-            entityName: location?.name || 'Unknown',
-            entityType: 'location',
-          })
-        }
+    if (locImages) {
+      for (const img of locImages) {
+        const location = issue.series.locations.find((l: any) => l.id === img.entity_id)
+        allImages.push({
+          ...img,
+          url: getImageUrl(img.storage_path),
+          entityName: location?.name || 'Unknown',
+          entityType: 'location',
+        })
       }
     }
 
@@ -609,11 +609,17 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       .eq('character_id', characterId)
 
     const dialogueCount = count || 0
-    const confirmMessage = dialogueCount > 0
-      ? `This character has ${dialogueCount} dialogue${dialogueCount > 1 ? 's' : ''} assigned. Delete anyway? (Dialogues will become unassigned)`
-      : 'Delete this character?'
+    const description = dialogueCount > 0
+      ? `This character has ${dialogueCount} dialogue${dialogueCount > 1 ? 's' : ''} assigned. Dialogues will become unassigned.`
+      : 'This character will be permanently removed.'
 
-    if (!confirm(confirmMessage)) return
+    const confirmed = await confirmDialog({
+      title: 'Delete this character?',
+      description,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!confirmed) return
 
     // Optimistic update
     setLocalCharacters((prev: any[]) => prev.filter((c: any) => c.id !== characterId))
@@ -1000,7 +1006,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.title}
                       onChange={(e) => setContextForm(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="Issue title..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                     />
                   </div>
                   <div>
@@ -1010,7 +1016,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.tagline}
                       onChange={(e) => setContextForm(prev => ({ ...prev, tagline: e.target.value }))}
                       placeholder="One-line hook for this issue..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                     />
                   </div>
                   <div>
@@ -1019,7 +1025,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.summary}
                       onChange={(e) => setContextForm(prev => ({ ...prev, summary: e.target.value }))}
                       placeholder="Brief summary of this issue..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1029,7 +1035,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.themes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, themes: e.target.value }))}
                       placeholder="Key themes explored..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1039,7 +1045,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.stakes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, stakes: e.target.value }))}
                       placeholder="What's at risk in this issue..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1049,7 +1055,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.outline_notes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, outline_notes: e.target.value }))}
                       placeholder="Working notes for this issue's outline..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={3}
                     />
                   </div>
@@ -1059,7 +1065,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.motifs}
                       onChange={(e) => setContextForm(prev => ({ ...prev, motifs: e.target.value }))}
                       placeholder="Visual/narrative motifs for this issue..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1069,7 +1075,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.visual_style}
                       onChange={(e) => setContextForm(prev => ({ ...prev, visual_style: e.target.value }))}
                       placeholder="Visual style notes for artist..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1079,7 +1085,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.rules}
                       onChange={(e) => setContextForm(prev => ({ ...prev, rules: e.target.value }))}
                       placeholder="Issue-specific conventions (e.g., 9-panel grid for introspection)..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1088,7 +1094,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     <select
                       value={contextForm.series_act}
                       onChange={(e) => setContextForm(prev => ({ ...prev, series_act: e.target.value }))}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                     >
                       <option value="">Not set</option>
                       <option value="BEGINNING">Beginning (Act 1)</option>
@@ -1198,7 +1204,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     onRefresh?.()
                   }
                 }}
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
+                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
               >
                 <option value="outline">Outline</option>
                 <option value="drafting">Drafting</option>
@@ -1368,22 +1374,22 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     {sceneCharacters.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="type-label text-emerald-400">In This Scene</h3>
-                          <span className="text-xs text-emerald-400/60">({sceneCharacters.length})</span>
+                          <h3 className="type-label text-[var(--color-success)]">In This Scene</h3>
+                          <span className="text-xs text-[var(--color-success)]/60">({sceneCharacters.length})</span>
                         </div>
                         <div className="space-y-1">
                           {sceneCharacters.map((char: any) => (
                             <button
                               key={char.id}
                               onClick={() => setSelectedCharacterId(char.id)}
-                              className="w-full text-left bg-emerald-900/20 hover:bg-emerald-900/30 border border-emerald-700/30 rounded p-3 transition-colors group"
+                              className="w-full text-left bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/15 border border-[var(--color-success)]/20 rounded p-3 transition-colors group"
                             >
                               <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm text-emerald-100">{char.name}</div>
-                                <span className="text-emerald-400/50 group-hover:text-emerald-400 transition-colors">→</span>
+                                <div className="font-medium text-sm text-[var(--text-primary)]">{char.name}</div>
+                                <span className="text-[var(--color-success)]/50 group-hover:text-[var(--color-success)] transition-colors">→</span>
                               </div>
                               {char.role && (
-                                <div className="text-xs text-emerald-300/70">{char.role}</div>
+                                <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
                               )}
                             </button>
                           ))}
@@ -1556,7 +1562,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                 onClick={() => setVisualsFilter('all')}
                 className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
                   visualsFilter === 'all'
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-[var(--color-success)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -1612,7 +1618,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     </span>
                     <span className="font-medium text-sm">{selectedVisual.entityName}</span>
                     {selectedVisual.is_primary && (
-                      <span className="text-xs text-emerald-400">★ Primary</span>
+                      <span className="text-xs text-[var(--color-success)]">★ Primary</span>
                     )}
                   </div>
                   {selectedVisual.caption && (
@@ -1622,7 +1628,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               </div>
             ) : visualsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-[var(--color-success)] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filteredVisuals.length === 0 ? (
               <div className="text-center py-8">
@@ -1637,7 +1643,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                 </p>
                 <button
                   onClick={fetchVisuals}
-                  className="mt-3 text-xs text-emerald-400 hover:text-emerald-300"
+                  className="mt-3 text-xs text-[var(--color-success)] hover:text-[var(--color-success-hover,var(--color-success))]"
                 >
                   Refresh
                 </button>
@@ -1649,7 +1655,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     <button
                       key={visual.id}
                       onClick={() => setSelectedVisual(visual)}
-                      className="relative aspect-square rounded-lg overflow-hidden group border-2 border-transparent hover:border-emerald-500/50 transition-all"
+                      className="relative aspect-square rounded-lg overflow-hidden group border-2 border-transparent hover:border-[var(--color-success)]/50 transition-all"
                     >
                       <img
                         src={visual.url}
@@ -1667,7 +1673,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         </div>
                       </div>
                       {visual.is_primary && (
-                        <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-[10px]">
+                        <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-success)] rounded-full flex items-center justify-center text-[10px]">
                           ★
                         </div>
                       )}
@@ -2019,7 +2025,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                   }}
                   placeholder="Talk to your editor..."
                   rows={1}
-                  className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none resize-none max-h-32 overflow-y-auto"
+                  className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50 resize-none max-h-32 overflow-y-auto disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLoading}
                   style={{ minHeight: '38px' }}
                   onInput={(e) => {

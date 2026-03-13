@@ -16,6 +16,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -277,6 +278,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
@@ -1114,11 +1116,20 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   }
 
   const deleteSoundEffect = async (sfxId: string, panelId: string) => {
-    const supabase = createClient()
-
     // Get the sfx data for undo from local state
     const panel = panels.find(p => p.id === panelId)
     const localSfx = panel?.sound_effects?.find(s => s.id === sfxId)
+
+    // Confirm if SFX has text content
+    if (localSfx?.text?.trim()) {
+      const confirmed = await confirm({
+        title: 'Delete this sound effect?',
+        description: 'This can be undone.',
+      })
+      if (!confirmed) return
+    }
+
+    const supabase = createClient()
 
     // Optimistically remove the sound effect immediately
     setPanels(prev => prev.map(p =>
@@ -1875,6 +1886,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       <button
                                         onClick={() => deleteSoundEffect(sfx.id, panel.id)}
                                         className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
+                                        aria-label="Delete sound effect"
                                       >
                                         ×
                                       </button>

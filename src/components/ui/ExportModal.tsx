@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 export type ExportFormat = 'pdf' | 'docx' | 'txt'
 
@@ -21,6 +22,7 @@ export default function ExportModal({ open, onExport, onCancel }: ExportModalPro
   const [includeSummary, setIncludeSummary] = useState(true)
   const [includeNotes, setIncludeNotes] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const focusTrapRef = useFocusTrap(open)
 
   useEffect(() => {
     if (open) {
@@ -39,7 +41,7 @@ export default function ExportModal({ open, onExport, onCancel }: ExportModalPro
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div ref={focusTrapRef} className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
 

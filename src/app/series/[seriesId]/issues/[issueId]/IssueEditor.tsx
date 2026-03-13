@@ -7,17 +7,21 @@ import NavigationTree from './NavigationTree'
 import PageEditor from './PageEditor'
 import PreviousPageContext, { findPreviousPage } from './PreviousPageContext'
 import Toolkit from './Toolkit'
-import FindReplaceModal from './FindReplaceModal'
-import KeyboardShortcutsModal from './KeyboardShortcutsModal'
+import dynamic from 'next/dynamic'
 import JumpToPageModal from './JumpToPageModal'
 import ZoomPanel from './ZoomPanel'
-import ZenMode from './ZenMode'
-import ScriptView from './ScriptView'
 import QuickNav from './QuickNav'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
-import { exportIssueToTxt } from '@/lib/exportTxt'
-import ExportModal, { type ExportOptions } from '@/components/ui/ExportModal'
+// exportIssueToTxt is dynamically imported at the call site (like PDF/DOCX)
+import type { ExportOptions } from '@/components/ui/ExportModal'
+
+// Dynamically import heavy/conditional components to reduce initial bundle
+const ScriptView = dynamic(() => import('./ScriptView'), { ssr: false })
+const ZenMode = dynamic(() => import('./ZenMode'), { ssr: false })
+const FindReplaceModal = dynamic(() => import('./FindReplaceModal'), { ssr: false })
+const KeyboardShortcutsModal = dynamic(() => import('./KeyboardShortcutsModal'), { ssr: false })
+const ExportModal = dynamic(() => import('@/components/ui/ExportModal'), { ssr: false })
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -96,7 +100,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Find the selected page data along with its Act/Scene context
-  const selectedPageContext = (() => {
+  const selectedPageContext = useMemo(() => {
     if (!selectedPageId) return null
     for (const act of (issue.acts || [])) {
       for (const scene of (act.scenes || [])) {
@@ -119,7 +123,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       }
     }
     return null
-  })()
+  }, [issue, selectedPageId])
 
   const selectedPage = selectedPageContext?.page
 
@@ -343,18 +347,21 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       snapshot_data: { pages },
     })
 
-    if (!error) {
-      // Keep only last 10 snapshots
-      const { data: allSnapshots } = await supabase
-        .from('version_snapshots')
-        .select('id')
-        .eq('issue_id', issue.id)
-        .order('created_at', { ascending: false })
+    if (error) {
+      console.error('Failed to create version snapshot:', error)
+      return
+    }
 
-      if (allSnapshots && allSnapshots.length > 10) {
-        const toDelete = allSnapshots.slice(10).map(s => s.id)
-        await supabase.from('version_snapshots').delete().in('id', toDelete)
-      }
+    // Keep only last 10 snapshots
+    const { data: allSnapshots } = await supabase
+      .from('version_snapshots')
+      .select('id')
+      .eq('issue_id', issue.id)
+      .order('created_at', { ascending: false })
+
+    if (allSnapshots && allSnapshots.length > 10) {
+      const toDelete = allSnapshots.slice(10).map(s => s.id)
+      await supabase.from('version_snapshots').delete().in('id', toDelete)
     }
   }, [issue])
 
@@ -1051,6 +1058,7 @@ function IssueEditorContent({
                     const { exportIssueToDocx } = await import('@/lib/exportDocx')
                     await exportIssueToDocx(issue, opts.includeNotes, { includeSummary: opts.includeSummary })
                   } else {
+                    const { exportIssueToTxt } = await import('@/lib/exportTxt')
                     exportIssueToTxt(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })
                   }
                   showToast(`${opts.format.toUpperCase()} exported successfully`, 'success')

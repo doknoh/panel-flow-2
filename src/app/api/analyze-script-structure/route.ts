@@ -119,8 +119,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Rate limiting: Use a separate limiter for analysis (more expensive)
-    const rateLimit = rateLimiters.chat(user.id)
+    // Rate limiting: Use aiHeavy limiter for expensive Anthropic API calls
+    const rateLimit = rateLimiters.aiHeavy(user.id)
     if (!rateLimit.success) {
       return NextResponse.json(
         {

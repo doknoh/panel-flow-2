@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Merge, Loader2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import type { CharacterWithStats } from '@/lib/character-stats'
 
 interface MergeModalProps {
@@ -24,6 +25,17 @@ export default function MergeModal({
   const [primaryId, setPrimaryId] = useState<string>(characters[0]?.id ?? '')
   const [isMerging, setIsMerging] = useState(false)
   const { showToast } = useToast()
+  const focusTrapRef = useFocusTrap(open)
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isMerging) onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, isMerging, onClose])
 
   const absorbedCharacters = useMemo(
     () => characters.filter(c => c.id !== primaryId),
@@ -262,7 +274,7 @@ export default function MergeModal({
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
       {/* Dialog */}
-      <div className="relative bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 max-w-md w-full mx-4 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+      <div ref={focusTrapRef} className="relative bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 max-w-md w-full mx-4 shadow-xl animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

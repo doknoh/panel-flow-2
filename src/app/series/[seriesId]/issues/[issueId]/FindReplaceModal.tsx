@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { searchIssue, SearchMatch, replaceInText, highlightMatch } from '@/lib/search'
 import { useToast } from '@/contexts/ToastContext'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface FindReplaceModalProps {
   issue: any
@@ -29,6 +30,7 @@ export default function FindReplaceModal({
   const [isReplacing, setIsReplacing] = useState(false)
   const [showReplaceAllConfirm, setShowReplaceAllConfirm] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const focusTrapRef = useFocusTrap(isOpen)
   const { showToast } = useToast()
 
   // Dragging state
@@ -284,7 +286,11 @@ export default function FindReplaceModal({
     <>
       {/* Floating panel - no backdrop, allows editing underneath */}
       <div
-        ref={panelRef}
+        ref={(node) => {
+          // Assign to both panelRef (drag) and focusTrapRef (focus trapping)
+          (panelRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }}
         role="dialog"
         aria-label="Find and Replace"
         className="fixed z-50 bg-[var(--bg-secondary)] rounded-lg shadow-xl w-[460px] border border-[var(--border)]"

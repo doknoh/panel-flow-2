@@ -146,6 +146,7 @@ function ToastContainer({
           <button
             onClick={() => onDismiss(toast.id)}
             className="text-white/70 hover:text-white active:scale-[0.97] transition-all duration-150 ease-out"
+            aria-label="Dismiss"
           >
             ×
           </button>
