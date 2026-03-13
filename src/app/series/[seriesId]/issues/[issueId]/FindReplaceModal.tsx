@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { searchIssue, SearchMatch, replaceInText, highlightMatch } from '@/lib/search'
 import { useToast } from '@/contexts/ToastContext'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { Tip } from '@/components/ui/Tip'
 
 interface FindReplaceModalProps {
   issue: any
@@ -338,24 +339,26 @@ export default function FindReplaceModal({
               placeholder="Find..."
               className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)]"
             />
-            <button
-              onClick={handlePrevious}
-              disabled={matches.length === 0}
-              className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Previous (Shift+Enter)"
-              aria-label="Previous match"
-            >
-              ↑
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={matches.length === 0}
-              className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Next (Enter)"
-              aria-label="Next match"
-            >
-              ↓
-            </button>
+            <Tip content="Previous (Shift+Enter)">
+              <button
+                onClick={handlePrevious}
+                disabled={matches.length === 0}
+                className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-sm hover-glow disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Previous match"
+              >
+                ↑
+              </button>
+            </Tip>
+            <Tip content="Next (Enter)">
+              <button
+                onClick={handleNext}
+                disabled={matches.length === 0}
+                className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-sm hover-glow disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Next match"
+              >
+                ↓
+              </button>
+            </Tip>
           </div>
 
           {/* Replace row */}
@@ -367,22 +370,24 @@ export default function FindReplaceModal({
               placeholder="Replace..."
               className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)]"
             />
-            <button
-              onClick={handleReplaceCurrent}
-              disabled={matches.length === 0 || !replaceTerm || isReplacing}
-              className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              title="Replace current match"
-            >
-              Replace
-            </button>
-            <button
-              onClick={() => setShowReplaceAllConfirm(true)}
-              disabled={matches.length === 0 || !replaceTerm || isReplacing}
-              className="px-2 py-1.5 bg-[var(--color-primary)] hover:opacity-90 rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              title="Replace all matches"
-            >
-              All ({matches.length})
-            </button>
+            <Tip content="Replace current match">
+              <button
+                onClick={handleReplaceCurrent}
+                disabled={matches.length === 0 || !replaceTerm || isReplacing}
+                className="px-2 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded text-xs hover-lift disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                Replace
+              </button>
+            </Tip>
+            <Tip content="Replace all matches">
+              <button
+                onClick={() => setShowReplaceAllConfirm(true)}
+                disabled={matches.length === 0 || !replaceTerm || isReplacing}
+                className="px-2 py-1.5 bg-[var(--color-primary)] hover:opacity-90 rounded text-xs hover-lift disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                All ({matches.length})
+              </button>
+            </Tip>
           </div>
 
           {/* Options row */}

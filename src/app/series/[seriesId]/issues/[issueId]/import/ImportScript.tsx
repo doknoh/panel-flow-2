@@ -1732,21 +1732,23 @@ ${pageContent}`,
                   <span className="text-sm text-[var(--text-secondary)]">
                     {page.panels.length} panel{page.panels.length !== 1 ? 's' : ''}
                   </span>
-                  <button
-                    onClick={() => addPanel(page.number)}
-                    className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded transition-opacity"
-                    title="Add panel"
-                  >
-                    + Panel
-                  </button>
-                  {parsedPages.length > 1 && (
+                  <Tip content="Add panel">
                     <button
-                      onClick={() => deletePage(page.number)}
-                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-error)] hover:opacity-90 rounded transition-opacity"
-                      title="Delete page"
+                      onClick={() => addPanel(page.number)}
+                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded hover-lift transition-opacity"
                     >
-                      ×
+                      + Panel
                     </button>
+                  </Tip>
+                  {parsedPages.length > 1 && (
+                    <Tip content="Delete page">
+                      <button
+                        onClick={() => deletePage(page.number)}
+                        className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-error)] hover:opacity-90 rounded hover-fade-danger transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </Tip>
                   )}
                 </div>
               </div>
@@ -1784,13 +1786,14 @@ ${pageContent}`,
                             </button>
                           )}
                           {page.panels.length > 1 && (
-                            <button
-                              onClick={() => deletePanel(page.number, panel.number)}
-                              className="text-xs px-2 py-0.5 bg-[var(--color-error)]/50 hover:bg-[var(--color-error)] rounded"
-                              title="Delete panel"
-                            >
-                              ×
-                            </button>
+                            <Tip content="Delete panel">
+                              <button
+                                onClick={() => deletePanel(page.number, panel.number)}
+                                className="text-xs px-2 py-0.5 bg-[var(--color-error)]/50 hover:bg-[var(--color-error)] rounded hover-fade-danger"
+                              >
+                                ×
+                              </button>
+                            </Tip>
                           )}
                         </div>
                       </div>
