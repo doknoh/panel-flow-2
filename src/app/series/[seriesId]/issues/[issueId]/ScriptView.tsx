@@ -1516,7 +1516,6 @@ export default function ScriptView({
         }
         return
       }
-
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -1554,8 +1553,6 @@ export default function ScriptView({
   // Render
   // ============================================================================
 
-  const editableBlocks = blocks.filter(b => b.type !== 'page-header')
-
   return (
     <div
       ref={containerRef}
@@ -1567,7 +1564,7 @@ export default function ScriptView({
       <div className="script-header">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { forceSaveAll(); onExit(); }}
+            onClick={async () => { await forceSaveAll(); onExit(); }}
             className="hover-fade opacity-60"
           >
             ← ISSUE #{issue.number}
