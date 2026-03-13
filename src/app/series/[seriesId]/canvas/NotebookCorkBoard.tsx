@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import NotebookItem from './NotebookItem'
 import { CanvasItemData, FilingTarget, ItemType, ITEM_TYPE_CONFIG, ITEM_TYPE_ICONS } from './NotebookClient'
 import { Plus } from 'lucide-react'
@@ -293,27 +294,33 @@ export default function NotebookCorkBoard({
 
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded px-3 py-1.5 shadow-lg z-10">
-        <button
-          onClick={() => setZoom(prev => Math.max(ZOOM_MIN, prev - ZOOM_STEP))}
-          className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1"
-        >
-          -
-        </button>
+        <Tip content="Zoom out">
+          <button
+            onClick={() => setZoom(prev => Math.max(ZOOM_MIN, prev - ZOOM_STEP))}
+            className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade px-1"
+          >
+            -
+          </button>
+        </Tip>
         <span className="type-micro text-[var(--text-secondary)] min-w-[40px] text-center">
           {Math.round(zoom * 100)}%
         </span>
-        <button
-          onClick={() => setZoom(prev => Math.min(ZOOM_MAX, prev + ZOOM_STEP))}
-          className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1"
-        >
-          +
-        </button>
-        <button
-          onClick={handleFitToContent}
-          className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 ml-1 border-l border-[var(--border)] pl-2"
-        >
-          FIT
-        </button>
+        <Tip content="Zoom in">
+          <button
+            onClick={() => setZoom(prev => Math.min(ZOOM_MAX, prev + ZOOM_STEP))}
+            className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade px-1"
+          >
+            +
+          </button>
+        </Tip>
+        <Tip content="Fit all notes in view">
+          <button
+            onClick={handleFitToContent}
+            className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade px-1 ml-1 border-l border-[var(--border)] pl-2"
+          >
+            FIT
+          </button>
+        </Tip>
       </div>
     </div>
   )

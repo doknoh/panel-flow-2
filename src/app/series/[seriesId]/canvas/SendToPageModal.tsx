@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { FilingTarget } from './NotebookClient'
 import { X, ChevronRight, ChevronDown, Search, FileText } from 'lucide-react'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -120,13 +121,15 @@ export default function SendToPageModal({
             <FileText size={16} className="text-[var(--text-muted)]" />
             <h3 className="type-label text-[var(--text-primary)]">SEND TO PAGE</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-            aria-label="Close modal"
-          >
-            <X size={18} />
-          </button>
+          <Tip content="Close">
+            <button
+              onClick={onClose}
+              className="p-1 rounded hover:bg-[var(--bg-tertiary)] hover-fade text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              aria-label="Close modal"
+            >
+              <X size={18} />
+            </button>
+          </Tip>
         </div>
 
         {/* Search */}
@@ -162,7 +165,7 @@ export default function SendToPageModal({
                   {/* Issue row */}
                   <button
                     onClick={() => toggleIssue(issue.issueId)}
-                    className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] type-meta text-[var(--text-primary)] font-medium"
+                    className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-secondary)] hover-glow type-meta text-[var(--text-primary)] font-medium"
                   >
                     {expandedIssues.has(issue.issueId)
                       ? <ChevronDown size={14} />
@@ -183,7 +186,7 @@ export default function SendToPageModal({
                           {/* Scene row */}
                           <button
                             onClick={() => toggleScene(scene.sceneId)}
-                            className="w-full text-left flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--bg-secondary)] type-micro text-[var(--text-secondary)]"
+                            className="w-full text-left flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--bg-secondary)] hover-glow type-micro text-[var(--text-secondary)]"
                           >
                             {expandedScenes.has(scene.sceneId)
                               ? <ChevronDown size={12} />
@@ -204,7 +207,7 @@ export default function SendToPageModal({
                                   </span>
                                   <button
                                     onClick={() => onFile(page)}
-                                    className="type-micro px-2 py-0.5 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity active:scale-[0.97]"
+                                    className="type-micro px-2 py-0.5 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift opacity-0 group-hover:opacity-100 transition-opacity active:scale-[0.97]"
                                   >
                                     SEND
                                   </button>

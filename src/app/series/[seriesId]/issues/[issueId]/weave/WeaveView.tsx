@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import Link from 'next/link'
@@ -253,30 +254,31 @@ function SortablePage({
       {!isFirstPage && (
         <div className="absolute -top-2 left-0 right-0 z-10 flex items-center justify-between px-1">
           {/* Selection checkbox */}
-          <button
-            onClick={(e) => onSelect(page.id, e)}
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-              isSelected
-                ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
-                : 'bg-[var(--bg-tertiary)]/90 border-[var(--border)] hover:border-[var(--text-secondary)]'
-            }`}
-            title="Click to select, Shift+click for range, ⌘/Ctrl+click to toggle"
-          >
+          <Tip content="Click to select, Shift+click for range">
+            <button
+              onClick={(e) => onSelect(page.id, e)}
+              className={`w-5 h-5 rounded border-2 flex items-center justify-center hover-fade transition-all ${
+                isSelected
+                  ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                  : 'bg-[var(--bg-tertiary)]/90 border-[var(--border)] hover:border-[var(--text-secondary)]'
+              }`}
+            >
             {isSelected && (
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             )}
           </button>
+          </Tip>
 
           {/* Drag handle */}
+          <Tip content={isSelected && selectionCount > 1 ? `Drag ${selectionCount} pages` : 'Drag to reorder'}>
           <div
             {...attributes}
             {...listeners}
             className={`cursor-grab active:cursor-grabbing px-1.5 py-0.5 rounded transition-all flex items-center gap-1 ${
               isSelected ? 'bg-[var(--color-primary)]/80' : 'bg-[var(--bg-tertiary)]/90 opacity-0 group-hover:opacity-100'
             }`}
-            title={isSelected && selectionCount > 1 ? `Drag ${selectionCount} pages` : 'Drag to reorder'}
           >
             <svg className="w-3 h-3 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="8" cy="6" r="2" />
@@ -290,6 +292,7 @@ function SortablePage({
               <span className="text-[10px] text-white font-medium">{selectionCount}</span>
             )}
           </div>
+          </Tip>
         </div>
       )}
 
@@ -329,13 +332,14 @@ function SortablePage({
                 {orientation === 'left' ? 'L' : 'R'}
               </span>
               {page.intention && (
+                <Tip content={`Page intention: ${page.intention.replace('_', ' ')}`}>
                 <span className={`text-[7px] uppercase tracking-wide px-1 py-0.5 rounded font-medium ${
                   page.intention === 'reveal' || page.intention === 'climax'
                     ? 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
                     : page.intention === 'silent_beat' || page.intention === 'breathing_room'
                     ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]'
                     : 'bg-[var(--bg-tertiary)]/80 text-[var(--text-muted)]'
-                }`} title={`Page intention: ${page.intention.replace('_', ' ')}`}>
+                }`}>
                   {page.intention === 'reveal' ? 'RVL' :
                    page.intention === 'climax' ? 'CLX' :
                    page.intention === 'setup' ? 'SET' :
@@ -343,6 +347,7 @@ function SortablePage({
                    page.intention === 'breathing_room' ? 'BRM' :
                    page.intention === 'silent_beat' ? 'SIL' : ''}
                 </span>
+                </Tip>
               )}
             </div>
 
@@ -472,24 +477,27 @@ function SortablePage({
 
           {/* Footer: Scene name (click to select scene) + Edit link */}
           <div className="flex items-center justify-between mt-1 pt-1 border-t border-[var(--border)]">
+            <Tip content={`Select all pages in scene (${scene.pages?.length || 0}p)`}>
             <button
-              className="text-[8px] text-[var(--text-muted)] hover:text-[var(--color-primary)] truncate max-w-[90px] transition-colors"
+              className="text-[8px] text-[var(--text-muted)] hover:text-[var(--color-primary)] hover-fade truncate max-w-[90px] transition-colors"
               onClick={(e) => {
                 e.stopPropagation()
                 onSelectScene(scene.id)
               }}
-              title={`Select all pages in this scene (${scene.pages?.length || 0}p)`}
             >
               <span className="text-[var(--text-tertiary)] mr-0.5">{scene.pages?.length || 0}p</span>
               {scene.title || scene.name || 'Scene'}
             </button>
+            </Tip>
+            <Tip content="Open in editor">
             <Link
               href={`/series/${seriesId}/issues/${issueId}?page=${page.id}`}
-              className="text-[8px] text-[var(--color-primary)] hover:opacity-90 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="text-[8px] text-[var(--color-primary)] hover:opacity-90 hover-fade opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => e.stopPropagation()}
             >
               Edit→
             </Link>
+            </Tip>
           </div>
         </div>
       </div>
@@ -1058,7 +1066,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           </p>
           <Link
             href={`/series/${seriesId}/issues/${issue.id}`}
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded-lg font-medium transition-colors"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift px-4 py-2 rounded-lg font-medium transition-colors"
           >
             ← Back to Editor
           </Link>
@@ -1207,18 +1215,20 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
               <span className="text-sm text-[var(--color-primary)] font-medium">
                 {selectedCount} selected
               </span>
+              <Tip content="Clear selection">
               <button
                 onClick={clearSelection}
-                className="text-xs text-[var(--text-secondary)] hover:text-white px-2 py-0.5 bg-[var(--bg-tertiary)] rounded"
+                className="text-xs text-[var(--text-secondary)] hover:text-white hover-fade px-2 py-0.5 bg-[var(--bg-tertiary)] rounded"
               >
                 Clear
               </button>
+              </Tip>
             </div>
           )}
         </div>
         <button
           onClick={() => setShowPlotlineManager(!showPlotlineManager)}
-          className="px-3 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-sm font-medium transition-colors"
+          className="px-3 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] hover-fade border border-[var(--border)] rounded-lg text-sm font-medium transition-colors"
         >
           {showPlotlineManager ? 'Hide' : 'Manage'} Plotlines
         </button>
@@ -1238,22 +1248,25 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                   borderColor: pl.color + '60',
                 }}
               >
+                <Tip content="Change color">
                 <button
-                  className="w-5 h-5 rounded-full border-2 border-white/40 hover:scale-110 transition-transform shadow-sm"
+                  className="w-5 h-5 rounded-full border-2 border-white/40 hover:scale-110 hover-fade transition-transform shadow-sm"
                   style={{ backgroundColor: pl.color }}
                   onClick={() => {
                     setEditingPlotlineId(editingPlotlineId === pl.id ? null : pl.id)
                     setEditingPlotlineColor(pl.color)
                   }}
-                  title="Change color"
                 />
+                </Tip>
                 <span className="font-medium">{pl.name}</span>
+                <Tip content="Delete plotline">
                 <button
                   onClick={() => deletePlotline(pl.id)}
-                  className="text-[var(--text-secondary)] hover:text-[var(--color-error)] ml-1 text-lg leading-none"
+                  className="text-[var(--text-secondary)] hover:text-[var(--color-error)] hover-fade-danger ml-1 text-lg leading-none"
                 >
                   ×
                 </button>
+                </Tip>
 
                 {editingPlotlineId === pl.id && (
                   <div className="absolute top-full left-0 mt-2 p-3 bg-[var(--bg-tertiary)] rounded-lg shadow-xl border border-[var(--border)] z-50">
@@ -1261,7 +1274,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                       {PLOTLINE_COLORS.map((color) => (
                         <button
                           key={color}
-                          className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${
+                          className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 hover-fade ${
                             editingPlotlineColor === color ? 'border-white scale-110' : 'border-transparent'
                           }`}
                           style={{ backgroundColor: color }}
@@ -1296,7 +1309,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
             <button
               onClick={createPlotline}
               disabled={!newPlotlineName.trim()}
-              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium transition-colors"
             >
               Add
             </button>

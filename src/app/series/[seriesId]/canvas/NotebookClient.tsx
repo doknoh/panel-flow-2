@@ -11,6 +11,7 @@ import GraduationModal from './GraduationModal'
 import SendToPageModal from './SendToPageModal'
 import EmptyState from '@/components/ui/EmptyState'
 import Header from '@/components/ui/Header'
+import { Tip } from '@/components/ui/Tip'
 import {
   Users, Lightbulb, Palette, HelpCircle, MessageSquare, Swords, Globe, MessageSquarePlus,
   LayoutGrid, List, Archive,
@@ -489,21 +490,22 @@ export default function NotebookClient({
         {/* View toggle buttons */}
         <div className="flex items-center gap-1 mr-2">
           {([
-            { mode: 'corkboard' as ViewMode, icon: <LayoutGrid size={14} />, label: 'BOARD' },
-            { mode: 'list' as ViewMode, icon: <List size={14} />, label: 'LIST' },
-            { mode: 'filed' as ViewMode, icon: <Archive size={14} />, label: 'FILED' },
-          ]).map(({ mode, icon, label }) => (
-            <button
-              key={mode}
-              onClick={() => setView(mode)}
-              className={`type-micro px-3 py-1.5 flex items-center gap-1 whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out ${
-                view === mode
-                  ? 'border border-[var(--text-primary)] text-[var(--text-primary)]'
-                  : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]'
-              }`}
-            >
-              {icon} {label}
-            </button>
+            { mode: 'corkboard' as ViewMode, icon: <LayoutGrid size={14} />, label: 'BOARD', tip: 'Cork board view' },
+            { mode: 'list' as ViewMode, icon: <List size={14} />, label: 'LIST', tip: 'List view' },
+            { mode: 'filed' as ViewMode, icon: <Archive size={14} />, label: 'FILED', tip: 'Filed notes' },
+          ]).map(({ mode, icon, label, tip }) => (
+            <Tip key={mode} content={tip}>
+              <button
+                onClick={() => setView(mode)}
+                className={`type-micro px-3 py-1.5 flex items-center gap-1 whitespace-nowrap hover-glow active:scale-[0.97] transition-all duration-150 ease-out ${
+                  view === mode
+                    ? 'border border-[var(--text-primary)] text-[var(--text-primary)]'
+                    : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                {icon} {label}
+              </button>
+            </Tip>
           ))}
         </div>
 
@@ -511,7 +513,7 @@ export default function NotebookClient({
         <div className="relative">
           <button
             onClick={() => setIsCreating(!isCreating)}
-            className="type-label px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] active:scale-[0.97] transition-all duration-150 ease-out"
+            className="type-label px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift active:scale-[0.97] transition-all duration-150 ease-out"
           >
             + Add Idea
           </button>

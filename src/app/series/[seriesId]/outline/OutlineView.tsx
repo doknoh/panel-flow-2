@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import Link from 'next/link'
@@ -670,7 +671,7 @@ Return this exact JSON structure:
                 <button
                   onClick={applyAcceptedChanges}
                   disabled={acceptedChanges.size === 0}
-                  className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed rounded font-medium"
+                  className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed rounded font-medium"
                 >
                   Apply Selected Changes
                 </button>
@@ -684,22 +685,24 @@ Return this exact JSON structure:
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Issues ({series.issues.length})</h3>
         <div className="flex items-center gap-2">
-          <button
-            onClick={syncOutlineFromScripts}
-            disabled={isSyncing}
-            className="text-sm bg-[var(--accent-hover)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] px-3 py-1 rounded"
-          >
-            {isSyncing ? 'Syncing...' : 'Sync from Scripts'}
-          </button>
+          <Tip content="Generate outline from script content">
+            <button
+              onClick={syncOutlineFromScripts}
+              disabled={isSyncing}
+              className="text-sm bg-[var(--accent-hover)] hover:opacity-90 hover-lift disabled:bg-[var(--bg-tertiary)] px-3 py-1 rounded"
+            >
+              {isSyncing ? 'Syncing...' : 'Sync from Scripts'}
+            </button>
+          </Tip>
           <button
             onClick={expandAll}
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1"
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover-fade px-2 py-1"
           >
             Expand All
           </button>
           <button
             onClick={collapseAll}
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1"
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover-fade px-2 py-1"
           >
             Collapse All
           </button>
@@ -716,7 +719,7 @@ Return this exact JSON structure:
           return (
             <div
               key={issue.id}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden"
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden hover-glow"
             >
               {/* Issue Header */}
               <div
@@ -757,7 +760,7 @@ Return this exact JSON structure:
                       <button
                         onClick={() => generateAISummary(issue)}
                         disabled={isGenerating}
-                        className="text-xs text-[var(--color-primary)] hover:opacity-90 disabled:text-[var(--text-muted)]"
+                        className="text-xs text-[var(--color-primary)] hover:opacity-90 hover-lift disabled:text-[var(--text-muted)]"
                       >
                         {isGenerating ? 'Generating...' : 'Generate with AI'}
                       </button>
@@ -771,7 +774,7 @@ Return this exact JSON structure:
                         <div className="flex gap-2">
                           <button
                             onClick={() => saveSummary(issue.id)}
-                            className="text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-3 py-1 rounded"
+                            className="text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift px-3 py-1 rounded"
                           >
                             Save Summary
                           </button>
