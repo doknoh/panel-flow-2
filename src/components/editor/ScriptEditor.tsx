@@ -1,6 +1,6 @@
 'use client'
 
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -31,6 +31,8 @@ interface ScriptEditorProps {
   editable?: boolean
   speakerColor?: string
   hideToolbar?: boolean
+  onEditorFocus?: (editor: Editor) => void
+  onEditorBlur?: () => void
 }
 
 /**
@@ -59,6 +61,8 @@ export default function ScriptEditor({
   editable = true,
   speakerColor,
   hideToolbar = false,
+  onEditorFocus,
+  onEditorBlur,
 }: ScriptEditorProps) {
   const [isFocused, setIsFocused] = useState(false)
   const onUpdateRef = useRef(onUpdate)
@@ -66,10 +70,15 @@ export default function ScriptEditor({
   const onFocusRef = useRef(onFocus)
   const initialContentRef = useRef(initialContent)
 
+  const onEditorFocusRef = useRef(onEditorFocus)
+  const onEditorBlurRef = useRef(onEditorBlur)
+
   // Keep refs current without triggering re-renders
   useEffect(() => { onUpdateRef.current = onUpdate }, [onUpdate])
   useEffect(() => { onBlurRef.current = onBlur }, [onBlur])
   useEffect(() => { onFocusRef.current = onFocus }, [onFocus])
+  useEffect(() => { onEditorFocusRef.current = onEditorFocus }, [onEditorFocus])
+  useEffect(() => { onEditorBlurRef.current = onEditorBlur }, [onEditorBlur])
 
   // Configure extensions based on variant
   const extensions = useCallback(() => {
@@ -136,6 +145,7 @@ export default function ScriptEditor({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const md = ((ed.storage as any).markdown as MarkdownStorage).getMarkdown()
       onBlurRef.current?.(md)
+      onEditorBlurRef.current?.()
     },
     onUpdate: ({ editor: ed }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -143,6 +153,13 @@ export default function ScriptEditor({
       onUpdateRef.current(md)
     },
   })
+
+  // Report focused editor instance to parent (for adaptive toolbar)
+  useEffect(() => {
+    if (isFocused && editor && onEditorFocusRef.current) {
+      onEditorFocusRef.current(editor)
+    }
+  }, [isFocused, editor])
 
   // Update content when initialContent changes externally (e.g., undo/redo)
   useEffect(() => {
