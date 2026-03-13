@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { X, Check } from 'lucide-react'
+import { Tip } from '@/components/ui/Tip'
 import type { CharacterWithStats } from '@/lib/character-stats'
 import { extractRelationshipRefs } from '@/lib/character-stats'
 
@@ -127,7 +128,7 @@ export default function CharacterCard({
 
   return (
     <div
-      className={`relative rounded-lg border p-4 cursor-pointer transition-all duration-150 ${
+      className={`relative rounded-lg border p-4 cursor-pointer transition-all duration-150 hover-glow ${
         isSelected
           ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
           : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--text-secondary)]'
@@ -156,13 +157,14 @@ export default function CharacterCard({
 
       {/* Delete button on hover */}
       {isHovered && !selectMode && (
-        <button
-          onClick={handleDeleteClick}
-          className="absolute top-3 right-3 z-10 w-6 h-6 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
-          title="Delete character"
-        >
-          <X size={14} />
-        </button>
+        <Tip content="Delete character">
+          <button
+            onClick={handleDeleteClick}
+            className="absolute top-3 right-3 z-10 w-6 h-6 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors hover-fade-danger"
+          >
+            <X size={14} />
+          </button>
+        </Tip>
       )}
 
       {/* Header row */}
@@ -174,16 +176,18 @@ export default function CharacterCard({
         </div>
 
         {aliasLine && (
-          <p className="text-xs text-[var(--text-muted)] truncate mb-2" title={aliasLine}>
-            {aliasLine}
-          </p>
+          <Tip content={aliasLine}>
+            <p className="text-xs text-[var(--text-muted)] truncate mb-2">
+              {aliasLine}
+            </p>
+          </Tip>
         )}
 
         {/* Role badge */}
         <div className="relative inline-block mb-3">
           <button
             onClick={handleRoleBadgeClick}
-            className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded ${roleStyle.bg} ${roleStyle.text} hover:opacity-80 transition-opacity`}
+            className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded hover-glow ${roleStyle.bg} ${roleStyle.text} hover:opacity-80 transition-opacity`}
           >
             {role}
           </button>
@@ -199,7 +203,7 @@ export default function CharacterCard({
                       e.stopPropagation()
                       handleRoleSelect(opt)
                     }}
-                    className={`w-full text-left px-3 py-1.5 text-xs uppercase tracking-wider hover:bg-[var(--bg-secondary)] transition-colors ${
+                    className={`w-full text-left px-3 py-1.5 text-xs uppercase tracking-wider hover:bg-[var(--bg-secondary)] transition-colors hover-glow ${
                       opt === role ? 'font-bold' : ''
                     } ${optStyle.text}`}
                   >
@@ -244,15 +248,15 @@ export default function CharacterCard({
       {heatmapData.length > 0 && (
         <div className="flex gap-0.5 mb-3">
           {heatmapData.map(bar => (
-            <div
-              key={bar.issueId}
-              className="flex-1 h-2 rounded-sm"
-              style={{
-                backgroundColor: bar.opacity > 0 ? 'var(--color-primary)' : 'var(--bg-tertiary)',
-                opacity: bar.opacity > 0 ? bar.opacity : 1,
-              }}
-              title={`Issue #${bar.issueNumber}: ${bar.panels} panels`}
-            />
+            <Tip key={bar.issueId} content={`Issue #${bar.issueNumber}: ${bar.panels} panels`}>
+              <div
+                className="flex-1 h-2 rounded-sm"
+                style={{
+                  backgroundColor: bar.opacity > 0 ? 'var(--color-primary)' : 'var(--bg-tertiary)',
+                  opacity: bar.opacity > 0 ? bar.opacity : 1,
+                }}
+              />
+            </Tip>
           ))}
         </div>
       )}
@@ -261,14 +265,14 @@ export default function CharacterCard({
       {relationshipChars.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {relationshipChars.map(rc => (
-            <button
-              key={rc.id}
-              onClick={(e) => handleRelationshipClick(e, rc.id)}
-              className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border)] transition-colors truncate max-w-[120px]"
-              title={rc.display_name || rc.name}
-            >
-              {rc.display_name || rc.name}
-            </button>
+            <Tip key={rc.id} content={rc.display_name || rc.name}>
+              <button
+                onClick={(e) => handleRelationshipClick(e, rc.id)}
+                className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border)] transition-colors truncate max-w-[120px] hover-glow"
+              >
+                {rc.display_name || rc.name}
+              </button>
+            </Tip>
           ))}
         </div>
       )}

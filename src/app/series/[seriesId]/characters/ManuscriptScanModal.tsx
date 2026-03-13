@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { ScanLine, Loader2, X, UserPlus, Tag, EyeOff, Check, ChevronDown } from 'lucide-react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -262,12 +263,14 @@ export default function ManuscriptScanModal({
             </h2>
           </div>
           {state !== 'scanning' && (
-            <button
-              onClick={handleClose}
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <Tip content="Close">
+              <button
+                onClick={handleClose}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors hover-fade"
+              >
+                <X size={18} />
+              </button>
+            </Tip>
           )}
         </div>
 
@@ -369,30 +372,34 @@ export default function ManuscriptScanModal({
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     {/* Create Character */}
-                    <button
-                      onClick={() => handleCreateCharacter(item.name)}
-                      disabled={processingName !== null}
-                      className="flex items-center gap-1 text-[11px] font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] disabled:opacity-50 transition-colors"
-                    >
-                      <UserPlus size={12} />
-                      Create
-                    </button>
+                    <Tip content="Create as new character">
+                      <button
+                        onClick={() => handleCreateCharacter(item.name)}
+                        disabled={processingName !== null}
+                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] disabled:opacity-50 transition-colors hover-lift"
+                      >
+                        <UserPlus size={12} />
+                        Create
+                      </button>
+                    </Tip>
 
                     {/* Add as Alias */}
                     <div className="relative">
-                      <button
-                        onClick={() =>
-                          setAliasDropdownOpen(
-                            aliasDropdownOpen === item.name ? null : item.name
-                          )
-                        }
-                        disabled={processingName !== null}
-                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
-                      >
-                        <Tag size={12} />
-                        Alias
-                        <ChevronDown size={10} />
-                      </button>
+                      <Tip content="Add as alias to existing character">
+                        <button
+                          onClick={() =>
+                            setAliasDropdownOpen(
+                              aliasDropdownOpen === item.name ? null : item.name
+                            )
+                          }
+                          disabled={processingName !== null}
+                          className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors hover-fade"
+                        >
+                          <Tag size={12} />
+                          Alias
+                          <ChevronDown size={10} />
+                        </button>
+                      </Tip>
 
                       {aliasDropdownOpen === item.name && (
                         <div className="absolute top-full left-0 mt-1 z-10 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg py-1 min-w-[180px] max-h-48 overflow-y-auto">
@@ -400,7 +407,7 @@ export default function ManuscriptScanModal({
                             <button
                               key={c.id}
                               onClick={() => handleAddAsAlias(item.name, c.id)}
-                              className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                              className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors hover-glow"
                             >
                               {c.display_name || c.name}
                             </button>
@@ -415,14 +422,16 @@ export default function ManuscriptScanModal({
                     </div>
 
                     {/* Ignore */}
-                    <button
-                      onClick={() => handleIgnore(item.name)}
-                      disabled={processingName !== null}
-                      className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-50 transition-colors"
-                    >
-                      <EyeOff size={12} />
-                      Ignore
-                    </button>
+                    <Tip content="Dismiss this name">
+                      <button
+                        onClick={() => handleIgnore(item.name)}
+                        disabled={processingName !== null}
+                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-50 transition-colors hover-fade"
+                      >
+                        <EyeOff size={12} />
+                        Ignore
+                      </button>
+                    </Tip>
                   </div>
                 </div>
               ))}
@@ -435,7 +444,7 @@ export default function ManuscriptScanModal({
           <div className="flex justify-end mt-4 pt-4 border-t border-[var(--border)]">
             <button
               onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded transition-colors hover-fade"
             >
               {state === 'done' || state === 'empty' ? 'Done' : 'Close'}
             </button>

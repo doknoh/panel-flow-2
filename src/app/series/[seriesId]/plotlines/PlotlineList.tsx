@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import EmptyState from '@/components/ui/EmptyState'
@@ -213,19 +214,19 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
           <label className="block text-sm text-[var(--text-secondary)] mb-2">Color</label>
           <div className="flex flex-wrap gap-2">
             {PLOTLINE_COLORS.map((color) => (
-              <button
-                key={color.value}
-                type="button"
-                onClick={() => setForm(prev => ({ ...prev, color: color.value }))}
-                className={`w-8 h-8 rounded-full border-2 transition-all ${
-                  form.color === color.value
-                    ? 'border-white scale-110'
-                    : 'border-transparent hover:border-[var(--text-muted)]'
-                }`}
-                style={{ backgroundColor: color.value }}
-                title={color.name}
-                aria-label={`Select ${color.name} color`}
-              />
+              <Tip key={color.value} content={color.name}>
+                <button
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, color: color.value }))}
+                  className={`w-8 h-8 rounded-full border-2 transition-all hover-glow ${
+                    form.color === color.value
+                      ? 'border-white scale-110'
+                      : 'border-transparent hover:border-[var(--text-muted)]'
+                  }`}
+                  style={{ backgroundColor: color.value }}
+                  aria-label={`Select ${color.name} color`}
+                />
+              </Tip>
             ))}
           </div>
         </div>
@@ -245,13 +246,13 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
           <button
             onClick={savePlotline}
             disabled={!form.name?.trim()}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift"
           >
             {isCreating ? 'Create Plotline' : 'Save Changes'}
           </button>
           <button
             onClick={cancelEdit}
-            className="bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-4 py-2 rounded"
+            className="bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-4 py-2 rounded hover-fade"
           >
             Cancel
           </button>
@@ -275,7 +276,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
         {!isCreating && !editingId && (
           <button
             onClick={startCreate}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium hover-lift"
           >
             + New Plotline
           </button>
@@ -297,16 +298,18 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
           {plotlines.map((plotline) => (
             <div
               key={plotline.id}
-              className={`bg-[var(--bg-secondary)] border rounded-lg p-4 ${
+              className={`bg-[var(--bg-secondary)] border rounded-lg p-4 hover-glow ${
                 editingId === plotline.id ? 'border-[var(--color-primary)]' : 'border-[var(--border)]'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3 flex-1">
-                  <div
-                    className="w-4 h-4 rounded-full mt-1 flex-shrink-0"
-                    style={{ backgroundColor: plotline.color }}
-                  />
+                  <Tip content={plotline.color}>
+                    <div
+                      className="w-4 h-4 rounded-full mt-1 flex-shrink-0"
+                      style={{ backgroundColor: plotline.color }}
+                    />
+                  </Tip>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">{plotline.name}</h3>
                     {plotline.description && (
@@ -315,18 +318,22 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
                   </div>
                 </div>
                 <div className="flex gap-2 ml-4">
-                  <button
-                    onClick={() => startEdit(plotline)}
-                    className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deletePlotline(plotline.id)}
-                    className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm"
-                  >
-                    Delete
-                  </button>
+                  <Tip content="Edit plotline">
+                    <button
+                      onClick={() => startEdit(plotline)}
+                      className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm hover-fade"
+                    >
+                      Edit
+                    </button>
+                  </Tip>
+                  <Tip content="Delete plotline">
+                    <button
+                      onClick={() => deletePlotline(plotline.id)}
+                      className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm hover-fade-danger"
+                    >
+                      Delete
+                    </button>
+                  </Tip>
                 </div>
               </div>
             </div>

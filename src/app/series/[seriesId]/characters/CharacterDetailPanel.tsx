@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Check,
 } from 'lucide-react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import type { CharacterWithStats } from '@/lib/character-stats'
@@ -100,7 +101,7 @@ function CollapsibleSection({
     <div className="border-t border-[var(--border)] pt-3">
       <button
         onClick={() => setIsOpen(p => !p)}
-        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors w-full text-left"
+        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors w-full text-left hover-fade"
       >
         {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         {title}
@@ -241,7 +242,7 @@ function AliasTagInput({
             {alias}
             <button
               onClick={() => handleRemove(alias)}
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors hover-fade-danger"
             >
               <X size={10} />
             </button>
@@ -609,28 +610,25 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
           {voiceData.dialogueCount} dialogue
           {voiceData.dialogueCount !== 1 ? 's' : ''} found
         </div>
-        <button
-          onClick={handleTrain}
-          disabled={!hasEnoughDialogue || isTraining}
-          className="flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-3 py-1.5 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-          title={
-            !hasEnoughDialogue
-              ? 'Need at least 5 dialogues to train'
-              : 'Train voice profile from dialogue'
-          }
-        >
-          {isTraining ? (
-            <>
-              <Loader2 size={12} className="animate-spin" />
-              Training...
-            </>
-          ) : (
-            <>
-              <RefreshCw size={12} />
-              {profile ? 'Retrain' : 'Train'} Profile
-            </>
-          )}
-        </button>
+        <Tip content={!hasEnoughDialogue ? 'Need at least 5 dialogues to train' : 'Train voice profile from dialogue'}>
+          <button
+            onClick={handleTrain}
+            disabled={!hasEnoughDialogue || isTraining}
+            className="flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-3 py-1.5 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover-lift"
+          >
+            {isTraining ? (
+              <>
+                <Loader2 size={12} className="animate-spin" />
+                Training...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={12} />
+                {profile ? 'Retrain' : 'Train'} Profile
+              </>
+            )}
+          </button>
+        </Tip>
       </div>
 
       {!hasEnoughDialogue && (
@@ -802,13 +800,14 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => handleDismissFlag(flag.id)}
-                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                title="Dismiss flag"
-              >
-                <X size={14} />
-              </button>
+              <Tip content="Dismiss flag">
+                <button
+                  onClick={() => handleDismissFlag(flag.id)}
+                  className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors hover-fade"
+                >
+                  <X size={14} />
+                </button>
+              </Tip>
             </div>
           ))}
         </section>
@@ -1097,7 +1096,7 @@ function AIScanTab({
         </p>
         <button
           onClick={handleScan}
-          className="inline-flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-4 py-2 hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-4 py-2 hover:opacity-90 transition-opacity hover-lift"
         >
           <ScanLine size={14} />
           Scan Manuscript
@@ -1138,7 +1137,7 @@ function AIScanTab({
         </p>
         <button
           onClick={handleScan}
-          className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary)] hover:underline"
+          className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary)] hover:underline hover-fade"
         >
           <RefreshCw size={12} />
           Try Again
@@ -1165,7 +1164,7 @@ function AIScanTab({
         </div>
         <button
           onClick={handleScan}
-          className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline"
+          className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline hover-fade"
         >
           <RefreshCw size={12} />
           Rescan
@@ -1241,7 +1240,7 @@ function AIScanTab({
           <button
             onClick={handleApply}
             disabled={checkedFields.size === 0 || isApplying}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover-lift"
           >
             {isApplying ? (
               <>
@@ -1333,20 +1332,22 @@ export default function CharacterDetailPanel({
             {character.display_name || character.name}
           </h2>
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => onDelete(character.id)}
-              className="w-7 h-7 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
-              title="Delete character"
-            >
-              <Trash2 size={14} />
-            </button>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
-              title="Close panel"
-            >
-              <X size={16} />
-            </button>
+            <Tip content="Delete character">
+              <button
+                onClick={() => onDelete(character.id)}
+                className="w-7 h-7 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors hover-fade-danger"
+              >
+                <Trash2 size={14} />
+              </button>
+            </Tip>
+            <Tip content="Close panel">
+              <button
+                onClick={onClose}
+                className="w-7 h-7 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors hover-fade"
+              >
+                <X size={16} />
+              </button>
+            </Tip>
           </div>
         </div>
 
@@ -1356,7 +1357,7 @@ export default function CharacterDetailPanel({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors hover-glow ${
                 activeTab === tab.id
                   ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                   : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'

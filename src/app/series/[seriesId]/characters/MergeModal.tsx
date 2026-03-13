@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Merge, Loader2, X } from 'lucide-react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -287,12 +288,14 @@ export default function MergeModal({
             </h2>
           </div>
           {!isMerging && (
-            <button
-              onClick={onClose}
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <Tip content="Close">
+              <button
+                onClick={onClose}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors hover-fade"
+              >
+                <X size={18} />
+              </button>
+            </Tip>
           )}
         </div>
 
@@ -366,14 +369,14 @@ export default function MergeModal({
           <button
             onClick={onClose}
             disabled={isMerging}
-            className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded transition-colors disabled:opacity-50 hover-fade"
           >
             Cancel
           </button>
           <button
             onClick={executeMerge}
             disabled={isMerging || !primaryId}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--color-primary)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--color-primary)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 hover-lift"
           >
             {isMerging ? (
               <>

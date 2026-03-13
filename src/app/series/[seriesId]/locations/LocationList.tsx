@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import ImageUploader, { ImageAttachment } from '@/components/ImageUploader'
@@ -259,13 +260,13 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           <button
             onClick={saveLocation}
             disabled={!form.name?.trim()}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--border)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift"
           >
             {isCreating ? 'Create Location' : 'Save Changes'}
           </button>
           <button
             onClick={cancelEdit}
-            className="bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-4 py-2 rounded"
+            className="bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-4 py-2 rounded hover-fade"
           >
             Cancel
           </button>
@@ -282,7 +283,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
         {!isCreating && !editingId && (
           <button
             onClick={startCreate}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium hover-lift"
           >
             + New Location
           </button>
@@ -304,25 +305,29 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
           {locations.map((location) => (
             <div
               key={location.id}
-              className={`bg-[var(--bg-secondary)] border rounded-lg p-4 ${
+              className={`bg-[var(--bg-secondary)] border rounded-lg p-4 hover-glow ${
                 editingId === location.id ? 'border-[var(--color-primary)]' : 'border-[var(--border)]'
               }`}
             >
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-lg">{location.name}</h3>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => startEdit(location)}
-                    className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteLocation(location.id)}
-                    className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm"
-                  >
-                    Delete
-                  </button>
+                  <Tip content="Edit location">
+                    <button
+                      onClick={() => startEdit(location)}
+                      className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm hover-fade"
+                    >
+                      Edit
+                    </button>
+                  </Tip>
+                  <Tip content="Delete location">
+                    <button
+                      onClick={() => deleteLocation(location.id)}
+                      className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm hover-fade-danger"
+                    >
+                      Delete
+                    </button>
+                  </Tip>
                 </div>
               </div>
               {location.description && (

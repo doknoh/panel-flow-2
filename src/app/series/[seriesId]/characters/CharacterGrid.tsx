@@ -13,6 +13,7 @@ import {
   ScanLine,
   X,
 } from 'lucide-react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -587,7 +588,7 @@ export default function CharacterGrid({
             <button
               key={opt.value}
               onClick={() => toggleRoleFilter(opt.value)}
-              className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border transition-colors ${
+              className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border transition-colors hover-glow ${
                 roleFilter.has(opt.value)
                   ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
                   : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]'
@@ -601,7 +602,7 @@ export default function CharacterGrid({
           <select
             value={issueFilter}
             onChange={e => setIssueFilter(e.target.value)}
-            className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-secondary)] focus:border-[var(--color-primary)] focus:outline-none"
+            className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-secondary)] focus:border-[var(--color-primary)] focus:outline-none hover-glow"
           >
             <option value="">All Issues</option>
             {issues.map(issue => (
@@ -616,7 +617,7 @@ export default function CharacterGrid({
             <select
               value={plotlineFilter}
               onChange={e => setPlotlineFilter(e.target.value)}
-              className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-secondary)] focus:border-[var(--color-primary)] focus:outline-none"
+              className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-secondary)] focus:border-[var(--color-primary)] focus:outline-none hover-glow"
             >
               <option value="">All Plotlines</option>
               {plotlines.map(p => (
@@ -640,7 +641,7 @@ export default function CharacterGrid({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade"
               >
                 <X size={12} />
               </button>
@@ -651,30 +652,32 @@ export default function CharacterGrid({
         {/* Row 2: Toolbar */}
         <div className="flex items-center gap-2">
           {/* Scan Manuscript */}
-          <button
-            onClick={() => setShowScanModal(true)}
-            className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors"
-            title="Scan manuscript for characters"
-          >
-            <ScanLine size={14} />
-            Scan Manuscript
-          </button>
+          <Tip content="Scan manuscript for characters">
+            <button
+              onClick={() => setShowScanModal(true)}
+              className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors hover-fade"
+            >
+              <ScanLine size={14} />
+              Scan Manuscript
+            </button>
+          </Tip>
 
           {/* Refresh Stats */}
-          <button
-            onClick={handleRefreshStats}
-            disabled={isRefreshing}
-            className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50"
-            title="Refresh stats from manuscript"
-          >
-            <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh Stats'}
-          </button>
+          <Tip content="Refresh stats from manuscript">
+            <button
+              onClick={handleRefreshStats}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 hover-fade"
+            >
+              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Stats'}
+            </button>
+          </Tip>
 
           {/* Select mode toggle */}
           <button
             onClick={toggleSelectMode}
-            className={`flex items-center gap-1.5 text-xs font-medium border rounded px-3 py-1.5 transition-colors ${
+            className={`flex items-center gap-1.5 text-xs font-medium border rounded px-3 py-1.5 transition-colors hover-fade ${
               selectMode
                 ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/5'
                 : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)]'
@@ -690,7 +693,7 @@ export default function CharacterGrid({
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value as SortBy)}
-              className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5 text-[var(--text-secondary)] focus:border-[var(--color-primary)] focus:outline-none"
+              className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5 text-[var(--text-secondary)] focus:border-[var(--color-primary)] focus:outline-none hover-glow"
             >
               {SORT_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -703,7 +706,7 @@ export default function CharacterGrid({
           {/* Add button */}
           <button
             onClick={handleAddCharacter}
-            className="flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-3 py-1.5 hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-3 py-1.5 hover:opacity-90 transition-opacity hover-lift"
           >
             <Plus size={14} />
             Add
@@ -718,18 +721,19 @@ export default function CharacterGrid({
             </span>
             <div className="flex-1" />
             {selectedIds.size >= 2 && (
-              <button
-                onClick={() => setShowMergeModal(true)}
-                className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors"
-                title="Merge selected characters"
-              >
-                <Merge size={14} />
-                Merge
-              </button>
+              <Tip content="Merge selected characters">
+                <button
+                  onClick={() => setShowMergeModal(true)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors hover-fade"
+                >
+                  <Merge size={14} />
+                  Merge
+                </button>
+              </Tip>
             )}
             <button
               onClick={handleDeleteSelected}
-              className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-error)] border border-[var(--color-error)]/30 rounded px-3 py-1.5 hover:bg-[var(--color-error)]/10 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-error)] border border-[var(--color-error)]/30 rounded px-3 py-1.5 hover:bg-[var(--color-error)]/10 transition-colors hover-fade-danger"
             >
               <Trash2 size={14} />
               Delete Selected
