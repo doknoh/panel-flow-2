@@ -8,16 +8,10 @@ import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import CharacterAutocomplete from '@/components/CharacterAutocomplete'
 import TypeSelector from '@/components/TypeSelector'
 import FindReplaceModal from './FindReplaceModal'
-import {
-  parseMarkdownToReact,
-  countWords,
-  parseMarkdownForPdf,
-  stripMarkdown
-} from '@/lib/markdown'
+import { stripMarkdown } from '@/lib/markdown'
 import ScriptEditor from '@/components/editor/ScriptEditor'
 import ScriptEditorToolbar from '@/components/editor/ScriptEditorToolbar'
 import { Editor } from '@tiptap/react'
-import { Tip } from '@/components/ui/Tip'
 
 // ============================================================================
 // Types
@@ -1608,7 +1602,6 @@ export default function ScriptView({
     <div
       ref={containerRef}
       className="fixed inset-0 bg-[var(--bg-primary)] z-50 flex flex-col overflow-hidden"
-      style={{ fontFamily: "'Courier Prime', 'Courier New', monospace" }}
     >
       <ConfirmDialog {...dialogProps} />
       {/* Header */}
@@ -1663,7 +1656,7 @@ export default function ScriptView({
 
       {/* Script content */}
       <div ref={bodyRef} className="flex-1 overflow-y-auto" onBlurCapture={handleBodyFocusOut}>
-        <div className="max-w-4xl mx-auto px-6 py-8">
+        <div className="script-body">
           {blocks.length === 0 ? (
             <div className="text-center text-[var(--text-muted)] py-20">
               <p className="type-section">No content to display</p>
@@ -1671,43 +1664,17 @@ export default function ScriptView({
             </div>
           ) : (
             <div className="space-y-1">
-              {blocks.map((block, index) => {
-                // Determine if this is the last block in its panel (for showing action bar)
-                const isLastBlockInPanel = (() => {
-                  if (!block.panelId) return false
-                  const nextBlock = blocks[index + 1]
-                  return !nextBlock || nextBlock.panelId !== block.panelId
-                })()
-
-                // Determine if this is the last block in its page (for showing add panel button)
-                const isLastBlockInPage = (() => {
-                  if (!block.pageId) return false
-                  const nextBlock = blocks[index + 1]
-                  return !nextBlock || nextBlock.pageId !== block.pageId
-                })()
-
-                return (
+              {blocks.map((block) => (
                   <ScriptBlockComponent
                     key={block.id}
                     block={block}
                     characters={characters}
-                    isFocused={false}
                     onFocus={() => handleBlockFocus(block)}
                     onBlur={() => handleBlockBlur(block)}
                     onChange={(content) => updateBlock(block.id, content)}
                     onCharacterChange={(charId) => changeDialogueCharacter(block.id, charId)}
                     onDialogueTypeChange={(newType) => changeDialogueType(block.id, newType)}
                     onCaptionTypeChange={(newType) => changeCaptionType(block.id, newType)}
-                    onAddDialogue={block.panelId && block.pageId ? () => addDialogue(block.panelId!, block.pageId!) : undefined}
-                    onAddCaption={block.panelId && block.pageId ? () => addCaption(block.panelId!, block.pageId!) : undefined}
-                    onAddSfx={block.panelId && block.pageId ? () => addSoundEffect(block.panelId!, block.pageId!) : undefined}
-                    onAddPanel={block.pageId ? () => addPanel(block.pageId!) : undefined}
-                    onDeleteDialogue={block.type === 'dialogue' ? () => deleteDialogue(block.id) : undefined}
-                    onDeleteCaption={block.type === 'caption' ? () => deleteCaption(block.id) : undefined}
-                    onDeleteSfx={block.type === 'sfx' ? () => deleteSoundEffect(block.id) : undefined}
-                    onDeletePanel={block.panelId ? () => deletePanel(block.panelId!) : undefined}
-                    isLastBlockInPanel={isLastBlockInPanel}
-                    isLastBlockInPage={isLastBlockInPage}
                     registerRef={(el) => {
                       if (el) {
                         blockRefs.current.set(block.id, el)
@@ -1717,8 +1684,7 @@ export default function ScriptView({
                     }}
                     onEditorFocus={handleEditorFocus}
                   />
-                )
-              })}
+              ))}
             </div>
           )}
         </div>
@@ -1757,23 +1723,12 @@ export default function ScriptView({
 interface ScriptBlockComponentProps {
   block: ScriptBlock
   characters: Character[]
-  isFocused: boolean
   onFocus: () => void
   onBlur: () => void
   onChange: (content: string) => void
   onCharacterChange?: (characterId: string | null) => void
   onDialogueTypeChange?: (newType: string) => void
   onCaptionTypeChange?: (newType: string) => void
-  onAddDialogue?: () => void
-  onAddCaption?: () => void
-  onAddSfx?: () => void
-  onAddPanel?: () => void
-  onDeleteDialogue?: () => void
-  onDeleteCaption?: () => void
-  onDeleteSfx?: () => void
-  onDeletePanel?: () => void
-  isLastBlockInPanel?: boolean
-  isLastBlockInPage?: boolean
   registerRef: (el: HTMLTextAreaElement | HTMLInputElement | null) => void
   onEditorFocus: (editor: Editor, blockId: string) => void
 }
@@ -1781,38 +1736,25 @@ interface ScriptBlockComponentProps {
 const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   block,
   characters,
-  isFocused,
   onFocus,
   onBlur,
   onChange,
   onCharacterChange,
   onDialogueTypeChange,
   onCaptionTypeChange,
-  onAddDialogue,
-  onAddCaption,
-  onAddSfx,
-  onAddPanel,
-  onDeleteDialogue,
-  onDeleteCaption,
-  onDeleteSfx,
-  onDeletePanel,
-  isLastBlockInPanel,
-  isLastBlockInPage,
   registerRef,
   onEditorFocus,
 }: ScriptBlockComponentProps) {
   // Page header - non-editable
   if (block.type === 'page-header') {
     return (
-      <div className="mt-10 first:mt-0 mb-4">
-        <div className="border-b-2 border-[var(--text-primary)] pb-1 mb-1">
-          <div className="text-2xl font-black tracking-tight text-[var(--text-primary)] uppercase">
-            {block.content}
-          </div>
+      <div className="mb-6 mt-8 first:mt-0">
+        <div className="script-page-header">
+          PAGE {block.pageNumber} <span className="orientation">({block.orientation})</span>
         </div>
-        {block.actName && block.sceneName && (
-          <div className="type-meta mt-1">
-            {block.actName} <span className="type-separator">{'\/\/'}</span> {block.sceneName}
+        {(block.actName || block.sceneName) && (
+          <div className="script-context-line">
+            {block.actName}{block.actName && block.sceneName && ' // '}{block.sceneName}
           </div>
         )}
       </div>
@@ -1822,21 +1764,11 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Visual description (with panel header)
   if (block.type === 'visual') {
     return (
-      <div className="mt-5 group/panel border-l-2 border-[var(--text-secondary)] pl-3">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="type-label text-[var(--text-primary)]">PNL {block.panelNumber}</span>
-          <span className="type-separator">{'\/\/'}</span>
-          <span className="type-label">VISUAL</span>
-          <Tip content="Delete this panel">
-            <button
-              onClick={onDeletePanel}
-              className="hover-fade-danger opacity-0 group-hover/panel:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
-            >
-              x
-            </button>
-          </Tip>
+      <div className="mt-5">
+        <div className="script-panel-label">
+          PANEL {block.panelNumber}
         </div>
-        <div className="relative">
+        <div className="script-block-description">
           <ScriptEditor
             variant="description"
             initialContent={block.content || ''}
@@ -1846,98 +1778,31 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
             hideToolbar={true}
             placeholder="Describe what we see in this panel..."
-            showWordCount
             className="script-view-editor"
           />
         </div>
-
-        {/* Action bar for adding content to this panel - shown after visual description */}
-        {isLastBlockInPanel && (
-          <div className="flex items-center gap-2 mt-2 ml-2">
-            <Tip content="Add dialogue to this panel">
-              <button
-                onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Dialogue
-              </button>
-            </Tip>
-            <Tip content="Add caption to this panel">
-              <button
-                onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Caption
-              </button>
-            </Tip>
-            <Tip content="Add sound effect to this panel">
-              <button
-                onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + SFX
-              </button>
-            </Tip>
-          </div>
-        )}
-
-        {/* Add Panel button at end of page */}
-        {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <Tip content="Add new panel to this page">
-              <button
-                onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              >
-                + Add Panel
-              </button>
-            </Tip>
-          </div>
-        )}
       </div>
     )
   }
 
   // Dialogue
   if (block.type === 'dialogue') {
-    // Build attribution label from dialogue type
-    const typeLabel = block.dialogueType === 'radio' || block.dialogueType === 'voice_over' ? ' (V.O.)'
-      : block.dialogueType === 'off_panel' ? ' (O.S.)'
-      : block.dialogueType === 'whisper' ? ' [WHISPERS]'
-      : block.dialogueType === 'thought' ? ' (THINKS)'
-      : block.dialogueType === 'shout' ? ' [SHOUTS]'
-      : block.dialogueType === 'electronic' ? ' (ELECTRONIC)'
-      : ''
-
     return (
-      <div className="mt-3 ml-8 group/dialogue border-l-2 border-[var(--color-primary)]/40 pl-3">
-        <div className="relative">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <CharacterAutocomplete
-              characters={characters}
-              selectedId={block.characterId || null}
-              onChange={(charId) => onCharacterChange?.(charId)}
-              placeholder="SELECT CHARACTER"
-            />
-            <TypeSelector
-              type="dialogue"
-              value={block.dialogueType || null}
-              onChange={(newType) => onDialogueTypeChange?.(newType)}
-            />
-            {typeLabel && (
-              <span className="text-[10px] text-[var(--text-muted)] font-mono">{typeLabel}</span>
-            )}
-            <Tip content="Delete this dialogue">
-              <button
-                onClick={onDeleteDialogue}
-                className="hover-fade-danger opacity-0 group-hover/dialogue:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1 ml-1"
-              >
-                x
-              </button>
-            </Tip>
-          </div>
+      <div className="script-block-dialogue">
+        <div className="speaker-label">
+          <CharacterAutocomplete
+            characters={characters}
+            selectedId={block.characterId || null}
+            onChange={(charId) => onCharacterChange?.(charId)}
+            placeholder="SELECT CHARACTER"
+          />
+          <TypeSelector
+            type="dialogue"
+            value={block.dialogueType || null}
+            onChange={(newType) => onDialogueTypeChange?.(newType)}
+          />
         </div>
-        <div className="relative">
+        <div className="dialogue-text">
           <ScriptEditor
             variant="dialogue"
             initialContent={block.content || ''}
@@ -1947,54 +1812,9 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
             hideToolbar={true}
             placeholder="Dialogue..."
-            showWordCount
             className="script-view-editor"
           />
         </div>
-
-        {/* Action bar for adding content to this panel */}
-        {isLastBlockInPanel && (
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <Tip content="Add dialogue to this panel">
-              <button
-                onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Dialogue
-              </button>
-            </Tip>
-            <Tip content="Add caption to this panel">
-              <button
-                onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Caption
-              </button>
-            </Tip>
-            <Tip content="Add sound effect to this panel">
-              <button
-                onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + SFX
-              </button>
-            </Tip>
-          </div>
-        )}
-
-        {/* Add Panel button at end of page */}
-        {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-[var(--border)] text-center">
-            <Tip content="Add new panel to this page">
-              <button
-                onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              >
-                + Add Panel
-              </button>
-            </Tip>
-          </div>
-        )}
       </div>
     )
   }
@@ -2002,24 +1822,15 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Caption
   if (block.type === 'caption') {
     return (
-      <div className="mt-3 ml-8 group/caption border-l-2 border-[var(--color-warning)]/40 pl-3">
-        <div className="flex items-center gap-1 mb-1">
-          <span className="text-[var(--color-warning)] text-xs uppercase tracking-wider font-mono font-bold">CAP</span>
-          <TypeSelector
+      <div className="script-block-caption">
+        <div className="caption-label">
+          CAP <TypeSelector
             type="caption"
             value={block.captionType || null}
             onChange={(newType) => onCaptionTypeChange?.(newType)}
           />
-          <Tip content="Delete this caption">
-            <button
-              onClick={onDeleteCaption}
-              className="hover-fade-danger opacity-0 group-hover/caption:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
-            >
-              ×
-            </button>
-          </Tip>
         </div>
-        <div className="relative">
+        <div className="caption-text">
           <ScriptEditor
             variant="caption"
             initialContent={block.content || ''}
@@ -2029,54 +1840,9 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
             hideToolbar={true}
             placeholder="Caption text..."
-            showWordCount
             className="script-view-editor"
           />
         </div>
-
-        {/* Action bar for adding content to this panel */}
-        {isLastBlockInPanel && (
-          <div className="flex items-center gap-2 mt-2 ml-2">
-            <Tip content="Add dialogue to this panel">
-              <button
-                onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Dialogue
-              </button>
-            </Tip>
-            <Tip content="Add caption to this panel">
-              <button
-                onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Caption
-              </button>
-            </Tip>
-            <Tip content="Add sound effect to this panel">
-              <button
-                onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + SFX
-              </button>
-            </Tip>
-          </div>
-        )}
-
-        {/* Add Panel button at end of page */}
-        {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <Tip content="Add new panel to this page">
-              <button
-                onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              >
-                + Add Panel
-              </button>
-            </Tip>
-          </div>
-        )}
       </div>
     )
   }
@@ -2084,75 +1850,19 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Sound effect
   if (block.type === 'sfx') {
     return (
-      <div className="mt-2 ml-8 group/sfx border-l-2 border-[var(--accent-hover)]/40 pl-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[var(--accent-hover)] text-xs uppercase tracking-wider font-mono font-bold">SFX:</span>
-          <div className="flex-1">
-            <ScriptEditor
-              variant="sfx"
-              initialContent={block.content || ''}
-              onUpdate={(md) => onChange(md)}
-              onFocus={onFocus}
-              onBlur={() => onBlur?.()}
-              onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
-              hideToolbar={true}
-              placeholder="Sound effect..."
-              className="script-view-editor script-view-editor--sfx"
-            />
-          </div>
-          <Tip content="Delete this sound effect">
-            <button
-              onClick={onDeleteSfx}
-              className="hover-fade-danger opacity-0 group-hover/sfx:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
-            >
-              ×
-            </button>
-          </Tip>
-        </div>
-
-        {/* Action bar for adding content to this panel */}
-        {isLastBlockInPanel && (
-          <div className="flex items-center gap-2 mt-2 ml-2">
-            <Tip content="Add dialogue to this panel">
-              <button
-                onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Dialogue
-              </button>
-            </Tip>
-            <Tip content="Add caption to this panel">
-              <button
-                onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Caption
-              </button>
-            </Tip>
-            <Tip content="Add sound effect to this panel">
-              <button
-                onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + SFX
-              </button>
-            </Tip>
-          </div>
-        )}
-
-        {/* Add Panel button at end of page */}
-        {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <Tip content="Add new panel to this page">
-              <button
-                onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              >
-                + Add Panel
-              </button>
-            </Tip>
-          </div>
-        )}
+      <div className="script-block-sfx">
+        <span className="sfx-text">SFX: </span>
+        <ScriptEditor
+          variant="sfx"
+          initialContent={block.content || ''}
+          onUpdate={(md) => onChange(md)}
+          onFocus={onFocus}
+          onBlur={() => onBlur?.()}
+          onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+          hideToolbar={true}
+          placeholder="Sound effect..."
+          className="script-view-editor script-view-editor--sfx"
+        />
       </div>
     )
   }
