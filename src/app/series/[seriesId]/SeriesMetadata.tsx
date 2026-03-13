@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 import ImageUploader from '@/components/ImageUploader'
 import { useEntityImages, getPrimaryImage } from '@/hooks/useEntityImages'
 
@@ -91,13 +92,15 @@ export default function SeriesMetadata({
       </div>
 
       {/* Expand/Collapse toggle */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="mt-4 text-sm text-[var(--color-primary)] hover:opacity-80 flex items-center gap-1"
-      >
-        {isExpanded ? '▼ Hide' : readOnly ? '▶ View' : '▶ Edit'} Series Details
-        {isSaving && <span className="text-[var(--text-secondary)] ml-2">(saving...)</span>}
-      </button>
+      <Tip content={isExpanded ? 'Collapse series details' : readOnly ? 'View series details' : 'Edit series metadata'}>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="hover-fade mt-4 text-sm text-[var(--color-primary)] hover:opacity-80 flex items-center gap-1"
+        >
+          {isExpanded ? '▼ Hide' : readOnly ? '▶ View' : '▶ Edit'} Series Details
+          {isSaving && <span className="text-[var(--text-secondary)] ml-2">(saving...)</span>}
+        </button>
+      </Tip>
 
       {/* Expandable edit section */}
       {isExpanded && (

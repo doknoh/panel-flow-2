@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 
 export default function CreateIssueButton({ seriesId, issueCount }: { seriesId: string; issueCount: number }) {
   const router = useRouter()
@@ -35,12 +36,14 @@ export default function CreateIssueButton({ seriesId, issueCount }: { seriesId: 
   }
 
   return (
-    <button
-      onClick={handleCreate}
-      disabled={loading}
-      className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--border)] text-[var(--text-primary)] px-4 py-2 rounded-lg font-medium transition-colors"
-    >
-      {loading ? 'Creating...' : '+ New Issue'}
-    </button>
+    <Tip content="Create new issue">
+      <button
+        onClick={handleCreate}
+        disabled={loading}
+        className="hover-lift bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--border)] text-[var(--text-primary)] px-4 py-2 rounded-lg font-medium transition-colors"
+      >
+        {loading ? 'Creating...' : '+ New Issue'}
+      </button>
+    </Tip>
   )
 }
