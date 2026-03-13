@@ -1829,23 +1829,36 @@ export default function ScriptView({
   // ============================================================================
 
   const handleNavigateToPanel = useCallback((pageId: string, panelId: string) => {
-    // Update scope to show the target page
+    // Update scope to show the target page (needed when scope is "page")
     setCurrentPageId(pageId)
     onNavigate(pageId)
 
-    // Find and scroll to the panel's visual block
+    // Find and scroll to the panel's visual block using editor DOM IDs
     const blockId = `visual-${panelId}`
-    const blockRef = blockRefs.current.get(blockId)
-    if (blockRef) {
-      blockRef.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      blockRef.focus()
+    const editorEl = document.getElementById(`editor-${blockId}`)
+    if (editorEl) {
+      editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Focus via editor registry, fallback to ProseMirror element
+      const editor = editorRegistry.current.get(blockId)
+      if (editor) {
+        editor.commands.focus()
+      } else {
+        const pm = editorEl.querySelector('.ProseMirror') as HTMLElement | null
+        pm?.focus()
+      }
     } else {
-      // If ref not immediately available (e.g., page change), wait for render
+      // If not immediately available (e.g., page change triggers re-render), wait
       setTimeout(() => {
-        const ref = blockRefs.current.get(blockId)
-        if (ref) {
-          ref.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          ref.focus()
+        const el = document.getElementById(`editor-${blockId}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          const editor = editorRegistry.current.get(blockId)
+          if (editor) {
+            editor.commands.focus()
+          } else {
+            const pm = el.querySelector('.ProseMirror') as HTMLElement | null
+            pm?.focus()
+          }
         }
       }, 100)
     }
@@ -2021,6 +2034,9 @@ interface ScriptBlockComponentProps {
   onEditorFocus: (editor: Editor, blockId: string) => void
   onRegisterEditor: (blockId: string, editor: Editor) => void
   onUnregisterEditor: (blockId: string) => void
+  activeBlockId?: string | null
+  activeBlockType?: string | null
+  activeBlockPanelId?: string | null
 }
 
 const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
@@ -2036,7 +2052,11 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   onEditorFocus,
   onRegisterEditor,
   onUnregisterEditor,
+  activeBlockId,
+  activeBlockType,
+  activeBlockPanelId,
 }: ScriptBlockComponentProps) {
+  const isActive = block.id === activeBlockId
   // Page header - non-editable
   if (block.type === 'page-header') {
     return (
@@ -2055,12 +2075,15 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
 
   // Visual description (with panel header)
   if (block.type === 'visual') {
+    const activePanelClass = activeBlockPanelId === block.panelId
+      ? `is-active-${activeBlockType === 'visual' ? 'description' : activeBlockType}`
+      : ''
     return (
       <div className="mt-5">
-        <div className="script-panel-label">
+        <div className={`script-panel-label ${activePanelClass}`}>
           PANEL {block.panelNumber}
         </div>
-        <div id={`editor-${block.id}`} className="script-block-description">
+        <div id={`editor-${block.id}`} className={`script-block-description ${isActive ? 'is-active' : ''}`}>
           <ScriptEditor
             variant="description"
             initialContent={block.content || ''}
@@ -2096,7 +2119,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onChange={(newType) => onDialogueTypeChange?.(newType)}
           />
         </div>
-        <div id={`editor-${block.id}`} className="dialogue-text">
+        <div id={`editor-${block.id}`} className={`dialogue-text ${isActive ? 'is-active' : ''}`}>
           <ScriptEditor
             variant="dialogue"
             initialContent={block.content || ''}
@@ -2126,7 +2149,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onChange={(newType) => onCaptionTypeChange?.(newType)}
           />
         </div>
-        <div id={`editor-${block.id}`} className="caption-text">
+        <div id={`editor-${block.id}`} className={`caption-text ${isActive ? 'is-active' : ''}`}>
           <ScriptEditor
             variant="caption"
             initialContent={block.content || ''}
