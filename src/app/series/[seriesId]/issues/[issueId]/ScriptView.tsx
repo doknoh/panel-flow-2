@@ -8,15 +8,10 @@ import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import CharacterAutocomplete from '@/components/CharacterAutocomplete'
 import TypeSelector from '@/components/TypeSelector'
 import FindReplaceModal from './FindReplaceModal'
-import {
-  parseMarkdownToReact,
-  countWords,
-  parseMarkdownForPdf,
-  stripMarkdown
-} from '@/lib/markdown'
+import { stripMarkdown } from '@/lib/markdown'
 import ScriptEditor from '@/components/editor/ScriptEditor'
-import ThemeToggle from '@/components/ui/ThemeToggle'
-import { Tip } from '@/components/ui/Tip'
+import ScriptEditorToolbar from '@/components/editor/ScriptEditorToolbar'
+import { Editor } from '@tiptap/react'
 
 // ============================================================================
 // Types
@@ -98,7 +93,7 @@ interface Issue {
 }
 
 // Block types for the script view
-type BlockType = 'page-header' | 'panel-header' | 'visual' | 'dialogue' | 'caption' | 'sfx'
+type BlockType = 'page-header' | 'visual' | 'dialogue' | 'caption' | 'sfx'
 
 interface ScriptBlock {
   id: string
@@ -123,7 +118,7 @@ interface ScriptBlock {
   sceneName?: string
 }
 
-type Scope = 'panel' | 'page' | 'scene' | 'act' | 'issue'
+type Scope = 'page' | 'scene' | 'act' | 'issue'
 
 interface ScriptViewProps {
   issue: Issue
@@ -149,7 +144,6 @@ export default function ScriptView({
   const [blocks, setBlocks] = useState<ScriptBlock[]>([])
   const [pendingChanges, setPendingChanges] = useState<Map<string, ScriptBlock>>(new Map())
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
-  const [focusedBlockIndex, setFocusedBlockIndex] = useState<number>(0)
   const [currentPageId, setCurrentPageId] = useState<string | null>(selectedPageId)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
 
@@ -160,16 +154,46 @@ export default function ScriptView({
     }
   }, [selectedPageId])
 
+  // Active editor tracking for adaptive toolbar
+  const [activeEditor, setActiveEditor] = useState<{
+    editor: Editor
+    blockId: string
+    variant: 'description' | 'dialogue' | 'caption' | 'sfx'
+    contextLabel: string
+  } | null>(null)
+
+  // Tab navigation state
+  const [quickAddPanelId, setQuickAddPanelId] = useState<string | null>(null)
+
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
-  const blockRefs = useRef<Map<string, HTMLTextAreaElement | HTMLInputElement>>(new Map())
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const toolbarRef = useRef<HTMLDivElement>(null)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const editorRegistry = useRef<Map<string, Editor>>(new Map())
+  const initialFocusSet = useRef(false)
+  const pendingFocusRef = useRef<{ type: string; panelId: string } | null>(null)
+  const pendingChangesRef = useRef<Map<string, ScriptBlock>>(new Map())
+  const blocksRef = useRef<ScriptBlock[]>([])
+
+  // Cleanup save timeout on unmount to prevent data loss
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const { showToast } = useToast()
   const { recordAction, startGenericTextEdit, endGenericTextEdit, undo, redo, canUndo, canRedo } = useUndo()
   const { confirm, dialogProps } = useConfirmDialog()
   const supabase = createClient()
   const characters = issue.series?.characters || []
+
+  // Keep refs in sync with state for use in stable callbacks
+  useEffect(() => { pendingChangesRef.current = pendingChanges }, [pendingChanges])
+  useEffect(() => { blocksRef.current = blocks }, [blocks])
 
   // ============================================================================
   // Build blocks from issue data
@@ -305,9 +329,6 @@ export default function ScriptView({
     if (!currentPage) return allBlocks
 
     switch (scope) {
-      case 'panel':
-        // Just the first panel of current page (or focused panel)
-        return allBlocks.filter(b => b.pageId === currentPage!.id).slice(0, 5) // Approx one panel
       case 'page':
         return allBlocks.filter(b => b.pageId === currentPage!.id)
       case 'scene':
@@ -332,6 +353,139 @@ export default function ScriptView({
   }, [getBlocksForScope])
 
   // ============================================================================
+  // Tab navigation
+  // ============================================================================
+
+  // Build ordered list of editable block IDs with quick-add menu positions interleaved
+  const tabOrder = useMemo(() => {
+    const editableTypes = ['visual', 'dialogue', 'caption', 'sfx']
+    const editable = blocks.filter(b => editableTypes.includes(b.type)).map(b => b.id)
+
+    // Insert quick-add menu positions after the last editable block in each panel
+    const withMenus: string[] = []
+    let lastPanelId: string | null = null
+    for (let i = 0; i < editable.length; i++) {
+      const block = blocks.find(b => b.id === editable[i])!
+      // If this block is in a new panel, insert a quick-add for the previous panel
+      if (lastPanelId && block.panelId !== lastPanelId) {
+        withMenus.push(`quick-add-${lastPanelId}`)
+      }
+      withMenus.push(editable[i])
+      lastPanelId = block.panelId || null
+    }
+    // Final panel's quick-add
+    if (lastPanelId) {
+      withMenus.push(`quick-add-${lastPanelId}`)
+    }
+
+    return withMenus
+  }, [blocks])
+
+  // Pre-compute last editable block ID per panel (for quick-add menu placement)
+  const panelLastBlockId = useMemo(() => {
+    const lastMap = new Map<string, string>() // panelId -> last editable block id
+    const editableTypes = ['visual', 'dialogue', 'caption', 'sfx']
+    for (const b of blocks) {
+      if (b.panelId && editableTypes.includes(b.type)) {
+        lastMap.set(b.panelId, b.id)
+      }
+    }
+    return lastMap
+  }, [blocks])
+
+  // Editor registry callbacks for programmatic focus
+  const registerEditor = useCallback((blockId: string, editor: Editor) => {
+    editorRegistry.current.set(blockId, editor)
+  }, [])
+
+  const unregisterEditor = useCallback((blockId: string) => {
+    editorRegistry.current.delete(blockId)
+  }, [])
+
+  // Focus a specific block by ID (editor or quick-add menu)
+  const focusBlock = useCallback((blockId: string) => {
+    if (blockId.startsWith('quick-add-')) {
+      const panelId = blockId.replace('quick-add-', '')
+      setQuickAddPanelId(panelId)
+      // Blur current editor
+      activeEditor?.editor.commands.blur()
+      // Scroll the quick-add menu into view
+      const menuEl = document.getElementById(blockId)
+      menuEl?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } else {
+      setQuickAddPanelId(null)
+      const editor = editorRegistry.current.get(blockId)
+      if (editor) {
+        editor.commands.focus()
+        // Scroll into view
+        const editorEl = document.getElementById(`editor-${blockId}`)
+        editorEl?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  }, [activeEditor])
+
+  // Set initial focus on first editable field when blocks are ready
+  useEffect(() => {
+    if (initialFocusSet.current) return
+    if (tabOrder.length > 0 && !tabOrder[0].startsWith('quick-add-')) {
+      initialFocusSet.current = true
+      const timer = setTimeout(() => {
+        focusBlock(tabOrder[0])
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+  }, [tabOrder, focusBlock])
+
+  // Auto-focus newly created blocks after quick-add
+  useEffect(() => {
+    if (!pendingFocusRef.current) return
+    const { type, panelId } = pendingFocusRef.current
+    pendingFocusRef.current = null
+
+    let attempts = 0
+    const maxAttempts = 10
+    const interval = setInterval(() => {
+      attempts++
+
+      let targetBlockId: string | undefined
+      if (type === 'panel') {
+        // For new panels, find the last visual block
+        const visuals = blocks.filter(b => b.type === 'visual')
+        targetBlockId = visuals[visuals.length - 1]?.id
+      } else {
+        // Find the last block of the given type in the specified panel
+        const matching = blocks.filter(b => b.type === type && b.panelId === panelId)
+        targetBlockId = matching[matching.length - 1]?.id
+      }
+
+      if (targetBlockId) {
+        const editor = editorRegistry.current.get(targetBlockId)
+        if (editor) {
+          clearInterval(interval)
+          editor.commands.focus()
+          document.getElementById(`editor-${targetBlockId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          return
+        }
+        // Fallback: try DOM
+        const el = document.getElementById(`editor-${targetBlockId}`)
+        if (el) {
+          clearInterval(interval)
+          const prosemirror = el.querySelector('.ProseMirror') as HTMLElement | null
+          prosemirror?.focus()
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          return
+        }
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval)
+      }
+    }, 50)
+
+    return () => clearInterval(interval)
+  }, [blocks])
+
+  // ============================================================================
   // Save logic
   // ============================================================================
 
@@ -342,36 +496,43 @@ export default function ScriptView({
       switch (block.type) {
         case 'visual':
           if (block.panelId) {
-            await supabase
+            const { error } = await supabase
               .from('panels')
               .update({ visual_description: block.content })
               .eq('id', block.panelId)
+            if (error) throw error
           }
           break
 
-        case 'dialogue':
+        case 'dialogue': {
           const dialogueId = block.id.replace('dialogue-', '')
-          await supabase
+          const { error } = await supabase
             .from('dialogue_blocks')
             .update({ text: block.content })
             .eq('id', dialogueId)
+          if (error) throw error
           break
+        }
 
-        case 'caption':
+        case 'caption': {
           const captionId = block.id.replace('caption-', '')
-          await supabase
+          const { error } = await supabase
             .from('captions')
             .update({ text: block.content })
             .eq('id', captionId)
+          if (error) throw error
           break
+        }
 
-        case 'sfx':
+        case 'sfx': {
           const sfxId = block.id.replace('sfx-', '')
-          await supabase
+          const { error } = await supabase
             .from('sound_effects')
             .update({ text: block.content })
             .eq('id', sfxId)
+          if (error) throw error
           break
+        }
       }
 
       setSaveStatus('saved')
@@ -390,7 +551,7 @@ export default function ScriptView({
     setSaveStatus('unsaved')
 
     saveTimeoutRef.current = setTimeout(async () => {
-      const changes = Array.from(pendingChanges.values())
+      const changes = Array.from(pendingChangesRef.current.values())
       if (changes.length === 0) return
 
       setSaveStatus('saving')
@@ -404,7 +565,7 @@ export default function ScriptView({
         setSaveStatus('unsaved')
       }
     }, 1500)
-  }, [pendingChanges, saveBlock])
+  }, [saveBlock])
 
   const forceSaveAll = useCallback(async () => {
     if (saveTimeoutRef.current) {
@@ -430,31 +591,31 @@ export default function ScriptView({
   // Block editing
   // ============================================================================
 
+  // Determine the entity type and ID for undo tracking from a script block
+  const getEntityInfo = (block: ScriptBlock): { entityType: 'panel' | 'dialogue' | 'caption' | 'sfx'; entityId: string } | null => {
+    if (block.type === 'visual' && block.panelId) {
+      return { entityType: 'panel', entityId: block.panelId }
+    }
+    if (block.type === 'dialogue') {
+      const dialogueId = block.id.replace('dialogue-', '')
+      return { entityType: 'dialogue', entityId: dialogueId }
+    }
+    if (block.type === 'caption') {
+      const captionId = block.id.replace('caption-', '')
+      return { entityType: 'caption', entityId: captionId }
+    }
+    if (block.type === 'sfx') {
+      const sfxId = block.id.replace('sfx-', '')
+      return { entityType: 'sfx', entityId: sfxId }
+    }
+    return null
+  }
+
   // Track when user starts editing a field (for undo)
   const handleBlockFocus = useCallback((block: ScriptBlock) => {
     if (block.type === 'page-header') return
 
-    // Determine the entity type for undo tracking
-    const getEntityInfo = (): { entityType: 'panel' | 'dialogue' | 'caption' | 'sfx'; entityId: string } | null => {
-      if (block.type === 'visual' && block.panelId) {
-        return { entityType: 'panel', entityId: block.panelId }
-      }
-      if (block.type === 'dialogue') {
-        const dialogueId = block.id.replace('dialogue-', '')
-        return { entityType: 'dialogue', entityId: dialogueId }
-      }
-      if (block.type === 'caption') {
-        const captionId = block.id.replace('caption-', '')
-        return { entityType: 'caption', entityId: captionId }
-      }
-      if (block.type === 'sfx') {
-        const sfxId = block.id.replace('sfx-', '')
-        return { entityType: 'sfx', entityId: sfxId }
-      }
-      return null
-    }
-
-    const entityInfo = getEntityInfo()
+    const entityInfo = getEntityInfo(block)
     if (entityInfo) {
       const field = block.type === 'visual' ? 'visual_description' : 'text'
       startGenericTextEdit(entityInfo.entityType, entityInfo.entityId, field, block.content)
@@ -465,45 +626,73 @@ export default function ScriptView({
   const handleBlockBlur = useCallback((block: ScriptBlock) => {
     if (block.type === 'page-header') return
 
-    // Determine the entity type for undo tracking
-    const getEntityInfo = (): { entityType: 'panel' | 'dialogue' | 'caption' | 'sfx'; entityId: string } | null => {
-      if (block.type === 'visual' && block.panelId) {
-        return { entityType: 'panel', entityId: block.panelId }
-      }
-      if (block.type === 'dialogue') {
-        const dialogueId = block.id.replace('dialogue-', '')
-        return { entityType: 'dialogue', entityId: dialogueId }
-      }
-      if (block.type === 'caption') {
-        const captionId = block.id.replace('caption-', '')
-        return { entityType: 'caption', entityId: captionId }
-      }
-      if (block.type === 'sfx') {
-        const sfxId = block.id.replace('sfx-', '')
-        return { entityType: 'sfx', entityId: sfxId }
-      }
-      return null
-    }
-
-    const entityInfo = getEntityInfo()
+    const entityInfo = getEntityInfo(block)
     if (entityInfo) {
       const field = block.type === 'visual' ? 'visual_description' : 'text'
       endGenericTextEdit(entityInfo.entityType, entityInfo.entityId, field, block.content)
     }
   }, [endGenericTextEdit])
 
-  const updateBlock = useCallback((blockId: string, newContent: string) => {
-    setBlocks(prev => prev.map(b =>
-      b.id === blockId ? { ...b, content: newContent } : b
-    ))
+  // Called when any ScriptEditor instance receives focus
+  const handleEditorFocus = useCallback((editor: Editor, blockId: string) => {
+    const block = blocksRef.current.find(b => b.id === blockId)
+    let variant: 'description' | 'dialogue' | 'caption' | 'sfx' = 'description'
+    if (block?.type === 'dialogue') variant = 'dialogue'
+    else if (block?.type === 'caption') variant = 'caption'
+    else if (block?.type === 'sfx') variant = 'sfx'
 
-    const block = blocks.find(b => b.id === blockId)
-    if (block && block.type !== 'page-header' && block.type !== 'panel-header') {
-      const updatedBlock = { ...block, content: newContent }
-      setPendingChanges(prev => new Map(prev).set(blockId, updatedBlock))
+    // Compute context label
+    let contextLabel = ''
+    if (block) {
+      const panelNum = block.panelNumber || '?'
+      if (variant === 'description') {
+        contextLabel = `EDITING: PANEL ${panelNum} DESCRIPTION`
+      } else if (variant === 'dialogue') {
+        contextLabel = `EDITING: PANEL ${panelNum} → ${block.characterName || 'SELECT CHARACTER'}`
+      } else if (variant === 'caption') {
+        contextLabel = `EDITING: PANEL ${panelNum} CAPTION`
+      }
+      // SFX: no context label (toolbar hidden for SFX)
+    }
+
+    setActiveEditor({ editor, blockId, variant, contextLabel })
+    // Dismiss any active quick-add menu when an editor is clicked/focused
+    setQuickAddPanelId(null)
+  }, [])
+
+  // When focus leaves the body+toolbar area entirely, clear active editor
+  const handleBodyFocusOut = useCallback((e: React.FocusEvent) => {
+    const relatedTarget = e.relatedTarget as HTMLElement | null
+    const body = bodyRef.current
+    const toolbar = toolbarRef.current
+    // If focus moved to another element within body or toolbar, keep active editor
+    if (relatedTarget && (body?.contains(relatedTarget) || toolbar?.contains(relatedTarget))) {
+      return
+    }
+    // Focus left the script area entirely — clear after brief delay
+    // (delay allows toolbar button preventDefault to work)
+    setTimeout(() => setActiveEditor(null), 150)
+  }, [])
+
+  const updateBlock = useCallback((blockId: string, newContent: string) => {
+    let updatedBlock: ScriptBlock | undefined
+    setBlocks(prev => {
+      const newBlocks = prev.map(b =>
+        b.id === blockId ? { ...b, content: newContent } : b
+      )
+      updatedBlock = newBlocks.find(b => b.id === blockId)
+      return newBlocks
+    })
+    if (updatedBlock && updatedBlock.type !== 'page-header') {
+      setPendingChanges(prev => {
+        const next = new Map(prev)
+        next.set(blockId, updatedBlock!)
+        return next
+      })
+      setSaveStatus('unsaved')
       scheduleAutoSave()
     }
-  }, [blocks, scheduleAutoSave])
+  }, [scheduleAutoSave])
 
   // Change the character for a dialogue block
   const changeDialogueCharacter = useCallback(async (
@@ -980,14 +1169,14 @@ export default function ScriptView({
   // ============================================================================
 
   // Delete a dialogue block
-  const deleteDialogue = useCallback(async (blockId: string) => {
+  const deleteDialogue = useCallback(async (blockId: string, skipConfirm = false) => {
     const block = blocks.find(b => b.id === blockId)
     if (!block || block.type !== 'dialogue') return
 
     const dialogueId = block.id.replace('dialogue-', '')
 
-    // Confirm if non-empty
-    if (block.content.trim()) {
+    // Confirm if non-empty (skip when triggered by keyboard shortcut)
+    if (!skipConfirm && block.content.trim()) {
       const confirmed = await confirm({
         title: 'Delete this dialogue?',
         description: 'This can be undone with \u2318Z.',
@@ -1039,18 +1228,18 @@ export default function ScriptView({
       description: 'Delete dialogue',
     })
 
-    showToast('Dialogue deleted', 'success')
-  }, [blocks, supabase, showToast, recordAction])
+    showToast('Deleted dialogue — ⌘Z to undo', 'success')
+  }, [blocks, supabase, showToast, recordAction, confirm])
 
   // Delete a caption
-  const deleteCaption = useCallback(async (blockId: string) => {
+  const deleteCaption = useCallback(async (blockId: string, skipConfirm = false) => {
     const block = blocks.find(b => b.id === blockId)
     if (!block || block.type !== 'caption') return
 
     const captionId = block.id.replace('caption-', '')
 
-    // Confirm if non-empty
-    if (block.content.trim()) {
+    // Confirm if non-empty (skip when triggered by keyboard shortcut)
+    if (!skipConfirm && block.content.trim()) {
       const confirmed = await confirm({
         title: 'Delete this caption?',
         description: 'This can be undone with \u2318Z.',
@@ -1100,18 +1289,18 @@ export default function ScriptView({
       description: 'Delete caption',
     })
 
-    showToast('Caption deleted', 'success')
-  }, [blocks, supabase, showToast, recordAction])
+    showToast('Deleted caption — ⌘Z to undo', 'success')
+  }, [blocks, supabase, showToast, recordAction, confirm])
 
   // Delete a sound effect
-  const deleteSoundEffect = useCallback(async (blockId: string) => {
+  const deleteSoundEffect = useCallback(async (blockId: string, skipConfirm = false) => {
     const block = blocks.find(b => b.id === blockId)
     if (!block || block.type !== 'sfx') return
 
     const sfxId = block.id.replace('sfx-', '')
 
-    // Confirm if non-empty
-    if (block.content.trim()) {
+    // Confirm if non-empty (skip when triggered by keyboard shortcut)
+    if (!skipConfirm && block.content.trim()) {
       const confirmed = await confirm({
         title: 'Delete this sound effect?',
         description: 'This can be undone with \u2318Z.',
@@ -1160,277 +1349,33 @@ export default function ScriptView({
       description: 'Delete sound effect',
     })
 
-    showToast('Sound effect deleted', 'success')
-  }, [blocks, supabase, showToast, recordAction])
-
-  // Delete a panel (with all its children)
-  const deletePanel = useCallback(async (panelId: string) => {
-    // Find all blocks belonging to this panel
-    const panelBlocks = blocks.filter(b => b.panelId === panelId)
-    const visualBlock = panelBlocks.find(b => b.type === 'visual')
-
-    if (!visualBlock) return
-
-    // Check if panel has any content
-    const hasContent = panelBlocks.some(b => b.content.trim())
-    if (hasContent) {
-      const confirmed = await confirm({
-        title: 'Delete this panel?',
-        description: 'All contents (dialogue, captions, sound effects) will be removed. This can be undone with \u2318Z.',
-      })
-      if (!confirmed) return
-    }
-
-    // Gather all children data for undo restoration
-    const dialogueBlocks = panelBlocks
-      .filter(b => b.type === 'dialogue')
-      .map(b => ({
-        id: b.id.replace('dialogue-', ''),
-        panel_id: panelId,
-        text: b.content,
-        character_id: b.characterId,
-        dialogue_type: b.dialogueType,
-        sort_order: b.sortOrder,
-      }))
-
-    const captions = panelBlocks
-      .filter(b => b.type === 'caption')
-      .map(b => ({
-        id: b.id.replace('caption-', ''),
-        panel_id: panelId,
-        text: b.content,
-        caption_type: b.captionType,
-        sort_order: b.sortOrder,
-      }))
-
-    const soundEffects = panelBlocks
-      .filter(b => b.type === 'sfx')
-      .map(b => ({
-        id: b.id.replace('sfx-', ''),
-        panel_id: panelId,
-        text: b.content,
-        sort_order: b.sortOrder,
-      }))
-
-    // Store full panel data including children
-    const fullPanelData = {
-      id: panelId,
-      page_id: visualBlock.pageId,
-      panel_number: visualBlock.panelNumber,
-      visual_description: visualBlock.content,
-      sort_order: visualBlock.sortOrder,
-      dialogue_blocks: dialogueBlocks,
-      captions: captions,
-      sound_effects: soundEffects,
-    }
-
-    // Optimistic removal
-    setBlocks(prev => prev.filter(b => b.panelId !== panelId))
-
-    // Delete from DB (cascade will handle children)
-    const { error } = await supabase
-      .from('panels')
-      .delete()
-      .eq('id', panelId)
-
-    if (error) {
-      // Rollback - re-add all panel blocks
-      setBlocks(prev => {
-        const newBlocks = [...prev]
-        // Find position to insert (after page header or at end of page blocks)
-        const pageBlocks = prev.filter(b => b.pageId === visualBlock.pageId)
-        const insertIndex = pageBlocks.length > 0
-          ? prev.findIndex(b => b.id === pageBlocks[pageBlocks.length - 1]?.id) + 1
-          : prev.length
-        newBlocks.splice(insertIndex, 0, ...panelBlocks)
-        return newBlocks
-      })
-      showToast('Failed to delete panel', 'error')
-      return
-    }
-
-    // Record undo action with full data for restoration
-    recordAction({
-      type: 'panel_delete',
-      panelId,
-      pageId: visualBlock.pageId,
-      data: fullPanelData,
-      description: 'Delete panel',
-    })
-
-    showToast('Panel deleted', 'success')
-  }, [blocks, supabase, showToast, recordAction])
+    showToast('Deleted sound effect — ⌘Z to undo', 'success')
+  }, [blocks, supabase, showToast, recordAction, confirm])
 
   // ============================================================================
-  // Page Operations
+  // Quick-add menu handler
   // ============================================================================
 
-  // Helper to find scene ID for current page
-  const findSceneForPage = useCallback((pageId: string): { sceneId: string; scenePages: Page[] } | null => {
-    for (const act of issue.acts || []) {
-      for (const scene of act.scenes || []) {
-        const page = scene.pages?.find((p: Page) => p.id === pageId)
-        if (page) {
-          return { sceneId: scene.id, scenePages: scene.pages || [] }
-        }
-      }
-    }
-    return null
-  }, [issue])
+  const handleQuickAdd = useCallback(async (type: 'dialogue' | 'caption' | 'sfx' | 'panel', panelId: string, pageId: string) => {
+    setQuickAddPanelId(null) // Dismiss menu immediately
 
-  // Add a new page to the current scene
-  const addPage = useCallback(async () => {
-    if (!currentPageId) return
-
-    const sceneInfo = findSceneForPage(currentPageId)
-    if (!sceneInfo) {
-      showToast('Could not find scene for current page', 'error')
-      return
+    switch (type) {
+      case 'dialogue':
+        await addDialogue(panelId, pageId)
+        break
+      case 'caption':
+        await addCaption(panelId, pageId)
+        break
+      case 'sfx':
+        await addSoundEffect(panelId, pageId)
+        break
+      case 'panel':
+        await addPanel(pageId)
+        break
     }
 
-    const { sceneId, scenePages } = sceneInfo
-    const maxPageNumber = Math.max(0, ...scenePages.map(p => p.page_number))
-    const maxSortOrder = Math.max(0, ...scenePages.map(p => p.sort_order))
-    const newPageNumber = maxPageNumber + 1
-    const newSortOrder = maxSortOrder + 1
-
-    // Insert page into DB
-    const { data: newPage, error: pageError } = await supabase
-      .from('pages')
-      .insert({
-        scene_id: sceneId,
-        page_number: newPageNumber,
-        sort_order: newSortOrder,
-      })
-      .select()
-      .single()
-
-    if (pageError || !newPage) {
-      showToast('Failed to create page', 'error')
-      return
-    }
-
-    // Auto-create first empty panel
-    const { data: newPanel, error: panelError } = await supabase
-      .from('panels')
-      .insert({
-        page_id: newPage.id,
-        panel_number: 1,
-        sort_order: 1,
-        visual_description: '',
-      })
-      .select()
-      .single()
-
-    if (panelError) {
-      // Rollback page creation
-      await supabase.from('pages').delete().eq('id', newPage.id)
-      showToast('Failed to create panel for new page', 'error')
-      return
-    }
-
-    // Record undo action
-    recordAction({
-      type: 'page_add',
-      pageId: newPage.id,
-      sceneId,
-      data: {
-        page_number: newPageNumber,
-        sort_order: newSortOrder,
-        panelId: newPanel?.id,
-      },
-      description: 'Add page',
-    })
-
-    // Refresh and navigate to new page
-    onRefresh()
-    setCurrentPageId(newPage.id)
-    onNavigate(newPage.id)
-    showToast('Page added', 'success')
-  }, [currentPageId, findSceneForPage, supabase, showToast, recordAction, onRefresh, onNavigate])
-
-  // Delete current page (with all panels and their children)
-  const deletePage = useCallback(async () => {
-    if (!currentPageId) return
-
-    const sceneInfo = findSceneForPage(currentPageId)
-    if (!sceneInfo) {
-      showToast('Could not find scene for current page', 'error')
-      return
-    }
-
-    const { scenePages } = sceneInfo
-
-    // Don't allow deleting the last page in a scene
-    if (scenePages.length <= 1) {
-      showToast('Cannot delete the last page in a scene', 'error')
-      return
-    }
-
-    // Find page data
-    const currentPage = scenePages.find(p => p.id === currentPageId)
-    if (!currentPage) return
-
-    // Check if page has content
-    const pageBlocks = blocks.filter(b => b.pageId === currentPageId)
-    const hasContent = pageBlocks.some(b => b.content.trim())
-
-    if (hasContent) {
-      const confirmed = await confirm({
-        title: 'Delete this page?',
-        description: 'All panels on this page will be removed. This can be undone with \u2318Z.',
-      })
-      if (!confirmed) return
-    }
-
-    // Gather full page data for undo restoration
-    const fullPageData = {
-      id: currentPageId,
-      scene_id: sceneInfo.sceneId,
-      page_number: currentPage.page_number,
-      sort_order: currentPage.sort_order,
-      title: currentPage.title,
-      panels: currentPage.panels?.map(panel => ({
-        ...panel,
-        dialogue_blocks: panel.dialogue_blocks,
-        captions: panel.captions,
-        sound_effects: panel.sound_effects,
-      })),
-    }
-
-    // Find adjacent page to navigate to
-    const currentIndex = scenePages.findIndex(p => p.id === currentPageId)
-    const adjacentPage = scenePages[currentIndex + 1] || scenePages[currentIndex - 1]
-
-    // Delete from DB (cascade will handle panels and children)
-    const { error } = await supabase
-      .from('pages')
-      .delete()
-      .eq('id', currentPageId)
-
-    if (error) {
-      showToast('Failed to delete page', 'error')
-      return
-    }
-
-    // Record undo action
-    recordAction({
-      type: 'page_delete',
-      pageId: currentPageId,
-      sceneId: sceneInfo.sceneId,
-      data: fullPageData,
-      description: 'Delete page',
-    })
-
-    // Navigate to adjacent page
-    if (adjacentPage) {
-      setCurrentPageId(adjacentPage.id)
-      onNavigate(adjacentPage.id)
-    }
-
-    onRefresh()
-    showToast('Page deleted', 'success')
-  }, [currentPageId, findSceneForPage, blocks, supabase, showToast, recordAction, onRefresh, onNavigate])
+    pendingFocusRef.current = { type, panelId }
+  }, [addDialogue, addCaption, addSoundEffect, addPanel])
 
   // ============================================================================
   // Export Functions
@@ -1576,7 +1521,7 @@ export default function ScriptView({
         case 'visual':
           addText(`PANEL ${block.panelNumber}:`, 10, true)
           if (block.content) {
-            addText(block.content, 10, false, 0)
+            addText(stripMarkdown(block.content), 10, false, 0)
           }
           addSpace(12)
           break
@@ -1602,7 +1547,7 @@ export default function ScriptView({
 
           // Dialogue text (indented)
           if (block.content) {
-            addText(block.content, 10, false, 72, contentWidth - 144)
+            addText(stripMarkdown(block.content), 10, false, 72, contentWidth - 144)
           }
           addSpace(12)
           break
@@ -1614,7 +1559,7 @@ export default function ScriptView({
             : ''
           addText(`CAPTION${captionType}:`, 10, true, 36)
           if (block.content) {
-            addText(block.content, 10, false, 36)
+            addText(stripMarkdown(block.content), 10, false, 36)
           }
           addSpace(8)
           break
@@ -1622,7 +1567,7 @@ export default function ScriptView({
 
         case 'sfx':
           if (block.content) {
-            addText(`SFX: ${block.content.toUpperCase()}`, 10, true, 36)
+            addText(`SFX: ${stripMarkdown(block.content).toUpperCase()}`, 10, true, 36)
             addSpace(8)
           }
           break
@@ -1639,33 +1584,6 @@ export default function ScriptView({
   }, [blocks, characters, issue, scope, showToast])
 
   // ============================================================================
-  // Navigation
-  // ============================================================================
-
-  const navigateToPage = useCallback(async (direction: 'prev' | 'next') => {
-    await forceSaveAll()
-
-    // Find all pages in order
-    const allPages: Page[] = []
-    for (const act of issue.acts || []) {
-      for (const scene of act.scenes || []) {
-        for (const page of scene.pages || []) {
-          allPages.push(page)
-        }
-      }
-    }
-
-    const currentIndex = allPages.findIndex(p => p.id === currentPageId)
-    const newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
-
-    if (newIndex >= 0 && newIndex < allPages.length) {
-      setCurrentPageId(allPages[newIndex].id)
-      setFocusedBlockIndex(0)
-      onNavigate(allPages[newIndex].id)
-    }
-  }, [currentPageId, issue, forceSaveAll, onNavigate])
-
-  // ============================================================================
   // Keyboard shortcuts
   // ============================================================================
 
@@ -1673,9 +1591,100 @@ export default function ScriptView({
     const handleKeyDown = async (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey
 
+      // Quick-add menu key commands (when menu is active)
+      if (quickAddPanelId) {
+        const pageId = blocks.find(b => b.panelId === quickAddPanelId)?.pageId
+        if (!pageId) return
+
+        if (e.key === 'd' || e.key === 'D') {
+          e.preventDefault()
+          handleQuickAdd('dialogue', quickAddPanelId, pageId)
+          return
+        } else if (e.key === 'c' || e.key === 'C') {
+          e.preventDefault()
+          handleQuickAdd('caption', quickAddPanelId, pageId)
+          return
+        } else if (e.key === 's' || e.key === 'S') {
+          e.preventDefault()
+          handleQuickAdd('sfx', quickAddPanelId, pageId)
+          return
+        } else if (e.key === 'p' || e.key === 'P') {
+          e.preventDefault()
+          handleQuickAdd('panel', quickAddPanelId, pageId)
+          return
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          setQuickAddPanelId(null)
+          return
+        }
+        // Tab passes through to the Tab handler below
+        // All other keys are ignored (per spec)
+        if (e.key !== 'Tab') return
+      }
+
+      // Tab navigation — must come before other handlers for first priority
+      if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        // Find current position in tab order
+        const currentBlockId = activeEditor?.blockId || ''
+        let currentIndex = tabOrder.indexOf(currentBlockId)
+        // If in quick-add menu, find that position
+        if (quickAddPanelId) {
+          currentIndex = tabOrder.indexOf(`quick-add-${quickAddPanelId}`)
+        }
+        if (currentIndex === -1) currentIndex = -1 // Start from beginning
+
+        if (e.shiftKey) {
+          if (currentIndex > 0) {
+            focusBlock(tabOrder[currentIndex - 1])
+          }
+        } else {
+          if (currentIndex < tabOrder.length - 1) {
+            focusBlock(tabOrder[currentIndex + 1])
+          }
+        }
+        return
+      }
+
+      // Cmd+Backspace to delete focused block
+      if (isMod && e.key === 'Backspace') {
+        e.preventDefault()
+        if (!activeEditor) return
+
+        const block = blocks.find(b => b.id === activeEditor.blockId)
+        if (!block) return
+
+        // Only allow deletion of sub-blocks, not descriptions
+        if (block.type === 'dialogue' || block.type === 'caption' || block.type === 'sfx') {
+          // Move focus to previous field first
+          const currentTabIdx = tabOrder.indexOf(activeEditor.blockId)
+          if (currentTabIdx > 0) {
+            const prevId = tabOrder[currentTabIdx - 1]
+            if (!prevId.startsWith('quick-add-')) {
+              const prevEditor = editorRegistry.current.get(prevId)
+              setTimeout(() => prevEditor?.commands.focus(), 50)
+            }
+          }
+
+          if (block.type === 'dialogue') {
+            deleteDialogue(block.id, true)
+          } else if (block.type === 'caption') {
+            deleteCaption(block.id, true)
+          } else if (block.type === 'sfx') {
+            deleteSoundEffect(block.id, true)
+          }
+        }
+        // For 'visual' (description) — do nothing, per spec
+        return
+      }
+
       // Escape to close find/replace or exit
       if (e.key === 'Escape') {
         e.preventDefault()
+        if (quickAddPanelId) {
+          setQuickAddPanelId(null)
+          return
+        }
         if (findReplaceOpen) {
           setFindReplaceOpen(false)
           return
@@ -1719,205 +1728,115 @@ export default function ScriptView({
         }
         return
       }
-
-      // Cmd+Shift+Arrow for page navigation
-      if (isMod && e.shiftKey && e.key === 'ArrowRight') {
-        e.preventDefault()
-        navigateToPage('next')
-        return
-      }
-
-      if (isMod && e.shiftKey && e.key === 'ArrowLeft') {
-        e.preventDefault()
-        navigateToPage('prev')
-        return
-      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [forceSaveAll, onExit, navigateToPage, showToast, canUndo, canRedo, undo, redo, onRefresh, findReplaceOpen])
+  }, [forceSaveAll, onExit, showToast, canUndo, canRedo, undo, redo, onRefresh, findReplaceOpen, tabOrder, focusBlock, quickAddPanelId, activeEditor, blocks, handleQuickAdd, deleteDialogue, deleteCaption, deleteSoundEffect])
 
   // ============================================================================
   // Find & Replace navigation
   // ============================================================================
 
   const handleNavigateToPanel = useCallback((pageId: string, panelId: string) => {
-    // Update scope to show the target page
+    // Update scope to show the target page (needed when scope is "page")
     setCurrentPageId(pageId)
     onNavigate(pageId)
 
-    // Find and scroll to the panel's visual block
+    // Find and scroll to the panel's visual block using editor DOM IDs
     const blockId = `visual-${panelId}`
-    const blockRef = blockRefs.current.get(blockId)
-    if (blockRef) {
-      blockRef.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      blockRef.focus()
+    const editorEl = document.getElementById(`editor-${blockId}`)
+    if (editorEl) {
+      editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Focus via editor registry, fallback to ProseMirror element
+      const editor = editorRegistry.current.get(blockId)
+      if (editor) {
+        editor.commands.focus()
+      } else {
+        const pm = editorEl.querySelector('.ProseMirror') as HTMLElement | null
+        pm?.focus()
+      }
     } else {
-      // If ref not immediately available (e.g., page change), wait for render
+      // If not immediately available (e.g., page change triggers re-render), wait
       setTimeout(() => {
-        const ref = blockRefs.current.get(blockId)
-        if (ref) {
-          ref.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          ref.focus()
+        const el = document.getElementById(`editor-${blockId}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          const editor = editorRegistry.current.get(blockId)
+          if (editor) {
+            editor.commands.focus()
+          } else {
+            const pm = el.querySelector('.ProseMirror') as HTMLElement | null
+            pm?.focus()
+          }
         }
       }, 100)
     }
   }, [onNavigate])
 
   // ============================================================================
-  // Get page position info
-  // ============================================================================
-
-  const getPagePositionInfo = useMemo(() => {
-    let totalPages = 0
-    let currentPageNum = 0
-
-    for (const act of issue.acts || []) {
-      for (const scene of act.scenes || []) {
-        for (const page of scene.pages || []) {
-          totalPages++
-          if (page.id === currentPageId) {
-            currentPageNum = totalPages
-          }
-        }
-      }
-    }
-
-    return { currentPageNum, totalPages }
-  }, [issue, currentPageId])
-
-  // ============================================================================
   // Render
   // ============================================================================
-
-  const editableBlocks = blocks.filter(b => b.type !== 'page-header')
 
   return (
     <div
       ref={containerRef}
       className="fixed inset-0 bg-[var(--bg-primary)] z-50 flex flex-col overflow-hidden"
-      style={{ fontFamily: "'Courier Prime', 'Courier New', monospace" }}
     >
       <ConfirmDialog {...dialogProps} />
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-primary)]">
-        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Tip content="Exit Script View (Esc)">
-              <button
-                onClick={async () => {
-                  await forceSaveAll()
-                  onExit()
-                }}
-                className="hover-fade text-[var(--text-secondary)]"
-              >
-                ← Exit
-              </button>
-            </Tip>
-            <span className="text-[var(--text-disabled)]">|</span>
-            <span className="text-[var(--text-secondary)] text-sm">
-              {issue.series?.title} • Issue #{issue.number}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Scope selector */}
-            <select
-              value={scope}
-              onChange={(e) => setScope(e.target.value as Scope)}
-              className="bg-[var(--bg-tertiary)] border border-[var(--border-strong)] text-[var(--text-secondary)] text-sm rounded px-2 py-1"
-            >
-              <option value="page">Page</option>
-              <option value="scene">Scene</option>
-              <option value="act">Act</option>
-              <option value="issue">Full Issue</option>
-            </select>
-
-            {/* Export options */}
-            <div className="flex items-center gap-1">
-              <Tip content="Copy script to clipboard">
-                <button
-                  onClick={copyToClipboard}
-                  className="hover-lift text-[var(--text-secondary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-                >
-                  COPY
-                </button>
-              </Tip>
-              <Tip content="Export to PDF">
-                <button
-                  onClick={exportToPdf}
-                  className="hover-lift text-[var(--text-secondary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-                >
-                  PDF
-                </button>
-              </Tip>
-            </div>
-
-            {/* Save status */}
-            <span className={`type-micro ${
-              saveStatus === 'saved' ? 'text-[var(--text-muted)]' :
-              saveStatus === 'saving' ? 'text-[var(--color-primary)]' :
-              'text-[var(--color-warning)]'
-            }`}>
-              {saveStatus === 'saved' ? 'SAVED' :
-               saveStatus === 'saving' ? 'SAVING...' :
-               'UNSAVED'}
-            </span>
-
-            {/* Theme toggle */}
-            <ThemeToggle />
-
-            {/* Page navigation */}
-            {scope === 'page' && (
-              <div className="flex items-center gap-2 type-meta">
-                <Tip content="Previous page (⌘⇧←)">
-                  <button
-                    onClick={() => navigateToPage('prev')}
-                    className="hover-glow disabled:opacity-30"
-                    disabled={getPagePositionInfo.currentPageNum <= 1}
-                  >
-                    ‹
-                  </button>
-                </Tip>
-                <span>
-                  PG {getPagePositionInfo.currentPageNum} OF {getPagePositionInfo.totalPages}
-                </span>
-                <Tip content="Next page (⌘⇧→)">
-                  <button
-                    onClick={() => navigateToPage('next')}
-                    className="hover-glow disabled:opacity-30"
-                    disabled={getPagePositionInfo.currentPageNum >= getPagePositionInfo.totalPages}
-                  >
-                    ›
-                  </button>
-                </Tip>
-                <span className="type-separator">{'\/\/'}</span>
-                <Tip content="Add new page">
-                  <button
-                    onClick={addPage}
-                    className="hover-lift hover:text-[var(--color-primary)]"
-                  >
-                    [+PG]
-                  </button>
-                </Tip>
-                <Tip content="Delete current page">
-                  <button
-                    onClick={deletePage}
-                    className="hover-fade-danger"
-                  >
-                    [-PG]
-                  </button>
-                </Tip>
-              </div>
-            )}
-          </div>
+      <div className="script-header">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => { await forceSaveAll(); onExit(); }}
+            className="hover-fade opacity-60"
+          >
+            ← ISSUE #{issue.number}
+          </button>
+          <span className="opacity-25">|</span>
+          <span className="opacity-80">{issue.series?.title || 'Untitled'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Scope selector */}
+          <select
+            value={scope}
+            onChange={(e) => setScope(e.target.value as Scope)}
+            className="border border-[var(--border)] px-2.5 py-1 rounded bg-transparent text-[10px] tracking-[1.5px] uppercase hover-glow"
+          >
+            <option value="page">Page</option>
+            <option value="scene">Scene</option>
+            <option value="act">Act</option>
+            <option value="issue">Full Issue</option>
+          </select>
+          {/* Copy */}
+          <button onClick={copyToClipboard} className="border border-[var(--border)] px-2.5 py-1 rounded hover-lift text-[10px] tracking-[1.5px] uppercase">
+            COPY
+          </button>
+          {/* Export */}
+          <button onClick={exportToPdf} className="border border-[var(--border)] px-2.5 py-1 rounded hover-lift text-[10px] tracking-[1.5px] uppercase">
+            EXPORT
+          </button>
+          {/* Save status */}
+          <span className={`text-[9px] tracking-[0.5px] ${saveStatus === 'saved' ? 'opacity-40' : saveStatus === 'saving' ? 'opacity-60' : 'text-[var(--color-warning)]'}`}>
+            {saveStatus === 'saved' ? 'SAVED' : saveStatus === 'saving' ? 'SAVING...' : 'UNSAVED'}
+          </span>
         </div>
       </div>
 
+      {/* Adaptive Toolbar — sticky below header */}
+      {activeEditor && activeEditor.variant !== 'sfx' && (
+        <div ref={toolbarRef} className="script-toolbar">
+          <ScriptEditorToolbar
+            editor={activeEditor.editor}
+            variant={activeEditor.variant}
+            contextLabel={activeEditor.contextLabel}
+          />
+        </div>
+      )}
+
       {/* Script content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-6 py-8">
+      <div ref={bodyRef} className="flex-1 overflow-y-auto" onBlurCapture={handleBodyFocusOut}>
+        <div className="script-body">
           {blocks.length === 0 ? (
             <div className="text-center text-[var(--text-muted)] py-20">
               <p className="type-section">No content to display</p>
@@ -1925,83 +1844,75 @@ export default function ScriptView({
             </div>
           ) : (
             <div className="space-y-1">
-              {blocks.map((block, index) => {
-                // Determine if this is the last block in its panel (for showing action bar)
-                const isLastBlockInPanel = (() => {
-                  if (!block.panelId) return false
-                  const nextBlock = blocks[index + 1]
-                  return !nextBlock || nextBlock.panelId !== block.panelId
-                })()
+              {(() => {
+                // Compute active block info once for all blocks
+                const activeBlock = activeEditor ? blocks.find(b => b.id === activeEditor.blockId) : null
+                const curActiveBlockId = activeEditor?.blockId ?? null
+                const curActiveBlockType = activeBlock?.type ?? null
+                const curActiveBlockPanelId = activeBlock?.panelId ?? null
 
-                // Determine if this is the last block in its page (for showing add panel button)
-                const isLastBlockInPage = (() => {
-                  if (!block.pageId) return false
-                  const nextBlock = blocks[index + 1]
-                  return !nextBlock || nextBlock.pageId !== block.pageId
-                })()
+                return blocks.map((block) => {
+                const isPanelLastBlock = block.panelId ? panelLastBlockId.get(block.panelId) === block.id : false
 
                 return (
-                  <ScriptBlockComponent
-                    key={block.id}
-                    block={block}
-                    characters={characters}
-                    isFocused={index === focusedBlockIndex}
-                    onFocus={() => {
-                      setFocusedBlockIndex(index)
-                      handleBlockFocus(block)
-                    }}
-                    onBlur={() => handleBlockBlur(block)}
-                    onChange={(content) => updateBlock(block.id, content)}
-                    onCharacterChange={(charId) => changeDialogueCharacter(block.id, charId)}
-                    onDialogueTypeChange={(newType) => changeDialogueType(block.id, newType)}
-                    onCaptionTypeChange={(newType) => changeCaptionType(block.id, newType)}
-                    onAddDialogue={block.panelId && block.pageId ? () => addDialogue(block.panelId!, block.pageId!) : undefined}
-                    onAddCaption={block.panelId && block.pageId ? () => addCaption(block.panelId!, block.pageId!) : undefined}
-                    onAddSfx={block.panelId && block.pageId ? () => addSoundEffect(block.panelId!, block.pageId!) : undefined}
-                    onAddPanel={block.pageId ? () => addPanel(block.pageId!) : undefined}
-                    onDeleteDialogue={block.type === 'dialogue' ? () => deleteDialogue(block.id) : undefined}
-                    onDeleteCaption={block.type === 'caption' ? () => deleteCaption(block.id) : undefined}
-                    onDeleteSfx={block.type === 'sfx' ? () => deleteSoundEffect(block.id) : undefined}
-                    onDeletePanel={block.panelId ? () => deletePanel(block.panelId!) : undefined}
-                    isLastBlockInPanel={isLastBlockInPanel}
-                    isLastBlockInPage={isLastBlockInPage}
-                    registerRef={(el) => {
-                      if (el) {
-                        blockRefs.current.set(block.id, el)
-                      } else {
-                        blockRefs.current.delete(block.id)
-                      }
-                    }}
-                  />
+                  <React.Fragment key={block.id}>
+                    <ScriptBlockComponent
+                      block={block}
+                      characters={characters}
+                      onFocus={() => handleBlockFocus(block)}
+                      onBlur={() => handleBlockBlur(block)}
+                      onChange={(content) => updateBlock(block.id, content)}
+                      onCharacterChange={(charId) => changeDialogueCharacter(block.id, charId)}
+                      onDialogueTypeChange={(newType) => changeDialogueType(block.id, newType)}
+                      onCaptionTypeChange={(newType) => changeCaptionType(block.id, newType)}
+                      onEditorFocus={handleEditorFocus}
+                      onRegisterEditor={registerEditor}
+                      onUnregisterEditor={unregisterEditor}
+                      activeBlockId={curActiveBlockId}
+                      activeBlockType={curActiveBlockType}
+                      activeBlockPanelId={curActiveBlockPanelId}
+                    />
+                    {isPanelLastBlock && block.panelId && (
+                      <div
+                        id={`quick-add-${block.panelId}`}
+                        className={`script-quick-add ${quickAddPanelId === block.panelId ? 'is-visible' : ''}`}
+                      >
+                        <span className="quick-add-key" onClick={() => handleQuickAdd('dialogue', block.panelId!, block.pageId!)}>
+                          <kbd>D</kbd> Dialogue
+                        </span>
+                        <span className="quick-add-separator">&middot;</span>
+                        <span className="quick-add-key" onClick={() => handleQuickAdd('caption', block.panelId!, block.pageId!)}>
+                          <kbd>C</kbd> Caption
+                        </span>
+                        <span className="quick-add-separator">&middot;</span>
+                        <span className="quick-add-key" onClick={() => handleQuickAdd('sfx', block.panelId!, block.pageId!)}>
+                          <kbd>S</kbd> SFX
+                        </span>
+                        <span className="quick-add-separator">&middot;</span>
+                        <span className="quick-add-key" onClick={() => handleQuickAdd('panel', block.panelId!, block.pageId!)}>
+                          <kbd>P</kbd> + Panel
+                        </span>
+                        <span className="quick-add-separator">&middot;</span>
+                        <span className="opacity-40">Tab → next panel</span>
+                      </div>
+                    )}
+                  </React.Fragment>
                 )
-              })}
+              })
+              })()}
             </div>
           )}
         </div>
       </div>
 
-      {/* Footer with hints */}
-      <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--bg-primary)]">
-        <div className="max-w-4xl mx-auto px-6 py-2 flex items-center justify-center text-[var(--text-secondary)] text-xs gap-6">
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘Z</kbd> Undo
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘⇧Z</kbd> Redo
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘S</kbd> Save
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘F</kbd> Find
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘⇧←/→</kbd> Prev/Next page
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">Esc</kbd> Exit
-          </span>
-        </div>
+      {/* Footer keyboard hints */}
+      <div className="script-footer">
+        <span><kbd>Tab</kbd> Next field</span>
+        <span><kbd>⌘S</kbd> Save</span>
+        <span><kbd>⌘Z</kbd> Undo</span>
+        <span><kbd>⌘F</kbd> Find</span>
+        <span><kbd>⌘⌫</kbd> Delete block</span>
+        <span><kbd>Esc</kbd> Exit</span>
       </div>
 
       {/* Find & Replace Modal */}
@@ -2027,60 +1938,47 @@ export default function ScriptView({
 interface ScriptBlockComponentProps {
   block: ScriptBlock
   characters: Character[]
-  isFocused: boolean
   onFocus: () => void
   onBlur: () => void
   onChange: (content: string) => void
   onCharacterChange?: (characterId: string | null) => void
   onDialogueTypeChange?: (newType: string) => void
   onCaptionTypeChange?: (newType: string) => void
-  onAddDialogue?: () => void
-  onAddCaption?: () => void
-  onAddSfx?: () => void
-  onAddPanel?: () => void
-  onDeleteDialogue?: () => void
-  onDeleteCaption?: () => void
-  onDeleteSfx?: () => void
-  onDeletePanel?: () => void
-  isLastBlockInPanel?: boolean
-  isLastBlockInPage?: boolean
-  registerRef: (el: HTMLTextAreaElement | HTMLInputElement | null) => void
+  onEditorFocus: (editor: Editor, blockId: string) => void
+  onRegisterEditor: (blockId: string, editor: Editor) => void
+  onUnregisterEditor: (blockId: string) => void
+  activeBlockId?: string | null
+  activeBlockType?: string | null
+  activeBlockPanelId?: string | null
 }
 
 const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   block,
   characters,
-  isFocused,
   onFocus,
   onBlur,
   onChange,
   onCharacterChange,
   onDialogueTypeChange,
   onCaptionTypeChange,
-  onAddDialogue,
-  onAddCaption,
-  onAddSfx,
-  onAddPanel,
-  onDeleteDialogue,
-  onDeleteCaption,
-  onDeleteSfx,
-  onDeletePanel,
-  isLastBlockInPanel,
-  isLastBlockInPage,
-  registerRef,
+  onEditorFocus,
+  onRegisterEditor,
+  onUnregisterEditor,
+  activeBlockId,
+  activeBlockType,
+  activeBlockPanelId,
 }: ScriptBlockComponentProps) {
+  const isActive = block.id === activeBlockId
   // Page header - non-editable
   if (block.type === 'page-header') {
     return (
-      <div className="mt-10 first:mt-0 mb-4">
-        <div className="border-b-2 border-[var(--text-primary)] pb-1 mb-1">
-          <div className="text-2xl font-black tracking-tight text-[var(--text-primary)] uppercase">
-            {block.content}
-          </div>
+      <div className="mb-6 mt-8 first:mt-0">
+        <div className="script-page-header">
+          PAGE {block.pageNumber} <span className="orientation">({block.orientation})</span>
         </div>
-        {block.actName && block.sceneName && (
-          <div className="type-meta mt-1">
-            {block.actName} <span className="type-separator">{'\/\/'}</span> {block.sceneName}
+        {(block.actName || block.sceneName) && (
+          <div className="script-context-line">
+            {block.actName}{block.actName && block.sceneName && ' // '}{block.sceneName}
           </div>
         )}
       </div>
@@ -2089,176 +1987,65 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
 
   // Visual description (with panel header)
   if (block.type === 'visual') {
+    const activePanelClass = activeBlockPanelId === block.panelId
+      ? `is-active-${activeBlockType === 'visual' ? 'description' : activeBlockType}`
+      : ''
     return (
-      <div className="mt-5 group/panel border-l-2 border-[var(--text-secondary)] pl-3">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="type-label text-[var(--text-primary)]">PNL {block.panelNumber}</span>
-          <span className="type-separator">{'\/\/'}</span>
-          <span className="type-label">VISUAL</span>
-          <Tip content="Delete this panel">
-            <button
-              onClick={onDeletePanel}
-              className="hover-fade-danger opacity-0 group-hover/panel:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
-            >
-              x
-            </button>
-          </Tip>
+      <div className="mt-5">
+        <div className={`script-panel-label ${activePanelClass}`}>
+          PANEL {block.panelNumber}
         </div>
-        <div className="relative">
+        <div id={`editor-${block.id}`} className={`script-block-description ${isActive ? 'is-active' : ''}`}>
           <ScriptEditor
             variant="description"
             initialContent={block.content || ''}
             onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
+            onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
+            onUnregisterEditor={() => onUnregisterEditor(block.id)}
+            hideToolbar={true}
             placeholder="Describe what we see in this panel..."
-            showWordCount
             className="script-view-editor"
           />
         </div>
-
-        {/* Action bar for adding content to this panel - shown after visual description */}
-        {isLastBlockInPanel && (
-          <div className="flex items-center gap-2 mt-2 ml-2">
-            <Tip content="Add dialogue to this panel">
-              <button
-                onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Dialogue
-              </button>
-            </Tip>
-            <Tip content="Add caption to this panel">
-              <button
-                onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Caption
-              </button>
-            </Tip>
-            <Tip content="Add sound effect to this panel">
-              <button
-                onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + SFX
-              </button>
-            </Tip>
-          </div>
-        )}
-
-        {/* Add Panel button at end of page */}
-        {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <Tip content="Add new panel to this page">
-              <button
-                onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              >
-                + Add Panel
-              </button>
-            </Tip>
-          </div>
-        )}
       </div>
     )
   }
 
   // Dialogue
   if (block.type === 'dialogue') {
-    // Build attribution label from dialogue type
-    const typeLabel = block.dialogueType === 'radio' || block.dialogueType === 'voice_over' ? ' (V.O.)'
-      : block.dialogueType === 'off_panel' ? ' (O.S.)'
-      : block.dialogueType === 'whisper' ? ' [WHISPERS]'
-      : block.dialogueType === 'thought' ? ' (THINKS)'
-      : block.dialogueType === 'shout' ? ' [SHOUTS]'
-      : block.dialogueType === 'electronic' ? ' (ELECTRONIC)'
-      : ''
-
     return (
-      <div className="mt-3 ml-8 group/dialogue border-l-2 border-[var(--color-primary)]/40 pl-3">
-        <div className="relative">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <CharacterAutocomplete
-              characters={characters}
-              selectedId={block.characterId || null}
-              onChange={(charId) => onCharacterChange?.(charId)}
-              placeholder="SELECT CHARACTER"
-            />
-            <TypeSelector
-              type="dialogue"
-              value={block.dialogueType || null}
-              onChange={(newType) => onDialogueTypeChange?.(newType)}
-            />
-            {typeLabel && (
-              <span className="text-[10px] text-[var(--text-muted)] font-mono">{typeLabel}</span>
-            )}
-            <Tip content="Delete this dialogue">
-              <button
-                onClick={onDeleteDialogue}
-                className="hover-fade-danger opacity-0 group-hover/dialogue:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1 ml-1"
-              >
-                x
-              </button>
-            </Tip>
-          </div>
+      <div className="script-block-dialogue">
+        <div className="speaker-label">
+          <CharacterAutocomplete
+            characters={characters}
+            selectedId={block.characterId || null}
+            onChange={(charId) => onCharacterChange?.(charId)}
+            placeholder="SELECT CHARACTER"
+          />
+          <TypeSelector
+            type="dialogue"
+            value={block.dialogueType || null}
+            onChange={(newType) => onDialogueTypeChange?.(newType)}
+          />
         </div>
-        <div className="relative">
+        <div id={`editor-${block.id}`} className={`dialogue-text ${isActive ? 'is-active' : ''}`}>
           <ScriptEditor
             variant="dialogue"
             initialContent={block.content || ''}
             onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
+            onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
+            onUnregisterEditor={() => onUnregisterEditor(block.id)}
+            hideToolbar={true}
             placeholder="Dialogue..."
-            showWordCount
             className="script-view-editor"
           />
         </div>
-
-        {/* Action bar for adding content to this panel */}
-        {isLastBlockInPanel && (
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <Tip content="Add dialogue to this panel">
-              <button
-                onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Dialogue
-              </button>
-            </Tip>
-            <Tip content="Add caption to this panel">
-              <button
-                onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Caption
-              </button>
-            </Tip>
-            <Tip content="Add sound effect to this panel">
-              <button
-                onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + SFX
-              </button>
-            </Tip>
-          </div>
-        )}
-
-        {/* Add Panel button at end of page */}
-        {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-[var(--border)] text-center">
-            <Tip content="Add new panel to this page">
-              <button
-                onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              >
-                + Add Panel
-              </button>
-            </Tip>
-          </div>
-        )}
       </div>
     )
   }
@@ -2266,79 +2053,29 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Caption
   if (block.type === 'caption') {
     return (
-      <div className="mt-3 ml-8 group/caption border-l-2 border-[var(--color-warning)]/40 pl-3">
-        <div className="flex items-center gap-1 mb-1">
-          <span className="text-[var(--color-warning)] text-xs uppercase tracking-wider font-mono font-bold">CAP</span>
-          <TypeSelector
+      <div className="script-block-caption">
+        <div className="caption-label">
+          CAP <TypeSelector
             type="caption"
             value={block.captionType || null}
             onChange={(newType) => onCaptionTypeChange?.(newType)}
           />
-          <Tip content="Delete this caption">
-            <button
-              onClick={onDeleteCaption}
-              className="hover-fade-danger opacity-0 group-hover/caption:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
-            >
-              ×
-            </button>
-          </Tip>
         </div>
-        <div className="relative">
+        <div id={`editor-${block.id}`} className={`caption-text ${isActive ? 'is-active' : ''}`}>
           <ScriptEditor
             variant="caption"
             initialContent={block.content || ''}
             onUpdate={(md) => onChange(md)}
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
+            onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
+            onUnregisterEditor={() => onUnregisterEditor(block.id)}
+            hideToolbar={true}
             placeholder="Caption text..."
-            showWordCount
             className="script-view-editor"
           />
         </div>
-
-        {/* Action bar for adding content to this panel */}
-        {isLastBlockInPanel && (
-          <div className="flex items-center gap-2 mt-2 ml-2">
-            <Tip content="Add dialogue to this panel">
-              <button
-                onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Dialogue
-              </button>
-            </Tip>
-            <Tip content="Add caption to this panel">
-              <button
-                onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Caption
-              </button>
-            </Tip>
-            <Tip content="Add sound effect to this panel">
-              <button
-                onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + SFX
-              </button>
-            </Tip>
-          </div>
-        )}
-
-        {/* Add Panel button at end of page */}
-        {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <Tip content="Add new panel to this page">
-              <button
-                onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              >
-                + Add Panel
-              </button>
-            </Tip>
-          </div>
-        )}
       </div>
     )
   }
@@ -2346,73 +2083,21 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Sound effect
   if (block.type === 'sfx') {
     return (
-      <div className="mt-2 ml-8 group/sfx border-l-2 border-[var(--accent-hover)]/40 pl-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[var(--accent-hover)] text-xs uppercase tracking-wider font-mono font-bold">SFX:</span>
-          <div className="flex-1">
-            <ScriptEditor
-              variant="sfx"
-              initialContent={block.content || ''}
-              onUpdate={(md) => onChange(md)}
-              onFocus={onFocus}
-              onBlur={() => onBlur?.()}
-              placeholder="Sound effect..."
-              className="script-view-editor script-view-editor--sfx"
-            />
-          </div>
-          <Tip content="Delete this sound effect">
-            <button
-              onClick={onDeleteSfx}
-              className="hover-fade-danger opacity-0 group-hover/sfx:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
-            >
-              ×
-            </button>
-          </Tip>
-        </div>
-
-        {/* Action bar for adding content to this panel */}
-        {isLastBlockInPanel && (
-          <div className="flex items-center gap-2 mt-2 ml-2">
-            <Tip content="Add dialogue to this panel">
-              <button
-                onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Dialogue
-              </button>
-            </Tip>
-            <Tip content="Add caption to this panel">
-              <button
-                onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + Caption
-              </button>
-            </Tip>
-            <Tip content="Add sound effect to this panel">
-              <button
-                onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              >
-                + SFX
-              </button>
-            </Tip>
-          </div>
-        )}
-
-        {/* Add Panel button at end of page */}
-        {isLastBlockInPage && (
-          <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <Tip content="Add new panel to this page">
-              <button
-                onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              >
-                + Add Panel
-              </button>
-            </Tip>
-          </div>
-        )}
+      <div id={`editor-${block.id}`} className="script-block-sfx">
+        <span className="sfx-text">SFX: </span>
+        <ScriptEditor
+          variant="sfx"
+          initialContent={block.content || ''}
+          onUpdate={(md) => onChange(md)}
+          onFocus={onFocus}
+          onBlur={() => onBlur?.()}
+          onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+          onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
+          onUnregisterEditor={() => onUnregisterEditor(block.id)}
+          hideToolbar={true}
+          placeholder="Sound effect..."
+          className="script-view-editor script-view-editor--sfx"
+        />
       </div>
     )
   }
