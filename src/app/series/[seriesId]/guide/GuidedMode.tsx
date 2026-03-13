@@ -384,21 +384,31 @@ export default function GuidedMode({
     const supabase = createClient()
 
     // Fetch messages for this session
-    const { data: msgs } = await supabase
+    const { data: msgs, error: msgsError } = await supabase
       .from('guided_messages')
       .select('*')
       .eq('session_id', sessionToResume.id)
       .order('created_at', { ascending: true })
+
+    if (msgsError) {
+      console.error('Failed to fetch guided messages:', msgsError)
+      showToast('Failed to load session messages', 'error')
+      return
+    }
 
     setSession(sessionToResume)
     setDisplayMessages((msgs || []).map((m: any) => ({ id: m.id, role: m.role, content: m.content })))
     setShowSessionPicker(false)
 
     // Update last_active_at
-    await supabase
+    const { error: updateError } = await supabase
       .from('guided_sessions')
       .update({ last_active_at: new Date().toISOString() })
       .eq('id', sessionToResume.id)
+
+    if (updateError) {
+      console.error('Failed to update session last_active_at:', updateError)
+    }
   }
 
   // Generate the initial AI message (streaming)
@@ -429,7 +439,7 @@ export default function GuidedMode({
 
       // Save assistant message to DB
       const supabase = createClient()
-      const { data: savedMessage } = await supabase
+      const { data: savedMessage, error: saveError } = await supabase
         .from('guided_messages')
         .insert({
           session_id: sessionId,
@@ -439,6 +449,10 @@ export default function GuidedMode({
         })
         .select()
         .single()
+
+      if (saveError) {
+        console.error('Failed to save initial assistant message:', saveError)
+      }
 
       // Finalize the message
       setDisplayMessages([{
@@ -469,7 +483,7 @@ export default function GuidedMode({
     const supabase = createClient()
 
     // Save user message
-    const { data: savedUserMessage } = await supabase
+    const { data: savedUserMessage, error: userMsgError } = await supabase
       .from('guided_messages')
       .insert({
         session_id: session.id,
@@ -478,6 +492,10 @@ export default function GuidedMode({
       })
       .select()
       .single()
+
+    if (userMsgError) {
+      console.error('Failed to save user message:', userMsgError)
+    }
 
     const userMsg: DisplayMessage = {
       id: savedUserMessage?.id || `msg-${Date.now()}`,
@@ -509,7 +527,7 @@ export default function GuidedMode({
       const result = await processSSEStream(response)
 
       // Save assistant message to DB
-      const { data: savedAssistantMessage } = await supabase
+      const { data: savedAssistantMessage, error: assistantMsgError } = await supabase
         .from('guided_messages')
         .insert({
           session_id: session.id,
@@ -519,6 +537,10 @@ export default function GuidedMode({
         })
         .select()
         .single()
+
+      if (assistantMsgError) {
+        console.error('Failed to save assistant message:', assistantMsgError)
+      }
 
       // Finalize the message
       setDisplayMessages(prev => [...prev, {
@@ -531,10 +553,14 @@ export default function GuidedMode({
       setStreamingToolProposals([])
 
       // Update session last_active_at
-      await supabase
+      const { error: sessionUpdateError } = await supabase
         .from('guided_sessions')
         .update({ last_active_at: new Date().toISOString() })
         .eq('id', session.id)
+
+      if (sessionUpdateError) {
+        console.error('Failed to update session last_active_at:', sessionUpdateError)
+      }
     } catch (error) {
       showToast('Failed to send message', 'error')
     } finally {
@@ -565,7 +591,7 @@ export default function GuidedMode({
     const shiftMessage = `I'd like to shift our focus to ${newFocus.replace(/_/g, ' ')}. Let's explore that area while keeping in mind what we've discussed so far.`
 
     // Save user message
-    const { data: savedUserMessage } = await supabase
+    const { data: savedUserMessage, error: shiftUserMsgError } = await supabase
       .from('guided_messages')
       .insert({
         session_id: session.id,
@@ -574,6 +600,10 @@ export default function GuidedMode({
       })
       .select()
       .single()
+
+    if (shiftUserMsgError) {
+      console.error('Failed to save shift focus user message:', shiftUserMsgError)
+    }
 
     setDisplayMessages(prev => [...prev, {
       id: savedUserMessage?.id || `msg-${Date.now()}`,
@@ -604,7 +634,7 @@ export default function GuidedMode({
       const result = await processSSEStream(response)
 
       // Save assistant message
-      const { data: savedAssistantMessage } = await supabase
+      const { data: savedAssistantMessage, error: shiftAssistantMsgError } = await supabase
         .from('guided_messages')
         .insert({
           session_id: session.id,
@@ -614,6 +644,10 @@ export default function GuidedMode({
         })
         .select()
         .single()
+
+      if (shiftAssistantMsgError) {
+        console.error('Failed to save shift focus assistant message:', shiftAssistantMsgError)
+      }
 
       setDisplayMessages(prev => [...prev, {
         id: savedAssistantMessage?.id || `msg-${Date.now()}`,
@@ -625,13 +659,17 @@ export default function GuidedMode({
       setStreamingToolProposals([])
 
       // Update session focus area
-      await supabase
+      const { error: focusUpdateError } = await supabase
         .from('guided_sessions')
         .update({
           focus_area: newFocus,
           session_type: newFocus,
         })
         .eq('id', session.id)
+
+      if (focusUpdateError) {
+        console.error('Failed to update session focus area:', focusUpdateError)
+      }
 
       setSession(prev => prev ? { ...prev, focus_area: newFocus, session_type: newFocus } : null)
     } catch (error) {

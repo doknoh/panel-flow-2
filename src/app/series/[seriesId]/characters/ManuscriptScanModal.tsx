@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { ScanLine, Loader2, X, UserPlus, Tag, EyeOff, Check, ChevronDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface DiscoveredName {
   name: string
@@ -44,6 +45,17 @@ export default function ManuscriptScanModal({
   const [addedCount, setAddedCount] = useState(0)
 
   const { showToast } = useToast()
+  const focusTrapRef = useFocusTrap(open)
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && state !== 'scanning') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, state, onClose])
 
   // Run scan on mount
   useEffect(() => {
@@ -237,7 +249,7 @@ export default function ManuscriptScanModal({
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
       {/* Dialog */}
-      <div className="relative bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 max-w-lg w-full mx-4 shadow-xl animate-in fade-in zoom-in-95 duration-150 max-h-[80vh] flex flex-col">
+      <div ref={focusTrapRef} className="relative bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 max-w-lg w-full mx-4 shadow-xl animate-in fade-in zoom-in-95 duration-150 max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

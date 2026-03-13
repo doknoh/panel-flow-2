@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FilingTarget } from './NotebookClient'
 import { X, ChevronRight, ChevronDown, Search, FileText } from 'lucide-react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface SendToPageModalProps {
   seriesId: string
@@ -22,6 +23,7 @@ export default function SendToPageModal({
   const [search, setSearch] = useState('')
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set())
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
+  const focusTrapRef = useFocusTrap(true)
 
   useEffect(() => {
     onLoadTargets()
@@ -110,8 +112,8 @@ export default function SendToPageModal({
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg w-full max-w-lg mx-4 max-h-[70vh] flex flex-col shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true">
+      <div ref={focusTrapRef} className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg w-full max-w-lg mx-4 max-h-[70vh] flex flex-col shadow-lg">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">

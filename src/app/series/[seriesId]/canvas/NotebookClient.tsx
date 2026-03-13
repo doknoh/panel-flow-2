@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/contexts/ToastContext'
 import NotebookItem from './NotebookItem'
 import NotebookListView from './NotebookListView'
 import NotebookCorkBoard from './NotebookCorkBoard'
@@ -117,6 +118,7 @@ export default function NotebookClient({
   const [filingItemId, setFilingItemId] = useState<string | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
 
+  const { showToast } = useToast()
   const supabase = createClient()
 
   // Load filing targets (issues -> scenes -> pages)
@@ -260,6 +262,8 @@ export default function NotebookClient({
 
   // Archive item
   const handleArchiveItem = useCallback(async (id: string) => {
+    if (!confirm('Archive this item? It will be moved to your archives.')) return
+
     setItems(prev => prev.filter(item => item.id !== id))
 
     const { error } = await supabase
@@ -270,8 +274,11 @@ export default function NotebookClient({
     if (error) {
       console.error('Error archiving canvas item:', error)
       setItems(initialItems)
+      showToast('Failed to archive item: ' + error.message, 'error')
+    } else {
+      showToast('Item archived', 'success')
     }
-  }, [supabase, initialItems])
+  }, [supabase, initialItems, showToast])
 
   // File item to a page
   const handleFileItem = useCallback(async (id: string, target: FilingTarget) => {

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { AIContext, WriterContext, WritingPhase } from './client'
 import { buildGateContext } from './curriculum'
+import { logger } from '@/lib/logger'
 
 const DB_TIMEOUT = 8000
 
@@ -42,7 +43,10 @@ export async function assembleWriterContext(
         .eq('user_id', userId)
         .single(),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch writer profile', { error: err instanceof Error ? err.message : String(err) });
+      return { data: null };
+    }),
 
     // 2. Recent conversation summaries
     withTimeout(
@@ -55,7 +59,10 @@ export async function assembleWriterContext(
         .order('updated_at', { ascending: false })
         .limit(5),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch conversation summaries', { error: err instanceof Error ? err.message : String(err) });
+      return { data: null };
+    }),
 
     // 3. Default personality preset
     withTimeout(
@@ -66,7 +73,10 @@ export async function assembleWriterContext(
         .eq('is_default', true)
         .single(),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch personality preset', { error: err instanceof Error ? err.message : String(err) });
+      return { data: null };
+    }),
 
     // 4. Series metadata
     withTimeout(
@@ -76,7 +86,10 @@ export async function assembleWriterContext(
         .eq('id', seriesId)
         .single(),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch series metadata', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
 
     // 5. Character names
     withTimeout(
@@ -86,7 +99,10 @@ export async function assembleWriterContext(
         .eq('series_id', seriesId)
         .limit(30),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch characters', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
 
     // 6. Plotline names
     withTimeout(
@@ -95,7 +111,10 @@ export async function assembleWriterContext(
         .select('name')
         .eq('series_id', seriesId),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch plotlines', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
 
     // 7. Issue count
     withTimeout(
@@ -104,7 +123,10 @@ export async function assembleWriterContext(
         .select('id', { count: 'exact', head: true })
         .eq('series_id', seriesId),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null, count: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch issue count', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null, count: null };
+    }),
 
     // 8. Current issue metadata (if issueId provided)
     issueId
@@ -115,7 +137,10 @@ export async function assembleWriterContext(
             .eq('id', issueId)
             .single(),
           DB_TIMEOUT,
-        ).catch(() => ({ data: null }))
+        ).catch((err) => {
+          logger.error('Failed to fetch current issue metadata', { error: err instanceof Error ? err.message : String(err), issueId });
+          return { data: null };
+        })
       : Promise.resolve({ data: null }),
   ])
 
@@ -233,7 +258,10 @@ export async function assembleContext(
         .eq('id', seriesId)
         .single(),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch series metadata (context)', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
 
     // Fetch characters (capped at 30)
     withTimeout(
@@ -243,7 +271,10 @@ export async function assembleContext(
         .eq('series_id', seriesId)
         .limit(30),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch characters (context)', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
 
     // Fetch locations (capped at 20)
     withTimeout(
@@ -253,7 +284,10 @@ export async function assembleContext(
         .eq('series_id', seriesId)
         .limit(20),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch locations (context)', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
 
     // Fetch plotlines
     withTimeout(
@@ -262,7 +296,10 @@ export async function assembleContext(
         .select('id, name, color, description')
         .eq('series_id', seriesId),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch plotlines (context)', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
 
     // Fetch canvas beats (unfiled, most recent)
     withTimeout(
@@ -276,7 +313,10 @@ export async function assembleContext(
         .order('created_at', { ascending: false })
         .limit(20),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch canvas items (context)', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
 
     // Fetch unresolved project notes
     withTimeout(
@@ -288,7 +328,10 @@ export async function assembleContext(
         .order('created_at', { ascending: false })
         .limit(20),
       DB_TIMEOUT,
-    ).catch(() => ({ data: null })),
+    ).catch((err) => {
+      logger.error('Failed to fetch project notes (context)', { error: err instanceof Error ? err.message : String(err), seriesId });
+      return { data: null };
+    }),
   ])
 
   const series = seriesResult.data
@@ -375,7 +418,10 @@ export async function assembleContext(
           .eq('id', issueId)
           .single(),
         DB_TIMEOUT,
-      ).catch(() => ({ data: null })),
+      ).catch((err) => {
+        logger.error('Failed to fetch issue metadata (context)', { error: err instanceof Error ? err.message : String(err), issueId });
+        return { data: null };
+      }),
 
       // 2. Acts with scenes structure
       withTimeout(
@@ -385,7 +431,10 @@ export async function assembleContext(
           .eq('issue_id', issueId)
           .order('number'),
         DB_TIMEOUT,
-      ).catch(() => ({ data: null })),
+      ).catch((err) => {
+        logger.error('Failed to fetch acts structure (context)', { error: err instanceof Error ? err.message : String(err), issueId });
+        return { data: null };
+      }),
 
       // 3. Full script text (writes directly to context.scriptText)
       assembleScriptText(supabase, issueId, context),
@@ -399,7 +448,10 @@ export async function assembleContext(
           .neq('id', issueId)
           .order('number'),
         DB_TIMEOUT,
-      ).catch(() => ({ data: null })),
+      ).catch((err) => {
+        logger.error('Failed to fetch other issues (context)', { error: err instanceof Error ? err.message : String(err), seriesId });
+        return { data: null };
+      }),
     ])
 
     // Process issue metadata

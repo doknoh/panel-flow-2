@@ -275,51 +275,51 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     const characterIds = issue.series.characters.map((c: any) => c.id)
     const locationIds = issue.series.locations.map((l: any) => l.id)
 
+    // Fetch character and location images in parallel
+    const [{ data: charImages }, { data: locImages }] = await Promise.all([
+      characterIds.length > 0
+        ? supabase
+            .from('image_attachments')
+            .select('*')
+            .eq('entity_type', 'character')
+            .in('entity_id', characterIds)
+            .order('is_primary', { ascending: false })
+            .order('sort_order', { ascending: true })
+        : Promise.resolve({ data: null }),
+      locationIds.length > 0
+        ? supabase
+            .from('image_attachments')
+            .select('*')
+            .eq('entity_type', 'location')
+            .in('entity_id', locationIds)
+            .order('is_primary', { ascending: false })
+            .order('sort_order', { ascending: true })
+        : Promise.resolve({ data: null }),
+    ])
+
     const allImages: VisualImage[] = []
 
-    // Fetch character images
-    if (characterIds.length > 0) {
-      const { data: charImages } = await supabase
-        .from('image_attachments')
-        .select('*')
-        .eq('entity_type', 'character')
-        .in('entity_id', characterIds)
-        .order('is_primary', { ascending: false })
-        .order('sort_order', { ascending: true })
-
-      if (charImages) {
-        for (const img of charImages) {
-          const character = issue.series.characters.find((c: any) => c.id === img.entity_id)
-          allImages.push({
-            ...img,
-            url: getImageUrl(img.storage_path),
-            entityName: character?.name || 'Unknown',
-            entityType: 'character',
-          })
-        }
+    if (charImages) {
+      for (const img of charImages) {
+        const character = issue.series.characters.find((c: any) => c.id === img.entity_id)
+        allImages.push({
+          ...img,
+          url: getImageUrl(img.storage_path),
+          entityName: character?.name || 'Unknown',
+          entityType: 'character',
+        })
       }
     }
 
-    // Fetch location images
-    if (locationIds.length > 0) {
-      const { data: locImages } = await supabase
-        .from('image_attachments')
-        .select('*')
-        .eq('entity_type', 'location')
-        .in('entity_id', locationIds)
-        .order('is_primary', { ascending: false })
-        .order('sort_order', { ascending: true })
-
-      if (locImages) {
-        for (const img of locImages) {
-          const location = issue.series.locations.find((l: any) => l.id === img.entity_id)
-          allImages.push({
-            ...img,
-            url: getImageUrl(img.storage_path),
-            entityName: location?.name || 'Unknown',
-            entityType: 'location',
-          })
-        }
+    if (locImages) {
+      for (const img of locImages) {
+        const location = issue.series.locations.find((l: any) => l.id === img.entity_id)
+        allImages.push({
+          ...img,
+          url: getImageUrl(img.storage_path),
+          entityName: location?.name || 'Unknown',
+          entityType: 'location',
+        })
       }
     }
 
