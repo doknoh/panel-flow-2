@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import { Tip } from '@/components/ui/Tip'
 
 // ============================================================================
 // Types
@@ -177,12 +178,14 @@ export default function ReadingView({
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]">
         <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
-          <Link
-            href={`/series/${seriesId}/issues/${issueId}`}
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors type-micro"
-          >
-            &larr; BACK TO EDITOR
-          </Link>
+          <Tip content="Return to issue editor">
+            <Link
+              href={`/series/${seriesId}/issues/${issueId}`}
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors type-micro hover-glow"
+            >
+              &larr; BACK TO EDITOR
+            </Link>
+          </Tip>
           <div className="flex items-center gap-3">
             <span className="type-micro text-[var(--text-muted)]">READING MODE</span>
             <ThemeToggle />

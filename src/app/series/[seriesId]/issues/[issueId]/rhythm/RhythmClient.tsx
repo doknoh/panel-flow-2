@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
+import { Tip } from '@/components/ui/Tip'
 import {
   analyzeIssueRhythm,
   getDensityColor,
@@ -39,13 +40,17 @@ export default function RhythmClient({
       <header className="border-b border-[var(--border)] bg-[var(--bg-secondary)]">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 text-sm text-[var(--text-muted)] mb-2">
-            <Link href={`/series/${seriesId}`} className="hover:text-[var(--text-primary)]">
-              {seriesTitle}
-            </Link>
+            <Tip content="Back to series home">
+              <Link href={`/series/${seriesId}`} className="hover:text-[var(--text-primary)] hover-glow">
+                {seriesTitle}
+              </Link>
+            </Tip>
             <span>/</span>
-            <Link href={`/series/${seriesId}/issues/${issueId}`} className="hover:text-[var(--text-primary)]">
-              Issue #{issueNumber}
-            </Link>
+            <Tip content="Back to issue editor">
+              <Link href={`/series/${seriesId}/issues/${issueId}`} className="hover:text-[var(--text-primary)] hover-glow">
+                Issue #{issueNumber}
+              </Link>
+            </Tip>
             <span>/</span>
             <span className="text-[var(--text-primary)]">Visual Rhythm</span>
           </div>
@@ -94,17 +99,17 @@ export default function RhythmClient({
               {/* Visual bar chart */}
               <div className="flex items-end gap-1 h-32 mb-4 overflow-x-auto pb-2">
                 {rhythm.pages.map((page) => (
-                  <div
-                    key={page.pageId}
-                    className="flex flex-col items-center min-w-[24px]"
-                  >
+                  <Tip key={page.pageId} content={`Page ${page.pageNumber}: ${page.panelCount} panels, ${page.wordCount} words`}>
                     <div
-                      className={`w-5 rounded-t transition-all ${getDensityColor(page.density)}`}
-                      style={{ height: `${Math.max(8, (page.panelCount / 10) * 100)}%` }}
-                      title={`Page ${page.pageNumber}: ${page.panelCount} panels, ${page.wordCount} words`}
-                    />
-                    <span className="text-xs text-[var(--text-muted)] mt-1">{page.pageNumber}</span>
-                  </div>
+                      className="flex flex-col items-center min-w-[24px]"
+                    >
+                      <div
+                        className={`w-5 rounded-t transition-all ${getDensityColor(page.density)}`}
+                        style={{ height: `${Math.max(8, (page.panelCount / 10) * 100)}%` }}
+                      />
+                      <span className="text-xs text-[var(--text-muted)] mt-1">{page.pageNumber}</span>
+                    </div>
+                  </Tip>
                 ))}
               </div>
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 import { formatDistanceToNow, format } from 'date-fns'
 import Link from 'next/link'
 import EmptyState from '@/components/ui/EmptyState'
@@ -276,15 +277,17 @@ export default function SessionList({ sessions: initialSessions, seriesId }: Ses
                               </span>
                               <span className="text-sm">{looseEnd.description}</span>
                             </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                resolveLooseEnd(looseEnd.id, session.id)
-                              }}
-                              className="text-xs bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded active:scale-[0.97] transition-all duration-150 ease-out"
-                            >
-                              Resolve
-                            </button>
+                            <Tip content="Mark this loose end as resolved">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  resolveLooseEnd(looseEnd.id, session.id)
+                                }}
+                                className="text-xs bg-[var(--border)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded hover-fade active:scale-[0.97] transition-all duration-150 ease-out"
+                              >
+                                Resolve
+                              </button>
+                            </Tip>
                           </div>
                         ))}
                         {resolvedLooseEnds.length > 0 && (
@@ -310,12 +313,14 @@ export default function SessionList({ sessions: initialSessions, seriesId }: Ses
                   {/* Link to issue */}
                   {session.issue && (
                     <div className="pt-2">
-                      <Link
-                        href={`/series/${seriesId}/issues/${session.issue.id}`}
-                        className="text-sm text-[var(--color-primary)] hover:text-[var(--accent-hover)]"
-                      >
-                        Go to Issue #{session.issue.number} →
-                      </Link>
+                      <Tip content={`Open Issue #${session.issue.number} in the editor`}>
+                        <Link
+                          href={`/series/${seriesId}/issues/${session.issue.id}`}
+                          className="text-sm text-[var(--color-primary)] hover:text-[var(--accent-hover)] hover-glow"
+                        >
+                          Go to Issue #{session.issue.number} →
+                        </Link>
+                      </Tip>
                     </div>
                   )}
                 </div>
