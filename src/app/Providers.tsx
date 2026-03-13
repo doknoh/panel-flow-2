@@ -1,5 +1,6 @@
 'use client'
 
+import * as Tooltip from '@radix-ui/react-tooltip'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { OfflineProvider } from '@/contexts/OfflineContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
@@ -9,12 +10,14 @@ import { ReactNode } from 'react'
 export default function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <OfflineProvider>
-          <AuthGuard />
-          {children}
-        </OfflineProvider>
-      </ToastProvider>
+      <Tooltip.Provider delayDuration={400} skipDelayDuration={100}>
+        <ToastProvider>
+          <OfflineProvider>
+            <AuthGuard />
+            {children}
+          </OfflineProvider>
+        </ToastProvider>
+      </Tooltip.Provider>
     </ThemeProvider>
   )
 }

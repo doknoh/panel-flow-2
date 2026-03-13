@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Tip } from '@/components/ui/Tip'
 
 interface Comment {
   id: string
@@ -306,30 +307,33 @@ export default function CommentsPanel({
                   </div>
                   <div className="flex items-center gap-1">
                     {!comment.resolved_at ? (
-                      <button
-                        onClick={() => handleResolve(comment.id)}
-                        className="text-xs text-[var(--text-muted)] hover:text-[var(--color-success)]"
-                        title="Mark as resolved"
-                      >
-                        ✓
-                      </button>
+                      <Tip content="Mark as resolved">
+                        <button
+                          onClick={() => handleResolve(comment.id)}
+                          className="text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] hover-fade"
+                        >
+                          ✓
+                        </button>
+                      </Tip>
                     ) : (
-                      <button
-                        onClick={() => handleUnresolve(comment.id)}
-                        className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                        title="Reopen"
-                      >
-                        ↩
-                      </button>
+                      <Tip content="Reopen">
+                        <button
+                          onClick={() => handleUnresolve(comment.id)}
+                          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade"
+                        >
+                          ↩
+                        </button>
+                      </Tip>
                     )}
                     {comment.user_id === currentUserId && (
-                      <button
-                        onClick={() => handleDelete(comment.id)}
-                        className="text-xs text-[var(--text-muted)] hover:text-[var(--color-error)]"
-                        title="Delete"
-                      >
-                        ×
-                      </button>
+                      <Tip content="Delete">
+                        <button
+                          onClick={() => handleDelete(comment.id)}
+                          className="text-xs text-[var(--text-muted)] hover:text-[var(--color-error)] hover-fade-danger"
+                        >
+                          ×
+                        </button>
+                      </Tip>
                     )}
                   </div>
                 </div>

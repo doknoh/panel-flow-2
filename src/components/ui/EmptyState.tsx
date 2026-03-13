@@ -40,7 +40,7 @@ export default function EmptyState({
       {actionLabel && actionHref && (
         <Link
           href={actionHref}
-          className="mt-2 type-meta px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-150 active:scale-[0.97]"
+          className="mt-2 type-meta px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift"
         >
           {actionLabel}
         </Link>
@@ -48,7 +48,7 @@ export default function EmptyState({
       {actionLabel && onAction && !actionHref && (
         <button
           onClick={onAction}
-          className="mt-2 type-meta px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-150 active:scale-[0.97]"
+          className="mt-2 type-meta px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift"
         >
           {actionLabel}
         </button>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { Tip } from '@/components/ui/Tip'
 
 interface Character {
   id: string
@@ -217,7 +218,7 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
             return (
               <div
                 key={stat.character.id}
-                className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4"
+                className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover-glow"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -277,16 +278,17 @@ export default function PowerRankings({ series }: PowerRankingsProps) {
                     <span className="text-[var(--text-secondary)]">Issues:</span>
                     <div className="flex gap-1">
                       {series.issues.map(issue => (
-                        <span
-                          key={issue.id}
-                          className={`px-2 py-0.5 rounded text-xs ${
-                            stat.issueAppearances.has(issue.number)
-                              ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]'
-                              : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
-                          }`}
-                        >
-                          #{issue.number}
-                        </span>
+                        <Tip key={issue.id} content={stat.issueAppearances.has(issue.number) ? `Appears in Issue #${issue.number}` : `Not in Issue #${issue.number}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs ${
+                              stat.issueAppearances.has(issue.number)
+                                ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]'
+                                : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
+                            }`}
+                          >
+                            #{issue.number}
+                          </span>
+                        </Tip>
                       ))}
                     </div>
                     <span className="text-[var(--text-secondary)] ml-auto">

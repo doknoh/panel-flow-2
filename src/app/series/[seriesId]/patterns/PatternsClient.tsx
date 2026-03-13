@@ -15,6 +15,7 @@ import {
   formatIssueRange,
 } from '@/lib/series-patterns'
 import Header from '@/components/ui/Header'
+import { Tip } from '@/components/ui/Tip'
 
 interface PatternsClientProps {
   seriesId: string
@@ -50,26 +51,30 @@ export default function PatternsClient({
         title="Patterns"
         maxWidth="max-w-7xl"
       >
-        <button
-          onClick={() => setViewMode('plotlines')}
-          className={`type-micro px-3 py-1 rounded border transition-colors ${
-            viewMode === 'plotlines'
-              ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
-              : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]'
-          }`}
-        >
-          Plotlines
-        </button>
-        <button
-          onClick={() => setViewMode('characters')}
-          className={`type-micro px-3 py-1 rounded border transition-colors ${
-            viewMode === 'characters'
-              ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
-              : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]'
-          }`}
-        >
-          Characters
-        </button>
+        <Tip content="View plotline weaving patterns">
+          <button
+            onClick={() => setViewMode('plotlines')}
+            className={`hover-glow type-micro px-3 py-1 rounded border ${
+              viewMode === 'plotlines'
+                ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
+                : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]'
+            }`}
+          >
+            Plotlines
+          </button>
+        </Tip>
+        <Tip content="View character appearance patterns">
+          <button
+            onClick={() => setViewMode('characters')}
+            className={`hover-glow type-micro px-3 py-1 rounded border ${
+              viewMode === 'characters'
+                ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
+                : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]'
+            }`}
+          >
+            Characters
+          </button>
+        </Tip>
       </Header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
@@ -112,16 +117,16 @@ export default function PatternsClient({
                                 {appearance ? (
                                   <div className="flex items-center justify-center">
                                     {appearance.isFirstAppearance && (
-                                      <span className="text-[var(--color-success)]" title="First Appearance">●</span>
+                                      <Tip content="First Appearance"><span className="text-[var(--color-success)]">●</span></Tip>
                                     )}
                                     {!appearance.isFirstAppearance && !appearance.isClimaxIssue && !appearance.isResolutionIssue && (
                                       <span className="text-[var(--color-primary)]">─</span>
                                     )}
                                     {appearance.isClimaxIssue && (
-                                      <span className="text-[var(--color-warning)]" title="Climax">*</span>
+                                      <Tip content="Climax"><span className="text-[var(--color-warning)]">*</span></Tip>
                                     )}
                                     {appearance.isResolutionIssue && (
-                                      <span className="text-[var(--accent-hover)]" title="Resolution">R</span>
+                                      <Tip content="Resolution"><span className="text-[var(--accent-hover)]">R</span></Tip>
                                     )}
                                   </div>
                                 ) : (
@@ -238,10 +243,11 @@ export default function PatternsClient({
                             const intensity = appearance ? getAppearanceIntensity(appearance) : 0
                             return (
                               <td key={num} className="text-center px-2 py-2">
-                                <div
-                                  className={`w-6 h-6 mx-auto rounded ${getIntensityColor(intensity)}`}
-                                  title={appearance ? `${appearance.totalAppearances} appearances` : 'Not present'}
-                                />
+                                <Tip content={appearance ? `${appearance.totalAppearances} appearances` : 'Not present'}>
+                                  <div
+                                    className={`w-6 h-6 mx-auto rounded ${getIntensityColor(intensity)}`}
+                                  />
+                                </Tip>
                               </td>
                             )
                           })}

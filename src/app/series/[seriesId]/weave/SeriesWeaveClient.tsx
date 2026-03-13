@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
@@ -312,7 +313,7 @@ export default function SeriesWeaveClient({
               plotlines
                 .sort((a, b) => a.sort_order - b.sort_order)
                 .map((plotline) => (
-                  <tr key={plotline.id} className="group">
+                  <tr key={plotline.id} className="group hover-glow">
                     {/* Plotline name */}
                     <td className="sticky left-0 bg-[var(--bg-primary)] z-10 p-3 border-b border-[var(--border)]">
                       <div className="flex items-center gap-2">
@@ -418,47 +419,55 @@ export default function SeriesWeaveClient({
                                     <span className="text-[var(--text-muted)]">×</span>
                                     <span>Issue #{issue.number}</span>
                                   </div>
-                                  <button
-                                    onClick={() => setEditingCell(null)}
-                                    className="text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
-                                    aria-label="Close editor"
-                                  >
-                                    ✕
-                                  </button>
+                                  <Tip content="Close">
+                                    <button
+                                      onClick={() => setEditingCell(null)}
+                                      className="text-[var(--text-muted)] hover-fade active:scale-[0.97] transition-all duration-150 ease-out"
+                                      aria-label="Close editor"
+                                    >
+                                      ✕
+                                    </button>
+                                  </Tip>
                                 </div>
 
                                 {/* Markers */}
                                 <div className="flex gap-2 mb-4">
-                                  <button
-                                    onClick={() => toggleMarker(plotline.id, issue.id, 'first_appearance')}
-                                    className={`px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
-                                      cellData.firstAppearance
-                                        ? 'bg-[var(--color-success)]/20 text-[var(--color-success)] border border-[var(--color-success)]'
-                                        : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
-                                    }`}
-                                  >
-                                    1st Appearance
-                                  </button>
-                                  <button
-                                    onClick={() => toggleMarker(plotline.id, issue.id, 'climax_issue')}
-                                    className={`px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
-                                      cellData.climax
-                                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500'
-                                        : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
-                                    }`}
-                                  >
-                                    Climax
-                                  </button>
-                                  <button
-                                    onClick={() => toggleMarker(plotline.id, issue.id, 'resolution_issue')}
-                                    className={`px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
-                                      cellData.resolution
-                                        ? 'bg-[var(--accent-hover)]/20 text-[var(--accent-hover)] border border-[var(--accent-hover)]'
-                                        : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
-                                    }`}
-                                  >
-                                    Resolution
-                                  </button>
+                                  <Tip content="Toggle first appearance marker">
+                                    <button
+                                      onClick={() => toggleMarker(plotline.id, issue.id, 'first_appearance')}
+                                      className={`px-3 py-1.5 rounded text-sm hover-fade active:scale-[0.97] transition-all duration-150 ease-out ${
+                                        cellData.firstAppearance
+                                          ? 'bg-[var(--color-success)]/20 text-[var(--color-success)] border border-[var(--color-success)]'
+                                          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
+                                      }`}
+                                    >
+                                      1st Appearance
+                                    </button>
+                                  </Tip>
+                                  <Tip content="Toggle climax marker">
+                                    <button
+                                      onClick={() => toggleMarker(plotline.id, issue.id, 'climax_issue')}
+                                      className={`px-3 py-1.5 rounded text-sm hover-fade active:scale-[0.97] transition-all duration-150 ease-out ${
+                                        cellData.climax
+                                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500'
+                                          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
+                                      }`}
+                                    >
+                                      Climax
+                                    </button>
+                                  </Tip>
+                                  <Tip content="Toggle resolution marker">
+                                    <button
+                                      onClick={() => toggleMarker(plotline.id, issue.id, 'resolution_issue')}
+                                      className={`px-3 py-1.5 rounded text-sm hover-fade active:scale-[0.97] transition-all duration-150 ease-out ${
+                                        cellData.resolution
+                                          ? 'bg-[var(--accent-hover)]/20 text-[var(--accent-hover)] border border-[var(--accent-hover)]'
+                                          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
+                                      }`}
+                                    >
+                                      Resolution
+                                    </button>
+                                  </Tip>
                                 </div>
 
                                 {/* Notes */}
@@ -491,7 +500,7 @@ export default function SeriesWeaveClient({
                                     </button>
                                     <button
                                       onClick={() => saveNotes(plotline.id, issue.id)}
-                                      className="px-3 py-1.5 text-sm bg-[var(--color-primary)] hover:opacity-90 rounded active:scale-[0.97] transition-all duration-150 ease-out"
+                                      className="px-3 py-1.5 text-sm bg-[var(--color-primary)] hover:opacity-90 hover-lift rounded"
                                     >
                                       Save
                                     </button>

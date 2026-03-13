@@ -2,6 +2,7 @@
 
 import React, { useRef, useCallback, useEffect, useState } from 'react'
 import { wrapSelection, parseMarkdownToReact, countWords, getWordCountClass } from '@/lib/markdown'
+import { Tip } from '@/components/ui/Tip'
 
 interface RichTextEditorProps {
   value: string
@@ -221,22 +222,24 @@ interface FormattingToolbarProps {
 export function FormattingToolbar({ onBold, onItalic, className = '' }: FormattingToolbarProps) {
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <button
-        type="button"
-        onClick={onBold}
-        className="p-1 text-xs text-[var(--text-muted)] hover:text-[var(--bg-elevated)] hover:bg-[var(--accent)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
-        title="Bold (Cmd+B)"
-      >
-        <strong>B</strong>
-      </button>
-      <button
-        type="button"
-        onClick={onItalic}
-        className="p-1 text-xs text-[var(--text-muted)] hover:text-[var(--bg-elevated)] hover:bg-[var(--accent)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
-        title="Italic (Cmd+I)"
-      >
-        <em>I</em>
-      </button>
+      <Tip content="Bold (Cmd+B)">
+        <button
+          type="button"
+          onClick={onBold}
+          className="p-1 text-xs text-[var(--text-muted)] hover:text-[var(--bg-elevated)] hover:bg-[var(--accent)] rounded hover-fade active:scale-[0.97] transition-all duration-150 ease-out"
+        >
+          <strong>B</strong>
+        </button>
+      </Tip>
+      <Tip content="Italic (Cmd+I)">
+        <button
+          type="button"
+          onClick={onItalic}
+          className="p-1 text-xs text-[var(--text-muted)] hover:text-[var(--bg-elevated)] hover:bg-[var(--accent)] rounded hover-fade active:scale-[0.97] transition-all duration-150 ease-out"
+        >
+          <em>I</em>
+        </button>
+      </Tip>
     </div>
   )
 }

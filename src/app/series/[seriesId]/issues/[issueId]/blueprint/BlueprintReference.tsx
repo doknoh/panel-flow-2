@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { Tip } from '@/components/ui/Tip'
 
 interface BlueprintReferenceProps {
   issue: any
@@ -195,16 +196,18 @@ export default function BlueprintReference({
               }
             }}
           />
-          <button
-            className="bp-send-btn"
-            onClick={() => {
-              if (chatInput.trim()) {
-                setChatInput('')
-              }
-            }}
-          >
-            &gt;
-          </button>
+          <Tip content="Send message">
+            <button
+              className="bp-send-btn hover-lift"
+              onClick={() => {
+                if (chatInput.trim()) {
+                  setChatInput('')
+                }
+              }}
+            >
+              &gt;
+            </button>
+          </Tip>
         </div>
       </div>
     </aside>

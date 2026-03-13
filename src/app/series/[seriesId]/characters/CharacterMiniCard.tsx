@@ -1,6 +1,7 @@
 'use client'
 
 import { Check } from 'lucide-react'
+import { Tip } from '@/components/ui/Tip'
 import type { CharacterWithStats } from '@/lib/character-stats'
 
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -40,7 +41,7 @@ export default function CharacterMiniCard({
 
   return (
     <div
-      className={`flex items-center gap-3 h-10 px-3 rounded border cursor-pointer transition-all duration-150 ${
+      className={`flex items-center gap-3 h-10 px-3 rounded border hover-glow ${
         isSelected
           ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
           : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--text-secondary)]'
@@ -66,16 +67,20 @@ export default function CharacterMiniCard({
       </span>
 
       {/* Role badge */}
-      <span
-        className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 ${roleStyle.bg} ${roleStyle.text}`}
-      >
-        {role}
-      </span>
+      <Tip content={`Role: ${role}`}>
+        <span
+          className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 hover-glow ${roleStyle.bg} ${roleStyle.text}`}
+        >
+          {role}
+        </span>
+      </Tip>
 
       {/* Panel count */}
-      <span className="text-xs font-medium text-[var(--text-muted)] tabular-nums shrink-0">
-        {totalPanels}
-      </span>
+      <Tip content={`${totalPanels} panels`}>
+        <span className="text-xs font-medium text-[var(--text-muted)] tabular-nums shrink-0">
+          {totalPanels}
+        </span>
+      </Tip>
     </div>
   )
 }

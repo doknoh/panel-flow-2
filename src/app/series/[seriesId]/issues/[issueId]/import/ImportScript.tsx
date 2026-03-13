@@ -29,6 +29,7 @@ import {
   type PageDiff,
 } from '@/lib/version-diff'
 import VersionDiff from '@/components/VersionDiff'
+import { Tip } from '@/components/ui/Tip'
 
 interface Character {
   id: string
@@ -1113,12 +1114,14 @@ ${pageContent}`,
           className="w-full h-64 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-4 py-3 text-sm font-mono resize-none focus:border-[var(--color-primary)] focus:outline-none"
         />
         {scriptText && (
-          <button
-            onClick={() => analyzeScript(scriptText)}
-            className="mt-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
-          >
-            Analyze Script
-          </button>
+          <Tip content="Detect format and structure of pasted script">
+            <button
+              onClick={() => analyzeScript(scriptText)}
+              className="mt-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium hover-lift"
+            >
+              Analyze Script
+            </button>
+          </Tip>
         )}
       </div>
     </div>
@@ -1204,7 +1207,7 @@ ${pageContent}`,
               <button
                 key={pattern.name}
                 onClick={() => setSelectedFormat(pattern)}
-                className={`text-left p-2 rounded text-sm ${
+                className={`text-left p-2 rounded text-sm hover-glow ${
                   selectedFormat?.name === pattern.name
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]/80'
@@ -1230,13 +1233,15 @@ ${pageContent}`,
         >
           ← Back
         </button>
-        <button
-          onClick={() => setCurrentStep('structure')}
-          disabled={!selectedFormat}
-          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
-        >
-          Continue to Structure →
-        </button>
+        <Tip content="Proceed to structure detection step">
+          <button
+            onClick={() => setCurrentStep('structure')}
+            disabled={!selectedFormat}
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift"
+          >
+            Continue to Structure →
+          </button>
+        </Tip>
       </div>
     </div>
   )
@@ -1257,13 +1262,15 @@ ${pageContent}`,
         </div>
 
         {!aiAnalysis && !isAnalyzingStructure && (
-          <button
-            onClick={analyzeStructureWithAI}
-            className="w-full bg-[var(--accent-hover)] hover:opacity-90 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-          >
-            <span>✨</span>
-            Analyze Structure with AI
-          </button>
+          <Tip content="Use AI to identify acts, scenes, and plotlines in your script">
+            <button
+              onClick={analyzeStructureWithAI}
+              className="w-full bg-[var(--accent-hover)] hover:opacity-90 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover-lift"
+            >
+              <span>✨</span>
+              Analyze Structure with AI
+            </button>
+          </Tip>
         )}
 
         {isAnalyzingStructure && (
@@ -1492,7 +1499,7 @@ ${pageContent}`,
             parseScript()
           }}
           disabled={isAnalyzingStructure}
-          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift"
         >
           Parse Script →
         </button>
@@ -1725,21 +1732,23 @@ ${pageContent}`,
                   <span className="text-sm text-[var(--text-secondary)]">
                     {page.panels.length} panel{page.panels.length !== 1 ? 's' : ''}
                   </span>
-                  <button
-                    onClick={() => addPanel(page.number)}
-                    className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded transition-opacity"
-                    title="Add panel"
-                  >
-                    + Panel
-                  </button>
-                  {parsedPages.length > 1 && (
+                  <Tip content="Add panel">
                     <button
-                      onClick={() => deletePage(page.number)}
-                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-error)] hover:opacity-90 rounded transition-opacity"
-                      title="Delete page"
+                      onClick={() => addPanel(page.number)}
+                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded hover-lift transition-opacity"
                     >
-                      ×
+                      + Panel
                     </button>
+                  </Tip>
+                  {parsedPages.length > 1 && (
+                    <Tip content="Delete page">
+                      <button
+                        onClick={() => deletePage(page.number)}
+                        className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-error)] hover:opacity-90 rounded hover-fade-danger transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </Tip>
                   )}
                 </div>
               </div>
@@ -1777,13 +1786,14 @@ ${pageContent}`,
                             </button>
                           )}
                           {page.panels.length > 1 && (
-                            <button
-                              onClick={() => deletePanel(page.number, panel.number)}
-                              className="text-xs px-2 py-0.5 bg-[var(--color-error)]/50 hover:bg-[var(--color-error)] rounded"
-                              title="Delete panel"
-                            >
-                              ×
-                            </button>
+                            <Tip content="Delete panel">
+                              <button
+                                onClick={() => deletePanel(page.number, panel.number)}
+                                className="text-xs px-2 py-0.5 bg-[var(--color-error)]/50 hover:bg-[var(--color-error)] rounded hover-fade-danger"
+                              >
+                                ×
+                              </button>
+                            </Tip>
                           )}
                         </div>
                       </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { format, differenceInDays, startOfDay, subDays } from 'date-fns'
 
 interface Session {
@@ -327,15 +328,15 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
           <div className="text-sm text-[var(--text-secondary)] mb-3">Last 30 Days Activity</div>
           <div className="flex items-end gap-1 h-16">
             {recentActivity.map((day, i) => (
-              <div
-                key={i}
-                className="flex-1 bg-[var(--color-primary)] rounded-t transition-all hover:opacity-80"
-                style={{
-                  height: `${Math.max((day.words / maxRecentWords) * 100, day.words > 0 ? 10 : 2)}%`,
-                  opacity: day.words > 0 ? 1 : 0.2,
-                }}
-                title={`${format(new Date(day.date), 'MMM d')}: ${day.words} words`}
-              />
+              <Tip key={i} content={`${format(new Date(day.date), 'MMM d')}: ${day.words} words`}>
+                <div
+                  className="flex-1 bg-[var(--color-primary)] rounded-t transition-all hover:opacity-80"
+                  style={{
+                    height: `${Math.max((day.words / maxRecentWords) * 100, day.words > 0 ? 10 : 2)}%`,
+                    opacity: day.words > 0 ? 1 : 0.2,
+                  }}
+                />
+              </Tip>
             ))}
           </div>
           <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-2">
@@ -402,7 +403,7 @@ export default function AnalyticsDashboard({ series, sessions }: AnalyticsDashbo
             </thead>
             <tbody>
               {stats.issueStats.map((issue) => (
-                <tr key={issue.id} className="border-b border-[var(--border)]/50 hover:bg-[var(--bg-tertiary)]/30">
+                <tr key={issue.id} className="border-b border-[var(--border)]/50 hover:bg-[var(--bg-tertiary)]/30 hover-glow">
                   <td className="px-4 py-3">
                     <span className="font-medium">#{issue.number}</span>
                     {issue.title && <span className="text-[var(--text-secondary)] ml-2">{issue.title}</span>}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import EmptyState from '@/components/ui/EmptyState'
@@ -177,7 +178,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as NoteType | 'ALL')}
-            className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm focus:border-[var(--accent-hover)] focus:outline-none"
+            className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm focus:border-[var(--accent-hover)] focus:outline-none hover-glow"
           >
             <option value="ALL">All Types</option>
             {NOTE_TYPES.map(type => (
@@ -189,7 +190,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
           <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded p-0.5">
             <button
               onClick={() => setFilterResolved('OPEN')}
-              className={`px-3 py-1 text-sm rounded ${
+              className={`px-3 py-1 text-sm rounded hover-glow ${
                 filterResolved === 'OPEN' ? 'bg-[var(--border)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
@@ -197,7 +198,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             </button>
             <button
               onClick={() => setFilterResolved('RESOLVED')}
-              className={`px-3 py-1 text-sm rounded ${
+              className={`px-3 py-1 text-sm rounded hover-glow ${
                 filterResolved === 'RESOLVED' ? 'bg-[var(--border)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
@@ -205,7 +206,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             </button>
             <button
               onClick={() => setFilterResolved('ALL')}
-              className={`px-3 py-1 text-sm rounded ${
+              className={`px-3 py-1 text-sm rounded hover-glow ${
                 filterResolved === 'ALL' ? 'bg-[var(--border)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
@@ -216,7 +217,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
 
         <button
           onClick={() => setIsCreating(true)}
-          className="bg-[var(--accent-hover)] hover:opacity-90 px-4 py-2 rounded text-sm font-medium"
+          className="bg-[var(--accent-hover)] hover:opacity-90 px-4 py-2 rounded text-sm font-medium hover-lift"
         >
           + Add Note
         </button>
@@ -247,7 +248,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={createNote}
-              className="bg-[var(--accent-hover)] hover:opacity-90 px-4 py-1.5 rounded text-sm font-medium"
+              className="bg-[var(--accent-hover)] hover:opacity-90 px-4 py-1.5 rounded text-sm font-medium hover-lift"
             >
               Save
             </button>
@@ -256,7 +257,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                 setIsCreating(false)
                 setNewNoteContent('')
               }}
-              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-1.5 text-sm"
+              className="text-[var(--text-secondary)] px-4 py-1.5 text-sm hover-fade"
             >
               Cancel
             </button>
@@ -288,32 +289,34 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
             return (
               <div
                 key={note.id}
-                className={`bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 ${
+                className={`bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover-glow ${
                   note.resolved ? 'opacity-60' : ''
                 }`}
               >
                 <div className="flex items-start gap-3">
                   {/* Checkbox */}
-                  <button
-                    onClick={() => toggleResolved(note)}
-                    className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
-                      note.resolved
-                        ? 'bg-[var(--color-success)] border-[var(--color-success)] text-[var(--text-primary)]'
-                        : 'border-[var(--text-muted)] hover:border-[var(--text-muted)]'
-                    }`}
-                    aria-label={note.resolved ? 'Mark as unresolved' : 'Mark as resolved'}
-                  >
+                  <Tip content={note.resolved ? 'Mark as unresolved' : 'Mark as resolved'}>
+                    <button
+                      onClick={() => toggleResolved(note)}
+                      className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 hover-fade ${
+                        note.resolved
+                          ? 'bg-[var(--color-success)] border-[var(--color-success)] text-[var(--text-primary)]'
+                          : 'border-[var(--text-muted)] hover:border-[var(--text-muted)]'
+                      }`}
+                      aria-label={note.resolved ? 'Mark as unresolved' : 'Mark as resolved'}
+                    >
                     {note.resolved && (
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     )}
-                  </button>
+                    </button>
+                  </Tip>
 
                   <div className="flex-1 min-w-0">
                     {/* Header */}
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`${typeInfo.color} text-[var(--text-primary)] text-xs px-2 py-0.5 rounded`}>
+                      <span className={`${typeInfo.color} text-[var(--text-primary)] text-xs px-2 py-0.5 rounded hover-glow`}>
                         {typeInfo.label}
                       </span>
                       <span className="text-[var(--text-muted)] text-xs">
@@ -339,13 +342,13 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => updateNote(note.id)}
-                            className="bg-[var(--accent-hover)] hover:opacity-90 px-3 py-1 rounded text-xs font-medium"
+                            className="bg-[var(--accent-hover)] hover:opacity-90 px-3 py-1 rounded text-xs font-medium hover-lift"
                           >
                             Save
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1 text-xs"
+                            className="text-[var(--text-secondary)] px-3 py-1 text-xs hover-fade"
                           >
                             Cancel
                           </button>
@@ -361,29 +364,31 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                   {/* Actions */}
                   {editingId !== note.id && (
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingId(note.id)
-                          setEditingContent(note.content)
-                        }}
-                        className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1"
-                        title="Edit"
-                        aria-label="Edit note"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => deleteNote(note.id)}
-                        className="text-[var(--text-muted)] hover:text-[var(--color-error)] p-1"
-                        title="Delete"
-                        aria-label="Delete note"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      <Tip content="Edit note">
+                        <button
+                          onClick={() => {
+                            setEditingId(note.id)
+                            setEditingContent(note.content)
+                          }}
+                          className="text-[var(--text-muted)] p-1 hover-fade"
+                          aria-label="Edit note"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </Tip>
+                      <Tip content="Delete note">
+                        <button
+                          onClick={() => deleteNote(note.id)}
+                          className="text-[var(--text-muted)] p-1 hover-fade-danger"
+                          aria-label="Delete note"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </Tip>
                     </div>
                   )}
                 </div>

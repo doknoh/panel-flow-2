@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
@@ -369,7 +370,7 @@ export default function VersionHistoryClient({
           <button
             key={item.id}
             onClick={() => handleSelectSnapshot(index)}
-            className={`w-full text-left p-4 rounded-lg border transition-colors ${
+            className={`w-full text-left p-4 rounded-lg border transition-colors hover-glow ${
               selectedIndex === index
                 ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]'
                 : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border)]'
@@ -407,13 +408,15 @@ export default function VersionHistoryClient({
                 <p className="text-sm text-[var(--text-secondary)]">{getSnapshotSummary(selectedSnapshot)}</p>
               </div>
               {selectedIndex !== 0 && (
-                <button
-                  onClick={() => handleRestore(selectedSnapshot)}
-                  disabled={isRestoring}
-                  className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded font-medium text-sm"
-                >
-                  {isRestoring ? 'Restoring...' : 'Restore This Version'}
-                </button>
+                <Tip content="Replace current content with this version (a backup will be saved)">
+                  <button
+                    onClick={() => handleRestore(selectedSnapshot)}
+                    disabled={isRestoring}
+                    className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded font-medium text-sm hover-lift"
+                  >
+                    {isRestoring ? 'Restoring...' : 'Restore This Version'}
+                  </button>
+                </Tip>
               )}
             </div>
 

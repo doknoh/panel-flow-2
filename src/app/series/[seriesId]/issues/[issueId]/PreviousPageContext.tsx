@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Tip } from '@/components/ui/Tip'
 
 interface DialogueBlock {
   speaker_name: string | null
@@ -55,10 +56,11 @@ export default function PreviousPageContext({ previousPage, sceneName }: Previou
 
   return (
     <div className="border-b border-[var(--border)] bg-gradient-to-r from-[var(--bg-secondary)]/80 to-transparent">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-2 flex items-center justify-between text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-      >
+      <Tip content={isExpanded ? 'Collapse previous page' : 'Expand previous page'}>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="hover-fade w-full px-4 py-2 flex items-center justify-between text-sm text-[var(--text-secondary)]"
+        >
         <span className="flex items-center gap-2">
           <span className="text-[var(--text-muted)]">←</span>
           <span className="font-medium">Page {previousPage.page_number}</span>
@@ -72,7 +74,8 @@ export default function PreviousPageContext({ previousPage, sceneName }: Previou
           )}
         </span>
         <span className="text-xs text-[var(--text-muted)]">{isExpanded ? '▲ Less' : '▼ More'}</span>
-      </button>
+        </button>
+      </Tip>
 
       {isExpanded && (
         <div className="px-4 pb-3 space-y-3 max-h-64 overflow-y-auto">

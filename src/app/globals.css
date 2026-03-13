@@ -301,6 +301,86 @@ body {
   color: var(--text-primary);
 }
 
+/* ── Hover Tiers ────────────────────────────────────────── */
+
+/* Tier 1 — Primary actions: buttons that trigger actions */
+.hover-lift {
+  cursor: pointer;
+  transition: all 150ms var(--ease-micro);
+}
+.hover-lift:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+.hover-lift:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+/* Tier 2 — Navigation & selection: things you click to go somewhere */
+.hover-glow {
+  cursor: pointer;
+  transition: all 150ms var(--ease-micro);
+}
+.hover-glow:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: 4px;
+}
+
+/* Tier 3 — Contextual: secondary actions, quiet feedback */
+.hover-fade {
+  cursor: pointer;
+  transition: color 150ms var(--ease-micro);
+}
+.hover-fade:hover {
+  color: var(--text-primary);
+}
+
+/* Tier 3 variant — Destructive: delete/remove actions */
+.hover-fade-danger {
+  cursor: pointer;
+  transition: color 150ms var(--ease-micro);
+}
+.hover-fade-danger:hover {
+  color: var(--color-error);
+}
+
+/* ── Tooltips ───────────────────────────────────────────── */
+
+.tip-content {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px color-mix(in srgb, black 30%, transparent);
+  animation: tooltip-enter 150ms var(--ease-out-expo);
+  z-index: 50;
+  max-width: 200px;
+}
+
+.tip-arrow {
+  fill: var(--bg-primary);
+}
+
+@keyframes tooltip-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* ============================================
    ANIMATIONS
    ============================================ */

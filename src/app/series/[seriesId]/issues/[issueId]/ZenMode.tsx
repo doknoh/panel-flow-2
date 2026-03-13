@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import ScriptEditor from '@/components/editor/ScriptEditor'
+import { Tip } from '@/components/ui/Tip'
 
 interface Panel {
   id: string
@@ -299,13 +300,14 @@ export default function ZenMode({
   if (!currentPanel) {
     return (
       <div className="zen-mode fixed inset-0 z-50 flex items-center justify-center bg-[var(--zen-bg)]">
-        <button
-          onClick={onExit}
-          className="absolute top-4 right-4 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none transition-colors"
-          title="Exit (Esc)"
-        >
-          &times;
-        </button>
+        <Tip content="Exit (Esc)">
+          <button
+            onClick={onExit}
+            className="hover-fade absolute top-4 right-4 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none"
+          >
+            &times;
+          </button>
+        </Tip>
         <div className="text-center">
           <p className="text-[17px] text-[var(--zen-ghost)] mb-4" style={{ fontFamily: "'Georgia', serif" }}>
             No panels on this page
@@ -324,18 +326,19 @@ export default function ZenMode({
       className="zen-mode fixed inset-0 z-50 flex flex-col overflow-hidden bg-[var(--zen-bg)]"
     >
       {/* Close button — bare x */}
-      <button
-        onClick={() => {
-          if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur()
-          }
-          setTimeout(() => onExit(), 50)
-        }}
-        className="absolute top-4 right-4 z-20 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none transition-colors"
-        title="Exit (Esc)"
-      >
-        &times;
-      </button>
+      <Tip content="Exit (Esc)">
+        <button
+          onClick={() => {
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur()
+            }
+            setTimeout(() => onExit(), 50)
+          }}
+          className="hover-fade absolute top-4 right-4 z-20 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none"
+        >
+          &times;
+        </button>
+      </Tip>
 
       {/* Header — centered, no border */}
       <div className="py-4 text-center">
@@ -362,20 +365,21 @@ export default function ZenMode({
           {/* Panel indicator dots */}
           <div className="flex items-center justify-center gap-1.5 mb-10">
             {panels.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  if (document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur()
-                  }
-                  setCurrentPanelIndex(i)
-                }}
-                className={`h-[3px] rounded-full transition-all ${
-                  i === currentPanelIndex
-                    ? 'w-[20px] bg-[var(--zen-accent)]'
-                    : 'w-[5px] bg-[var(--zen-dot)] hover:bg-[var(--zen-accent)]'
-                }`}
-              />
+              <Tip key={i} content={`Panel ${i + 1}`}>
+                <button
+                  onClick={() => {
+                    if (document.activeElement instanceof HTMLElement) {
+                      document.activeElement.blur()
+                    }
+                    setCurrentPanelIndex(i)
+                  }}
+                  className={`hover-glow h-[3px] rounded-full transition-all ${
+                    i === currentPanelIndex
+                      ? 'w-[20px] bg-[var(--zen-accent)]'
+                      : 'w-[5px] bg-[var(--zen-dot)] hover:bg-[var(--zen-accent)]'
+                  }`}
+                />
+              </Tip>
             ))}
           </div>
 

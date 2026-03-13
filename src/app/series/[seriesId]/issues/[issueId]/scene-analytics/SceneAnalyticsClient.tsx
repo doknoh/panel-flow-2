@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { Tip } from '@/components/ui/Tip'
 import {
   analyzeIssueScenes,
   SceneAnalysis,
@@ -95,13 +96,17 @@ export default function SceneAnalyticsClient({
       <header className="border-b border-[var(--border)] bg-[var(--bg-secondary)]">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 text-sm text-[var(--text-muted)] mb-2">
-            <Link href={`/series/${seriesId}`} className="hover:text-[var(--text-primary)]">
-              {seriesTitle}
-            </Link>
+            <Tip content="Back to series home">
+              <Link href={`/series/${seriesId}`} className="hover-glow">
+                {seriesTitle}
+              </Link>
+            </Tip>
             <span>/</span>
-            <Link href={`/series/${seriesId}/issues/${issueId}`} className="hover:text-[var(--text-primary)]">
-              Issue #{issueNumber}
-            </Link>
+            <Tip content="Back to issue editor">
+              <Link href={`/series/${seriesId}/issues/${issueId}`} className="hover-glow">
+                Issue #{issueNumber}
+              </Link>
+            </Tip>
             <span>/</span>
             <span className="text-[var(--text-primary)]">Scene Analytics</span>
           </div>
@@ -193,7 +198,7 @@ export default function SceneAnalyticsClient({
                     onClick={() => setExpandedScene(
                       expandedScene === analysis.metrics.sceneId ? null : analysis.metrics.sceneId
                     )}
-                    className="w-full p-4 text-left hover:bg-[var(--bg-tertiary)] transition-colors"
+                    className="w-full p-4 text-left hover:bg-[var(--bg-tertiary)] transition-colors hover-fade"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">

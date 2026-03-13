@@ -8,6 +8,7 @@ import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
 import PacingAnalyst from '@/components/PacingAnalyst'
 import ChatMessageContent from '@/components/ChatMessageContent'
 import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Tip } from '@/components/ui/Tip'
 import type { PageData } from '@/lib/pacing'
 
 // Image attachment type for visuals tab
@@ -939,28 +940,29 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       {/* Tab Navigation */}
       <div className="flex gap-0 mb-4 border-b border-[var(--border)] shrink-0">
         {([
-          { key: 'context', label: 'CTX' },
-          { key: 'characters', label: 'CHAR' },
-          { key: 'locations', label: 'LOC' },
-          { key: 'visuals', label: 'VIS' },
-          { key: 'alerts', label: 'ALRT' },
-          { key: 'pacing', label: 'PACE' },
-          { key: 'ai', label: 'AI' },
-        ] as const).map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex-1 py-2 px-1 type-micro transition-colors relative ${
-              activeTab === key
-                ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            {label}
-            {key === 'alerts' && activeAlerts.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-warning)]" aria-label={`${activeAlerts.length} alerts`} />
-            )}
-          </button>
+          { key: 'context', label: 'CTX', tip: 'Context' },
+          { key: 'characters', label: 'CHAR', tip: 'Characters' },
+          { key: 'locations', label: 'LOC', tip: 'Locations' },
+          { key: 'visuals', label: 'VIS', tip: 'Visuals' },
+          { key: 'alerts', label: 'ALRT', tip: 'Alerts' },
+          { key: 'pacing', label: 'PACE', tip: 'Pacing' },
+          { key: 'ai', label: 'AI', tip: 'AI Chat' },
+        ] as const).map(({ key, label, tip }) => (
+          <Tip key={key} content={tip} side="bottom">
+            <button
+              onClick={() => setActiveTab(key)}
+              className={`hover-glow flex-1 py-2 px-1 type-micro relative ${
+                activeTab === key
+                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              {label}
+              {key === 'alerts' && activeAlerts.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-warning)]" aria-label={`${activeAlerts.length} alerts`} />
+              )}
+            </button>
+          </Tip>
         ))}
       </div>
 
@@ -989,12 +991,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="type-label">ISSUE CONTEXT</h3>
-                <button
-                  onClick={() => setIsEditingContext(!isEditingContext)}
-                  className="text-xs text-[var(--color-primary)] hover:opacity-80"
-                >
-                  {isEditingContext ? 'Cancel' : 'Edit'}
-                </button>
+                <Tip content={isEditingContext ? 'Cancel editing' : 'Edit context'}>
+                  <button
+                    onClick={() => setIsEditingContext(!isEditingContext)}
+                    className="hover-fade text-xs text-[var(--color-primary)] hover:opacity-80"
+                  >
+                    {isEditingContext ? 'Cancel' : 'Edit'}
+                  </button>
+                </Tip>
               </div>
 
               {isEditingContext ? (
@@ -1102,13 +1106,15 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       <option value="END">End (Act 3)</option>
                     </select>
                   </div>
-                  <button
-                    onClick={saveContext}
-                    disabled={saving}
-                    className="w-full bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] py-2 rounded text-sm sticky bottom-0"
-                  >
-                    {saving ? 'Saving...' : 'Save Context'}
-                  </button>
+                  <Tip content="Save issue context">
+                    <button
+                      onClick={saveContext}
+                      disabled={saving}
+                      className="hover-lift w-full bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] py-2 rounded text-sm sticky bottom-0"
+                    >
+                      {saving ? 'Saving...' : 'Save Context'}
+                    </button>
+                  </Tip>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm max-h-80 overflow-y-auto">
@@ -1180,37 +1186,39 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             {/* Status */}
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
               <h3 className="type-label mb-3">STATUS</h3>
-              <select
-                value={localStatus}
-                onChange={async (e) => {
-                  const newStatus = e.target.value
-                  const previousStatus = localStatus
+              <Tip content="Issue status">
+                <select
+                  value={localStatus}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value
+                    const previousStatus = localStatus
 
-                  // Optimistic update FIRST
-                  setLocalStatus(newStatus)
+                    // Optimistic update FIRST
+                    setLocalStatus(newStatus)
 
-                  // Then persist to database
-                  const supabase = createClient()
-                  const { error } = await supabase
-                    .from('issues')
-                    .update({ status: newStatus })
-                    .eq('id', issue.id)
+                    // Then persist to database
+                    const supabase = createClient()
+                    const { error } = await supabase
+                      .from('issues')
+                      .update({ status: newStatus })
+                      .eq('id', issue.id)
 
-                  if (error) {
-                    // Rollback on error
-                    setLocalStatus(previousStatus)
-                    showToast('Failed to update status', 'error')
-                  } else {
-                    onRefresh?.()
-                  }
-                }}
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
-              >
-                <option value="outline">Outline</option>
-                <option value="drafting">Drafting</option>
-                <option value="revision">Revision</option>
-                <option value="complete">Complete</option>
-              </select>
+                    if (error) {
+                      // Rollback on error
+                      setLocalStatus(previousStatus)
+                      showToast('Failed to update status', 'error')
+                    } else {
+                      onRefresh?.()
+                    }
+                  }}
+                  className="hover-glow w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
+                >
+                  <option value="outline">Outline</option>
+                  <option value="drafting">Drafting</option>
+                  <option value="revision">Revision</option>
+                  <option value="complete">Complete</option>
+                </select>
+              </Tip>
             </div>
           </div>
         )}
@@ -1224,16 +1232,18 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => setSelectedCharacterId(null)}
-                    className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)]"
                   >
                     <span>←</span> Back
                   </button>
-                  <a
-                    href={`/series/${issue.series.id}/characters`}
-                    className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors"
-                  >
-                    Edit on Characters Page →
-                  </a>
+                  <Tip content="Go to character page">
+                    <a
+                      href={`/series/${issue.series.id}/characters`}
+                      className="hover-fade text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                    >
+                      Edit on Characters Page →
+                    </a>
+                  </Tip>
                 </div>
 
                 {/* Character name + role header */}
@@ -1326,7 +1336,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       No character details yet.{' '}
                       <a
                         href={`/series/${issue.series.id}/characters`}
-                        className="text-[var(--color-primary)] hover:underline"
+                        className="hover-fade text-[var(--color-primary)] hover:underline"
                       >
                         Add them on the Characters page.
                       </a>
@@ -1352,19 +1362,20 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         </div>
                         <div className="space-y-1">
                           {pageCharacters.map((char: any) => (
-                            <button
-                              key={char.id}
-                              onClick={() => setSelectedCharacterId(char.id)}
-                              className="w-full text-left bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 rounded p-3 transition-colors group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm">{char.name}</div>
-                                <span className="text-[var(--color-primary)]/50 group-hover:text-[var(--color-primary)] transition-colors">→</span>
-                              </div>
-                              {char.role && (
-                                <div className="text-xs text-[var(--color-primary)]/70">{char.role}</div>
-                              )}
-                            </button>
+                            <Tip key={char.id} content="View character details">
+                              <button
+                                onClick={() => setSelectedCharacterId(char.id)}
+                                className="hover-glow w-full text-left bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 rounded p-3 group"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium text-sm">{char.name}</div>
+                                  <span className="hover-fade text-[var(--color-primary)]/50 group-hover:text-[var(--color-primary)]">→</span>
+                                </div>
+                                {char.role && (
+                                  <div className="text-xs text-[var(--color-primary)]/70">{char.role}</div>
+                                )}
+                              </button>
+                            </Tip>
                           ))}
                         </div>
                       </div>
@@ -1379,19 +1390,20 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         </div>
                         <div className="space-y-1">
                           {sceneCharacters.map((char: any) => (
-                            <button
-                              key={char.id}
-                              onClick={() => setSelectedCharacterId(char.id)}
-                              className="w-full text-left bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/15 border border-[var(--color-success)]/20 rounded p-3 transition-colors group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm text-[var(--text-primary)]">{char.name}</div>
-                                <span className="text-[var(--color-success)]/50 group-hover:text-[var(--color-success)] transition-colors">→</span>
-                              </div>
-                              {char.role && (
-                                <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
-                              )}
-                            </button>
+                            <Tip key={char.id} content="View character details">
+                              <button
+                                onClick={() => setSelectedCharacterId(char.id)}
+                                className="hover-glow w-full text-left bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/15 border border-[var(--color-success)]/20 rounded p-3 group"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium text-sm text-[var(--text-primary)]">{char.name}</div>
+                                  <span className="hover-fade text-[var(--color-success)]/50 group-hover:text-[var(--color-success)]">→</span>
+                                </div>
+                                {char.role && (
+                                  <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
+                                )}
+                              </button>
+                            </Tip>
                           ))}
                         </div>
                       </div>
@@ -1402,12 +1414,12 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       <div>
                         <button
                           onClick={() => setShowAllCharacters(prev => !prev)}
-                          className="flex items-center gap-2 mb-2 group"
+                          className="hover-lift flex items-center gap-2 mb-2 group"
                         >
-                          <span className="text-xs text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
+                          <span className="text-xs text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
                             {showAllCharacters ? '▾' : '▸'}
                           </span>
-                          <h3 className="type-label text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
+                          <h3 className="type-label text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
                             All Characters
                           </h3>
                           <span className="text-xs text-[var(--text-muted)]">({otherCharacters.length})</span>
@@ -1415,19 +1427,20 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         {showAllCharacters && (
                           <div className="space-y-1">
                             {otherCharacters.map((char: any) => (
-                              <button
-                                key={char.id}
-                                onClick={() => setSelectedCharacterId(char.id)}
-                                className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="font-medium text-sm">{char.name}</div>
-                                  <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
-                                </div>
-                                {char.role && (
-                                  <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
-                                )}
-                              </button>
+                              <Tip key={char.id} content="View character details">
+                                <button
+                                  onClick={() => setSelectedCharacterId(char.id)}
+                                  className="hover-glow w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 group"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="font-medium text-sm">{char.name}</div>
+                                    <span className="hover-fade text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">→</span>
+                                  </div>
+                                  {char.role && (
+                                    <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
+                                  )}
+                                </button>
+                              </Tip>
                             ))}
                           </div>
                         )}
@@ -1455,7 +1468,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               <div className="space-y-3">
                 <button
                   onClick={() => setSelectedLocationId(null)}
-                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)]"
                 >
                   <span>←</span> Back to list
                 </button>
@@ -1516,7 +1529,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                   {/* Delete button */}
                   <button
                     onClick={() => deleteLocation(selectedLocation.id)}
-                    className="w-full mt-4 px-3 py-2 text-sm text-[var(--color-error)] hover:opacity-80 hover:bg-[var(--color-error)]/10 rounded transition-colors"
+                    className="hover-fade-danger w-full mt-4 px-3 py-2 text-sm text-[var(--color-error)] hover:opacity-80 hover:bg-[var(--color-error)]/10 rounded transition-colors"
                   >
                     Delete Location
                   </button>
@@ -1538,11 +1551,11 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       <button
                         key={loc.id}
                         onClick={() => setSelectedLocationId(loc.id)}
-                        className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
+                        className="hover-glow w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 group"
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-medium text-sm">{loc.name}</div>
-                          <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                          <span className="hover-fade text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">→</span>
                         </div>
                       </button>
                     ))}
@@ -1560,7 +1573,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             <div className="flex gap-1 mb-3 bg-[var(--bg-secondary)] rounded p-1 shrink-0">
               <button
                 onClick={() => setVisualsFilter('all')}
-                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'all'
                     ? 'bg-[var(--color-success)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1570,7 +1583,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               </button>
               <button
                 onClick={() => setVisualsFilter('characters')}
-                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'characters'
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1580,7 +1593,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               </button>
               <button
                 onClick={() => setVisualsFilter('locations')}
-                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'locations'
                     ? 'bg-[var(--accent-hover)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1596,7 +1609,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               <div className="flex flex-col h-full">
                 <button
                   onClick={() => setSelectedVisual(null)}
-                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2 shrink-0"
+                  className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)] mb-2 shrink-0"
                 >
                   <span>←</span> Back to gallery
                 </button>
@@ -1641,12 +1654,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                 <p className="text-[var(--text-muted)] text-xs mt-1">
                   Add images from the Characters or Locations pages
                 </p>
-                <button
-                  onClick={fetchVisuals}
-                  className="mt-3 text-xs text-[var(--color-success)] hover:text-[var(--color-success-hover,var(--color-success))]"
-                >
-                  Refresh
-                </button>
+                <Tip content="Refresh visuals">
+                  <button
+                    onClick={fetchVisuals}
+                    className="hover-fade mt-3 text-xs text-[var(--color-success)] hover:text-[var(--color-success-hover,var(--color-success))]"
+                  >
+                    Refresh
+                  </button>
+                </Tip>
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto">
@@ -1655,7 +1670,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     <button
                       key={visual.id}
                       onClick={() => setSelectedVisual(visual)}
-                      className="relative aspect-square rounded-lg overflow-hidden group border-2 border-transparent hover:border-[var(--color-success)]/50 transition-all"
+                      className="hover-glow relative aspect-square rounded-lg overflow-hidden group border-2 border-transparent hover:border-[var(--color-success)]/50 transition-all"
                     >
                       <img
                         src={visual.url}
@@ -1693,7 +1708,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               {dismissedAlerts.size > 0 && (
                 <button
                   onClick={clearDismissed}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  className="hover-fade text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 >
                   Show dismissed ({dismissedAlerts.size})
                 </button>
@@ -1739,13 +1754,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         </div>
                         <p className="text-xs text-[var(--text-secondary)]">{alert.details}</p>
                       </div>
-                      <button
-                        onClick={() => dismissAlert(alert.id)}
-                        className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-sm shrink-0"
-                        title="Dismiss"
-                      >
-                        ×
-                      </button>
+                      <Tip content="Dismiss">
+                        <button
+                          onClick={() => dismissAlert(alert.id)}
+                          className="hover-fade text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-sm shrink-0"
+                        >
+                          ×
+                        </button>
+                      </Tip>
                     </div>
                   </div>
                 ))}
@@ -1755,7 +1771,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             <div className="pt-4 border-t border-[var(--border)]">
               <a
                 href={`/series/${issue.series.id}/continuity`}
-                className="text-xs text-[var(--color-primary)] hover:opacity-80"
+                className="hover-fade text-xs text-[var(--color-primary)] hover:opacity-80"
               >
                 Run full continuity check →
               </a>
@@ -1854,7 +1870,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                                 setChatInput(lastUserMsg.content)
                               }
                             }}
-                            className="mt-2 text-xs text-[var(--color-primary)] hover:underline"
+                            className="hover-fade mt-2 text-xs text-[var(--color-primary)] hover:underline"
                           >
                             Retry
                           </button>
@@ -1870,27 +1886,28 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                             <p className="type-console whitespace-pre-wrap">{msg.content}</p>
                           )}
                           {msg.role === 'assistant' && (
-                            <button
-                              onClick={async () => {
-                                const supabase = createClient()
-                                const { error } = await supabase
-                                  .from('project_notes')
-                                  .insert({
-                                    series_id: issue.series.id,
-                                    type: 'AI_INSIGHT',
-                                    content: msg.content.slice(0, 500),
-                                  })
-                                if (error) {
-                                  showToast('Failed to save note', 'error')
-                                } else {
-                                  showToast('Saved to project notes', 'success')
-                                }
-                              }}
-                              className="mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                              title="Save this insight to Project Notes"
-                            >
-                              Save to Notes
-                            </button>
+                            <Tip content="Save to project notes">
+                              <button
+                                onClick={async () => {
+                                  const supabase = createClient()
+                                  const { error } = await supabase
+                                    .from('project_notes')
+                                    .insert({
+                                      series_id: issue.series.id,
+                                      type: 'AI_INSIGHT',
+                                      content: msg.content.slice(0, 500),
+                                    })
+                                  if (error) {
+                                    showToast('Failed to save note', 'error')
+                                  } else {
+                                    showToast('Saved to project notes', 'success')
+                                  }
+                                }}
+                                className="hover-lift mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                              >
+                                Save to Notes
+                              </button>
+                            </Tip>
                           )}
                         </>
                       )}
@@ -1934,14 +1951,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                                     <button
                                       onClick={() => handleToolProposal(proposal, true, i)}
                                       disabled={isLoading}
-                                      className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50"
+                                      className="hover-lift flex-1 py-1.5 px-3 rounded text-xs font-medium bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50"
                                     >
                                       Confirm
                                     </button>
                                     <button
                                       onClick={() => handleToolProposal(proposal, false, i)}
                                       disabled={isLoading}
-                                      className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className="hover-fade flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       Skip
                                     </button>
@@ -2034,13 +2051,15 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     el.style.height = Math.min(el.scrollHeight, 128) + 'px'
                   }}
                 />
-                <button
-                  onClick={sendMessage}
-                  disabled={isLoading || !chatInput.trim()}
-                  className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] px-4 py-2 rounded text-sm shrink-0"
-                >
-                  Send
-                </button>
+                <Tip content="Send message">
+                  <button
+                    onClick={sendMessage}
+                    disabled={isLoading || !chatInput.trim()}
+                    className="hover-lift bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] px-4 py-2 rounded text-sm shrink-0"
+                  >
+                    Send
+                  </button>
+                </Tip>
               </div>
             </div>
           </div>

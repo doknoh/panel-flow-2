@@ -16,6 +16,7 @@ import {
 } from '@/lib/markdown'
 import ScriptEditor from '@/components/editor/ScriptEditor'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import { Tip } from '@/components/ui/Tip'
 
 // ============================================================================
 // Types
@@ -1803,16 +1804,17 @@ export default function ScriptView({
       <div className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-primary)]">
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
-              onClick={async () => {
-                await forceSaveAll()
-                onExit()
-              }}
-              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              title="Exit Script View (Esc)"
-            >
-              ← Exit
-            </button>
+            <Tip content="Exit Script View (Esc)">
+              <button
+                onClick={async () => {
+                  await forceSaveAll()
+                  onExit()
+                }}
+                className="hover-fade text-[var(--text-secondary)]"
+              >
+                ← Exit
+              </button>
+            </Tip>
             <span className="text-[var(--text-disabled)]">|</span>
             <span className="text-[var(--text-secondary)] text-sm">
               {issue.series?.title} • Issue #{issue.number}
@@ -1834,20 +1836,22 @@ export default function ScriptView({
 
             {/* Export options */}
             <div className="flex items-center gap-1">
-              <button
-                onClick={copyToClipboard}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
-                title="Copy script to clipboard"
-              >
-                COPY
-              </button>
-              <button
-                onClick={exportToPdf}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
-                title="Export to PDF"
-              >
-                PDF
-              </button>
+              <Tip content="Copy script to clipboard">
+                <button
+                  onClick={copyToClipboard}
+                  className="hover-lift text-[var(--text-secondary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                >
+                  COPY
+                </button>
+              </Tip>
+              <Tip content="Export to PDF">
+                <button
+                  onClick={exportToPdf}
+                  className="hover-lift text-[var(--text-secondary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                >
+                  PDF
+                </button>
+              </Tip>
             </div>
 
             {/* Save status */}
@@ -1867,38 +1871,44 @@ export default function ScriptView({
             {/* Page navigation */}
             {scope === 'page' && (
               <div className="flex items-center gap-2 type-meta">
-                <button
-                  onClick={() => navigateToPage('prev')}
-                  className="hover:text-[var(--text-primary)] disabled:opacity-30"
-                  disabled={getPagePositionInfo.currentPageNum <= 1}
-                >
-                  ‹
-                </button>
+                <Tip content="Previous page (⌘⇧←)">
+                  <button
+                    onClick={() => navigateToPage('prev')}
+                    className="hover-glow disabled:opacity-30"
+                    disabled={getPagePositionInfo.currentPageNum <= 1}
+                  >
+                    ‹
+                  </button>
+                </Tip>
                 <span>
                   PG {getPagePositionInfo.currentPageNum} OF {getPagePositionInfo.totalPages}
                 </span>
-                <button
-                  onClick={() => navigateToPage('next')}
-                  className="hover:text-[var(--text-primary)] disabled:opacity-30"
-                  disabled={getPagePositionInfo.currentPageNum >= getPagePositionInfo.totalPages}
-                >
-                  ›
-                </button>
+                <Tip content="Next page (⌘⇧→)">
+                  <button
+                    onClick={() => navigateToPage('next')}
+                    className="hover-glow disabled:opacity-30"
+                    disabled={getPagePositionInfo.currentPageNum >= getPagePositionInfo.totalPages}
+                  >
+                    ›
+                  </button>
+                </Tip>
                 <span className="type-separator">{'\/\/'}</span>
-                <button
-                  onClick={addPage}
-                  className="hover:text-[var(--color-primary)] transition-colors"
-                  title="Add new page"
-                >
-                  [+PG]
-                </button>
-                <button
-                  onClick={deletePage}
-                  className="hover:text-[var(--color-error)] transition-colors"
-                  title="Delete current page"
-                >
-                  [-PG]
-                </button>
+                <Tip content="Add new page">
+                  <button
+                    onClick={addPage}
+                    className="hover-lift hover:text-[var(--color-primary)]"
+                  >
+                    [+PG]
+                  </button>
+                </Tip>
+                <Tip content="Delete current page">
+                  <button
+                    onClick={deletePage}
+                    className="hover-fade-danger"
+                  >
+                    [-PG]
+                  </button>
+                </Tip>
               </div>
             )}
           </div>
@@ -2085,13 +2095,14 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           <span className="type-label text-[var(--text-primary)]">PNL {block.panelNumber}</span>
           <span className="type-separator">{'\/\/'}</span>
           <span className="type-label">VISUAL</span>
-          <button
-            onClick={onDeletePanel}
-            className="opacity-0 group-hover/panel:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1"
-            title="Delete this panel"
-          >
-            x
-          </button>
+          <Tip content="Delete this panel">
+            <button
+              onClick={onDeletePanel}
+              className="hover-fade-danger opacity-0 group-hover/panel:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
+            >
+              x
+            </button>
+          </Tip>
         </div>
         <div className="relative">
           <ScriptEditor
@@ -2109,40 +2120,44 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
         {/* Action bar for adding content to this panel - shown after visual description */}
         {isLastBlockInPanel && (
           <div className="flex items-center gap-2 mt-2 ml-2">
-            <button
-              onClick={onAddDialogue}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add dialogue to this panel"
-            >
-              + Dialogue
-            </button>
-            <button
-              onClick={onAddCaption}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add caption to this panel"
-            >
-              + Caption
-            </button>
-            <button
-              onClick={onAddSfx}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add sound effect to this panel"
-            >
-              + SFX
-            </button>
+            <Tip content="Add dialogue to this panel">
+              <button
+                onClick={onAddDialogue}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + Dialogue
+              </button>
+            </Tip>
+            <Tip content="Add caption to this panel">
+              <button
+                onClick={onAddCaption}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + Caption
+              </button>
+            </Tip>
+            <Tip content="Add sound effect to this panel">
+              <button
+                onClick={onAddSfx}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + SFX
+              </button>
+            </Tip>
           </div>
         )}
 
         {/* Add Panel button at end of page */}
         {isLastBlockInPage && (
           <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <button
-              onClick={onAddPanel}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              title="Add new panel to this page"
-            >
-              + Add Panel
-            </button>
+            <Tip content="Add new panel to this page">
+              <button
+                onClick={onAddPanel}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
+              >
+                + Add Panel
+              </button>
+            </Tip>
           </div>
         )}
       </div>
@@ -2178,13 +2193,14 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             {typeLabel && (
               <span className="text-[10px] text-[var(--text-muted)] font-mono">{typeLabel}</span>
             )}
-            <button
-              onClick={onDeleteDialogue}
-              className="opacity-0 group-hover/dialogue:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1 ml-1"
-              title="Delete this dialogue"
-            >
-              x
-            </button>
+            <Tip content="Delete this dialogue">
+              <button
+                onClick={onDeleteDialogue}
+                className="hover-fade-danger opacity-0 group-hover/dialogue:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1 ml-1"
+              >
+                x
+              </button>
+            </Tip>
           </div>
         </div>
         <div className="relative">
@@ -2203,40 +2219,44 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
         {/* Action bar for adding content to this panel */}
         {isLastBlockInPanel && (
           <div className="flex items-center justify-center gap-2 mt-2">
-            <button
-              onClick={onAddDialogue}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add dialogue to this panel"
-            >
-              + Dialogue
-            </button>
-            <button
-              onClick={onAddCaption}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add caption to this panel"
-            >
-              + Caption
-            </button>
-            <button
-              onClick={onAddSfx}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add sound effect to this panel"
-            >
-              + SFX
-            </button>
+            <Tip content="Add dialogue to this panel">
+              <button
+                onClick={onAddDialogue}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + Dialogue
+              </button>
+            </Tip>
+            <Tip content="Add caption to this panel">
+              <button
+                onClick={onAddCaption}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + Caption
+              </button>
+            </Tip>
+            <Tip content="Add sound effect to this panel">
+              <button
+                onClick={onAddSfx}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + SFX
+              </button>
+            </Tip>
           </div>
         )}
 
         {/* Add Panel button at end of page */}
         {isLastBlockInPage && (
           <div className="mt-6 pt-4 border-t border-[var(--border)] text-center">
-            <button
-              onClick={onAddPanel}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              title="Add new panel to this page"
-            >
-              + Add Panel
-            </button>
+            <Tip content="Add new panel to this page">
+              <button
+                onClick={onAddPanel}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
+              >
+                + Add Panel
+              </button>
+            </Tip>
           </div>
         )}
       </div>
@@ -2254,13 +2274,14 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             value={block.captionType || null}
             onChange={(newType) => onCaptionTypeChange?.(newType)}
           />
-          <button
-            onClick={onDeleteCaption}
-            className="opacity-0 group-hover/caption:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1"
-            title="Delete this caption"
-          >
-            ×
-          </button>
+          <Tip content="Delete this caption">
+            <button
+              onClick={onDeleteCaption}
+              className="hover-fade-danger opacity-0 group-hover/caption:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
+            >
+              ×
+            </button>
+          </Tip>
         </div>
         <div className="relative">
           <ScriptEditor
@@ -2278,40 +2299,44 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
         {/* Action bar for adding content to this panel */}
         {isLastBlockInPanel && (
           <div className="flex items-center gap-2 mt-2 ml-2">
-            <button
-              onClick={onAddDialogue}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add dialogue to this panel"
-            >
-              + Dialogue
-            </button>
-            <button
-              onClick={onAddCaption}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add caption to this panel"
-            >
-              + Caption
-            </button>
-            <button
-              onClick={onAddSfx}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add sound effect to this panel"
-            >
-              + SFX
-            </button>
+            <Tip content="Add dialogue to this panel">
+              <button
+                onClick={onAddDialogue}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + Dialogue
+              </button>
+            </Tip>
+            <Tip content="Add caption to this panel">
+              <button
+                onClick={onAddCaption}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + Caption
+              </button>
+            </Tip>
+            <Tip content="Add sound effect to this panel">
+              <button
+                onClick={onAddSfx}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + SFX
+              </button>
+            </Tip>
           </div>
         )}
 
         {/* Add Panel button at end of page */}
         {isLastBlockInPage && (
           <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <button
-              onClick={onAddPanel}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              title="Add new panel to this page"
-            >
-              + Add Panel
-            </button>
+            <Tip content="Add new panel to this page">
+              <button
+                onClick={onAddPanel}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
+              >
+                + Add Panel
+              </button>
+            </Tip>
           </div>
         )}
       </div>
@@ -2335,52 +2360,57 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
               className="script-view-editor script-view-editor--sfx"
             />
           </div>
-          <button
-            onClick={onDeleteSfx}
-            className="opacity-0 group-hover/sfx:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1"
-            title="Delete this sound effect"
-          >
-            ×
-          </button>
+          <Tip content="Delete this sound effect">
+            <button
+              onClick={onDeleteSfx}
+              className="hover-fade-danger opacity-0 group-hover/sfx:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
+            >
+              ×
+            </button>
+          </Tip>
         </div>
 
         {/* Action bar for adding content to this panel */}
         {isLastBlockInPanel && (
           <div className="flex items-center gap-2 mt-2 ml-2">
-            <button
-              onClick={onAddDialogue}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add dialogue to this panel"
-            >
-              + Dialogue
-            </button>
-            <button
-              onClick={onAddCaption}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add caption to this panel"
-            >
-              + Caption
-            </button>
-            <button
-              onClick={onAddSfx}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-              title="Add sound effect to this panel"
-            >
-              + SFX
-            </button>
+            <Tip content="Add dialogue to this panel">
+              <button
+                onClick={onAddDialogue}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + Dialogue
+              </button>
+            </Tip>
+            <Tip content="Add caption to this panel">
+              <button
+                onClick={onAddCaption}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + Caption
+              </button>
+            </Tip>
+            <Tip content="Add sound effect to this panel">
+              <button
+                onClick={onAddSfx}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+              >
+                + SFX
+              </button>
+            </Tip>
           </div>
         )}
 
         {/* Add Panel button at end of page */}
         {isLastBlockInPage && (
           <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <button
-              onClick={onAddPanel}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
-              title="Add new panel to this page"
-            >
-              + Add Panel
-            </button>
+            <Tip content="Add new panel to this page">
+              <button
+                onClick={onAddPanel}
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
+              >
+                + Add Panel
+              </button>
+            </Tip>
           </div>
         )}
       </div>

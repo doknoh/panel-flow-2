@@ -21,6 +21,7 @@ import {
   Target,
   X
 } from 'lucide-react'
+import { Tip } from '@/components/ui/Tip'
 
 interface Session {
   id: string
@@ -300,11 +301,11 @@ export default function DeadlineDashboard({ seriesId, issues, sessions }: Deadli
             const projected = projectCompletion(issue, velocity)
 
             return (
-              <div
-                key={issue.id}
-                className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] transition-colors cursor-pointer"
-                onClick={() => setEditingIssue(issue)}
-              >
+              <Tip key={issue.id} content="Click to edit deadline and target pages">
+                <div
+                  className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover-glow"
+                  onClick={() => setEditingIssue(issue)}
+                >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <span className="text-lg font-bold">#{issue.number}</span>
@@ -345,6 +346,7 @@ export default function DeadlineDashboard({ seriesId, issues, sessions }: Deadli
                   )}
                 </div>
               </div>
+              </Tip>
             )
           })}
         </div>
@@ -386,9 +388,11 @@ function DeadlineEditor({
       >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold">Edit Deadline — Issue #{issue.number}</h3>
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-            <X className="w-5 h-5" />
-          </button>
+          <Tip content="Close without saving">
+            <button onClick={onClose} className="text-[var(--text-muted)] hover-fade">
+              <X className="w-5 h-5" />
+            </button>
+          </Tip>
         </div>
 
         <div className="space-y-4">
@@ -425,20 +429,22 @@ function DeadlineEditor({
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="px-4 py-2 text-[var(--text-secondary)] hover-fade"
           >
             Cancel
           </button>
-          <button
-            onClick={() => onSave(
-              deadline || null,
-              targetPages ? parseInt(targetPages) : null
-            )}
-            disabled={saving}
-            className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <Tip content="Save deadline and target page count">
+            <button
+              onClick={() => onSave(
+                deadline || null,
+                targetPages ? parseInt(targetPages) : null
+              )}
+              disabled={saving}
+              className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 hover-lift"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </Tip>
         </div>
       </div>
     </div>

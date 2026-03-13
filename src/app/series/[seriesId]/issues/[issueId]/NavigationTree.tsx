@@ -32,6 +32,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronRight } from 'lucide-react'
 import { getSelectionGroups, GroupPosition } from '@/lib/selection-groups'
+import { Tip } from '@/components/ui/Tip'
 
 interface Plotline {
   id: string
@@ -2117,13 +2118,14 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       <ConfirmDialog {...dialogProps} />
       <div className="flex items-center justify-between mb-3">
         <h3 className="type-label">STRUCTURE</h3>
-        <button
-          onClick={addAct}
-          className="type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-          title="Add act"
-        >
-          + Act
-        </button>
+        <Tip content="Add new act">
+          <button
+            onClick={addAct}
+            className="hover-lift type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          >
+            + Act
+          </button>
+        </Tip>
       </div>
 
       {sortedActs.length === 0 ? (
@@ -2132,7 +2134,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           <p className="type-meta mb-4">Acts organize your issue into beginning, middle, and end.</p>
           <button
             onClick={addAct}
-            className="type-micro border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out"
+            className="hover-lift type-micro border border-[var(--border)] text-[var(--text-secondary)] px-3 py-1.5"
           >
             Create First Act
           </button>
@@ -2199,7 +2201,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                         }}
                         onContextMenu={(e) => handleContextMenu(e, 'act', act.id, act.name || `Act ${act.number}`)}
                       >
-                        <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedActs.has(act.id) ? 'rotate-90' : ''}`} />
+                        <ChevronRight className={`hover-fade w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedActs.has(act.id) ? 'rotate-90' : ''}`} />
                         {editingItemId === act.id ? (
                           <input
                             ref={editInputRef}
@@ -2215,7 +2217,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                           />
                         ) : (
                           <span
-                            className="type-label text-[var(--text-primary)] flex-1"
+                            className="hover-glow type-label text-[var(--text-primary)] flex-1"
                             style={{ fontSize: '0.8125rem' }}
                             onDoubleClick={(e) => {
                               e.stopPropagation()
@@ -2225,25 +2227,29 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                             {act.name || `Act ${act.number}`}
                           </span>
                         )}
-                        <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{actPageCount} pg</span>
-                        <button
-                          data-context-trigger
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (contextMenu?.id === act.id && contextMenu?.type === 'act') {
-                              closeContextMenu()
-                            } else {
-                              const rect = e.currentTarget.getBoundingClientRect()
-                              setContextMenu({ x: rect.left, y: rect.bottom, type: 'act', id: act.id, title: act.name || `Act ${act.number}` })
-                              setContextSubmenu(null)
-                            }
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-tertiary)] transition-opacity text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                          aria-label="Act options"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
-                        </button>
+                        <Tip content="Pages in act">
+                          <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{actPageCount} pg</span>
+                        </Tip>
+                        <Tip content="More options">
+                          <button
+                            data-context-trigger
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (contextMenu?.id === act.id && contextMenu?.type === 'act') {
+                                closeContextMenu()
+                              } else {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                setContextMenu({ x: rect.left, y: rect.bottom, type: 'act', id: act.id, title: act.name || `Act ${act.number}` })
+                                setContextSubmenu(null)
+                              }
+                            }}
+                            className="hover-fade opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-tertiary)] transition-opacity text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                            aria-label="Act options"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+                          </button>
+                        </Tip>
                       </div>
 
                       {/* Expanded Act Content */}
@@ -2280,7 +2286,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                       }}
                                       onContextMenu={(e) => handleContextMenu(e, 'scene', scene.id, scene.title || 'Untitled Scene')}
                                     >
-                                      <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedScenes.has(scene.id) ? 'rotate-90' : ''}`} />
+                                      <ChevronRight className={`hover-fade w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 transition-transform duration-150 ${expandedScenes.has(scene.id) ? 'rotate-90' : ''}`} />
                                       {editingItemId === scene.id ? (
                                         <input
                                           ref={editInputRef}
@@ -2294,35 +2300,41 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                           autoFocus
                                         />
                                       ) : (
-                                        <span
-                                          className="text-xs font-bold text-[var(--text-primary)] flex-1 truncate"
-                                          onDoubleClick={(e) => {
-                                            e.stopPropagation()
-                                            startEditing(scene.id, scene.title || 'Untitled Scene')
-                                          }}
-                                        >
-                                          {scene.title || 'Untitled Scene'}
-                                        </span>
+                                        <Tip content={scene.title || 'Untitled scene'}>
+                                          <span
+                                            className="hover-glow text-xs font-bold text-[var(--text-primary)] flex-1 truncate"
+                                            onDoubleClick={(e) => {
+                                              e.stopPropagation()
+                                              startEditing(scene.id, scene.title || 'Untitled Scene')
+                                            }}
+                                          >
+                                            {scene.title || 'Untitled Scene'}
+                                          </span>
+                                        </Tip>
                                       )}
-                                      <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{scenePageCount} pg</span>
-                                      <button
-                                        data-context-trigger
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          if (contextMenu?.id === scene.id && contextMenu?.type === 'scene') {
-                                            closeContextMenu()
-                                          } else {
-                                            const rect = e.currentTarget.getBoundingClientRect()
-                                            setContextMenu({ x: rect.left, y: rect.bottom, type: 'scene', id: scene.id, title: scene.title || 'Untitled Scene' })
-                                            setContextSubmenu(null)
-                                          }
-                                        }}
-                                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-tertiary)] transition-opacity text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                                        aria-label="Scene options"
-                                      >
-                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
-                                      </button>
+                                      <Tip content="Pages in scene">
+                                        <span className="ml-auto type-micro tabular-nums text-[var(--text-muted)]">{scenePageCount} pg</span>
+                                      </Tip>
+                                      <Tip content="More options">
+                                        <button
+                                          data-context-trigger
+                                          onPointerDown={(e) => e.stopPropagation()}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            if (contextMenu?.id === scene.id && contextMenu?.type === 'scene') {
+                                              closeContextMenu()
+                                            } else {
+                                              const rect = e.currentTarget.getBoundingClientRect()
+                                              setContextMenu({ x: rect.left, y: rect.bottom, type: 'scene', id: scene.id, title: scene.title || 'Untitled Scene' })
+                                              setContextSubmenu(null)
+                                            }
+                                          }}
+                                          className="hover-fade opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-tertiary)] transition-opacity text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                                          aria-label="Scene options"
+                                        >
+                                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+                                        </button>
+                                      </Tip>
                                     </div>
 
                                     {/* Expanded Scene Content - Pages */}
@@ -2366,38 +2378,42 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       autoFocus
                                                     />
                                                   ) : (
-                                                    <span className="text-xs flex-1 truncate">
+                                                    <span className="hover-glow text-xs flex-1 truncate">
                                                       <span className="font-bold">{`Page ${pagePositionMap.get(page.id) || '?'}`}</span>
                                                       {page.title && !page.title.match(/^Page \d+$/i) && (
                                                         <span className="font-normal text-[var(--text-muted)]">: {page.title}</span>
                                                       )}
                                                     </span>
                                                   )}
-                                                  <span className={`type-micro tabular-nums ${isSelected && selectedIds.size === 0 ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
-                                                    {panelCount} pnl
-                                                  </span>
-                                                  <button
-                                                    data-context-trigger
-                                                    onPointerDown={(e) => e.stopPropagation()}
-                                                    onClick={(e) => {
-                                                      e.stopPropagation()
-                                                      if (contextMenu?.id === page.id && contextMenu?.type === 'page') {
-                                                        closeContextMenu()
-                                                      } else {
-                                                        const rect = e.currentTarget.getBoundingClientRect()
-                                                        setContextMenu({ x: rect.left, y: rect.bottom, type: 'page', id: page.id, title: page.title || '' })
-                                                        setContextSubmenu(null)
-                                                      }
-                                                    }}
-                                                    className={`opacity-0 group-hover:opacity-100 p-0.5 transition-opacity ${
-                                                      isSelected && selectedIds.size === 0
-                                                        ? 'hover:bg-white/20 text-white/60 hover:text-white'
-                                                        : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                                                    }`}
-                                                    aria-label="Page options"
-                                                  >
-                                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
-                                                  </button>
+                                                  <Tip content="Panels on page">
+                                                    <span className={`type-micro tabular-nums ${isSelected && selectedIds.size === 0 ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
+                                                      {panelCount} pnl
+                                                    </span>
+                                                  </Tip>
+                                                  <Tip content="More options">
+                                                    <button
+                                                      data-context-trigger
+                                                      onPointerDown={(e) => e.stopPropagation()}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        if (contextMenu?.id === page.id && contextMenu?.type === 'page') {
+                                                          closeContextMenu()
+                                                        } else {
+                                                          const rect = e.currentTarget.getBoundingClientRect()
+                                                          setContextMenu({ x: rect.left, y: rect.bottom, type: 'page', id: page.id, title: page.title || '' })
+                                                          setContextSubmenu(null)
+                                                        }
+                                                      }}
+                                                      className={`hover-fade opacity-0 group-hover:opacity-100 p-0.5 transition-opacity ${
+                                                        isSelected && selectedIds.size === 0
+                                                          ? 'hover:bg-white/20 text-white/60 hover:text-white'
+                                                          : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                                                      }`}
+                                                      aria-label="Page options"
+                                                    >
+                                                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+                                                    </button>
+                                                  </Tip>
                                                 </div>
                                                 {/* Page Summary */}
                                                 {editingPageSummaryId === page.id ? (
@@ -2466,15 +2482,17 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                         </SortableContext>
 
                                         {/* Add Page link */}
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            addPage(scene.id)
-                                          }}
-                                          className="w-full text-left pl-10 pr-2 py-1 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                                        >
-                                          + Add Page
-                                        </button>
+                                        <Tip content="Add page to this scene" side="right">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              addPage(scene.id)
+                                            }}
+                                            className="hover-lift w-full text-left pl-10 pr-2 py-1 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                                          >
+                                            + Add Page
+                                          </button>
+                                        </Tip>
                                       </div>
                                     </div>
                                   </div>
@@ -2484,15 +2502,17 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                           </SortableContext>
 
                           {/* Add Scene link */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              addScene(act.id)
-                            }}
-                            className="w-full text-left pl-6 pr-2 py-1.5 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                          >
-                            + Add Scene
-                          </button>
+                          <Tip content="Add scene to this act" side="right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                addScene(act.id)
+                              }}
+                              className="hover-lift w-full text-left pl-6 pr-2 py-1.5 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                            >
+                              + Add Scene
+                            </button>
+                          </Tip>
                         </div>
                       </div>
                     </div>
