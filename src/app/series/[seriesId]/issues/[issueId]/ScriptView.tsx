@@ -15,7 +15,6 @@ import {
   stripMarkdown
 } from '@/lib/markdown'
 import ScriptEditor from '@/components/editor/ScriptEditor'
-import ThemeToggle from '@/components/ui/ThemeToggle'
 import { Tip } from '@/components/ui/Tip'
 
 // ============================================================================
@@ -123,7 +122,7 @@ interface ScriptBlock {
   sceneName?: string
 }
 
-type Scope = 'panel' | 'page' | 'scene' | 'act' | 'issue'
+type Scope = 'page' | 'scene' | 'act' | 'issue'
 
 interface ScriptViewProps {
   issue: Issue
@@ -149,7 +148,6 @@ export default function ScriptView({
   const [blocks, setBlocks] = useState<ScriptBlock[]>([])
   const [pendingChanges, setPendingChanges] = useState<Map<string, ScriptBlock>>(new Map())
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
-  const [focusedBlockIndex, setFocusedBlockIndex] = useState<number>(0)
   const [currentPageId, setCurrentPageId] = useState<string | null>(selectedPageId)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
 
@@ -305,9 +303,6 @@ export default function ScriptView({
     if (!currentPage) return allBlocks
 
     switch (scope) {
-      case 'panel':
-        // Just the first panel of current page (or focused panel)
-        return allBlocks.filter(b => b.pageId === currentPage!.id).slice(0, 5) // Approx one panel
       case 'page':
         return allBlocks.filter(b => b.pageId === currentPage!.id)
       case 'scene':
@@ -1262,177 +1257,6 @@ export default function ScriptView({
   }, [blocks, supabase, showToast, recordAction])
 
   // ============================================================================
-  // Page Operations
-  // ============================================================================
-
-  // Helper to find scene ID for current page
-  const findSceneForPage = useCallback((pageId: string): { sceneId: string; scenePages: Page[] } | null => {
-    for (const act of issue.acts || []) {
-      for (const scene of act.scenes || []) {
-        const page = scene.pages?.find((p: Page) => p.id === pageId)
-        if (page) {
-          return { sceneId: scene.id, scenePages: scene.pages || [] }
-        }
-      }
-    }
-    return null
-  }, [issue])
-
-  // Add a new page to the current scene
-  const addPage = useCallback(async () => {
-    if (!currentPageId) return
-
-    const sceneInfo = findSceneForPage(currentPageId)
-    if (!sceneInfo) {
-      showToast('Could not find scene for current page', 'error')
-      return
-    }
-
-    const { sceneId, scenePages } = sceneInfo
-    const maxPageNumber = Math.max(0, ...scenePages.map(p => p.page_number))
-    const maxSortOrder = Math.max(0, ...scenePages.map(p => p.sort_order))
-    const newPageNumber = maxPageNumber + 1
-    const newSortOrder = maxSortOrder + 1
-
-    // Insert page into DB
-    const { data: newPage, error: pageError } = await supabase
-      .from('pages')
-      .insert({
-        scene_id: sceneId,
-        page_number: newPageNumber,
-        sort_order: newSortOrder,
-      })
-      .select()
-      .single()
-
-    if (pageError || !newPage) {
-      showToast('Failed to create page', 'error')
-      return
-    }
-
-    // Auto-create first empty panel
-    const { data: newPanel, error: panelError } = await supabase
-      .from('panels')
-      .insert({
-        page_id: newPage.id,
-        panel_number: 1,
-        sort_order: 1,
-        visual_description: '',
-      })
-      .select()
-      .single()
-
-    if (panelError) {
-      // Rollback page creation
-      await supabase.from('pages').delete().eq('id', newPage.id)
-      showToast('Failed to create panel for new page', 'error')
-      return
-    }
-
-    // Record undo action
-    recordAction({
-      type: 'page_add',
-      pageId: newPage.id,
-      sceneId,
-      data: {
-        page_number: newPageNumber,
-        sort_order: newSortOrder,
-        panelId: newPanel?.id,
-      },
-      description: 'Add page',
-    })
-
-    // Refresh and navigate to new page
-    onRefresh()
-    setCurrentPageId(newPage.id)
-    onNavigate(newPage.id)
-    showToast('Page added', 'success')
-  }, [currentPageId, findSceneForPage, supabase, showToast, recordAction, onRefresh, onNavigate])
-
-  // Delete current page (with all panels and their children)
-  const deletePage = useCallback(async () => {
-    if (!currentPageId) return
-
-    const sceneInfo = findSceneForPage(currentPageId)
-    if (!sceneInfo) {
-      showToast('Could not find scene for current page', 'error')
-      return
-    }
-
-    const { scenePages } = sceneInfo
-
-    // Don't allow deleting the last page in a scene
-    if (scenePages.length <= 1) {
-      showToast('Cannot delete the last page in a scene', 'error')
-      return
-    }
-
-    // Find page data
-    const currentPage = scenePages.find(p => p.id === currentPageId)
-    if (!currentPage) return
-
-    // Check if page has content
-    const pageBlocks = blocks.filter(b => b.pageId === currentPageId)
-    const hasContent = pageBlocks.some(b => b.content.trim())
-
-    if (hasContent) {
-      const confirmed = await confirm({
-        title: 'Delete this page?',
-        description: 'All panels on this page will be removed. This can be undone with \u2318Z.',
-      })
-      if (!confirmed) return
-    }
-
-    // Gather full page data for undo restoration
-    const fullPageData = {
-      id: currentPageId,
-      scene_id: sceneInfo.sceneId,
-      page_number: currentPage.page_number,
-      sort_order: currentPage.sort_order,
-      title: currentPage.title,
-      panels: currentPage.panels?.map(panel => ({
-        ...panel,
-        dialogue_blocks: panel.dialogue_blocks,
-        captions: panel.captions,
-        sound_effects: panel.sound_effects,
-      })),
-    }
-
-    // Find adjacent page to navigate to
-    const currentIndex = scenePages.findIndex(p => p.id === currentPageId)
-    const adjacentPage = scenePages[currentIndex + 1] || scenePages[currentIndex - 1]
-
-    // Delete from DB (cascade will handle panels and children)
-    const { error } = await supabase
-      .from('pages')
-      .delete()
-      .eq('id', currentPageId)
-
-    if (error) {
-      showToast('Failed to delete page', 'error')
-      return
-    }
-
-    // Record undo action
-    recordAction({
-      type: 'page_delete',
-      pageId: currentPageId,
-      sceneId: sceneInfo.sceneId,
-      data: fullPageData,
-      description: 'Delete page',
-    })
-
-    // Navigate to adjacent page
-    if (adjacentPage) {
-      setCurrentPageId(adjacentPage.id)
-      onNavigate(adjacentPage.id)
-    }
-
-    onRefresh()
-    showToast('Page deleted', 'success')
-  }, [currentPageId, findSceneForPage, blocks, supabase, showToast, recordAction, onRefresh, onNavigate])
-
-  // ============================================================================
   // Export Functions
   // ============================================================================
 
@@ -1639,33 +1463,6 @@ export default function ScriptView({
   }, [blocks, characters, issue, scope, showToast])
 
   // ============================================================================
-  // Navigation
-  // ============================================================================
-
-  const navigateToPage = useCallback(async (direction: 'prev' | 'next') => {
-    await forceSaveAll()
-
-    // Find all pages in order
-    const allPages: Page[] = []
-    for (const act of issue.acts || []) {
-      for (const scene of act.scenes || []) {
-        for (const page of scene.pages || []) {
-          allPages.push(page)
-        }
-      }
-    }
-
-    const currentIndex = allPages.findIndex(p => p.id === currentPageId)
-    const newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
-
-    if (newIndex >= 0 && newIndex < allPages.length) {
-      setCurrentPageId(allPages[newIndex].id)
-      setFocusedBlockIndex(0)
-      onNavigate(allPages[newIndex].id)
-    }
-  }, [currentPageId, issue, forceSaveAll, onNavigate])
-
-  // ============================================================================
   // Keyboard shortcuts
   // ============================================================================
 
@@ -1720,23 +1517,11 @@ export default function ScriptView({
         return
       }
 
-      // Cmd+Shift+Arrow for page navigation
-      if (isMod && e.shiftKey && e.key === 'ArrowRight') {
-        e.preventDefault()
-        navigateToPage('next')
-        return
-      }
-
-      if (isMod && e.shiftKey && e.key === 'ArrowLeft') {
-        e.preventDefault()
-        navigateToPage('prev')
-        return
-      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [forceSaveAll, onExit, navigateToPage, showToast, canUndo, canRedo, undo, redo, onRefresh, findReplaceOpen])
+  }, [forceSaveAll, onExit, showToast, canUndo, canRedo, undo, redo, onRefresh, findReplaceOpen])
 
   // ============================================================================
   // Find & Replace navigation
@@ -1766,28 +1551,6 @@ export default function ScriptView({
   }, [onNavigate])
 
   // ============================================================================
-  // Get page position info
-  // ============================================================================
-
-  const getPagePositionInfo = useMemo(() => {
-    let totalPages = 0
-    let currentPageNum = 0
-
-    for (const act of issue.acts || []) {
-      for (const scene of act.scenes || []) {
-        for (const page of scene.pages || []) {
-          totalPages++
-          if (page.id === currentPageId) {
-            currentPageNum = totalPages
-          }
-        }
-      }
-    }
-
-    return { currentPageNum, totalPages }
-  }, [issue, currentPageId])
-
-  // ============================================================================
   // Render
   // ============================================================================
 
@@ -1801,117 +1564,41 @@ export default function ScriptView({
     >
       <ConfirmDialog {...dialogProps} />
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-primary)]">
-        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Tip content="Exit Script View (Esc)">
-              <button
-                onClick={async () => {
-                  await forceSaveAll()
-                  onExit()
-                }}
-                className="hover-fade text-[var(--text-secondary)]"
-              >
-                ← Exit
-              </button>
-            </Tip>
-            <span className="text-[var(--text-disabled)]">|</span>
-            <span className="text-[var(--text-secondary)] text-sm">
-              {issue.series?.title} • Issue #{issue.number}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Scope selector */}
-            <select
-              value={scope}
-              onChange={(e) => setScope(e.target.value as Scope)}
-              className="bg-[var(--bg-tertiary)] border border-[var(--border-strong)] text-[var(--text-secondary)] text-sm rounded px-2 py-1"
-            >
-              <option value="page">Page</option>
-              <option value="scene">Scene</option>
-              <option value="act">Act</option>
-              <option value="issue">Full Issue</option>
-            </select>
-
-            {/* Export options */}
-            <div className="flex items-center gap-1">
-              <Tip content="Copy script to clipboard">
-                <button
-                  onClick={copyToClipboard}
-                  className="hover-lift text-[var(--text-secondary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-                >
-                  COPY
-                </button>
-              </Tip>
-              <Tip content="Export to PDF">
-                <button
-                  onClick={exportToPdf}
-                  className="hover-lift text-[var(--text-secondary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
-                >
-                  PDF
-                </button>
-              </Tip>
-            </div>
-
-            {/* Save status */}
-            <span className={`type-micro ${
-              saveStatus === 'saved' ? 'text-[var(--text-muted)]' :
-              saveStatus === 'saving' ? 'text-[var(--color-primary)]' :
-              'text-[var(--color-warning)]'
-            }`}>
-              {saveStatus === 'saved' ? 'SAVED' :
-               saveStatus === 'saving' ? 'SAVING...' :
-               'UNSAVED'}
-            </span>
-
-            {/* Theme toggle */}
-            <ThemeToggle />
-
-            {/* Page navigation */}
-            {scope === 'page' && (
-              <div className="flex items-center gap-2 type-meta">
-                <Tip content="Previous page (⌘⇧←)">
-                  <button
-                    onClick={() => navigateToPage('prev')}
-                    className="hover-glow disabled:opacity-30"
-                    disabled={getPagePositionInfo.currentPageNum <= 1}
-                  >
-                    ‹
-                  </button>
-                </Tip>
-                <span>
-                  PG {getPagePositionInfo.currentPageNum} OF {getPagePositionInfo.totalPages}
-                </span>
-                <Tip content="Next page (⌘⇧→)">
-                  <button
-                    onClick={() => navigateToPage('next')}
-                    className="hover-glow disabled:opacity-30"
-                    disabled={getPagePositionInfo.currentPageNum >= getPagePositionInfo.totalPages}
-                  >
-                    ›
-                  </button>
-                </Tip>
-                <span className="type-separator">{'\/\/'}</span>
-                <Tip content="Add new page">
-                  <button
-                    onClick={addPage}
-                    className="hover-lift hover:text-[var(--color-primary)]"
-                  >
-                    [+PG]
-                  </button>
-                </Tip>
-                <Tip content="Delete current page">
-                  <button
-                    onClick={deletePage}
-                    className="hover-fade-danger"
-                  >
-                    [-PG]
-                  </button>
-                </Tip>
-              </div>
-            )}
-          </div>
+      <div className="script-header">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { forceSaveAll(); onExit(); }}
+            className="hover-fade opacity-60"
+          >
+            ← ISSUE #{issue.number}
+          </button>
+          <span className="opacity-25">|</span>
+          <span className="opacity-80">{issue.series?.title || 'Untitled'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Scope selector */}
+          <select
+            value={scope}
+            onChange={(e) => setScope(e.target.value as Scope)}
+            className="border border-[var(--border)] px-2.5 py-1 rounded bg-transparent text-[10px] tracking-[1.5px] uppercase hover-glow"
+          >
+            <option value="page">Page</option>
+            <option value="scene">Scene</option>
+            <option value="act">Act</option>
+            <option value="issue">Full Issue</option>
+          </select>
+          {/* Copy */}
+          <button onClick={copyToClipboard} className="border border-[var(--border)] px-2.5 py-1 rounded hover-lift text-[10px] tracking-[1.5px] uppercase">
+            COPY
+          </button>
+          {/* Export */}
+          <button onClick={exportToPdf} className="border border-[var(--border)] px-2.5 py-1 rounded hover-lift text-[10px] tracking-[1.5px] uppercase">
+            EXPORT
+          </button>
+          {/* Save status */}
+          <span className={`text-[9px] tracking-[0.5px] ${saveStatus === 'saved' ? 'opacity-40' : saveStatus === 'saving' ? 'opacity-60' : 'text-[var(--color-warning)]'}`}>
+            {saveStatus === 'saved' ? 'SAVED' : saveStatus === 'saving' ? 'SAVING...' : 'UNSAVED'}
+          </span>
         </div>
       </div>
 
@@ -1945,11 +1632,8 @@ export default function ScriptView({
                     key={block.id}
                     block={block}
                     characters={characters}
-                    isFocused={index === focusedBlockIndex}
-                    onFocus={() => {
-                      setFocusedBlockIndex(index)
-                      handleBlockFocus(block)
-                    }}
+                    isFocused={false}
+                    onFocus={() => handleBlockFocus(block)}
                     onBlur={() => handleBlockBlur(block)}
                     onChange={(content) => updateBlock(block.id, content)}
                     onCharacterChange={(charId) => changeDialogueCharacter(block.id, charId)}
@@ -1980,28 +1664,14 @@ export default function ScriptView({
         </div>
       </div>
 
-      {/* Footer with hints */}
-      <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--bg-primary)]">
-        <div className="max-w-4xl mx-auto px-6 py-2 flex items-center justify-center text-[var(--text-secondary)] text-xs gap-6">
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘Z</kbd> Undo
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘⇧Z</kbd> Redo
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘S</kbd> Save
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘F</kbd> Find
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">⌘⇧←/→</kbd> Prev/Next page
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded text-[var(--text-primary)]">Esc</kbd> Exit
-          </span>
-        </div>
+      {/* Footer keyboard hints */}
+      <div className="script-footer">
+        <span><kbd>Tab</kbd> Next field</span>
+        <span><kbd>⌘S</kbd> Save</span>
+        <span><kbd>⌘Z</kbd> Undo</span>
+        <span><kbd>⌘F</kbd> Find</span>
+        <span><kbd>⌘⌫</kbd> Delete block</span>
+        <span><kbd>Esc</kbd> Exit</span>
       </div>
 
       {/* Find & Replace Modal */}
