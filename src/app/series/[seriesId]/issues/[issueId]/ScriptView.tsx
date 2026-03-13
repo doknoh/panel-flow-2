@@ -93,7 +93,7 @@ interface Issue {
 }
 
 // Block types for the script view
-type BlockType = 'page-header' | 'panel-header' | 'visual' | 'dialogue' | 'caption' | 'sfx'
+type BlockType = 'page-header' | 'visual' | 'dialogue' | 'caption' | 'sfx'
 
 interface ScriptBlock {
   id: string
@@ -173,12 +173,27 @@ export default function ScriptView({
   const editorRegistry = useRef<Map<string, Editor>>(new Map())
   const initialFocusSet = useRef(false)
   const pendingFocusRef = useRef<{ type: string; panelId: string } | null>(null)
+  const pendingChangesRef = useRef<Map<string, ScriptBlock>>(new Map())
+  const blocksRef = useRef<ScriptBlock[]>([])
+
+  // Cleanup save timeout on unmount to prevent data loss
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const { showToast } = useToast()
   const { recordAction, startGenericTextEdit, endGenericTextEdit, undo, redo, canUndo, canRedo } = useUndo()
   const { confirm, dialogProps } = useConfirmDialog()
   const supabase = createClient()
   const characters = issue.series?.characters || []
+
+  // Keep refs in sync with state for use in stable callbacks
+  useEffect(() => { pendingChangesRef.current = pendingChanges }, [pendingChanges])
+  useEffect(() => { blocksRef.current = blocks }, [blocks])
 
   // ============================================================================
   // Build blocks from issue data
@@ -481,36 +496,43 @@ export default function ScriptView({
       switch (block.type) {
         case 'visual':
           if (block.panelId) {
-            await supabase
+            const { error } = await supabase
               .from('panels')
               .update({ visual_description: block.content })
               .eq('id', block.panelId)
+            if (error) throw error
           }
           break
 
-        case 'dialogue':
+        case 'dialogue': {
           const dialogueId = block.id.replace('dialogue-', '')
-          await supabase
+          const { error } = await supabase
             .from('dialogue_blocks')
             .update({ text: block.content })
             .eq('id', dialogueId)
+          if (error) throw error
           break
+        }
 
-        case 'caption':
+        case 'caption': {
           const captionId = block.id.replace('caption-', '')
-          await supabase
+          const { error } = await supabase
             .from('captions')
             .update({ text: block.content })
             .eq('id', captionId)
+          if (error) throw error
           break
+        }
 
-        case 'sfx':
+        case 'sfx': {
           const sfxId = block.id.replace('sfx-', '')
-          await supabase
+          const { error } = await supabase
             .from('sound_effects')
             .update({ text: block.content })
             .eq('id', sfxId)
+          if (error) throw error
           break
+        }
       }
 
       setSaveStatus('saved')
@@ -529,7 +551,7 @@ export default function ScriptView({
     setSaveStatus('unsaved')
 
     saveTimeoutRef.current = setTimeout(async () => {
-      const changes = Array.from(pendingChanges.values())
+      const changes = Array.from(pendingChangesRef.current.values())
       if (changes.length === 0) return
 
       setSaveStatus('saving')
@@ -543,7 +565,7 @@ export default function ScriptView({
         setSaveStatus('unsaved')
       }
     }, 1500)
-  }, [pendingChanges, saveBlock])
+  }, [saveBlock])
 
   const forceSaveAll = useCallback(async () => {
     if (saveTimeoutRef.current) {
@@ -569,31 +591,31 @@ export default function ScriptView({
   // Block editing
   // ============================================================================
 
+  // Determine the entity type and ID for undo tracking from a script block
+  const getEntityInfo = (block: ScriptBlock): { entityType: 'panel' | 'dialogue' | 'caption' | 'sfx'; entityId: string } | null => {
+    if (block.type === 'visual' && block.panelId) {
+      return { entityType: 'panel', entityId: block.panelId }
+    }
+    if (block.type === 'dialogue') {
+      const dialogueId = block.id.replace('dialogue-', '')
+      return { entityType: 'dialogue', entityId: dialogueId }
+    }
+    if (block.type === 'caption') {
+      const captionId = block.id.replace('caption-', '')
+      return { entityType: 'caption', entityId: captionId }
+    }
+    if (block.type === 'sfx') {
+      const sfxId = block.id.replace('sfx-', '')
+      return { entityType: 'sfx', entityId: sfxId }
+    }
+    return null
+  }
+
   // Track when user starts editing a field (for undo)
   const handleBlockFocus = useCallback((block: ScriptBlock) => {
     if (block.type === 'page-header') return
 
-    // Determine the entity type for undo tracking
-    const getEntityInfo = (): { entityType: 'panel' | 'dialogue' | 'caption' | 'sfx'; entityId: string } | null => {
-      if (block.type === 'visual' && block.panelId) {
-        return { entityType: 'panel', entityId: block.panelId }
-      }
-      if (block.type === 'dialogue') {
-        const dialogueId = block.id.replace('dialogue-', '')
-        return { entityType: 'dialogue', entityId: dialogueId }
-      }
-      if (block.type === 'caption') {
-        const captionId = block.id.replace('caption-', '')
-        return { entityType: 'caption', entityId: captionId }
-      }
-      if (block.type === 'sfx') {
-        const sfxId = block.id.replace('sfx-', '')
-        return { entityType: 'sfx', entityId: sfxId }
-      }
-      return null
-    }
-
-    const entityInfo = getEntityInfo()
+    const entityInfo = getEntityInfo(block)
     if (entityInfo) {
       const field = block.type === 'visual' ? 'visual_description' : 'text'
       startGenericTextEdit(entityInfo.entityType, entityInfo.entityId, field, block.content)
@@ -604,27 +626,7 @@ export default function ScriptView({
   const handleBlockBlur = useCallback((block: ScriptBlock) => {
     if (block.type === 'page-header') return
 
-    // Determine the entity type for undo tracking
-    const getEntityInfo = (): { entityType: 'panel' | 'dialogue' | 'caption' | 'sfx'; entityId: string } | null => {
-      if (block.type === 'visual' && block.panelId) {
-        return { entityType: 'panel', entityId: block.panelId }
-      }
-      if (block.type === 'dialogue') {
-        const dialogueId = block.id.replace('dialogue-', '')
-        return { entityType: 'dialogue', entityId: dialogueId }
-      }
-      if (block.type === 'caption') {
-        const captionId = block.id.replace('caption-', '')
-        return { entityType: 'caption', entityId: captionId }
-      }
-      if (block.type === 'sfx') {
-        const sfxId = block.id.replace('sfx-', '')
-        return { entityType: 'sfx', entityId: sfxId }
-      }
-      return null
-    }
-
-    const entityInfo = getEntityInfo()
+    const entityInfo = getEntityInfo(block)
     if (entityInfo) {
       const field = block.type === 'visual' ? 'visual_description' : 'text'
       endGenericTextEdit(entityInfo.entityType, entityInfo.entityId, field, block.content)
@@ -633,7 +635,7 @@ export default function ScriptView({
 
   // Called when any ScriptEditor instance receives focus
   const handleEditorFocus = useCallback((editor: Editor, blockId: string) => {
-    const block = blocks.find(b => b.id === blockId)
+    const block = blocksRef.current.find(b => b.id === blockId)
     let variant: 'description' | 'dialogue' | 'caption' | 'sfx' = 'description'
     if (block?.type === 'dialogue') variant = 'dialogue'
     else if (block?.type === 'caption') variant = 'caption'
@@ -656,7 +658,7 @@ export default function ScriptView({
     setActiveEditor({ editor, blockId, variant, contextLabel })
     // Dismiss any active quick-add menu when an editor is clicked/focused
     setQuickAddPanelId(null)
-  }, [blocks])
+  }, [])
 
   // When focus leaves the body+toolbar area entirely, clear active editor
   const handleBodyFocusOut = useCallback((e: React.FocusEvent) => {
@@ -673,17 +675,24 @@ export default function ScriptView({
   }, [])
 
   const updateBlock = useCallback((blockId: string, newContent: string) => {
-    setBlocks(prev => prev.map(b =>
-      b.id === blockId ? { ...b, content: newContent } : b
-    ))
-
-    const block = blocks.find(b => b.id === blockId)
-    if (block && block.type !== 'page-header' && block.type !== 'panel-header') {
-      const updatedBlock = { ...block, content: newContent }
-      setPendingChanges(prev => new Map(prev).set(blockId, updatedBlock))
+    let updatedBlock: ScriptBlock | undefined
+    setBlocks(prev => {
+      const newBlocks = prev.map(b =>
+        b.id === blockId ? { ...b, content: newContent } : b
+      )
+      updatedBlock = newBlocks.find(b => b.id === blockId)
+      return newBlocks
+    })
+    if (updatedBlock && updatedBlock.type !== 'page-header') {
+      setPendingChanges(prev => {
+        const next = new Map(prev)
+        next.set(blockId, updatedBlock!)
+        return next
+      })
+      setSaveStatus('unsaved')
       scheduleAutoSave()
     }
-  }, [blocks, scheduleAutoSave])
+  }, [scheduleAutoSave])
 
   // Change the character for a dialogue block
   const changeDialogueCharacter = useCallback(async (
@@ -1512,7 +1521,7 @@ export default function ScriptView({
         case 'visual':
           addText(`PANEL ${block.panelNumber}:`, 10, true)
           if (block.content) {
-            addText(block.content, 10, false, 0)
+            addText(stripMarkdown(block.content), 10, false, 0)
           }
           addSpace(12)
           break
@@ -1538,7 +1547,7 @@ export default function ScriptView({
 
           // Dialogue text (indented)
           if (block.content) {
-            addText(block.content, 10, false, 72, contentWidth - 144)
+            addText(stripMarkdown(block.content), 10, false, 72, contentWidth - 144)
           }
           addSpace(12)
           break
@@ -1550,7 +1559,7 @@ export default function ScriptView({
             : ''
           addText(`CAPTION${captionType}:`, 10, true, 36)
           if (block.content) {
-            addText(block.content, 10, false, 36)
+            addText(stripMarkdown(block.content), 10, false, 36)
           }
           addSpace(8)
           break
@@ -1558,7 +1567,7 @@ export default function ScriptView({
 
         case 'sfx':
           if (block.content) {
-            addText(`SFX: ${block.content.toUpperCase()}`, 10, true, 36)
+            addText(`SFX: ${stripMarkdown(block.content).toUpperCase()}`, 10, true, 36)
             addSpace(8)
           }
           break

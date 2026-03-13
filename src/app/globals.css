@@ -1202,7 +1202,6 @@ html[data-theme-transitioning] * {
 }
 .script-view-editor.script-editor--focused {
   background: var(--bg-secondary);
-  background-opacity: 0.3;
   border-color: transparent;
 }
 .script-view-editor--sfx .script-editor__content {
