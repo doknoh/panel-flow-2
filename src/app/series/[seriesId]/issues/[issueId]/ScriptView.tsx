@@ -173,6 +173,7 @@ export default function ScriptView({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const editorRegistry = useRef<Map<string, Editor>>(new Map())
   const initialFocusSet = useRef(false)
+  const pendingFocusRef = useRef<{ type: string; panelId: string } | null>(null)
 
   const { showToast } = useToast()
   const { recordAction, startGenericTextEdit, endGenericTextEdit, undo, redo, canUndo, canRedo } = useUndo()
@@ -366,6 +367,18 @@ export default function ScriptView({
     return withMenus
   }, [blocks])
 
+  // Pre-compute last editable block ID per panel (for quick-add menu placement)
+  const panelLastBlockId = useMemo(() => {
+    const lastMap = new Map<string, string>() // panelId -> last editable block id
+    const editableTypes = ['visual', 'dialogue', 'caption', 'sfx']
+    for (const b of blocks) {
+      if (b.panelId && editableTypes.includes(b.type)) {
+        lastMap.set(b.panelId, b.id)
+      }
+    }
+    return lastMap
+  }, [blocks])
+
   // Editor registry callbacks for programmatic focus
   const registerEditor = useCallback((blockId: string, editor: Editor) => {
     editorRegistry.current.set(blockId, editor)
@@ -408,6 +421,55 @@ export default function ScriptView({
       return () => clearTimeout(timer)
     }
   }, [tabOrder, focusBlock])
+
+  // Auto-focus newly created blocks after quick-add
+  useEffect(() => {
+    if (!pendingFocusRef.current) return
+    const { type, panelId } = pendingFocusRef.current
+    pendingFocusRef.current = null
+
+    let attempts = 0
+    const maxAttempts = 10
+    const interval = setInterval(() => {
+      attempts++
+
+      let targetBlockId: string | undefined
+      if (type === 'panel') {
+        // For new panels, find the last visual block
+        const visuals = blocks.filter(b => b.type === 'visual')
+        targetBlockId = visuals[visuals.length - 1]?.id
+      } else {
+        // Find the last block of the given type in the specified panel
+        const matching = blocks.filter(b => b.type === type && b.panelId === panelId)
+        targetBlockId = matching[matching.length - 1]?.id
+      }
+
+      if (targetBlockId) {
+        const editor = editorRegistry.current.get(targetBlockId)
+        if (editor) {
+          clearInterval(interval)
+          editor.commands.focus()
+          document.getElementById(`editor-${targetBlockId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          return
+        }
+        // Fallback: try DOM
+        const el = document.getElementById(`editor-${targetBlockId}`)
+        if (el) {
+          clearInterval(interval)
+          const prosemirror = el.querySelector('.ProseMirror') as HTMLElement | null
+          prosemirror?.focus()
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          return
+        }
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval)
+      }
+    }, 50)
+
+    return () => clearInterval(interval)
+  }, [blocks])
 
   // ============================================================================
   // Save logic
@@ -1099,14 +1161,14 @@ export default function ScriptView({
   // ============================================================================
 
   // Delete a dialogue block
-  const deleteDialogue = useCallback(async (blockId: string) => {
+  const deleteDialogue = useCallback(async (blockId: string, skipConfirm = false) => {
     const block = blocks.find(b => b.id === blockId)
     if (!block || block.type !== 'dialogue') return
 
     const dialogueId = block.id.replace('dialogue-', '')
 
-    // Confirm if non-empty
-    if (block.content.trim()) {
+    // Confirm if non-empty (skip when triggered by keyboard shortcut)
+    if (!skipConfirm && block.content.trim()) {
       const confirmed = await confirm({
         title: 'Delete this dialogue?',
         description: 'This can be undone with \u2318Z.',
@@ -1158,18 +1220,18 @@ export default function ScriptView({
       description: 'Delete dialogue',
     })
 
-    showToast('Dialogue deleted', 'success')
-  }, [blocks, supabase, showToast, recordAction])
+    showToast('Deleted dialogue — ⌘Z to undo', 'success')
+  }, [blocks, supabase, showToast, recordAction, confirm])
 
   // Delete a caption
-  const deleteCaption = useCallback(async (blockId: string) => {
+  const deleteCaption = useCallback(async (blockId: string, skipConfirm = false) => {
     const block = blocks.find(b => b.id === blockId)
     if (!block || block.type !== 'caption') return
 
     const captionId = block.id.replace('caption-', '')
 
-    // Confirm if non-empty
-    if (block.content.trim()) {
+    // Confirm if non-empty (skip when triggered by keyboard shortcut)
+    if (!skipConfirm && block.content.trim()) {
       const confirmed = await confirm({
         title: 'Delete this caption?',
         description: 'This can be undone with \u2318Z.',
@@ -1219,18 +1281,18 @@ export default function ScriptView({
       description: 'Delete caption',
     })
 
-    showToast('Caption deleted', 'success')
-  }, [blocks, supabase, showToast, recordAction])
+    showToast('Deleted caption — ⌘Z to undo', 'success')
+  }, [blocks, supabase, showToast, recordAction, confirm])
 
   // Delete a sound effect
-  const deleteSoundEffect = useCallback(async (blockId: string) => {
+  const deleteSoundEffect = useCallback(async (blockId: string, skipConfirm = false) => {
     const block = blocks.find(b => b.id === blockId)
     if (!block || block.type !== 'sfx') return
 
     const sfxId = block.id.replace('sfx-', '')
 
-    // Confirm if non-empty
-    if (block.content.trim()) {
+    // Confirm if non-empty (skip when triggered by keyboard shortcut)
+    if (!skipConfirm && block.content.trim()) {
       const confirmed = await confirm({
         title: 'Delete this sound effect?',
         description: 'This can be undone with \u2318Z.',
@@ -1279,8 +1341,8 @@ export default function ScriptView({
       description: 'Delete sound effect',
     })
 
-    showToast('Sound effect deleted', 'success')
-  }, [blocks, supabase, showToast, recordAction])
+    showToast('Deleted sound effect — ⌘Z to undo', 'success')
+  }, [blocks, supabase, showToast, recordAction, confirm])
 
   // Delete a panel (with all its children)
   const deletePanel = useCallback(async (panelId: string) => {
@@ -1379,6 +1441,31 @@ export default function ScriptView({
 
     showToast('Panel deleted', 'success')
   }, [blocks, supabase, showToast, recordAction])
+
+  // ============================================================================
+  // Quick-add menu handler
+  // ============================================================================
+
+  const handleQuickAdd = useCallback(async (type: 'dialogue' | 'caption' | 'sfx' | 'panel', panelId: string, pageId: string) => {
+    setQuickAddPanelId(null) // Dismiss menu immediately
+
+    switch (type) {
+      case 'dialogue':
+        await addDialogue(panelId, pageId)
+        break
+      case 'caption':
+        await addCaption(panelId, pageId)
+        break
+      case 'sfx':
+        await addSoundEffect(panelId, pageId)
+        break
+      case 'panel':
+        await addPanel(pageId)
+        break
+    }
+
+    pendingFocusRef.current = { type, panelId }
+  }, [addDialogue, addCaption, addSoundEffect, addPanel])
 
   // ============================================================================
   // Export Functions
@@ -1594,6 +1681,37 @@ export default function ScriptView({
     const handleKeyDown = async (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey
 
+      // Quick-add menu key commands (when menu is active)
+      if (quickAddPanelId) {
+        const pageId = blocks.find(b => b.panelId === quickAddPanelId)?.pageId
+        if (!pageId) return
+
+        if (e.key === 'd' || e.key === 'D') {
+          e.preventDefault()
+          handleQuickAdd('dialogue', quickAddPanelId, pageId)
+          return
+        } else if (e.key === 'c' || e.key === 'C') {
+          e.preventDefault()
+          handleQuickAdd('caption', quickAddPanelId, pageId)
+          return
+        } else if (e.key === 's' || e.key === 'S') {
+          e.preventDefault()
+          handleQuickAdd('sfx', quickAddPanelId, pageId)
+          return
+        } else if (e.key === 'p' || e.key === 'P') {
+          e.preventDefault()
+          handleQuickAdd('panel', quickAddPanelId, pageId)
+          return
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          setQuickAddPanelId(null)
+          return
+        }
+        // Tab passes through to the Tab handler below
+        // All other keys are ignored (per spec)
+        if (e.key !== 'Tab') return
+      }
+
       // Tab navigation — must come before other handlers for first priority
       if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault()
@@ -1615,6 +1733,38 @@ export default function ScriptView({
             focusBlock(tabOrder[currentIndex + 1])
           }
         }
+        return
+      }
+
+      // Cmd+Backspace to delete focused block
+      if (isMod && e.key === 'Backspace') {
+        e.preventDefault()
+        if (!activeEditor) return
+
+        const block = blocks.find(b => b.id === activeEditor.blockId)
+        if (!block) return
+
+        // Only allow deletion of sub-blocks, not descriptions
+        if (block.type === 'dialogue' || block.type === 'caption' || block.type === 'sfx') {
+          // Move focus to previous field first
+          const currentTabIdx = tabOrder.indexOf(activeEditor.blockId)
+          if (currentTabIdx > 0) {
+            const prevId = tabOrder[currentTabIdx - 1]
+            if (!prevId.startsWith('quick-add-')) {
+              const prevEditor = editorRegistry.current.get(prevId)
+              setTimeout(() => prevEditor?.commands.focus(), 50)
+            }
+          }
+
+          if (block.type === 'dialogue') {
+            deleteDialogue(block.id, true)
+          } else if (block.type === 'caption') {
+            deleteCaption(block.id, true)
+          } else if (block.type === 'sfx') {
+            deleteSoundEffect(block.id, true)
+          }
+        }
+        // For 'visual' (description) — do nothing, per spec
         return
       }
 
@@ -1672,7 +1822,7 @@ export default function ScriptView({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [forceSaveAll, onExit, showToast, canUndo, canRedo, undo, redo, onRefresh, findReplaceOpen, tabOrder, focusBlock, quickAddPanelId, activeEditor])
+  }, [forceSaveAll, onExit, showToast, canUndo, canRedo, undo, redo, onRefresh, findReplaceOpen, tabOrder, focusBlock, quickAddPanelId, activeEditor, blocks, handleQuickAdd, deleteDialogue, deleteCaption, deleteSoundEffect])
 
   // ============================================================================
   // Find & Replace navigation
@@ -1771,29 +1921,58 @@ export default function ScriptView({
             </div>
           ) : (
             <div className="space-y-1">
-              {blocks.map((block) => (
-                  <ScriptBlockComponent
-                    key={block.id}
-                    block={block}
-                    characters={characters}
-                    onFocus={() => handleBlockFocus(block)}
-                    onBlur={() => handleBlockBlur(block)}
-                    onChange={(content) => updateBlock(block.id, content)}
-                    onCharacterChange={(charId) => changeDialogueCharacter(block.id, charId)}
-                    onDialogueTypeChange={(newType) => changeDialogueType(block.id, newType)}
-                    onCaptionTypeChange={(newType) => changeCaptionType(block.id, newType)}
-                    registerRef={(el) => {
-                      if (el) {
-                        blockRefs.current.set(block.id, el)
-                      } else {
-                        blockRefs.current.delete(block.id)
-                      }
-                    }}
-                    onEditorFocus={handleEditorFocus}
-                    onRegisterEditor={registerEditor}
-                    onUnregisterEditor={unregisterEditor}
-                  />
-              ))}
+              {blocks.map((block) => {
+                const isPanelLastBlock = block.panelId ? panelLastBlockId.get(block.panelId) === block.id : false
+
+                return (
+                  <React.Fragment key={block.id}>
+                    <ScriptBlockComponent
+                      block={block}
+                      characters={characters}
+                      onFocus={() => handleBlockFocus(block)}
+                      onBlur={() => handleBlockBlur(block)}
+                      onChange={(content) => updateBlock(block.id, content)}
+                      onCharacterChange={(charId) => changeDialogueCharacter(block.id, charId)}
+                      onDialogueTypeChange={(newType) => changeDialogueType(block.id, newType)}
+                      onCaptionTypeChange={(newType) => changeCaptionType(block.id, newType)}
+                      registerRef={(el) => {
+                        if (el) {
+                          blockRefs.current.set(block.id, el)
+                        } else {
+                          blockRefs.current.delete(block.id)
+                        }
+                      }}
+                      onEditorFocus={handleEditorFocus}
+                      onRegisterEditor={registerEditor}
+                      onUnregisterEditor={unregisterEditor}
+                    />
+                    {isPanelLastBlock && block.panelId && (
+                      <div
+                        id={`quick-add-${block.panelId}`}
+                        className={`script-quick-add ${quickAddPanelId === block.panelId ? 'is-visible' : ''}`}
+                      >
+                        <span className="quick-add-key" onClick={() => handleQuickAdd('dialogue', block.panelId!, block.pageId!)}>
+                          <kbd>D</kbd> Dialogue
+                        </span>
+                        <span className="quick-add-separator">&middot;</span>
+                        <span className="quick-add-key" onClick={() => handleQuickAdd('caption', block.panelId!, block.pageId!)}>
+                          <kbd>C</kbd> Caption
+                        </span>
+                        <span className="quick-add-separator">&middot;</span>
+                        <span className="quick-add-key" onClick={() => handleQuickAdd('sfx', block.panelId!, block.pageId!)}>
+                          <kbd>S</kbd> SFX
+                        </span>
+                        <span className="quick-add-separator">&middot;</span>
+                        <span className="quick-add-key" onClick={() => handleQuickAdd('panel', block.panelId!, block.pageId!)}>
+                          <kbd>P</kbd> + Panel
+                        </span>
+                        <span className="quick-add-separator">&middot;</span>
+                        <span className="opacity-40">Tab → next panel</span>
+                      </div>
+                    )}
+                  </React.Fragment>
+                )
+              })}
             </div>
           )}
         </div>
