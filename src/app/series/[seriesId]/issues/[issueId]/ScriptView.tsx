@@ -162,12 +162,17 @@ export default function ScriptView({
     contextLabel: string
   } | null>(null)
 
+  // Tab navigation state
+  const [quickAddPanelId, setQuickAddPanelId] = useState<string | null>(null)
+
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const toolbarRef = useRef<HTMLDivElement>(null)
   const blockRefs = useRef<Map<string, HTMLTextAreaElement | HTMLInputElement>>(new Map())
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const editorRegistry = useRef<Map<string, Editor>>(new Map())
+  const initialFocusSet = useRef(false)
 
   const { showToast } = useToast()
   const { recordAction, startGenericTextEdit, endGenericTextEdit, undo, redo, canUndo, canRedo } = useUndo()
@@ -331,6 +336,78 @@ export default function ScriptView({
   useEffect(() => {
     setBlocks(getBlocksForScope())
   }, [getBlocksForScope])
+
+  // ============================================================================
+  // Tab navigation
+  // ============================================================================
+
+  // Build ordered list of editable block IDs with quick-add menu positions interleaved
+  const tabOrder = useMemo(() => {
+    const editableTypes = ['visual', 'dialogue', 'caption', 'sfx']
+    const editable = blocks.filter(b => editableTypes.includes(b.type)).map(b => b.id)
+
+    // Insert quick-add menu positions after the last editable block in each panel
+    const withMenus: string[] = []
+    let lastPanelId: string | null = null
+    for (let i = 0; i < editable.length; i++) {
+      const block = blocks.find(b => b.id === editable[i])!
+      // If this block is in a new panel, insert a quick-add for the previous panel
+      if (lastPanelId && block.panelId !== lastPanelId) {
+        withMenus.push(`quick-add-${lastPanelId}`)
+      }
+      withMenus.push(editable[i])
+      lastPanelId = block.panelId || null
+    }
+    // Final panel's quick-add
+    if (lastPanelId) {
+      withMenus.push(`quick-add-${lastPanelId}`)
+    }
+
+    return withMenus
+  }, [blocks])
+
+  // Editor registry callbacks for programmatic focus
+  const registerEditor = useCallback((blockId: string, editor: Editor) => {
+    editorRegistry.current.set(blockId, editor)
+  }, [])
+
+  const unregisterEditor = useCallback((blockId: string) => {
+    editorRegistry.current.delete(blockId)
+  }, [])
+
+  // Focus a specific block by ID (editor or quick-add menu)
+  const focusBlock = useCallback((blockId: string) => {
+    if (blockId.startsWith('quick-add-')) {
+      const panelId = blockId.replace('quick-add-', '')
+      setQuickAddPanelId(panelId)
+      // Blur current editor
+      activeEditor?.editor.commands.blur()
+      // Scroll the quick-add menu into view
+      const menuEl = document.getElementById(blockId)
+      menuEl?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } else {
+      setQuickAddPanelId(null)
+      const editor = editorRegistry.current.get(blockId)
+      if (editor) {
+        editor.commands.focus()
+        // Scroll into view
+        const editorEl = document.getElementById(`editor-${blockId}`)
+        editorEl?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  }, [activeEditor])
+
+  // Set initial focus on first editable field when blocks are ready
+  useEffect(() => {
+    if (initialFocusSet.current) return
+    if (tabOrder.length > 0 && !tabOrder[0].startsWith('quick-add-')) {
+      initialFocusSet.current = true
+      const timer = setTimeout(() => {
+        focusBlock(tabOrder[0])
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+  }, [tabOrder, focusBlock])
 
   // ============================================================================
   // Save logic
@@ -516,6 +593,8 @@ export default function ScriptView({
     }
 
     setActiveEditor({ editor, blockId, variant, contextLabel })
+    // Dismiss any active quick-add menu when an editor is clicked/focused
+    setQuickAddPanelId(null)
   }, [blocks])
 
   // When focus leaves the body+toolbar area entirely, clear active editor
@@ -1515,9 +1594,37 @@ export default function ScriptView({
     const handleKeyDown = async (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey
 
+      // Tab navigation — must come before other handlers for first priority
+      if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        // Find current position in tab order
+        const currentBlockId = activeEditor?.blockId || ''
+        let currentIndex = tabOrder.indexOf(currentBlockId)
+        // If in quick-add menu, find that position
+        if (quickAddPanelId) {
+          currentIndex = tabOrder.indexOf(`quick-add-${quickAddPanelId}`)
+        }
+        if (currentIndex === -1) currentIndex = -1 // Start from beginning
+
+        if (e.shiftKey) {
+          if (currentIndex > 0) {
+            focusBlock(tabOrder[currentIndex - 1])
+          }
+        } else {
+          if (currentIndex < tabOrder.length - 1) {
+            focusBlock(tabOrder[currentIndex + 1])
+          }
+        }
+        return
+      }
+
       // Escape to close find/replace or exit
       if (e.key === 'Escape') {
         e.preventDefault()
+        if (quickAddPanelId) {
+          setQuickAddPanelId(null)
+          return
+        }
         if (findReplaceOpen) {
           setFindReplaceOpen(false)
           return
@@ -1565,7 +1672,7 @@ export default function ScriptView({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [forceSaveAll, onExit, showToast, canUndo, canRedo, undo, redo, onRefresh, findReplaceOpen])
+  }, [forceSaveAll, onExit, showToast, canUndo, canRedo, undo, redo, onRefresh, findReplaceOpen, tabOrder, focusBlock, quickAddPanelId, activeEditor])
 
   // ============================================================================
   // Find & Replace navigation
@@ -1683,6 +1790,8 @@ export default function ScriptView({
                       }
                     }}
                     onEditorFocus={handleEditorFocus}
+                    onRegisterEditor={registerEditor}
+                    onUnregisterEditor={unregisterEditor}
                   />
               ))}
             </div>
@@ -1731,6 +1840,8 @@ interface ScriptBlockComponentProps {
   onCaptionTypeChange?: (newType: string) => void
   registerRef: (el: HTMLTextAreaElement | HTMLInputElement | null) => void
   onEditorFocus: (editor: Editor, blockId: string) => void
+  onRegisterEditor: (blockId: string, editor: Editor) => void
+  onUnregisterEditor: (blockId: string) => void
 }
 
 const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
@@ -1744,6 +1855,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   onCaptionTypeChange,
   registerRef,
   onEditorFocus,
+  onRegisterEditor,
+  onUnregisterEditor,
 }: ScriptBlockComponentProps) {
   // Page header - non-editable
   if (block.type === 'page-header') {
@@ -1768,7 +1881,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
         <div className="script-panel-label">
           PANEL {block.panelNumber}
         </div>
-        <div className="script-block-description">
+        <div id={`editor-${block.id}`} className="script-block-description">
           <ScriptEditor
             variant="description"
             initialContent={block.content || ''}
@@ -1776,6 +1889,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
+            onUnregisterEditor={() => onUnregisterEditor(block.id)}
             hideToolbar={true}
             placeholder="Describe what we see in this panel..."
             className="script-view-editor"
@@ -1802,7 +1917,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onChange={(newType) => onDialogueTypeChange?.(newType)}
           />
         </div>
-        <div className="dialogue-text">
+        <div id={`editor-${block.id}`} className="dialogue-text">
           <ScriptEditor
             variant="dialogue"
             initialContent={block.content || ''}
@@ -1810,6 +1925,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
+            onUnregisterEditor={() => onUnregisterEditor(block.id)}
             hideToolbar={true}
             placeholder="Dialogue..."
             className="script-view-editor"
@@ -1830,7 +1947,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onChange={(newType) => onCaptionTypeChange?.(newType)}
           />
         </div>
-        <div className="caption-text">
+        <div id={`editor-${block.id}`} className="caption-text">
           <ScriptEditor
             variant="caption"
             initialContent={block.content || ''}
@@ -1838,6 +1955,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onFocus={onFocus}
             onBlur={() => onBlur?.()}
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+            onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
+            onUnregisterEditor={() => onUnregisterEditor(block.id)}
             hideToolbar={true}
             placeholder="Caption text..."
             className="script-view-editor"
@@ -1850,7 +1969,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   // Sound effect
   if (block.type === 'sfx') {
     return (
-      <div className="script-block-sfx">
+      <div id={`editor-${block.id}`} className="script-block-sfx">
         <span className="sfx-text">SFX: </span>
         <ScriptEditor
           variant="sfx"
@@ -1859,6 +1978,8 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           onFocus={onFocus}
           onBlur={() => onBlur?.()}
           onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
+          onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
+          onUnregisterEditor={() => onUnregisterEditor(block.id)}
           hideToolbar={true}
           placeholder="Sound effect..."
           className="script-view-editor script-view-editor--sfx"

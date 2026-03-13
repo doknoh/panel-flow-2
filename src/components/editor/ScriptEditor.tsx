@@ -33,6 +33,8 @@ interface ScriptEditorProps {
   hideToolbar?: boolean
   onEditorFocus?: (editor: Editor) => void
   onEditorBlur?: () => void
+  onRegisterEditor?: (editor: Editor) => void
+  onUnregisterEditor?: () => void
 }
 
 /**
@@ -63,6 +65,8 @@ export default function ScriptEditor({
   hideToolbar = false,
   onEditorFocus,
   onEditorBlur,
+  onRegisterEditor,
+  onUnregisterEditor,
 }: ScriptEditorProps) {
   const [isFocused, setIsFocused] = useState(false)
   const onUpdateRef = useRef(onUpdate)
@@ -72,6 +76,8 @@ export default function ScriptEditor({
 
   const onEditorFocusRef = useRef(onEditorFocus)
   const onEditorBlurRef = useRef(onEditorBlur)
+  const onRegisterEditorRef = useRef(onRegisterEditor)
+  const onUnregisterEditorRef = useRef(onUnregisterEditor)
 
   // Keep refs current without triggering re-renders
   useEffect(() => { onUpdateRef.current = onUpdate }, [onUpdate])
@@ -79,6 +85,8 @@ export default function ScriptEditor({
   useEffect(() => { onFocusRef.current = onFocus }, [onFocus])
   useEffect(() => { onEditorFocusRef.current = onEditorFocus }, [onEditorFocus])
   useEffect(() => { onEditorBlurRef.current = onEditorBlur }, [onEditorBlur])
+  useEffect(() => { onRegisterEditorRef.current = onRegisterEditor }, [onRegisterEditor])
+  useEffect(() => { onUnregisterEditorRef.current = onUnregisterEditor }, [onUnregisterEditor])
 
   // Configure extensions based on variant
   const extensions = useCallback(() => {
@@ -160,6 +168,18 @@ export default function ScriptEditor({
       onEditorFocusRef.current(editor)
     }
   }, [isFocused, editor])
+
+  // Register/unregister editor instance for programmatic focus (tab navigation)
+  useEffect(() => {
+    if (editor && onRegisterEditorRef.current) {
+      onRegisterEditorRef.current(editor)
+    }
+    return () => {
+      if (onUnregisterEditorRef.current) {
+        onUnregisterEditorRef.current()
+      }
+    }
+  }, [editor])
 
   // Update content when initialContent changes externally (e.g., undo/redo)
   useEffect(() => {
