@@ -54,10 +54,10 @@ export default function PatternsClient({
         <Tip content="View plotline weaving patterns">
           <button
             onClick={() => setViewMode('plotlines')}
-            className={`hover-glow type-micro px-3 py-1 rounded border transition-colors ${
+            className={`hover-glow type-micro px-3 py-1 rounded border ${
               viewMode === 'plotlines'
                 ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
-                : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]'
+                : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]'
             }`}
           >
             Plotlines
@@ -66,10 +66,10 @@ export default function PatternsClient({
         <Tip content="View character appearance patterns">
           <button
             onClick={() => setViewMode('characters')}
-            className={`hover-glow type-micro px-3 py-1 rounded border transition-colors ${
+            className={`hover-glow type-micro px-3 py-1 rounded border ${
               viewMode === 'characters'
                 ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
-                : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]'
+                : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]'
             }`}
           >
             Characters

@@ -15,7 +15,7 @@ export default function PanelNoteIndicator({ noteCount, onClick }: PanelNoteIndi
       <button
         type="button"
         onClick={onClick}
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90 hover-fade"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90 hover-fade"
         style={{
           backgroundColor: 'var(--bg-tertiary)',
           color: 'var(--color-warning)',

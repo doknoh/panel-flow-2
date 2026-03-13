@@ -303,7 +303,7 @@ export default function ZenMode({
         <Tip content="Exit (Esc)">
           <button
             onClick={onExit}
-            className="hover-fade absolute top-4 right-4 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none transition-colors"
+            className="hover-fade absolute top-4 right-4 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none"
           >
             &times;
           </button>
@@ -334,7 +334,7 @@ export default function ZenMode({
             }
             setTimeout(() => onExit(), 50)
           }}
-          className="hover-fade absolute top-4 right-4 z-20 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none transition-colors"
+          className="hover-fade absolute top-4 right-4 z-20 text-[var(--zen-footer)] hover:text-[var(--zen-accent)] text-xl leading-none"
         >
           &times;
         </button>

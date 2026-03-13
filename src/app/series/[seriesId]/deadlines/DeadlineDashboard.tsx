@@ -304,7 +304,7 @@ export default function DeadlineDashboard({ seriesId, issues, sessions }: Deadli
               <Tip content="Click to edit deadline and target pages">
                 <div
                   key={issue.id}
-                  className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] transition-colors cursor-pointer hover-glow"
+                  className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover-glow"
                   onClick={() => setEditingIssue(issue)}
                 >
                 <div className="flex items-center justify-between mb-3">
@@ -390,7 +390,7 @@ function DeadlineEditor({
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold">Edit Deadline — Issue #{issue.number}</h3>
           <Tip content="Close without saving">
-            <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade">
+            <button onClick={onClose} className="text-[var(--text-muted)] hover-fade">
               <X className="w-5 h-5" />
             </button>
           </Tip>
@@ -430,7 +430,7 @@ function DeadlineEditor({
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover-fade"
+            className="px-4 py-2 text-[var(--text-secondary)] hover-fade"
           >
             Cancel
           </button>

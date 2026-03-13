@@ -696,13 +696,13 @@ Return this exact JSON structure:
           </Tip>
           <button
             onClick={expandAll}
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover-fade px-2 py-1"
+            className="text-sm text-[var(--text-secondary)] hover-fade px-2 py-1"
           >
             Expand All
           </button>
           <button
             onClick={collapseAll}
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover-fade px-2 py-1"
+            className="text-sm text-[var(--text-secondary)] hover-fade px-2 py-1"
           >
             Collapse All
           </button>

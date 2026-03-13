@@ -497,7 +497,7 @@ export default function NotebookClient({
             <Tip key={mode} content={tip}>
               <button
                 onClick={() => setView(mode)}
-                className={`type-micro px-3 py-1.5 flex items-center gap-1 whitespace-nowrap hover-glow active:scale-[0.97] transition-all duration-150 ease-out ${
+                className={`type-micro px-3 py-1.5 flex items-center gap-1 whitespace-nowrap hover-glow active:scale-[0.97] ${
                   view === mode
                     ? 'border border-[var(--text-primary)] text-[var(--text-primary)]'
                     : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]'
@@ -513,7 +513,7 @@ export default function NotebookClient({
         <div className="relative">
           <button
             onClick={() => setIsCreating(!isCreating)}
-            className="type-label px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift active:scale-[0.97] transition-all duration-150 ease-out"
+            className="type-label px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift"
           >
             + Add Idea
           </button>

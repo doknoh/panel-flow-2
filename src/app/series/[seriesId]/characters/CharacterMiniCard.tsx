@@ -41,7 +41,7 @@ export default function CharacterMiniCard({
 
   return (
     <div
-      className={`flex items-center gap-3 h-10 px-3 rounded border cursor-pointer transition-all duration-150 hover-glow ${
+      className={`flex items-center gap-3 h-10 px-3 rounded border hover-glow ${
         isSelected
           ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
           : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--text-secondary)]'

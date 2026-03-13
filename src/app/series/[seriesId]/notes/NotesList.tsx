@@ -257,7 +257,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                 setIsCreating(false)
                 setNewNoteContent('')
               }}
-              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-1.5 text-sm hover-fade"
+              className="text-[var(--text-secondary)] px-4 py-1.5 text-sm hover-fade"
             >
               Cancel
             </button>
@@ -348,7 +348,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1 text-xs hover-fade"
+                            className="text-[var(--text-secondary)] px-3 py-1 text-xs hover-fade"
                           >
                             Cancel
                           </button>
@@ -370,7 +370,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                             setEditingId(note.id)
                             setEditingContent(note.content)
                           }}
-                          className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 hover-fade"
+                          className="text-[var(--text-muted)] p-1 hover-fade"
                           aria-label="Edit note"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -381,7 +381,7 @@ export default function NotesList({ seriesId, initialNotes }: NotesListProps) {
                       <Tip content="Delete note">
                         <button
                           onClick={() => deleteNote(note.id)}
-                          className="text-[var(--text-muted)] hover:text-[var(--color-error)] p-1 hover-fade-danger"
+                          className="text-[var(--text-muted)] p-1 hover-fade-danger"
                           aria-label="Delete note"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

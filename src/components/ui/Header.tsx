@@ -51,7 +51,7 @@ export default function Header({
               <>
                 <Link
                   href={backHref}
-                  className="type-meta text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors hover-glow"
+                  className="type-meta text-[var(--text-secondary)] hover-glow"
                 >
                   &larr; {backLabel}
                 </Link>
@@ -83,7 +83,7 @@ export default function Header({
                 <Tip content="Sign out">
                   <button
                     type="submit"
-                    className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
+                    className="type-micro text-[var(--text-muted)] whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
                   >
                     Sign out
                   </button>

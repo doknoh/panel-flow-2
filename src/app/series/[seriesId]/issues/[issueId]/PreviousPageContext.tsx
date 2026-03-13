@@ -59,7 +59,7 @@ export default function PreviousPageContext({ previousPage, sceneName }: Previou
       <Tip content={isExpanded ? 'Collapse previous page' : 'Expand previous page'}>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="hover-fade w-full px-4 py-2 flex items-center justify-between text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          className="hover-fade w-full px-4 py-2 flex items-center justify-between text-sm text-[var(--text-secondary)]"
         >
         <span className="flex items-center gap-2">
           <span className="text-[var(--text-muted)]">←</span>

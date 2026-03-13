@@ -202,7 +202,7 @@ export default function ZoomPanel({
         <Tip content="Close">
           <button
             onClick={onClose}
-            className="hover-fade p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            className="hover-fade p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -245,7 +245,7 @@ export default function ZoomPanel({
               <button
                 onClick={() => prevPage && onSelectPage(prevPage.id)}
                 disabled={!prevPage}
-                className={`hover-glow type-micro px-2 py-1 rounded transition-colors ${
+                className={`hover-glow type-micro px-2 py-1 rounded ${
                   prevPage
                     ? 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
                     : 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'
@@ -261,7 +261,7 @@ export default function ZoomPanel({
               <button
                 onClick={() => nextPage && onSelectPage(nextPage.id)}
                 disabled={!nextPage}
-                className={`hover-glow type-micro px-2 py-1 rounded transition-colors ${
+                className={`hover-glow type-micro px-2 py-1 rounded ${
                   nextPage
                     ? 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
                     : 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'

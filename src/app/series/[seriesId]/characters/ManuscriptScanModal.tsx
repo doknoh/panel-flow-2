@@ -266,7 +266,7 @@ export default function ManuscriptScanModal({
             <Tip content="Close">
               <button
                 onClick={handleClose}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors hover-fade"
+                className="text-[var(--text-muted)] hover-fade"
               >
                 <X size={18} />
               </button>
@@ -376,7 +376,7 @@ export default function ManuscriptScanModal({
                       <button
                         onClick={() => handleCreateCharacter(item.name)}
                         disabled={processingName !== null}
-                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] disabled:opacity-50 transition-colors hover-lift"
+                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] disabled:opacity-50 hover-lift"
                       >
                         <UserPlus size={12} />
                         Create
@@ -393,7 +393,7 @@ export default function ManuscriptScanModal({
                             )
                           }
                           disabled={processingName !== null}
-                          className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors hover-fade"
+                          className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] disabled:opacity-50 hover-fade"
                         >
                           <Tag size={12} />
                           Alias
@@ -407,7 +407,7 @@ export default function ManuscriptScanModal({
                             <button
                               key={c.id}
                               onClick={() => handleAddAsAlias(item.name, c.id)}
-                              className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors hover-glow"
+                              className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover-glow"
                             >
                               {c.display_name || c.name}
                             </button>
@@ -426,7 +426,7 @@ export default function ManuscriptScanModal({
                       <button
                         onClick={() => handleIgnore(item.name)}
                         disabled={processingName !== null}
-                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-50 transition-colors hover-fade"
+                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-50 hover-fade"
                       >
                         <EyeOff size={12} />
                         Ignore

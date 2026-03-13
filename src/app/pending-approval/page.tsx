@@ -56,7 +56,7 @@ export default function PendingApprovalPage() {
         <Tip content="Sign out">
           <button
             onClick={handleSignOut}
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm underline hover-fade"
+            className="text-[var(--text-secondary)] text-sm underline hover-fade"
           >
             Sign out
           </button>

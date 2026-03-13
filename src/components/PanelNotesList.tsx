@@ -90,7 +90,7 @@ export default function PanelNotesList({ notes, onAccept, onDismiss }: PanelNote
                   <button
                     type="button"
                     onClick={() => onAccept(note.id)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90 hover-lift"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium active:scale-[0.95] hover:opacity-90 hover-lift"
                     style={{
                       backgroundColor: 'var(--color-success)',
                       color: '#fff',
@@ -120,7 +120,7 @@ export default function PanelNotesList({ notes, onAccept, onDismiss }: PanelNote
                   <button
                     type="button"
                     onClick={() => onDismiss(note.id)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90 hover-fade-danger"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-all duration-150 ease-out active:scale-[0.95] hover:opacity-90 hover-fade-danger"
                     style={{
                       backgroundColor: 'var(--bg-tertiary)',
                       color: 'var(--color-error)',

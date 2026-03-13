@@ -1265,7 +1265,7 @@ ${pageContent}`,
           <Tip content="Use AI to identify acts, scenes, and plotlines in your script">
             <button
               onClick={analyzeStructureWithAI}
-              className="w-full bg-[var(--accent-hover)] hover:opacity-90 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors hover-lift"
+              className="w-full bg-[var(--accent-hover)] hover:opacity-90 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover-lift"
             >
               <span>✨</span>
               Analyze Structure with AI

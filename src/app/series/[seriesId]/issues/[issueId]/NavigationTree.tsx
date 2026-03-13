@@ -2121,7 +2121,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
         <Tip content="Add new act">
           <button
             onClick={addAct}
-            className="hover-lift type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+            className="hover-lift type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           >
             + Act
           </button>
@@ -2134,7 +2134,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           <p className="type-meta mb-4">Acts organize your issue into beginning, middle, and end.</p>
           <button
             onClick={addAct}
-            className="hover-lift type-micro border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out"
+            className="hover-lift type-micro border border-[var(--border)] text-[var(--text-secondary)] px-3 py-1.5"
           >
             Create First Act
           </button>
@@ -2488,7 +2488,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                               e.stopPropagation()
                                               addPage(scene.id)
                                             }}
-                                            className="hover-lift w-full text-left pl-10 pr-2 py-1 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                                            className="hover-lift w-full text-left pl-10 pr-2 py-1 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                                           >
                                             + Add Page
                                           </button>
@@ -2508,7 +2508,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                 e.stopPropagation()
                                 addScene(act.id)
                               }}
-                              className="hover-lift w-full text-left pl-6 pr-2 py-1.5 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                              className="hover-lift w-full text-left pl-6 pr-2 py-1.5 type-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                             >
                               + Add Scene
                             </button>

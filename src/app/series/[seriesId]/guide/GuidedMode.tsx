@@ -756,7 +756,7 @@ export default function GuidedMode({
           <div className="relative">
             <button
               onClick={() => setShowSessionMenu(!showSessionMenu)}
-              className="type-micro text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] hover-fade flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
+              className="type-micro text-[var(--text-secondary)] px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] hover-fade flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
             >
               OPTIONS
               <span className="text-[10px]">&#9660;</span>
@@ -874,28 +874,28 @@ export default function GuidedMode({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md mb-6">
               <button
                 onClick={() => startNewSession('general')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97]"
               >
                 <div className="type-label mb-1">OPEN EXPLORATION</div>
                 <div className="type-micro text-[var(--text-secondary)]">Let the AI guide based on what&apos;s needed</div>
               </button>
               <button
                 onClick={() => startNewSession('character_deep_dive')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97]"
               >
                 <div className="type-label mb-1">CHARACTER DEEP DIVE</div>
                 <div className="type-micro text-[var(--text-secondary)]">Explore motivations, arcs, and voices</div>
               </button>
               <button
                 onClick={() => startNewSession('outline')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97]"
               >
                 <div className="type-label mb-1">STORY STRUCTURE</div>
                 <div className="type-micro text-[var(--text-secondary)]">Work out acts, beats, and pacing</div>
               </button>
               <button
                 onClick={() => startNewSession('world_building')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97]"
               >
                 <div className="type-label mb-1">WORLD BUILDING</div>
                 <div className="type-micro text-[var(--text-secondary)]">Define locations, rules, and atmosphere</div>
@@ -911,7 +911,7 @@ export default function GuidedMode({
                     <button
                       key={s.id}
                       onClick={() => resumeSession(s)}
-                      className="w-full p-3 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] text-left hover-glow active:scale-[0.97] hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
+                      className="w-full p-3 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] text-left hover-glow active:scale-[0.97] hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)]"
                     >
                       <div className="flex items-center justify-between">
                         <span className="type-label text-[var(--text-primary)]">
@@ -996,7 +996,7 @@ export default function GuidedMode({
                                   <button
                                     onClick={() => handleToolProposal(proposal, true, i)}
                                     disabled={isLoading}
-                                    className="flex-1 py-1.5 px-3 type-micro font-medium transition-colors border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift disabled:opacity-50"
+                                    className="flex-1 py-1.5 px-3 type-micro font-medium border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift disabled:opacity-50"
                                   >
                                     CONFIRM
                                   </button>
@@ -1149,7 +1149,7 @@ export default function GuidedMode({
                   <button
                     onClick={sendMessage}
                     disabled={!input.trim() || isLoading}
-                    className="type-label px-4 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift disabled:border-[var(--border)] disabled:text-[var(--text-muted)] active:scale-[0.97] transition-all duration-150 ease-out"
+                    className="type-label px-4 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift disabled:border-[var(--border)] disabled:text-[var(--text-muted)]"
                   >
                     SEND
                   </button>

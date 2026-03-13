@@ -97,13 +97,13 @@ export default function SceneAnalyticsClient({
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 text-sm text-[var(--text-muted)] mb-2">
             <Tip content="Back to series home">
-              <Link href={`/series/${seriesId}`} className="hover:text-[var(--text-primary)] hover-glow">
+              <Link href={`/series/${seriesId}`} className="hover-glow">
                 {seriesTitle}
               </Link>
             </Tip>
             <span>/</span>
             <Tip content="Back to issue editor">
-              <Link href={`/series/${seriesId}/issues/${issueId}`} className="hover:text-[var(--text-primary)] hover-glow">
+              <Link href={`/series/${seriesId}/issues/${issueId}`} className="hover-glow">
                 Issue #{issueNumber}
               </Link>
             </Tip>

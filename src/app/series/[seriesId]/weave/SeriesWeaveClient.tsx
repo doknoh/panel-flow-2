@@ -422,7 +422,7 @@ export default function SeriesWeaveClient({
                                   <Tip content="Close">
                                     <button
                                       onClick={() => setEditingCell(null)}
-                                      className="text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade active:scale-[0.97] transition-all duration-150 ease-out"
+                                      className="text-[var(--text-muted)] hover-fade active:scale-[0.97] transition-all duration-150 ease-out"
                                       aria-label="Close editor"
                                     >
                                       ✕
@@ -500,7 +500,7 @@ export default function SeriesWeaveClient({
                                     </button>
                                     <button
                                       onClick={() => saveNotes(plotline.id, issue.id)}
-                                      className="px-3 py-1.5 text-sm bg-[var(--color-primary)] hover:opacity-90 hover-lift rounded active:scale-[0.97] transition-all duration-150 ease-out"
+                                      className="px-3 py-1.5 text-sm bg-[var(--color-primary)] hover:opacity-90 hover-lift rounded"
                                     >
                                       Save
                                     </button>

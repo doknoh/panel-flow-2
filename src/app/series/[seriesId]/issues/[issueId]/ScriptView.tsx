@@ -1810,7 +1810,7 @@ export default function ScriptView({
                   await forceSaveAll()
                   onExit()
                 }}
-                className="hover-fade text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="hover-fade text-[var(--text-secondary)]"
               >
                 ← Exit
               </button>
@@ -1839,7 +1839,7 @@ export default function ScriptView({
               <Tip content="Copy script to clipboard">
                 <button
                   onClick={copyToClipboard}
-                  className="hover-lift text-[var(--text-secondary)] hover:text-[var(--text-primary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
+                  className="hover-lift text-[var(--text-secondary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
                 >
                   COPY
                 </button>
@@ -1847,7 +1847,7 @@ export default function ScriptView({
               <Tip content="Export to PDF">
                 <button
                   onClick={exportToPdf}
-                  className="hover-lift text-[var(--text-secondary)] hover:text-[var(--text-primary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
+                  className="hover-lift text-[var(--text-secondary)] type-micro px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
                 >
                   PDF
                 </button>
@@ -1874,7 +1874,7 @@ export default function ScriptView({
                 <Tip content="Previous page (⌘⇧←)">
                   <button
                     onClick={() => navigateToPage('prev')}
-                    className="hover-glow hover:text-[var(--text-primary)] disabled:opacity-30"
+                    className="hover-glow disabled:opacity-30"
                     disabled={getPagePositionInfo.currentPageNum <= 1}
                   >
                     ‹
@@ -1886,7 +1886,7 @@ export default function ScriptView({
                 <Tip content="Next page (⌘⇧→)">
                   <button
                     onClick={() => navigateToPage('next')}
-                    className="hover-glow hover:text-[var(--text-primary)] disabled:opacity-30"
+                    className="hover-glow disabled:opacity-30"
                     disabled={getPagePositionInfo.currentPageNum >= getPagePositionInfo.totalPages}
                   >
                     ›
@@ -1896,7 +1896,7 @@ export default function ScriptView({
                 <Tip content="Add new page">
                   <button
                     onClick={addPage}
-                    className="hover-lift hover:text-[var(--color-primary)] transition-colors"
+                    className="hover-lift hover:text-[var(--color-primary)]"
                   >
                     [+PG]
                   </button>
@@ -1904,7 +1904,7 @@ export default function ScriptView({
                 <Tip content="Delete current page">
                   <button
                     onClick={deletePage}
-                    className="hover-fade-danger hover:text-[var(--color-error)] transition-colors"
+                    className="hover-fade-danger"
                   >
                     [-PG]
                   </button>
@@ -2098,7 +2098,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           <Tip content="Delete this panel">
             <button
               onClick={onDeletePanel}
-              className="hover-fade-danger opacity-0 group-hover/panel:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1"
+              className="hover-fade-danger opacity-0 group-hover/panel:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
             >
               x
             </button>
@@ -2123,7 +2123,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add dialogue to this panel">
               <button
                 onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + Dialogue
               </button>
@@ -2131,7 +2131,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add caption to this panel">
               <button
                 onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + Caption
               </button>
@@ -2139,7 +2139,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add sound effect to this panel">
               <button
                 onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + SFX
               </button>
@@ -2153,7 +2153,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add new panel to this page">
               <button
                 onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
               >
                 + Add Panel
               </button>
@@ -2196,7 +2196,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Delete this dialogue">
               <button
                 onClick={onDeleteDialogue}
-                className="hover-fade-danger opacity-0 group-hover/dialogue:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1 ml-1"
+                className="hover-fade-danger opacity-0 group-hover/dialogue:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1 ml-1"
               >
                 x
               </button>
@@ -2222,7 +2222,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add dialogue to this panel">
               <button
                 onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + Dialogue
               </button>
@@ -2230,7 +2230,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add caption to this panel">
               <button
                 onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + Caption
               </button>
@@ -2238,7 +2238,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add sound effect to this panel">
               <button
                 onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + SFX
               </button>
@@ -2252,7 +2252,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add new panel to this page">
               <button
                 onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
               >
                 + Add Panel
               </button>
@@ -2277,7 +2277,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           <Tip content="Delete this caption">
             <button
               onClick={onDeleteCaption}
-              className="hover-fade-danger opacity-0 group-hover/caption:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1"
+              className="hover-fade-danger opacity-0 group-hover/caption:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
             >
               ×
             </button>
@@ -2302,7 +2302,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add dialogue to this panel">
               <button
                 onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + Dialogue
               </button>
@@ -2310,7 +2310,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add caption to this panel">
               <button
                 onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + Caption
               </button>
@@ -2318,7 +2318,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add sound effect to this panel">
               <button
                 onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + SFX
               </button>
@@ -2332,7 +2332,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add new panel to this page">
               <button
                 onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
               >
                 + Add Panel
               </button>
@@ -2363,7 +2363,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           <Tip content="Delete this sound effect">
             <button
               onClick={onDeleteSfx}
-              className="hover-fade-danger opacity-0 group-hover/sfx:opacity-100 text-xs text-[var(--text-disabled)] hover:text-[var(--color-error)] transition-all px-1"
+              className="hover-fade-danger opacity-0 group-hover/sfx:opacity-100 text-xs text-[var(--text-disabled)] transition-all px-1"
             >
               ×
             </button>
@@ -2376,7 +2376,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add dialogue to this panel">
               <button
                 onClick={onAddDialogue}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-primary)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + Dialogue
               </button>
@@ -2384,7 +2384,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add caption to this panel">
               <button
                 onClick={onAddCaption}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-warning)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + Caption
               </button>
@@ -2392,7 +2392,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add sound effect to this panel">
               <button
                 onClick={onAddSfx}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--accent-hover)] px-2 py-1 rounded hover:bg-[var(--bg-tertiary)]"
               >
                 + SFX
               </button>
@@ -2406,7 +2406,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             <Tip content="Add new panel to this page">
               <button
                 onClick={onAddPanel}
-                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] transition-colors px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
+                className="hover-lift text-xs text-[var(--text-muted)] hover:text-[var(--color-success)] px-3 py-1.5 rounded border border-[var(--border-strong)] hover:border-[var(--color-success)] hover:bg-[var(--bg-tertiary)]"
               >
                 + Add Panel
               </button>

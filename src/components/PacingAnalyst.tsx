@@ -128,7 +128,7 @@ function PanelEconomyStrip({
               <button
                 key={page.pageId}
                 onClick={() => onPageClick?.(page.pageId)}
-                className={`flex-1 h-6 ${color} rounded-sm transition-opacity hover:opacity-80 flex items-center justify-center hover-glow`}
+                className={`flex-1 h-6 ${color} rounded-sm hover:opacity-80 flex items-center justify-center hover-glow`}
               >
                 <span className="text-[9px] text-white font-bold opacity-80">
                   {page.panelCount}
@@ -223,7 +223,7 @@ function RhythmChart({
               <button
                 key={page.pageId}
                 onClick={() => onBarClick?.(page.pageId)}
-                className="flex-1 flex flex-col items-center group cursor-pointer hover-glow"
+                className="flex-1 flex flex-col items-center group hover-glow"
               >
                 <div
                   className={`w-full ${barColor} rounded-t transition-all group-hover:opacity-80`}
@@ -431,7 +431,7 @@ function InsightCard({
                 <button
                   key={pageNum}
                   onClick={() => onPageClick(pageNum)}
-                  className="px-2 py-0.5 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] rounded transition-colors hover-glow"
+                  className="px-2 py-0.5 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] rounded hover-glow"
                 >
                   Page {pageNum}
                 </button>

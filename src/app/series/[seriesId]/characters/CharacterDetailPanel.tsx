@@ -101,7 +101,7 @@ function CollapsibleSection({
     <div className="border-t border-[var(--border)] pt-3">
       <button
         onClick={() => setIsOpen(p => !p)}
-        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors w-full text-left hover-fade"
+        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-secondary)] w-full text-left hover-fade"
       >
         {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         {title}
@@ -242,7 +242,7 @@ function AliasTagInput({
             {alias}
             <button
               onClick={() => handleRemove(alias)}
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors hover-fade-danger"
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade-danger"
             >
               <X size={10} />
             </button>
@@ -803,7 +803,7 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
               <Tip content="Dismiss flag">
                 <button
                   onClick={() => handleDismissFlag(flag.id)}
-                  className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors hover-fade"
+                  className="shrink-0 text-[var(--text-muted)] hover-fade"
                 >
                   <X size={14} />
                 </button>
@@ -1096,7 +1096,7 @@ function AIScanTab({
         </p>
         <button
           onClick={handleScan}
-          className="inline-flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-4 py-2 hover:opacity-90 transition-opacity hover-lift"
+          className="inline-flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-4 py-2 hover:opacity-90 hover-lift"
         >
           <ScanLine size={14} />
           Scan Manuscript
@@ -1335,7 +1335,7 @@ export default function CharacterDetailPanel({
             <Tip content="Delete character">
               <button
                 onClick={() => onDelete(character.id)}
-                className="w-7 h-7 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors hover-fade-danger"
+                className="w-7 h-7 rounded flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--color-error)]/10 transition-colors hover-fade-danger"
               >
                 <Trash2 size={14} />
               </button>
@@ -1343,7 +1343,7 @@ export default function CharacterDetailPanel({
             <Tip content="Close panel">
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors hover-fade"
+                className="w-7 h-7 rounded flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] transition-colors hover-fade"
               >
                 <X size={16} />
               </button>
@@ -1357,7 +1357,7 @@ export default function CharacterDetailPanel({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors hover-glow ${
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 hover-glow ${
                 activeTab === tab.id
                   ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                   : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'

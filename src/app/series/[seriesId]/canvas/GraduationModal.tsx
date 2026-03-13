@@ -130,7 +130,7 @@ export default function GraduationModal({
             </div>
             <button
               onClick={onClose}
-              className="p-1 rounded hover:bg-[var(--bg-secondary)] hover-fade text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className="p-1 rounded hover:bg-[var(--bg-secondary)] hover-fade text-[var(--text-muted)]"
               aria-label="Close graduation modal"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +149,7 @@ export default function GraduationModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleSelectType('character')}
-                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--accent-hover)] rounded-lg text-left hover-glow transition-all"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--accent-hover)] rounded-lg text-left hover-glow"
                 >
                   <div className="text-2xl mb-2">🎭</div>
                   <div className="font-medium">Character</div>
@@ -157,7 +157,7 @@ export default function GraduationModal({
                 </button>
                 <button
                   onClick={() => handleSelectType('location')}
-                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-primary)] rounded-lg text-left hover-glow transition-all"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-primary)] rounded-lg text-left hover-glow"
                 >
                   <div className="text-2xl mb-2">📍</div>
                   <div className="font-medium">Location</div>
@@ -182,7 +182,7 @@ export default function GraduationModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleSelectMode('new')}
-                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-primary)] rounded-lg text-left hover-glow transition-all"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-primary)] rounded-lg text-left hover-glow"
                 >
                   <div className="text-2xl mb-2">✨</div>
                   <div className="font-medium">Create New</div>
@@ -191,7 +191,7 @@ export default function GraduationModal({
                 <button
                   onClick={() => handleSelectMode('existing')}
                   disabled={existingList.length === 0}
-                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-warning)] rounded-lg text-left hover-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--color-warning)] rounded-lg text-left hover-glow disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="text-2xl mb-2">🔗</div>
                   <div className="font-medium">Link Existing</div>
@@ -313,7 +313,7 @@ export default function GraduationModal({
                 (graduationMode === 'new' && !newName.trim()) ||
                 (graduationMode === 'existing' && !selectedExistingId)
               }
-              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg font-medium hover-lift transition-colors text-white"
+              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg font-medium hover-lift text-white"
             >
               {isSubmitting ? 'Graduating...' : '🎓 Graduate'}
             </button>

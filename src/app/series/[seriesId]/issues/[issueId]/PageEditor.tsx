@@ -177,7 +177,7 @@ function PageIntentionSelector({
       }>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`hover-glow type-micro px-2 py-0.5 font-mono border transition-all duration-150 ${
+          className={`hover-glow type-micro px-2 py-0.5 font-mono border ${
             isWrongSide
               ? 'border-[var(--color-warning)] text-[var(--color-warning)]'
               : 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-tertiary)]'
@@ -1402,7 +1402,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           <Tip content="Add new panel (⌘Enter)">
             <button
               onClick={addPanel}
-              className="hover-lift type-micro px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all duration-150"
+              className="hover-lift type-micro px-3 py-1.5 border border-[var(--border)] text-[var(--text-secondary)]"
             >
               [+ ADD PANEL]
             </button>
@@ -1419,7 +1419,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           <Tip content="Add new panel (⌘Enter)">
             <button
               onClick={addPanel}
-              className="hover-lift type-micro px-5 py-2.5 font-medium transition-all duration-150 border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="hover-lift type-micro px-5 py-2.5 font-medium border border-[var(--border)] text-[var(--text-secondary)]"
             >
               [+ CREATE FIRST PANEL]
             </button>
@@ -1493,7 +1493,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                     setOpenDropdown(openDropdown === `shot-${panel.id}` ? null : `shot-${panel.id}`)
                                   }}
                                   onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
-                                  className="hover-glow type-micro px-2 py-1 bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center gap-1 hover:bg-[var(--bg-secondary)] transition-colors"
+                                  className="hover-glow type-micro px-2 py-1 bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center gap-1 hover:bg-[var(--bg-secondary)]"
                                 >
                                 {panel.camera
                                   ? { wide: 'WIDE', medium: 'MEDIUM', close: 'CLOSE-UP', extreme_close: 'EXTREME CU', bird: "BIRD'S EYE", worm: "WORM'S EYE", pov: 'POV' }[panel.camera] || 'SHOT TYPE'
@@ -1531,7 +1531,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             <Tip content="Delete panel">
                               <button
                                 onClick={(e) => { e.stopPropagation(); deletePanel(panel.id) }}
-                                className="hover-fade-danger type-micro text-[var(--text-disabled)] hover:text-[var(--color-error)]"
+                                className="hover-fade-danger type-micro text-[var(--text-disabled)]"
                                 aria-label="Delete panel"
                               >
                                 [DEL]
@@ -1692,7 +1692,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                               e.stopPropagation()
                                               setOpenDropdown(openDropdown === `dlgtype-${dialogue.id}` ? null : `dlgtype-${dialogue.id}`)
                                             }}
-                                            className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors"
+                                            className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)]"
                                           >
                                             <span>{({dialogue: 'Dialogue', thought: 'Thought', whisper: 'Whisper', shout: 'Shout', off_panel: 'Off-Panel', electronic: 'Electronic'} as Record<string, string>)[dialogue.dialogue_type] || 'Dialogue'}</span>
                                             <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -1730,7 +1730,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         <Tip content="Delete">
                                           <button
                                             onClick={() => deleteDialogue(dialogue.id, panel.id)}
-                                            className="hover-fade-danger text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
+                                            className="hover-fade-danger text-[var(--text-muted)] px-2"
                                             aria-label="Delete dialogue"
                                           >
                                             ×
@@ -1802,7 +1802,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                               e.stopPropagation()
                                               setOpenDropdown(openDropdown === `cap-${caption.id}` ? null : `cap-${caption.id}`)
                                             }}
-                                            className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors"
+                                            className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)]"
                                           >
                                             {{ narrative: 'Narrative', location: 'Location', time: 'Time', editorial: 'Editorial' }[caption.caption_type] || 'Narrative'}
                                             <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -1839,7 +1839,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         <Tip content="Delete">
                                           <button
                                             onClick={() => deleteCaption(caption.id, panel.id)}
-                                            className="hover-fade-danger text-[var(--text-muted)] hover:text-[var(--color-error)] px-2 ml-auto"
+                                            className="hover-fade-danger text-[var(--text-muted)] px-2 ml-auto"
                                             aria-label="Delete caption"
                                           >
                                             ×
@@ -1909,7 +1909,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       <Tip content="Delete">
                                         <button
                                           onClick={() => deleteSoundEffect(sfx.id, panel.id)}
-                                          className="hover-fade-danger text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
+                                          className="hover-fade-danger text-[var(--text-muted)] px-2"
                                           aria-label="Delete sound effect"
                                         >
                                           ×

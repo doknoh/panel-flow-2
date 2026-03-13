@@ -73,7 +73,7 @@ export default function FiledNotesTab({
               return (
                 <div
                   key={item.id}
-                  className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-3 flex items-start gap-3 hover:border-[var(--border-strong)] hover-glow transition-colors"
+                  className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-3 flex items-start gap-3 hover:border-[var(--border-strong)] hover-glow"
                 >
                   {/* Left border indicator */}
                   <div
@@ -124,7 +124,7 @@ export default function FiledNotesTab({
                   <Tip content="Remove from page">
                     <button
                       onClick={() => onUnfileItem(item.id)}
-                      className="type-micro px-2 py-0.5 border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)] hover-fade shrink-0 transition-colors active:scale-[0.97]"
+                      className="type-micro px-2 py-0.5 border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-primary)] hover-fade shrink-0 transition-colors active:scale-[0.97]"
                     >
                       UNFILE
                     </button>

@@ -885,7 +885,7 @@ function IssueEditorContent({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
             <Tip content="Back to series">
-              <Link href={`/series/${seriesId}`} className="type-meta text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0 hover-glow" aria-label="Back to series">
+              <Link href={`/series/${seriesId}`} className="type-meta text-[var(--text-muted)] shrink-0 hover-glow" aria-label="Back to series">
                 ←
               </Link>
             </Tip>
@@ -915,7 +915,7 @@ function IssueEditorContent({
                     setEditedTitle(issue.title || '')
                     setIsEditingTitle(true)
                   }}
-                  className="font-light tracking-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden sm:inline truncate max-w-[300px] text-left group active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
+                  className="font-light tracking-normal text-[var(--text-secondary)] hidden sm:inline truncate max-w-[300px] text-left group active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
                 >
                   {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
                   <svg className="w-3 h-3 inline ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -931,7 +931,7 @@ function IssueEditorContent({
               <Tip content="Find & Replace (⌘F)">
                 <button
                   onClick={() => setIsFindReplaceOpen(true)}
-                  className="type-meta px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out hover-lift"
+                  className="type-meta px-2 py-1 text-[var(--text-muted)] hover-lift"
                 >
                   FIND
                 </button>
@@ -943,7 +943,7 @@ function IssueEditorContent({
               <Tip content="Switch view mode">
                 <button
                   onClick={() => setOpenDropdown(openDropdown === 'view' ? null : 'view')}
-                  className={`type-meta px-2 py-1 active:scale-[0.97] transition-all duration-150 ease-out hover-lift ${openDropdown === 'view' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                  className={`type-meta px-2 py-1 hover-lift ${openDropdown === 'view' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
                 >
                   VIEW
                 </button>
@@ -994,7 +994,7 @@ function IssueEditorContent({
               <Tip content="Keyboard shortcuts">
                 <button
                   onClick={() => setOpenDropdown(openDropdown === 'navigate' ? null : 'navigate')}
-                  className={`type-meta px-2 py-1 active:scale-[0.97] transition-all duration-150 ease-out hover-lift ${openDropdown === 'navigate' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                  className={`type-meta px-2 py-1 hover-lift ${openDropdown === 'navigate' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
                 >
                   TOOLS
                 </button>
@@ -1051,7 +1051,7 @@ function IssueEditorContent({
             <Tip content="Export issue">
               <button
                 onClick={() => setShowExportModal(true)}
-                className="type-meta px-2 md:px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] hover-lift"
+                className="type-meta px-2 md:px-3 py-1.5 border border-[var(--border)] text-[var(--text-muted)] hover-lift"
               >
                 EXPORT
               </button>
@@ -1088,19 +1088,19 @@ function IssueEditorContent({
         <div className="flex md:hidden mt-3 gap-1 border-t border-[var(--border)] pt-3 -mx-4 px-4">
           <button
             onClick={() => setMobileView('nav')}
-            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out hover-glow ${mobileView === 'nav' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] hover-glow ${mobileView === 'nav' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
             NAV
           </button>
           <button
             onClick={() => setMobileView('editor')}
-            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out hover-glow ${mobileView === 'editor' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] hover-glow ${mobileView === 'editor' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
             EDITOR
           </button>
           <button
             onClick={() => setMobileView('toolkit')}
-            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out hover-glow ${mobileView === 'toolkit' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] hover-glow ${mobileView === 'toolkit' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
             TOOLKIT
           </button>

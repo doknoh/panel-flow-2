@@ -17,10 +17,10 @@ export default function OutlineToggle({ mode, onChange, className = '' }: Outlin
       <Tip content="View and edit story structure">
         <button
           onClick={() => onChange('outline')}
-          className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ease-out hover-glow ${
+          className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] hover-glow ${
             mode === 'outline'
               ? 'bg-[var(--accent-hover)] text-[var(--text-primary)]'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              : 'text-[var(--text-secondary)]'
           }`}
         >
           Outline
@@ -29,10 +29,10 @@ export default function OutlineToggle({ mode, onChange, className = '' }: Outlin
       <Tip content="Write panel descriptions and dialogue">
         <button
           onClick={() => onChange('draft')}
-          className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ease-out hover-glow ${
+          className={`px-3 py-1 rounded text-xs font-medium active:scale-[0.97] hover-glow ${
             mode === 'draft'
               ? 'bg-[var(--color-success)] text-[var(--text-primary)]'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              : 'text-[var(--text-secondary)]'
           }`}
         >
           Draft

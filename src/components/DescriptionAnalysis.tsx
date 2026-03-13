@@ -46,7 +46,7 @@ export default function DescriptionAnalysis({ visualDescription, shotType }: Des
     <div className="mt-1">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border active:scale-[0.97] transition-all duration-150 ease-out bg-[var(--bg-tertiary)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover-fade"
+        className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border active:scale-[0.97] transition-all duration-150 ease-out bg-[var(--bg-tertiary)] border-[var(--border)] text-[var(--text-secondary)] hover-fade"
       >
         {warningCount > 0 && (
           <span className="text-[var(--color-warning)]">{warningCount} warning{warningCount !== 1 ? 's' : ''}</span>

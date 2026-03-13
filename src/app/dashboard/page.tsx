@@ -76,7 +76,7 @@ export default async function DashboardPage() {
           <Tip content="Create new series">
             <Link
               href="/series/new"
-              className="hover-lift type-label px-4 py-2 border border-[var(--border)] hover:border-[var(--text-primary)] bg-transparent text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out text-center sm:text-left"
+              className="hover-lift type-label px-4 py-2 border border-[var(--border)] hover:border-[var(--text-primary)] bg-transparent text-[var(--text-primary)] text-center sm:text-left"
             >
               [+ NEW SERIES]
             </Link>
@@ -121,7 +121,7 @@ export default async function DashboardPage() {
             <Tip content="Create new series">
               <Link
                 href="/series/new"
-                className="hover-lift type-label inline-block px-6 py-3 border border-[var(--border)] hover:border-[var(--text-primary)] text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
+                className="hover-lift type-label inline-block px-6 py-3 border border-[var(--border)] hover:border-[var(--text-primary)] text-[var(--text-primary)]"
               >
                 [+ CREATE SERIES]
               </Link>

@@ -174,7 +174,7 @@ export default function StatusBar({ issue, issueId, selectedPageId, saveStatus, 
           <Tip content="Writing phase" side="top">
             <button
               onClick={() => setIsPhaseOpen(!isPhaseOpen)}
-              className="hover-glow px-2 py-0.5 type-micro font-mono border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] transition-all duration-150 ease-out active:scale-[0.97]"
+              className="hover-glow px-2 py-0.5 type-micro font-mono border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] active:scale-[0.97]"
             >
               [{phaseLabel.short}]
             </button>

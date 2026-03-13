@@ -232,7 +232,7 @@ ${JSON.stringify(appearanceData, null, 2)}`,
           <button
             onClick={generateStates}
             disabled={isGenerating || !selectedCharacter}
-            className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift active:scale-[0.97] transition-all duration-150 ease-out"
+            className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift"
           >
             {isGenerating ? 'Analyzing...' : 'Generate Arc with AI'}
           </button>

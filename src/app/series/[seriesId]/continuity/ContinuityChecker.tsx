@@ -350,7 +350,7 @@ ${ic.text.slice(0, 3000)}
           <button
             onClick={analyze}
             disabled={isAnalyzing}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap hover-lift active:scale-[0.97] transition-all duration-150 ease-out"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap hover-lift"
           >
             {isAnalyzing ? 'Analyzing...' : hasAnalyzed ? 'Re-analyze' : 'Run Analysis'}
           </button>
@@ -387,7 +387,7 @@ ${ic.text.slice(0, 3000)}
               <Tip content="Show all findings">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`hover-glow px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
+                  className={`hover-glow px-3 py-1.5 rounded text-sm active:scale-[0.97] ${
                     filter === 'all' ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]'
                   }`}
                 >
@@ -397,7 +397,7 @@ ${ic.text.slice(0, 3000)}
               <Tip content="Filter to errors only">
                 <button
                   onClick={() => setFilter('error')}
-                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
+                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] ${
                     filter === 'error' ? 'bg-[var(--color-error)]/30 text-[var(--color-error)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-error)]'
                   }`}
                 >
@@ -407,7 +407,7 @@ ${ic.text.slice(0, 3000)}
               <Tip content="Filter to warnings only">
                 <button
                   onClick={() => setFilter('warning')}
-                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
+                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] ${
                     filter === 'warning' ? 'bg-[var(--color-warning)]/30 text-[var(--color-warning)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-warning)]'
                   }`}
                 >
@@ -417,7 +417,7 @@ ${ic.text.slice(0, 3000)}
               <Tip content="Filter to informational notes">
                 <button
                   onClick={() => setFilter('info')}
-                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
+                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] ${
                     filter === 'info' ? 'bg-[var(--color-primary)]/30 text-[var(--color-primary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-primary)]'
                   }`}
                 >

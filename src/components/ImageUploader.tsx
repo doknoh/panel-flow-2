@@ -361,7 +361,7 @@ export default function ImageUploader({
                     </button>
                     <button
                       onClick={() => handleSaveCaption(image)}
-                      className="flex-1 py-1 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded active:scale-[0.97] transition-all duration-150 ease-out hover-lift"
+                      className="flex-1 py-1 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded hover-lift"
                     >
                       Save
                     </button>

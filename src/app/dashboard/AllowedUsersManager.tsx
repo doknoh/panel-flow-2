@@ -199,7 +199,7 @@ export default function AllowedUsersManager({ currentUserEmail }: { currentUserE
                         <Tip content="Revoke access">
                           <button
                             onClick={() => setConfirmRemoveId(user.id)}
-                            className="hover-fade-danger opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--color-error)] p-1 active:scale-[0.97] transition-all duration-150"
+                            className="hover-fade-danger opacity-0 group-hover:opacity-100 text-[var(--text-muted)] p-1 active:scale-[0.97] transition-all duration-150"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -242,14 +242,14 @@ export default function AllowedUsersManager({ currentUserEmail }: { currentUserE
               <button
                 type="submit"
                 disabled={adding || !newEmail.trim()}
-                className="hover-lift type-label px-4 py-2 border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 disabled:opacity-50 active:scale-[0.97] transition-all duration-150 ease-out shrink-0"
+                className="hover-lift type-label px-4 py-2 border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 disabled:opacity-50 shrink-0"
               >
                 {adding ? '...' : 'ADD'}
               </button>
               <button
                 type="button"
                 onClick={() => { setShowAddForm(false); setNewEmail(''); setNewName('') }}
-                className="hover-fade type-label px-3 py-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out shrink-0"
+                className="hover-fade type-label px-3 py-2 text-[var(--text-muted)] active:scale-[0.97] transition-all duration-150 ease-out shrink-0"
               >
                 CANCEL
               </button>
@@ -258,7 +258,7 @@ export default function AllowedUsersManager({ currentUserEmail }: { currentUserE
             <Tip content="Add a user to the app access list">
               <button
                 onClick={() => setShowAddForm(true)}
-                className="hover-lift type-label px-4 py-2 border border-[var(--border)] hover:border-[var(--text-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
+                className="hover-lift type-label px-4 py-2 border border-[var(--border)] hover:border-[var(--text-primary)] text-[var(--text-muted)]"
               >
                 [+ GRANT ACCESS]
               </button>

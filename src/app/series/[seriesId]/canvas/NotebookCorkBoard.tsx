@@ -297,7 +297,7 @@ export default function NotebookCorkBoard({
         <Tip content="Zoom out">
           <button
             onClick={() => setZoom(prev => Math.max(ZOOM_MIN, prev - ZOOM_STEP))}
-            className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade px-1"
+            className="type-micro text-[var(--text-muted)] hover-fade px-1"
           >
             -
           </button>
@@ -308,7 +308,7 @@ export default function NotebookCorkBoard({
         <Tip content="Zoom in">
           <button
             onClick={() => setZoom(prev => Math.min(ZOOM_MAX, prev + ZOOM_STEP))}
-            className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade px-1"
+            className="type-micro text-[var(--text-muted)] hover-fade px-1"
           >
             +
           </button>
@@ -316,7 +316,7 @@ export default function NotebookCorkBoard({
         <Tip content="Fit all notes in view">
           <button
             onClick={handleFitToContent}
-            className="type-micro text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade px-1 ml-1 border-l border-[var(--border)] pl-2"
+            className="type-micro text-[var(--text-muted)] hover-fade px-1 ml-1 border-l border-[var(--border)] pl-2"
           >
             FIT
           </button>

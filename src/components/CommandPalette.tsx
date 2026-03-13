@@ -223,7 +223,7 @@ export default function CommandPalette({ seriesId, issueId }: CommandPaletteProp
                         data-selected={isSelected}
                         onClick={() => handleSelect(item)}
                         onMouseEnter={() => setSelectedIndex(itemIndex)}
-                        className={`w-full px-4 py-2 flex items-center gap-3 text-left transition-colors hover-glow ${
+                        className={`w-full px-4 py-2 flex items-center gap-3 text-left hover-glow ${
                           isSelected
                             ? 'bg-[var(--color-primary)] text-white'
                             : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]'

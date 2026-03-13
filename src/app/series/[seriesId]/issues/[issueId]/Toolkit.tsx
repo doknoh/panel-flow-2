@@ -951,7 +951,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
           <Tip key={key} content={tip} side="bottom">
             <button
               onClick={() => setActiveTab(key)}
-              className={`hover-glow flex-1 py-2 px-1 type-micro transition-colors relative ${
+              className={`hover-glow flex-1 py-2 px-1 type-micro relative ${
                 activeTab === key
                   ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -1232,14 +1232,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => setSelectedCharacterId(null)}
-                    className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)]"
                   >
                     <span>←</span> Back
                   </button>
                   <Tip content="Go to character page">
                     <a
                       href={`/series/${issue.series.id}/characters`}
-                      className="hover-fade text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors"
+                      className="hover-fade text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                     >
                       Edit on Characters Page →
                     </a>
@@ -1365,11 +1365,11 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                             <Tip key={char.id} content="View character details">
                               <button
                                 onClick={() => setSelectedCharacterId(char.id)}
-                                className="hover-glow w-full text-left bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 rounded p-3 transition-colors group"
+                                className="hover-glow w-full text-left bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 rounded p-3 group"
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="font-medium text-sm">{char.name}</div>
-                                  <span className="hover-fade text-[var(--color-primary)]/50 group-hover:text-[var(--color-primary)] transition-colors">→</span>
+                                  <span className="hover-fade text-[var(--color-primary)]/50 group-hover:text-[var(--color-primary)]">→</span>
                                 </div>
                                 {char.role && (
                                   <div className="text-xs text-[var(--color-primary)]/70">{char.role}</div>
@@ -1393,11 +1393,11 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                             <Tip key={char.id} content="View character details">
                               <button
                                 onClick={() => setSelectedCharacterId(char.id)}
-                                className="hover-glow w-full text-left bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/15 border border-[var(--color-success)]/20 rounded p-3 transition-colors group"
+                                className="hover-glow w-full text-left bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/15 border border-[var(--color-success)]/20 rounded p-3 group"
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="font-medium text-sm text-[var(--text-primary)]">{char.name}</div>
-                                  <span className="hover-fade text-[var(--color-success)]/50 group-hover:text-[var(--color-success)] transition-colors">→</span>
+                                  <span className="hover-fade text-[var(--color-success)]/50 group-hover:text-[var(--color-success)]">→</span>
                                 </div>
                                 {char.role && (
                                   <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
@@ -1416,10 +1416,10 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                           onClick={() => setShowAllCharacters(prev => !prev)}
                           className="hover-lift flex items-center gap-2 mb-2 group"
                         >
-                          <span className="text-xs text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
+                          <span className="text-xs text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
                             {showAllCharacters ? '▾' : '▸'}
                           </span>
-                          <h3 className="type-label text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
+                          <h3 className="type-label text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
                             All Characters
                           </h3>
                           <span className="text-xs text-[var(--text-muted)]">({otherCharacters.length})</span>
@@ -1430,11 +1430,11 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                               <Tip key={char.id} content="View character details">
                                 <button
                                   onClick={() => setSelectedCharacterId(char.id)}
-                                  className="hover-glow w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
+                                  className="hover-glow w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 group"
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="font-medium text-sm">{char.name}</div>
-                                    <span className="hover-fade text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                                    <span className="hover-fade text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">→</span>
                                   </div>
                                   {char.role && (
                                     <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
@@ -1468,7 +1468,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               <div className="space-y-3">
                 <button
                   onClick={() => setSelectedLocationId(null)}
-                  className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)]"
                 >
                   <span>←</span> Back to list
                 </button>
@@ -1551,11 +1551,11 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       <button
                         key={loc.id}
                         onClick={() => setSelectedLocationId(loc.id)}
-                        className="hover-glow w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
+                        className="hover-glow w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 group"
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-medium text-sm">{loc.name}</div>
-                          <span className="hover-fade text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                          <span className="hover-fade text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">→</span>
                         </div>
                       </button>
                     ))}
@@ -1573,7 +1573,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             <div className="flex gap-1 mb-3 bg-[var(--bg-secondary)] rounded p-1 shrink-0">
               <button
                 onClick={() => setVisualsFilter('all')}
-                className={`hover-glow flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'all'
                     ? 'bg-[var(--color-success)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1583,7 +1583,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               </button>
               <button
                 onClick={() => setVisualsFilter('characters')}
-                className={`hover-glow flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'characters'
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1593,7 +1593,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               </button>
               <button
                 onClick={() => setVisualsFilter('locations')}
-                className={`hover-glow flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'locations'
                     ? 'bg-[var(--accent-hover)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1609,7 +1609,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               <div className="flex flex-col h-full">
                 <button
                   onClick={() => setSelectedVisual(null)}
-                  className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2 shrink-0"
+                  className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)] mb-2 shrink-0"
                 >
                   <span>←</span> Back to gallery
                 </button>
@@ -1903,7 +1903,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                                     showToast('Saved to project notes', 'success')
                                   }
                                 }}
-                                className="hover-lift mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                                className="hover-lift mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                               >
                                 Save to Notes
                               </button>
@@ -1951,7 +1951,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                                     <button
                                       onClick={() => handleToolProposal(proposal, true, i)}
                                       disabled={isLoading}
-                                      className="hover-lift flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50"
+                                      className="hover-lift flex-1 py-1.5 px-3 rounded text-xs font-medium bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50"
                                     >
                                       Confirm
                                     </button>

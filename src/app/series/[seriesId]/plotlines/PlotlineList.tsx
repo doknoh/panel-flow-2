@@ -321,7 +321,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
                   <Tip content="Edit plotline">
                     <button
                       onClick={() => startEdit(plotline)}
-                      className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm hover-fade"
+                      className="text-[var(--text-secondary)] text-sm hover-fade"
                     >
                       Edit
                     </button>
@@ -329,7 +329,7 @@ export default function PlotlineList({ seriesId, initialPlotlines }: PlotlineLis
                   <Tip content="Delete plotline">
                     <button
                       onClick={() => deletePlotline(plotline.id)}
-                      className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm hover-fade-danger"
+                      className="text-[var(--text-secondary)] text-sm hover-fade-danger"
                     >
                       Delete
                     </button>

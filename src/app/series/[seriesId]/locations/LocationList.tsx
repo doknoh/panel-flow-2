@@ -315,7 +315,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
                   <Tip content="Edit location">
                     <button
                       onClick={() => startEdit(location)}
-                      className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm hover-fade"
+                      className="text-[var(--text-secondary)] text-sm hover-fade"
                     >
                       Edit
                     </button>
@@ -323,7 +323,7 @@ export default function LocationList({ seriesId, initialLocations }: LocationLis
                   <Tip content="Delete location">
                     <button
                       onClick={() => deleteLocation(location.id)}
-                      className="text-[var(--text-secondary)] hover:text-[var(--color-error)] text-sm hover-fade-danger"
+                      className="text-[var(--text-secondary)] text-sm hover-fade-danger"
                     >
                       Delete
                     </button>

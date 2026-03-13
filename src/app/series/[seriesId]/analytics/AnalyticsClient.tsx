@@ -20,10 +20,10 @@ export default function AnalyticsClient({ series, sessions }: AnalyticsClientPro
         <Tip content="View writing statistics and progress">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`hover-glow px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`hover-glow px-4 py-2 text-sm font-medium border-b-2 ${
               activeTab === 'dashboard'
                 ? 'border-[var(--color-primary)] text-[var(--text-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                : 'border-transparent text-[var(--text-secondary)]'
             }`}
           >
             Dashboard
@@ -32,10 +32,10 @@ export default function AnalyticsClient({ series, sessions }: AnalyticsClientPro
         <Tip content="See character appearance rankings">
           <button
             onClick={() => setActiveTab('rankings')}
-            className={`hover-glow px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`hover-glow px-4 py-2 text-sm font-medium border-b-2 ${
               activeTab === 'rankings'
                 ? 'border-[var(--color-primary)] text-[var(--text-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                : 'border-transparent text-[var(--text-secondary)]'
             }`}
           >
             Power Rankings

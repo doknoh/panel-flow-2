@@ -124,7 +124,7 @@ export default function SendToPageModal({
           <Tip content="Close">
             <button
               onClick={onClose}
-              className="p-1 rounded hover:bg-[var(--bg-tertiary)] hover-fade text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="p-1 rounded hover:bg-[var(--bg-tertiary)] hover-fade text-[var(--text-muted)] transition-colors"
               aria-label="Close modal"
             >
               <X size={18} />
@@ -207,7 +207,7 @@ export default function SendToPageModal({
                                   </span>
                                   <button
                                     onClick={() => onFile(page)}
-                                    className="type-micro px-2 py-0.5 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift opacity-0 group-hover:opacity-100 transition-opacity active:scale-[0.97]"
+                                    className="type-micro px-2 py-0.5 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift opacity-0 group-hover:opacity-100 transition-opacity"
                                   >
                                     SEND
                                   </button>

@@ -291,7 +291,7 @@ export default function MergeModal({
             <Tip content="Close">
               <button
                 onClick={onClose}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors hover-fade"
+                className="text-[var(--text-muted)] hover-fade"
               >
                 <X size={18} />
               </button>
@@ -376,7 +376,7 @@ export default function MergeModal({
           <button
             onClick={executeMerge}
             disabled={isMerging || !primaryId}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--color-primary)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 hover-lift"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--color-primary)] text-white rounded hover:opacity-90 disabled:opacity-50 hover-lift"
           >
             {isMerging ? (
               <>

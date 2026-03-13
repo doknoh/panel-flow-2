@@ -479,7 +479,7 @@ function SortablePage({
           <div className="flex items-center justify-between mt-1 pt-1 border-t border-[var(--border)]">
             <Tip content={`Select all pages in scene (${scene.pages?.length || 0}p)`}>
             <button
-              className="text-[8px] text-[var(--text-muted)] hover:text-[var(--color-primary)] hover-fade truncate max-w-[90px] transition-colors"
+              className="text-[8px] text-[var(--text-muted)] hover:text-[var(--color-primary)] hover-fade truncate max-w-[90px]"
               onClick={(e) => {
                 e.stopPropagation()
                 onSelectScene(scene.id)
@@ -1066,7 +1066,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
           </p>
           <Link
             href={`/series/${seriesId}/issues/${issue.id}`}
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift px-4 py-2 rounded-lg font-medium transition-colors"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift px-4 py-2 rounded-lg font-medium"
           >
             ← Back to Editor
           </Link>
@@ -1262,7 +1262,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                 <Tip content="Delete plotline">
                 <button
                   onClick={() => deletePlotline(pl.id)}
-                  className="text-[var(--text-secondary)] hover:text-[var(--color-error)] hover-fade-danger ml-1 text-lg leading-none"
+                  className="text-[var(--text-secondary)] hover-fade-danger ml-1 text-lg leading-none"
                 >
                   ×
                 </button>
@@ -1309,7 +1309,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
             <button
               onClick={createPlotline}
               disabled={!newPlotlineName.trim()}
-              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium"
             >
               Add
             </button>

@@ -588,7 +588,7 @@ export default function CharacterGrid({
             <button
               key={opt.value}
               onClick={() => toggleRoleFilter(opt.value)}
-              className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border transition-colors hover-glow ${
+              className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border hover-glow ${
                 roleFilter.has(opt.value)
                   ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
                   : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]'
@@ -641,7 +641,7 @@ export default function CharacterGrid({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover-fade"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover-fade"
               >
                 <X size={12} />
               </button>
@@ -655,7 +655,7 @@ export default function CharacterGrid({
           <Tip content="Scan manuscript for characters">
             <button
               onClick={() => setShowScanModal(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors hover-fade"
+              className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors hover-fade"
             >
               <ScanLine size={14} />
               Scan Manuscript
@@ -667,7 +667,7 @@ export default function CharacterGrid({
             <button
               onClick={handleRefreshStats}
               disabled={isRefreshing}
-              className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 hover-fade"
+              className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 hover-fade"
             >
               <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
               {isRefreshing ? 'Refreshing...' : 'Refresh Stats'}
@@ -706,7 +706,7 @@ export default function CharacterGrid({
           {/* Add button */}
           <button
             onClick={handleAddCharacter}
-            className="flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-3 py-1.5 hover:opacity-90 transition-opacity hover-lift"
+            className="flex items-center gap-1.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded px-3 py-1.5 hover:opacity-90 hover-lift"
           >
             <Plus size={14} />
             Add
@@ -724,7 +724,7 @@ export default function CharacterGrid({
               <Tip content="Merge selected characters">
                 <button
                   onClick={() => setShowMergeModal(true)}
-                  className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors hover-fade"
+                  className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--text-secondary)] transition-colors hover-fade"
                 >
                   <Merge size={14} />
                   Merge

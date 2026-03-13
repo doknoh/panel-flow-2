@@ -86,7 +86,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
           <Tip content="Manage issue deadlines">
             <Link
               href={`/series/${seriesId}/deadlines`}
-              className="hover-glow type-micro flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] active:scale-[0.97] transition-all duration-150 ease-out"
+              className="hover-glow type-micro flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] active:scale-[0.97]"
             >
               <Calendar className="w-3.5 h-3.5" />
               DEADLINES
@@ -162,7 +162,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Pre-structure brainstorming board for early ideation">
               <Link
                 href={`/series/${seriesId}/canvas`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-warning)]/30 p-4 hover:border-[var(--color-warning)]/50 transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-warning)]/30 p-4 hover:border-[var(--color-warning)]/50 group"
               >
                 <div className="type-micro text-[var(--color-warning)]/60 mb-2 group-hover:text-[var(--color-warning)] transition-colors">IDEA</div>
                 <h3 className="type-label text-[var(--color-warning)] mb-1">CANVAS</h3>
@@ -172,7 +172,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Socratic AI writing sessions for deep exploration">
               <Link
                 href={`/series/${seriesId}/guide`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 group"
               >
                 <div className="type-micro text-[var(--accent-hover)]/60 mb-2 group-hover:text-[var(--accent-hover)] transition-colors">AI</div>
                 <h3 className="type-label text-[var(--accent-hover)] mb-1">GUIDE</h3>
@@ -182,7 +182,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Series outline with AI sync-from-scripts">
               <Link
                 href={`/series/${seriesId}/outline`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 group"
               >
                 <div className="type-micro text-[var(--accent-hover)]/60 mb-2 group-hover:text-[var(--accent-hover)] transition-colors">STRUCT</div>
                 <h3 className="type-label text-[var(--accent-hover)] mb-1">SERIES OUTLINE</h3>
@@ -192,7 +192,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Visualize plotline interleaving across all issues">
               <Link
                 href={`/series/${seriesId}/weave`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-error)]/30 p-4 hover:border-[var(--color-error)]/50 transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-error)]/30 p-4 hover:border-[var(--color-error)]/50 group"
               >
                 <div className="type-micro text-[var(--color-error)]/60 mb-2 group-hover:text-[var(--color-error)] transition-colors">WEAVE</div>
                 <h3 className="type-label text-[var(--color-error)] mb-1">SERIES WEAVE</h3>
@@ -202,7 +202,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Writing volume, velocity, and progress tracking">
               <Link
                 href={`/series/${seriesId}/analytics`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
               >
                 <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">DATA</div>
                 <h3 className="type-label mb-1">ANALYTICS</h3>
@@ -212,7 +212,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Review past writing sessions and loose ends">
               <Link
                 href={`/series/${seriesId}/sessions`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
               >
                 <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">LOG</div>
                 <h3 className="type-label mb-1">SESSION HISTORY</h3>
@@ -222,7 +222,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="AI-powered continuity and consistency checker">
               <Link
                 href={`/series/${seriesId}/continuity`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
               >
                 <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">CHECK</div>
                 <h3 className="type-label mb-1">CONTINUITY CHECK</h3>
@@ -232,7 +232,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Analyze cross-issue plotline patterns and connections">
               <Link
                 href={`/series/${seriesId}/patterns`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-primary)]/30 p-4 hover:border-[var(--color-primary)]/50 transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-primary)]/30 p-4 hover:border-[var(--color-primary)]/50 group"
               >
                 <div className="type-micro text-[var(--color-primary)]/60 mb-2 group-hover:text-[var(--color-primary)] transition-colors">CROSS</div>
                 <h3 className="type-label text-[var(--color-primary)] mb-1">PATTERNS</h3>
@@ -242,7 +242,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Open questions, decisions, and AI insights">
               <Link
                 href={`/series/${seriesId}/notes`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
               >
                 <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">NOTE</div>
                 <h3 className="type-label mb-1">PROJECT NOTES</h3>
@@ -259,7 +259,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Character profiles, speech patterns, and relationships">
               <Link
                 href={`/series/${seriesId}/characters`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
               >
                 <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">CHAR</div>
                 <h3 className="type-label mb-1">CHARACTERS</h3>
@@ -269,7 +269,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Track character emotional arcs across issues">
               <Link
                 href={`/series/${seriesId}/character-arcs`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
               >
                 <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">ARC</div>
                 <h3 className="type-label mb-1">CHARACTER ARCS</h3>
@@ -279,7 +279,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Location profiles with visual descriptions and significance">
               <Link
                 href={`/series/${seriesId}/locations`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
               >
                 <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">LOC</div>
                 <h3 className="type-label mb-1">LOCATIONS</h3>
@@ -289,7 +289,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
             <Tip content="Define and color-code narrative threads">
               <Link
                 href={`/series/${seriesId}/plotlines`}
-                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
               >
                 <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">PLOT</div>
                 <h3 className="type-label mb-1">PLOTLINES</h3>

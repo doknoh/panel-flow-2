@@ -181,7 +181,7 @@ export default function ReadingView({
           <Tip content="Return to issue editor">
             <Link
               href={`/series/${seriesId}/issues/${issueId}`}
-              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors type-micro hover-glow"
+              className="text-[var(--text-secondary)] type-micro hover-glow"
             >
               &larr; BACK TO EDITOR
             </Link>
