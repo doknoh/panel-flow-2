@@ -1934,7 +1934,14 @@ export default function ScriptView({
             </div>
           ) : (
             <div className="space-y-1">
-              {blocks.map((block) => {
+              {(() => {
+                // Compute active block info once for all blocks
+                const activeBlock = activeEditor ? blocks.find(b => b.id === activeEditor.blockId) : null
+                const curActiveBlockId = activeEditor?.blockId ?? null
+                const curActiveBlockType = activeBlock?.type ?? null
+                const curActiveBlockPanelId = activeBlock?.panelId ?? null
+
+                return blocks.map((block) => {
                 const isPanelLastBlock = block.panelId ? panelLastBlockId.get(block.panelId) === block.id : false
 
                 return (
@@ -1958,6 +1965,9 @@ export default function ScriptView({
                       onEditorFocus={handleEditorFocus}
                       onRegisterEditor={registerEditor}
                       onUnregisterEditor={unregisterEditor}
+                      activeBlockId={curActiveBlockId}
+                      activeBlockType={curActiveBlockType}
+                      activeBlockPanelId={curActiveBlockPanelId}
                     />
                     {isPanelLastBlock && block.panelId && (
                       <div
@@ -1985,7 +1995,8 @@ export default function ScriptView({
                     )}
                   </React.Fragment>
                 )
-              })}
+              })
+              })()}
             </div>
           )}
         </div>
