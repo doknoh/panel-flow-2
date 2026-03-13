@@ -301,9 +301,8 @@ export default function DeadlineDashboard({ seriesId, issues, sessions }: Deadli
             const projected = projectCompletion(issue, velocity)
 
             return (
-              <Tip content="Click to edit deadline and target pages">
+              <Tip key={issue.id} content="Click to edit deadline and target pages">
                 <div
-                  key={issue.id}
                   className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover-glow"
                   onClick={() => setEditingIssue(issue)}
                 >

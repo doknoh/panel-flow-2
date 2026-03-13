@@ -124,9 +124,8 @@ function PanelEconomyStrip({
         {metrics.map((page) => {
           const color = densityColors[page.densityLabel] || 'bg-gray-400'
           return (
-            <Tip content={`Page ${page.pageNumber}: ${page.panelCount} panels (${page.densityLabel})`}>
+            <Tip key={page.pageId} content={`Page ${page.pageNumber}: ${page.panelCount} panels (${page.densityLabel})`}>
               <button
-                key={page.pageId}
                 onClick={() => onPageClick?.(page.pageId)}
                 className={`flex-1 h-6 ${color} rounded-sm hover:opacity-80 flex items-center justify-center hover-glow`}
               >
@@ -219,9 +218,8 @@ function RhythmChart({
           else if (value < idealRange.min) barColor = 'bg-yellow-500'
 
           return (
-            <Tip content={`Page ${page.pageNumber}: ${value} ${title.toLowerCase().includes('word') ? 'words' : 'panels'}`}>
+            <Tip key={page.pageId} content={`Page ${page.pageNumber}: ${value} ${title.toLowerCase().includes('word') ? 'words' : 'panels'}`}>
               <button
-                key={page.pageId}
                 onClick={() => onBarClick?.(page.pageId)}
                 className="flex-1 flex flex-col items-center group hover-glow"
               >
