@@ -388,6 +388,23 @@ export const EDITOR_TOOLS: Anthropic.Tool[] = [
   },
 
   // ============================================
+  // ACTIVE CAPTURE TOOL
+  // ============================================
+
+  {
+    name: 'update_page_story_beat',
+    description: 'Save a story beat to a specific page. Use when a beat crystallizes during conversation.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageId: { type: 'string', description: 'The page ID from the project context' },
+        story_beat: { type: 'string', description: 'The story beat text' },
+      },
+      required: ['pageId', 'story_beat'],
+    },
+  },
+
+  // ============================================
   // ART PROMPTS PHASE TOOL
   // ============================================
 
@@ -491,6 +508,22 @@ async function verifySceneInSeries(
   if (!data) return false
   const acts = data.acts as any
   return acts?.issues?.series_id === seriesId
+}
+
+// Verify a page belongs to this series via page → scene → act → issue → series chain
+async function verifyPageInSeries(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  pageId: string,
+  seriesId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('pages')
+    .select('scene_id, scenes!inner(act_id, acts!inner(issue_id, issues!inner(series_id)))')
+    .eq('id', pageId)
+    .single()
+  if (!data) return false
+  const scenes = data.scenes as any
+  return scenes?.acts?.issues?.series_id === seriesId
 }
 
 export async function executeToolCall(
@@ -1288,6 +1321,23 @@ export async function executeToolCall(
           entityId: artPrompt.id,
           entityType: 'art_prompt',
         }
+      }
+
+      case 'update_page_story_beat': {
+        const { pageId, story_beat } = input as { pageId: string; story_beat: string }
+        if (!pageId || !story_beat) return { success: false, result: 'Missing pageId or story_beat' }
+
+        // Verify page belongs to this series via page → scene → act → issue → series chain
+        const pageOwned = await verifyPageInSeries(supabase, pageId, seriesId)
+        if (!pageOwned) return { success: false, result: 'Page not found in this series' }
+
+        const { error } = await supabase
+          .from('pages')
+          .update({ story_beat })
+          .eq('id', pageId)
+
+        if (error) return { success: false, result: error.message }
+        return { success: true, result: 'Story beat saved to page.' }
       }
 
       default:
