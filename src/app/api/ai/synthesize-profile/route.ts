@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       profile_text: string | null
       tool_stats: Record<string, { proposed: number; accepted: number }>
       conversations_since_synthesis: number
+      ai_draft_edits?: any[]
     }
 
     // Fetch recent conversation summaries
@@ -110,6 +111,26 @@ export async function POST(request: NextRequest) {
       })
       .join('\n')
 
+    // Build draft edit context for synthesis
+    const draftEdits = writerProfile.ai_draft_edits || []
+    let draftEditContext = ''
+    if (draftEdits.length > 0) {
+      const recentEdits = draftEdits.slice(-50) // last 50 for token budget
+      draftEditContext = `\n\n## AI Draft Edit Patterns (${draftEdits.length} total edits, showing recent ${recentEdits.length})
+The writer has edited AI-drafted panel descriptions. Each entry shows what the AI wrote vs. what the writer changed it to. Analyze these diffs to identify concrete style preferences:
+
+${recentEdits.map((e: any, i: number) =>
+  `Edit ${i + 1}:\n  AI wrote: "${e.original}"\n  Writer changed to: "${e.edited}"`
+).join('\n\n')}
+
+Look for patterns like:
+- Does the writer consistently add/remove camera directions?
+- Does the writer shorten or lengthen descriptions?
+- Does the writer prefer specific vocabulary or sentence structures?
+- Does the writer add character actions that the AI missed?
+- What does the writer delete vs. keep?`
+    }
+
     const previousProfile = writerProfile.profile_text || 'No previous profile.'
 
     const response = await anthropic.messages.create({
@@ -123,11 +144,17 @@ export async function POST(request: NextRequest) {
 4. Areas where they're strong and areas they might benefit from more attention
 
 Write in second person ("You tend to...") to create a personal profile.
-Keep it specific and actionable — this will be fed back to the AI to personalize future sessions.`,
+Keep it specific and actionable — this will be fed back to the AI to personalize future sessions.
+
+If draft edit patterns are provided, extract CONCRETE style preferences from them. For example:
+- "Writer consistently replaces generic camera directions ('We see') with specific shot types ('Close on', 'Wide shot of')"
+- "Writer shortens AI descriptions by ~40%, preferring punchy sentence fragments over full sentences"
+- "Writer always adds sensory details (sounds, textures, lighting) that the AI omits"
+These concrete observations should be woven into the portrait and will be used to improve future AI drafts.`,
       messages: [
         {
           role: 'user',
-          content: `Previous profile:\n${previousProfile}\n\nRecent session summaries:\n${summaries}\n\nTool acceptance rates:\n${toolStatsText || 'No tool data yet.'}\n\nConfirmed writer insights (extracted from Guided Mode sessions):\n${insightsText || 'No insights extracted yet.'}\n\nUpdate the writer profile based on all of this information. Pay special attention to the confirmed writer insights — these are patterns the AI has identified and the writer has validated through conversation.`,
+          content: `Previous profile:\n${previousProfile}\n\nRecent session summaries:\n${summaries}\n\nTool acceptance rates:\n${toolStatsText || 'No tool data yet.'}\n\nConfirmed writer insights (extracted from Guided Mode sessions):\n${insightsText || 'No insights extracted yet.'}${draftEditContext}\n\nUpdate the writer profile based on all of this information. Pay special attention to the confirmed writer insights — these are patterns the AI has identified and the writer has validated through conversation.`,
         },
       ],
     })
