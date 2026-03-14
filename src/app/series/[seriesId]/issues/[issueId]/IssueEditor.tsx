@@ -1218,6 +1218,7 @@ function IssueEditorContent({
                     onUpdate={refreshIssue}
                     setSaveStatus={setSaveStatus}
                     filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
+                    onNavigateToPage={navigateToPage}
                   />
                 </div>
               </div>
@@ -1287,6 +1288,7 @@ function IssueEditorContent({
                   onUpdate={refreshIssue}
                   setSaveStatus={setSaveStatus}
                   filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
+                  onNavigateToPage={navigateToPage}
                 />
               </div>
             </>

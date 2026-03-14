@@ -115,6 +115,7 @@ interface PageEditorProps {
   onUpdate: () => void
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
   filedNotes?: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
+  onNavigateToPage?: (direction: 'prev' | 'next') => void
 }
 
 // Word count helper
@@ -248,7 +249,7 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
   )
 }
 
-export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], onUpdate, setSaveStatus, filedNotes }: PageEditorProps) {
+export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], onUpdate, setSaveStatus, filedNotes, onNavigateToPage }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [navigateMode, setNavigateMode] = useState(true) // start in navigate mode
@@ -492,6 +493,51 @@ export default function PageEditor({ page, pageContext, characters, locations, s
         return
       }
 
+      // Tab = move to next field within panel, then next panel
+      if (e.key === 'Tab' && !navigateMode) {
+        e.preventDefault()
+        const currentPanelId = panels[focusedPanelIndex]?.id
+        const focusableFields = Array.from(
+          document.querySelectorAll(`[data-panel-id="${currentPanelId}"] .ProseMirror`)
+        ) as HTMLElement[]
+
+        const currentFieldIndex = focusableFields.indexOf(document.activeElement as HTMLElement)
+
+        if (e.shiftKey) {
+          if (currentFieldIndex > 0) {
+            focusableFields[currentFieldIndex - 1].focus()
+          } else if (focusedPanelIndex > 0) {
+            const newIndex = focusedPanelIndex - 1
+            setFocusedPanelIndex(newIndex)
+            requestAnimationFrame(() => {
+              const prevPanelId = panels[newIndex]?.id
+              const prevFields = Array.from(
+                document.querySelectorAll(`[data-panel-id="${prevPanelId}"] .ProseMirror`)
+              ) as HTMLElement[]
+              prevFields[prevFields.length - 1]?.focus()
+            })
+          }
+        } else {
+          if (currentFieldIndex < focusableFields.length - 1) {
+            focusableFields[currentFieldIndex + 1].focus()
+          } else if (focusedPanelIndex < panels.length - 1) {
+            const newIndex = focusedPanelIndex + 1
+            setFocusedPanelIndex(newIndex)
+            requestAnimationFrame(() => {
+              const nextPanelId = panels[newIndex]?.id
+              const nextFields = Array.from(
+                document.querySelectorAll(`[data-panel-id="${nextPanelId}"] .ProseMirror`)
+              ) as HTMLElement[]
+              nextFields[0]?.focus()
+            })
+          } else {
+            // Last field of last panel — advance to next page
+            onNavigateToPage?.('next')
+          }
+        }
+        return
+      }
+
       // Escape: return to navigate mode and deactivate panel editing
       if (e.key === 'Escape' && (editingPanel || !navigateMode)) {
         const activeElement = document.activeElement
@@ -506,7 +552,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [manualSave, panels, editingPanel, navigateMode, findLastSpeakerId])
+  }, [manualSave, panels, editingPanel, navigateMode, findLastSpeakerId, focusedPanelIndex, onNavigateToPage])
 
   // Cleanup timer on unmount
   useEffect(() => {
