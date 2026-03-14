@@ -1,3 +1,5 @@
+import { stripMarkdown } from './markdown'
+
 interface DialogueBlock {
   character_id: string | null
   speaker_name: string | null
@@ -190,7 +192,7 @@ export function exportIssueToTxt(
             lines.push(`PANEL ${displayPanelNumber}:${shotType}`)
             if (panel.visual_description) {
               const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
-              lines.push(`    ${capitalizedDesc}`)
+              lines.push(`    ${stripMarkdown(capitalizedDesc)}`)
             }
             lines.push('')
             const sortedCaptions = [...(panel.captions || [])].sort((a, b) => a.sort_order - b.sort_order)
@@ -249,7 +251,7 @@ export function exportIssueToTxt(
           // Visual description with auto-capitalized character names
           if (panel.visual_description) {
             const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
-            lines.push(`    ${capitalizedDesc}`)
+            lines.push(`    ${stripMarkdown(capitalizedDesc)}`)
           }
 
           lines.push('')
