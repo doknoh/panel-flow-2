@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeMirrorAlignment, type MirrorPanelStatus } from './mirror-diff'
+import { computeMirrorAlignment } from './mirror-diff'
 
 describe('computeMirrorAlignment', () => {
   it('returns green when panel counts match and characters match', () => {
