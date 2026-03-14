@@ -569,7 +569,7 @@ function IssueEditorContent({
 
   // Get all pages in order for navigation
   const allPages = React.useMemo(() => {
-    const pages: { id: string; pageNumber: number; sceneId: string; actId: string }[] = []
+    const pages: { id: string; pageNumber: number; sceneId: string; actId: string; linkedPageId: string | null }[] = []
     for (const act of issue.acts || []) {
       for (const scene of act.scenes || []) {
         for (const page of scene.pages || []) {
@@ -578,6 +578,7 @@ function IssueEditorContent({
             pageNumber: page.page_number,
             sceneId: scene.id,
             actId: act.id,
+            linkedPageId: page.linked_page_id || null,
           })
         }
       }
@@ -649,6 +650,10 @@ function IssueEditorContent({
       setDualPageMode('single')
       setSecondPageId(null)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dualPageMode intentionally omitted:
+  // including it would cause an infinite loop since this effect sets dualPageMode.
+  // The compare guard reads the stale closure value, which is correct: compare mode
+  // is only exited by explicit user action (close button), not by page data changes.
   }, [selectedPage?.id, selectedPage?.page_type, selectedPage?.linked_page_id, selectedPage?.mirror_page_id])
 
   // Find second page context for dual-page view
@@ -1757,7 +1762,7 @@ function IssueEditorContent({
             pageNumber={mirrorPage.page_number}
             currentMirrorId={mirrorPage.mirror_page_id || null}
             availablePages={allPages
-              .filter(p => p.id !== mirrorLinkPageId)
+              .filter(p => p.id !== mirrorLinkPageId && !p.linkedPageId)
               .map(p => ({ id: p.id, page_number: p.pageNumber }))
             }
             onDone={() => {
