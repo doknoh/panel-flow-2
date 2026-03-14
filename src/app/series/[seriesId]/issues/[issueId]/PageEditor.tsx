@@ -734,6 +734,18 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     handlePanelBlur(panel)
   }
 
+  // Auto-advance: when a field blurs and nothing else inside the editor gets focus,
+  // return to navigate mode so arrow keys work immediately
+  const handleAutoAdvance = useCallback(() => {
+    requestAnimationFrame(() => {
+      const active = document.activeElement
+      if (active === document.body || active === containerRef.current) {
+        setNavigateMode(true)
+        containerRef.current?.focus()
+      }
+    })
+  }, [])
+
   const addDialogue = async (panelId: string, options?: { defaultCharacterId?: string | null; autoFocus?: boolean }) => {
     const supabase = createClient()
     const panel = panels.find(p => p.id === panelId)
@@ -1636,6 +1648,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   setTimeout(() => handleVisualDescriptionBlur(
                                     { ...panel, visual_description: md }
                                   ), 0)
+                                  handleAutoAdvance()
                                 }}
                                 placeholder="Describe what the reader sees..."
                               />
@@ -1803,6 +1816,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         onFocus={() => { focusStartValueRef.current = dialogue.text || '' }}
                                         onBlur={(md) => {
                                           updateDialogue(dialogue.id, 'text', md, focusStartValueRef.current)
+                                          handleAutoAdvance()
                                         }}
                                         placeholder="Enter dialogue..."
                                         showWordCount
