@@ -1541,3 +1541,18 @@ html[data-theme-transitioning] * {
   font-family: -apple-system, sans-serif;
   font-size: 0.5625rem;
 }
+
+/* ============================================
+   NAVIGATE MODE — Arrow Key Panel Navigation
+   ============================================ */
+
+/* Navigate mode focus ring */
+.panel-card--focused {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.panel-card--focused .panel-card__inner {
+  background: var(--bg-tertiary);
+}
