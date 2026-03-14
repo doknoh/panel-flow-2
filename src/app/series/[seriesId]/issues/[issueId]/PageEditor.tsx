@@ -97,6 +97,7 @@ interface Page {
   intention?: PageIntention | null
   linked_page_id?: string | null
   mirror_page_id?: string | null
+  story_beat?: string | null
   panels: Panel[]
 }
 
@@ -119,6 +120,9 @@ interface PageEditorProps {
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
   filedNotes?: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
   onNavigateToPage?: (direction: 'prev' | 'next') => void
+  draftPanelIds?: Set<string>
+  onClearDraft?: (panelId: string) => void
+  onDraftPanelsFromBeat?: () => void
 }
 
 // Word count helper
@@ -252,7 +256,7 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
   )
 }
 
-export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], allPages, onUpdate, setSaveStatus, filedNotes, onNavigateToPage }: PageEditorProps) {
+export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], allPages, onUpdate, setSaveStatus, filedNotes, onNavigateToPage, draftPanelIds, onClearDraft, onDraftPanelsFromBeat }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [navigateMode, setNavigateMode] = useState(true) // start in navigate mode
@@ -1466,14 +1470,26 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           <p className="type-meta mb-6 max-w-sm mx-auto">
             Panels are the building blocks of your comic. Add visual descriptions, dialogue, captions, and sound effects.
           </p>
-          <Tip content="Add new panel (⌘Enter)">
-            <button
-              onClick={addPanel}
-              className="hover-lift type-micro px-5 py-2.5 font-medium border border-[var(--border)] text-[var(--text-secondary)]"
-            >
-              [+ CREATE FIRST PANEL]
-            </button>
-          </Tip>
+          <div className="flex items-center justify-center gap-4">
+            <Tip content="Add new panel (⌘Enter)">
+              <button
+                onClick={addPanel}
+                className="hover-lift type-micro px-5 py-2.5 font-medium border border-[var(--border)] text-[var(--text-secondary)]"
+              >
+                [+ CREATE FIRST PANEL]
+              </button>
+            </Tip>
+            {page.story_beat && onDraftPanelsFromBeat && (
+              <Tip content="AI drafts panels from this page's story beat">
+                <button
+                  onClick={onDraftPanelsFromBeat}
+                  className="hover-lift type-micro px-5 py-2.5 font-medium border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-colors"
+                >
+                  [DRAFT FROM BEAT]
+                </button>
+              </Tip>
+            )}
+          </div>
           <p className="type-micro mt-4">
             or press <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] font-mono">⌘</kbd> + <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] font-mono">↵</kbd>
           </p>
@@ -1493,6 +1509,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                 const isCollapsed = isAnyActive && !isActive
                 const isFocused = navigateMode && index === focusedPanelIndex
                 const wordCount = panelWordCount(panel)
+                const isDraft = draftPanelIds?.has(panel.id) ?? false
 
                 return (
                   <SortablePanelCard key={panel.id} id={panel.id}>
@@ -1506,7 +1523,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             : isCollapsed
                               ? 'border-[var(--border)] opacity-60 hover:opacity-90 cursor-pointer'
                               : 'border-[var(--border)]'
-                        } ${isFocused ? 'panel-card--focused' : ''}`}
+                        } ${isFocused ? 'panel-card--focused' : ''} ${isDraft ? 'panel-card--draft' : ''}`}
                         onFocus={() => { if (!navigateMode && !isActive) setEditingPanel(panel.id) }}
                         onClick={() => { if (isCollapsed) setEditingPanel(panel.id) }}
                       >
@@ -1575,6 +1592,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       onClick={() => {
                                         updatePanelField(panel.id, 'camera', opt.value)
                                         setOpenDropdown(null)
+                                        if (isDraft) onClearDraft?.(panel.id)
                                       }}
                                       className={`dropdown-item ${panel.camera === opt.value || (!panel.camera && opt.value === '') ? 'active' : ''}`}
                                     >
@@ -1661,6 +1679,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                     { ...panel, visual_description: md }
                                   ), 0)
                                   handleAutoAdvance()
+                                  if (isDraft) onClearDraft?.(panel.id)
                                 }}
                                 placeholder="Describe what the reader sees..."
                               />
@@ -1829,6 +1848,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         onBlur={(md) => {
                                           updateDialogue(dialogue.id, 'text', md, focusStartValueRef.current)
                                           handleAutoAdvance()
+                                          if (isDraft) onClearDraft?.(panel.id)
                                         }}
                                         placeholder="Enter dialogue..."
                                         showWordCount
@@ -1939,6 +1959,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         onFocus={() => { focusStartValueRef.current = caption.text || '' }}
                                         onBlur={(md) => {
                                           updateCaption(caption.id, 'text', md, focusStartValueRef.current)
+                                          if (isDraft) onClearDraft?.(panel.id)
                                         }}
                                         placeholder="Enter caption text..."
                                       />
@@ -1981,6 +2002,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                           onFocus={() => { focusStartValueRef.current = sfx.text || '' }}
                                           onBlur={(md) => {
                                             updateSoundEffect(sfx.id, md, focusStartValueRef.current)
+                                            if (isDraft) onClearDraft?.(panel.id)
                                           }}
                                           placeholder="CRASH!, BANG!, WHOOSH!..."
                                         />
@@ -2020,6 +2042,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       setTimeout(() => handleOtherFieldBlur(
                                         { ...panel, notes_to_artist: md }, 'notes_to_artist'
                                       ), 0)
+                                      if (isDraft) onClearDraft?.(panel.id)
                                     }}
                                     placeholder="Additional notes for the artist..."
                                   />
@@ -2050,6 +2073,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       setTimeout(() => handleOtherFieldBlur(
                                         { ...panel, notes_to_artist: md }, 'notes_to_artist'
                                       ), 0)
+                                      if (isDraft) onClearDraft?.(panel.id)
                                     }}
                                     placeholder="Additional notes for the artist..."
                                   />

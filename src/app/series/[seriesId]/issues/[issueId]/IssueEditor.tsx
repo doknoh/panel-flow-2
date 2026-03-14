@@ -98,6 +98,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState(issue.title || '')
   const [filedNotes, setFiledNotes] = useState<Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>>([])
+  const [draftPanelIds, setDraftPanelIds] = useState<Set<string>>(new Set())
   const titleInputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
   const lastSnapshotRef = useRef<string>('')
@@ -466,6 +467,8 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         saveTitle={saveTitle}
         filedNotes={filedNotes}
         pagePosition={pagePosition}
+        draftPanelIds={draftPanelIds}
+        setDraftPanelIds={setDraftPanelIds}
       />
     </UndoProvider>
   )
@@ -508,6 +511,8 @@ function IssueEditorContent({
   saveTitle,
   filedNotes,
   pagePosition,
+  draftPanelIds,
+  setDraftPanelIds,
 }: {
   issue: Issue
   setIssue: React.Dispatch<React.SetStateAction<Issue>>
@@ -535,6 +540,8 @@ function IssueEditorContent({
   saveTitle: () => Promise<void>
   filedNotes: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
   pagePosition: { current: number; total: number; pageNumber: number; actName: string; sceneTitle: string } | null
+  draftPanelIds: Set<string>
+  setDraftPanelIds: React.Dispatch<React.SetStateAction<Set<string>>>
 }) {
   const { undo, redo, canUndo, canRedo } = useUndo()
   const [mobileView, setMobileView] = useState<MobileView>('editor')
@@ -554,6 +561,57 @@ function IssueEditorContent({
   const [openDropdown, setOpenDropdown] = useState<'view' | 'navigate' | 'export' | null>(null)
   const [showExportModal, setShowExportModal] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Draft panels from beat handler
+  const handleDraftPanelsFromBeat = useCallback(async () => {
+    if (!selectedPage?.story_beat || (selectedPage.panels?.length > 0)) return
+
+    const res = await fetch('/api/scaffold', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageId: selectedPage.id, seriesId }),
+    })
+    const { panels } = await res.json()
+    if (!panels?.length) return
+
+    const supabase = createClient()
+    const newIds: string[] = []
+    for (const panel of panels) {
+      const { data } = await supabase.from('panels').insert({
+        page_id: selectedPage.id,
+        panel_number: panel.panel_number,
+        sort_order: panel.panel_number,
+        visual_description: panel.visual_description,
+        camera: panel.shot_type || null,
+      }).select('id').single()
+      if (data) newIds.push(data.id)
+
+      // Insert dialogue if present
+      if (panel.dialogue?.length && data) {
+        for (const [idx, d] of panel.dialogue.entries()) {
+          await supabase.from('dialogue_blocks').insert({
+            panel_id: data.id,
+            speaker_name: d.speaker,
+            dialogue_type: d.type || 'dialogue',
+            text: d.text,
+            sort_order: idx,
+            balloon_number: 1,
+          })
+        }
+      }
+    }
+
+    setDraftPanelIds(prev => new Set([...prev, ...newIds]))
+    refreshIssue()
+  }, [selectedPage, seriesId, setDraftPanelIds, refreshIssue])
+
+  const handleClearDraft = useCallback((panelId: string) => {
+    setDraftPanelIds(prev => {
+      const next = new Set(prev)
+      next.delete(panelId)
+      return next
+    })
+  }, [setDraftPanelIds])
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -1335,6 +1393,9 @@ function IssueEditorContent({
                         setSaveStatus={setSaveStatus}
                         filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
                         onNavigateToPage={navigateToPage}
+                        draftPanelIds={draftPanelIds}
+                        onClearDraft={handleClearDraft}
+                        onDraftPanelsFromBeat={handleDraftPanelsFromBeat}
                       />
                     </div>
                   )}
@@ -1476,6 +1537,9 @@ function IssueEditorContent({
                   setSaveStatus={setSaveStatus}
                   filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
                   onNavigateToPage={navigateToPage}
+                  draftPanelIds={draftPanelIds}
+                  onClearDraft={handleClearDraft}
+                  onDraftPanelsFromBeat={handleDraftPanelsFromBeat}
                 />
               </div>
             </>

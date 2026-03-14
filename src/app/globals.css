@@ -1633,3 +1633,24 @@ html[data-theme-transitioning] * {
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+/* ── Draft badge for AI-generated content ── */
+.panel-card--draft {
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--color-primary);
+  position: relative;
+}
+.panel-card--draft::before {
+  content: 'DRAFT';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-primary);
+  background: var(--color-primary-surface, rgba(59, 59, 181, 0.1));
+  padding: 2px 6px;
+  border-radius: 2px;
+  z-index: 1;
+}
