@@ -24,7 +24,7 @@ export default async function ImportPage({
       series:series_id (
         id,
         title,
-        characters (id, name),
+        characters (id, name, display_name, aliases),
         locations (id, name)
       )
     `)
