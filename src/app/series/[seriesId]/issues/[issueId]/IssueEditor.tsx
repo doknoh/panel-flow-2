@@ -1108,6 +1108,7 @@ function IssueEditorContent({
                     pageContext={selectedPageContext}
                     characters={issue.series.characters}
                     locations={issue.series.locations}
+                    seriesId={seriesId}
                     scenePages={currentScenePages}
                     onUpdate={refreshIssue}
                     setSaveStatus={setSaveStatus}
@@ -1176,6 +1177,7 @@ function IssueEditorContent({
                   pageContext={selectedPageContext}
                   characters={issue.series.characters}
                   locations={issue.series.locations}
+                  seriesId={seriesId}
                   scenePages={currentScenePages}
                   onUpdate={refreshIssue}
                   setSaveStatus={setSaveStatus}
