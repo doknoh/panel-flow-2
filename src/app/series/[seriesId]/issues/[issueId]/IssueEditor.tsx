@@ -24,6 +24,7 @@ const KeyboardShortcutsModal = dynamic(() => import('./KeyboardShortcutsModal'),
 const ExportModal = dynamic(() => import('@/components/ui/ExportModal'), { ssr: false })
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
+import FontScaleToggle from '@/components/ui/FontScaleToggle'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import CommandPalette from '@/components/CommandPalette'
 import { Tip } from '@/components/ui/Tip'
@@ -1080,6 +1081,7 @@ function IssueEditorContent({
               }}
             />
 
+            <FontScaleToggle />
             <ThemeToggle />
           </div>
         </div>
