@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { Tip } from '@/components/ui/Tip'
 
 interface BlueprintStructureProps {
   issue: any
@@ -118,38 +119,40 @@ export default function BlueprintStructure({
           if (item.type === 'scene') {
             const isActive = item.id === selectedSceneId
             return (
-              <li
-                key={item.id}
-                className={`bp-structure-item${isActive ? ' active' : ''}`}
-                onClick={() => onSelectScene(item.id)}
-              >
-                <span className="bp-item-meta">
-                  {String(item.actNumber).padStart(2, '0')}.{String(item.sceneOrder).padStart(2, '0')} {'// '}SCENE {item.sceneOrder}
-                </span>
-                <span className="bp-item-title">{item.title}</span>
-                <div className="bp-item-stats">
-                  {item.pageCount} Page{item.pageCount !== 1 ? 's' : ''} / {item.wordCount.toLocaleString()} Words
-                </div>
-              </li>
+              <Tip key={item.id} content={`Select scene: ${item.title}`} side="right">
+                <li
+                  className={`bp-structure-item hover-glow${isActive ? ' active' : ''}`}
+                  onClick={() => onSelectScene(item.id)}
+                >
+                  <span className="bp-item-meta">
+                    {String(item.actNumber).padStart(2, '0')}.{String(item.sceneOrder).padStart(2, '0')} {'// '}SCENE {item.sceneOrder}
+                  </span>
+                  <span className="bp-item-title">{item.title}</span>
+                  <div className="bp-item-stats">
+                    {item.pageCount} Page{item.pageCount !== 1 ? 's' : ''} / {item.wordCount.toLocaleString()} Words
+                  </div>
+                </li>
+              </Tip>
             )
           }
           if (item.type === 'page') {
             const isActive = item.id === selectedPageId
             return (
-              <li
-                key={item.id}
-                className={`bp-structure-item${isActive ? ' active' : ''}`}
-                onClick={() => onSelectPage(item.id)}
-                style={{ paddingLeft: 32 }}
-              >
-                <span className="bp-item-meta">
-                  PG {String(item.pageNumber).padStart(2, '0')}
-                </span>
-                <span className="bp-item-title" style={{ fontSize: '0.65rem' }}>
-                  Page {item.pageNumber}
-                  {item.panelCount > 0 && ` (${item.panelCount} panel${item.panelCount !== 1 ? 's' : ''})`}
-                </span>
-              </li>
+              <Tip key={item.id} content={`Jump to page ${item.pageNumber}`} side="right">
+                <li
+                  className={`bp-structure-item hover-glow${isActive ? ' active' : ''}`}
+                  onClick={() => onSelectPage(item.id)}
+                  style={{ paddingLeft: 32 }}
+                >
+                  <span className="bp-item-meta">
+                    PG {String(item.pageNumber).padStart(2, '0')}
+                  </span>
+                  <span className="bp-item-title" style={{ fontSize: '0.65rem' }}>
+                    Page {item.pageNumber}
+                    {item.panelCount > 0 && ` (${item.panelCount} panel${item.panelCount !== 1 ? 's' : ''})`}
+                  </span>
+                </li>
+              </Tip>
             )
           }
           return null

@@ -8,6 +8,7 @@ import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
 import PacingAnalyst from '@/components/PacingAnalyst'
 import ChatMessageContent from '@/components/ChatMessageContent'
 import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Tip } from '@/components/ui/Tip'
 import type { PageData } from '@/lib/pacing'
 
 // Image attachment type for visuals tab
@@ -164,6 +165,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
   const [localCharacters, setLocalCharacters] = useState(issue.series.characters)
   const [localLocations, setLocalLocations] = useState(issue.series.locations)
   const [characterSaving, setCharacterSaving] = useState(false)
+  const [showAllCharacters, setShowAllCharacters] = useState(false)
   const [locationSaving, setLocationSaving] = useState(false)
   const characterSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const locationSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -177,6 +179,18 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     setLocalLocations(issue.series.locations)
   }, [issue.series.locations])
 
+  // Helper: find character IDs mentioned in a visual description by name matching
+  const findCharacterIdsInText = useCallback((text: string | null | undefined): string[] => {
+    if (!text) return []
+    const upper = text.toUpperCase()
+    const found: string[] = []
+    for (const char of localCharacters) {
+      const name = (char.display_name || char.name || '').toUpperCase()
+      if (name && upper.includes(name)) found.push(char.id)
+    }
+    return found
+  }, [localCharacters])
+
   // Compute characters/locations in current scene for contextual filtering
   const sceneCharacterIds = useMemo(() => {
     if (!selectedPageContext?.scene?.id) return new Set<string>()
@@ -187,13 +201,17 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     for (const act of issue.acts || []) {
       for (const scene of act.scenes || []) {
         if (scene.id === selectedPageContext.scene.id) {
-          // Get all character IDs from dialogue blocks in this scene
           for (const page of scene.pages || []) {
             for (const panel of page.panels || []) {
+              // From dialogue blocks
               for (const dialogue of panel.dialogue_blocks || []) {
                 if (dialogue.character_id) {
                   characterIds.add(dialogue.character_id)
                 }
+              }
+              // From visual descriptions (name matching)
+              for (const id of findCharacterIdsInText(panel.visual_description)) {
+                characterIds.add(id)
               }
             }
           }
@@ -202,19 +220,24 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     }
 
     return characterIds
-  }, [issue.acts, selectedPageContext?.scene?.id])
+  }, [issue.acts, selectedPageContext?.scene?.id, findCharacterIdsInText])
 
-  // Compute characters on the current page (from dialogue blocks)
+  // Compute characters on the current page (from dialogue + visual descriptions)
   const pageCharacterIds = useMemo(() => {
     if (!selectedPageContext?.page?.panels) return new Set<string>()
     const ids = new Set<string>()
     for (const panel of selectedPageContext.page.panels) {
+      // From dialogue blocks
       for (const dlg of panel.dialogue_blocks || []) {
         if (dlg.character_id) ids.add(dlg.character_id)
       }
+      // From visual descriptions (name matching)
+      for (const id of findCharacterIdsInText(panel.visual_description)) {
+        ids.add(id)
+      }
     }
     return ids
-  }, [selectedPageContext?.page?.panels])
+  }, [selectedPageContext?.page?.panels, findCharacterIdsInText])
 
   // Split characters into three groups: on page / in scene / other
   const { pageCharacters, sceneCharacters, otherCharacters } = useMemo(() => {
@@ -253,51 +276,51 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
     const characterIds = issue.series.characters.map((c: any) => c.id)
     const locationIds = issue.series.locations.map((l: any) => l.id)
 
+    // Fetch character and location images in parallel
+    const [{ data: charImages }, { data: locImages }] = await Promise.all([
+      characterIds.length > 0
+        ? supabase
+            .from('image_attachments')
+            .select('*')
+            .eq('entity_type', 'character')
+            .in('entity_id', characterIds)
+            .order('is_primary', { ascending: false })
+            .order('sort_order', { ascending: true })
+        : Promise.resolve({ data: null }),
+      locationIds.length > 0
+        ? supabase
+            .from('image_attachments')
+            .select('*')
+            .eq('entity_type', 'location')
+            .in('entity_id', locationIds)
+            .order('is_primary', { ascending: false })
+            .order('sort_order', { ascending: true })
+        : Promise.resolve({ data: null }),
+    ])
+
     const allImages: VisualImage[] = []
 
-    // Fetch character images
-    if (characterIds.length > 0) {
-      const { data: charImages } = await supabase
-        .from('image_attachments')
-        .select('*')
-        .eq('entity_type', 'character')
-        .in('entity_id', characterIds)
-        .order('is_primary', { ascending: false })
-        .order('sort_order', { ascending: true })
-
-      if (charImages) {
-        for (const img of charImages) {
-          const character = issue.series.characters.find((c: any) => c.id === img.entity_id)
-          allImages.push({
-            ...img,
-            url: getImageUrl(img.storage_path),
-            entityName: character?.name || 'Unknown',
-            entityType: 'character',
-          })
-        }
+    if (charImages) {
+      for (const img of charImages) {
+        const character = issue.series.characters.find((c: any) => c.id === img.entity_id)
+        allImages.push({
+          ...img,
+          url: getImageUrl(img.storage_path),
+          entityName: character?.name || 'Unknown',
+          entityType: 'character',
+        })
       }
     }
 
-    // Fetch location images
-    if (locationIds.length > 0) {
-      const { data: locImages } = await supabase
-        .from('image_attachments')
-        .select('*')
-        .eq('entity_type', 'location')
-        .in('entity_id', locationIds)
-        .order('is_primary', { ascending: false })
-        .order('sort_order', { ascending: true })
-
-      if (locImages) {
-        for (const img of locImages) {
-          const location = issue.series.locations.find((l: any) => l.id === img.entity_id)
-          allImages.push({
-            ...img,
-            url: getImageUrl(img.storage_path),
-            entityName: location?.name || 'Unknown',
-            entityType: 'location',
-          })
-        }
+    if (locImages) {
+      for (const img of locImages) {
+        const location = issue.series.locations.find((l: any) => l.id === img.entity_id)
+        allImages.push({
+          ...img,
+          url: getImageUrl(img.storage_path),
+          entityName: location?.name || 'Unknown',
+          entityType: 'location',
+        })
       }
     }
 
@@ -587,11 +610,17 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       .eq('character_id', characterId)
 
     const dialogueCount = count || 0
-    const confirmMessage = dialogueCount > 0
-      ? `This character has ${dialogueCount} dialogue${dialogueCount > 1 ? 's' : ''} assigned. Delete anyway? (Dialogues will become unassigned)`
-      : 'Delete this character?'
+    const description = dialogueCount > 0
+      ? `This character has ${dialogueCount} dialogue${dialogueCount > 1 ? 's' : ''} assigned. Dialogues will become unassigned.`
+      : 'This character will be permanently removed.'
 
-    if (!confirm(confirmMessage)) return
+    const confirmed = await confirmDialog({
+      title: 'Delete this character?',
+      description,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!confirmed) return
 
     // Optimistic update
     setLocalCharacters((prev: any[]) => prev.filter((c: any) => c.id !== characterId))
@@ -911,28 +940,29 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
       {/* Tab Navigation */}
       <div className="flex gap-0 mb-4 border-b border-[var(--border)] shrink-0">
         {([
-          { key: 'context', label: 'CTX' },
-          { key: 'characters', label: 'CHAR' },
-          { key: 'locations', label: 'LOC' },
-          { key: 'visuals', label: 'VIS' },
-          { key: 'alerts', label: 'ALRT' },
-          { key: 'pacing', label: 'PACE' },
-          { key: 'ai', label: 'AI' },
-        ] as const).map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex-1 py-2 px-1 type-micro transition-colors relative ${
-              activeTab === key
-                ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            {label}
-            {key === 'alerts' && activeAlerts.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-warning)]" aria-label={`${activeAlerts.length} alerts`} />
-            )}
-          </button>
+          { key: 'context', label: 'CTX', tip: 'Context' },
+          { key: 'characters', label: 'CHAR', tip: 'Characters' },
+          { key: 'locations', label: 'LOC', tip: 'Locations' },
+          { key: 'visuals', label: 'VIS', tip: 'Visuals' },
+          { key: 'alerts', label: 'ALRT', tip: 'Alerts' },
+          { key: 'pacing', label: 'PACE', tip: 'Pacing' },
+          { key: 'ai', label: 'AI', tip: 'AI Chat' },
+        ] as const).map(({ key, label, tip }) => (
+          <Tip key={key} content={tip} side="bottom">
+            <button
+              onClick={() => setActiveTab(key)}
+              className={`hover-glow flex-1 py-2 px-1 type-micro relative ${
+                activeTab === key
+                  ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              {label}
+              {key === 'alerts' && activeAlerts.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-warning)]" aria-label={`${activeAlerts.length} alerts`} />
+              )}
+            </button>
+          </Tip>
         ))}
       </div>
 
@@ -961,12 +991,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="type-label">ISSUE CONTEXT</h3>
-                <button
-                  onClick={() => setIsEditingContext(!isEditingContext)}
-                  className="text-xs text-[var(--color-primary)] hover:opacity-80"
-                >
-                  {isEditingContext ? 'Cancel' : 'Edit'}
-                </button>
+                <Tip content={isEditingContext ? 'Cancel editing' : 'Edit context'}>
+                  <button
+                    onClick={() => setIsEditingContext(!isEditingContext)}
+                    className="hover-fade text-xs text-[var(--color-primary)] hover:opacity-80"
+                  >
+                    {isEditingContext ? 'Cancel' : 'Edit'}
+                  </button>
+                </Tip>
               </div>
 
               {isEditingContext ? (
@@ -978,7 +1010,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.title}
                       onChange={(e) => setContextForm(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="Issue title..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                     />
                   </div>
                   <div>
@@ -988,7 +1020,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.tagline}
                       onChange={(e) => setContextForm(prev => ({ ...prev, tagline: e.target.value }))}
                       placeholder="One-line hook for this issue..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                     />
                   </div>
                   <div>
@@ -997,7 +1029,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.summary}
                       onChange={(e) => setContextForm(prev => ({ ...prev, summary: e.target.value }))}
                       placeholder="Brief summary of this issue..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1007,7 +1039,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.themes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, themes: e.target.value }))}
                       placeholder="Key themes explored..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1017,7 +1049,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.stakes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, stakes: e.target.value }))}
                       placeholder="What's at risk in this issue..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1027,7 +1059,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.outline_notes}
                       onChange={(e) => setContextForm(prev => ({ ...prev, outline_notes: e.target.value }))}
                       placeholder="Working notes for this issue's outline..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={3}
                     />
                   </div>
@@ -1037,7 +1069,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.motifs}
                       onChange={(e) => setContextForm(prev => ({ ...prev, motifs: e.target.value }))}
                       placeholder="Visual/narrative motifs for this issue..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1047,7 +1079,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.visual_style}
                       onChange={(e) => setContextForm(prev => ({ ...prev, visual_style: e.target.value }))}
                       placeholder="Visual style notes for artist..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1057,7 +1089,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       value={contextForm.rules}
                       onChange={(e) => setContextForm(prev => ({ ...prev, rules: e.target.value }))}
                       placeholder="Issue-specific conventions (e.g., 9-panel grid for introspection)..."
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                       rows={2}
                     />
                   </div>
@@ -1066,7 +1098,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     <select
                       value={contextForm.series_act}
                       onChange={(e) => setContextForm(prev => ({ ...prev, series_act: e.target.value }))}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
                     >
                       <option value="">Not set</option>
                       <option value="BEGINNING">Beginning (Act 1)</option>
@@ -1074,13 +1106,15 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       <option value="END">End (Act 3)</option>
                     </select>
                   </div>
-                  <button
-                    onClick={saveContext}
-                    disabled={saving}
-                    className="w-full bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] py-2 rounded text-sm sticky bottom-0"
-                  >
-                    {saving ? 'Saving...' : 'Save Context'}
-                  </button>
+                  <Tip content="Save issue context">
+                    <button
+                      onClick={saveContext}
+                      disabled={saving}
+                      className="hover-lift w-full bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] py-2 rounded text-sm sticky bottom-0"
+                    >
+                      {saving ? 'Saving...' : 'Save Context'}
+                    </button>
+                  </Tip>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm max-h-80 overflow-y-auto">
@@ -1152,37 +1186,39 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             {/* Status */}
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
               <h3 className="type-label mb-3">STATUS</h3>
-              <select
-                value={localStatus}
-                onChange={async (e) => {
-                  const newStatus = e.target.value
-                  const previousStatus = localStatus
+              <Tip content="Issue status">
+                <select
+                  value={localStatus}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value
+                    const previousStatus = localStatus
 
-                  // Optimistic update FIRST
-                  setLocalStatus(newStatus)
+                    // Optimistic update FIRST
+                    setLocalStatus(newStatus)
 
-                  // Then persist to database
-                  const supabase = createClient()
-                  const { error } = await supabase
-                    .from('issues')
-                    .update({ status: newStatus })
-                    .eq('id', issue.id)
+                    // Then persist to database
+                    const supabase = createClient()
+                    const { error } = await supabase
+                      .from('issues')
+                      .update({ status: newStatus })
+                      .eq('id', issue.id)
 
-                  if (error) {
-                    // Rollback on error
-                    setLocalStatus(previousStatus)
-                    showToast('Failed to update status', 'error')
-                  } else {
-                    onRefresh?.()
-                  }
-                }}
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
-              >
-                <option value="outline">Outline</option>
-                <option value="drafting">Drafting</option>
-                <option value="revision">Revision</option>
-                <option value="complete">Complete</option>
-              </select>
+                    if (error) {
+                      // Rollback on error
+                      setLocalStatus(previousStatus)
+                      showToast('Failed to update status', 'error')
+                    } else {
+                      onRefresh?.()
+                    }
+                  }}
+                  className="hover-glow w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50"
+                >
+                  <option value="outline">Outline</option>
+                  <option value="drafting">Drafting</option>
+                  <option value="revision">Revision</option>
+                  <option value="complete">Complete</option>
+                </select>
+              </Tip>
             </div>
           </div>
         )}
@@ -1191,99 +1227,121 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
         {activeTab === 'characters' && (
           <div className="space-y-2 overflow-y-auto flex-1">
             {selectedCharacter ? (
-              /* Character Detail View */
+              /* Character Detail View — read-only quick reference */
               <div className="space-y-3">
-                <button
-                  onClick={() => setSelectedCharacterId(null)}
-                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                >
-                  <span>←</span> Back to list
-                </button>
-
-                <div className="space-y-3">
-                  {/* Name */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={selectedCharacter.name || ''}
-                      onChange={(e) => updateCharacterField('name', e.target.value)}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
-                    />
-                  </div>
-
-                  {/* Role */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Role</label>
-                    <input
-                      type="text"
-                      value={selectedCharacter.role || ''}
-                      onChange={(e) => updateCharacterField('role', e.target.value)}
-                      placeholder="e.g., Protagonist, Antagonist, Supporting"
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm"
-                    />
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Description</label>
-                    <textarea
-                      value={selectedCharacter.description || ''}
-                      onChange={(e) => updateCharacterField('description', e.target.value)}
-                      placeholder="Brief character description..."
-                      rows={2}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Visual Description */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Visual Description</label>
-                    <textarea
-                      value={selectedCharacter.visual_description || ''}
-                      onChange={(e) => updateCharacterField('visual_description', e.target.value)}
-                      placeholder="Physical appearance, clothing, distinguishing features..."
-                      rows={3}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Personality Traits */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Personality Traits</label>
-                    <textarea
-                      value={selectedCharacter.personality_traits || ''}
-                      onChange={(e) => updateCharacterField('personality_traits', e.target.value)}
-                      placeholder="Key personality characteristics..."
-                      rows={2}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Background */}
-                  <div>
-                    <label className="block type-micro text-[var(--text-muted)] mb-1">Background</label>
-                    <textarea
-                      value={selectedCharacter.background || ''}
-                      onChange={(e) => updateCharacterField('background', e.target.value)}
-                      placeholder="Character history and backstory..."
-                      rows={3}
-                      className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* Save indicator */}
-                  <div className="text-xs text-[var(--text-muted)] text-right">
-                    {characterSaving ? 'Saving...' : 'Auto-saves'}
-                  </div>
-
-                  {/* Delete button */}
+                <div className="flex items-center justify-between">
                   <button
-                    onClick={() => deleteCharacter(selectedCharacter.id)}
-                    className="w-full mt-4 px-3 py-2 text-sm text-[var(--color-error)] hover:opacity-80 hover:bg-[var(--color-error)]/10 rounded transition-colors"
+                    onClick={() => setSelectedCharacterId(null)}
+                    className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)]"
                   >
-                    Delete Character
+                    <span>←</span> Back
                   </button>
+                  <Tip content="Go to character page">
+                    <a
+                      href={`/series/${issue.series.id}/characters`}
+                      className="hover-fade text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                    >
+                      Edit on Characters Page →
+                    </a>
+                  </Tip>
+                </div>
+
+                {/* Character name + role header */}
+                <div>
+                  <h3 className="type-label text-[var(--text-primary)]">{selectedCharacter.name}</h3>
+                  {selectedCharacter.display_name && selectedCharacter.display_name !== selectedCharacter.name && (
+                    <p className="text-xs text-[var(--text-muted)]">aka {selectedCharacter.display_name}</p>
+                  )}
+                  {selectedCharacter.role && (
+                    <p className="text-xs text-[var(--color-primary)]/80 mt-0.5">{selectedCharacter.role}</p>
+                  )}
+                  {selectedCharacter.aliases?.length > 0 && (
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                      Aliases: {selectedCharacter.aliases.join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                {/* Fields shown only if they have content */}
+                <div className="space-y-2.5">
+                  {selectedCharacter.physical_description && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">APPEARANCE</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.physical_description}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.personality_traits && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">PERSONALITY</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.personality_traits}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.speech_patterns && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">SPEECH PATTERNS</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.speech_patterns}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.relationships && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">RELATIONSHIPS</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.relationships}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.arc_notes && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">ARC NOTES</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.arc_notes}</p>
+                    </div>
+                  )}
+
+                  {selectedCharacter.background && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">BACKGROUND</label>
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{selectedCharacter.background}</p>
+                    </div>
+                  )}
+
+                  {/* Compact visual details row if any exist */}
+                  {(selectedCharacter.age || selectedCharacter.height || selectedCharacter.build) && (
+                    <div>
+                      <label className="block type-micro text-[var(--text-muted)] mb-0.5">DETAILS</label>
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        {[
+                          selectedCharacter.age && `Age: ${selectedCharacter.age}`,
+                          selectedCharacter.height,
+                          selectedCharacter.build,
+                          selectedCharacter.eye_color && `Eyes: ${selectedCharacter.eye_color}`,
+                          selectedCharacter.hair_color_style && `Hair: ${selectedCharacter.hair_color_style}`,
+                        ].filter(Boolean).join(' · ')}
+                      </p>
+                      {selectedCharacter.distinguishing_marks && (
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">{selectedCharacter.distinguishing_marks}</p>
+                      )}
+                      {selectedCharacter.style_wardrobe && (
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">Wardrobe: {selectedCharacter.style_wardrobe}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Empty state if character has no data filled in */}
+                  {!selectedCharacter.physical_description && !selectedCharacter.personality_traits &&
+                   !selectedCharacter.speech_patterns && !selectedCharacter.relationships &&
+                   !selectedCharacter.arc_notes && !selectedCharacter.background && (
+                    <p className="text-xs text-[var(--text-muted)] italic text-center py-3">
+                      No character details yet.{' '}
+                      <a
+                        href={`/series/${issue.series.id}/characters`}
+                        className="hover-fade text-[var(--color-primary)] hover:underline"
+                      >
+                        Add them on the Characters page.
+                      </a>
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1304,19 +1362,20 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         </div>
                         <div className="space-y-1">
                           {pageCharacters.map((char: any) => (
-                            <button
-                              key={char.id}
-                              onClick={() => setSelectedCharacterId(char.id)}
-                              className="w-full text-left bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 rounded p-3 transition-colors group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm">{char.name}</div>
-                                <span className="text-[var(--color-primary)]/50 group-hover:text-[var(--color-primary)] transition-colors">→</span>
-                              </div>
-                              {char.role && (
-                                <div className="text-xs text-[var(--color-primary)]/70">{char.role}</div>
-                              )}
-                            </button>
+                            <Tip key={char.id} content="View character details">
+                              <button
+                                onClick={() => setSelectedCharacterId(char.id)}
+                                className="hover-glow w-full text-left bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 rounded p-3 group"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium text-sm">{char.name}</div>
+                                  <span className="hover-fade text-[var(--color-primary)]/50 group-hover:text-[var(--color-primary)]">→</span>
+                                </div>
+                                {char.role && (
+                                  <div className="text-xs text-[var(--color-primary)]/70">{char.role}</div>
+                                )}
+                              </button>
+                            </Tip>
                           ))}
                         </div>
                       </div>
@@ -1326,59 +1385,69 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     {sceneCharacters.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="type-label text-emerald-400">In This Scene</h3>
-                          <span className="text-xs text-emerald-400/60">({sceneCharacters.length})</span>
+                          <h3 className="type-label text-[var(--color-success)]">In This Scene</h3>
+                          <span className="text-xs text-[var(--color-success)]/60">({sceneCharacters.length})</span>
                         </div>
                         <div className="space-y-1">
                           {sceneCharacters.map((char: any) => (
-                            <button
-                              key={char.id}
-                              onClick={() => setSelectedCharacterId(char.id)}
-                              className="w-full text-left bg-emerald-900/20 hover:bg-emerald-900/30 border border-emerald-700/30 rounded p-3 transition-colors group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm text-emerald-100">{char.name}</div>
-                                <span className="text-emerald-400/50 group-hover:text-emerald-400 transition-colors">→</span>
-                              </div>
-                              {char.role && (
-                                <div className="text-xs text-emerald-300/70">{char.role}</div>
-                              )}
-                            </button>
+                            <Tip key={char.id} content="View character details">
+                              <button
+                                onClick={() => setSelectedCharacterId(char.id)}
+                                className="hover-glow w-full text-left bg-[var(--color-success)]/10 hover:bg-[var(--color-success)]/15 border border-[var(--color-success)]/20 rounded p-3 group"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium text-sm text-[var(--text-primary)]">{char.name}</div>
+                                  <span className="hover-fade text-[var(--color-success)]/50 group-hover:text-[var(--color-success)]">→</span>
+                                </div>
+                                {char.role && (
+                                  <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
+                                )}
+                              </button>
+                            </Tip>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* All other characters */}
+                    {/* All other characters — collapsed by default */}
                     {otherCharacters.length > 0 && (
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="type-label text-[var(--text-muted)]">
+                        <button
+                          onClick={() => setShowAllCharacters(prev => !prev)}
+                          className="hover-lift flex items-center gap-2 mb-2 group"
+                        >
+                          <span className="text-xs text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
+                            {showAllCharacters ? '▾' : '▸'}
+                          </span>
+                          <h3 className="type-label text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
                             All Characters
                           </h3>
                           <span className="text-xs text-[var(--text-muted)]">({otherCharacters.length})</span>
-                        </div>
-                        <div className="space-y-1">
-                          {otherCharacters.map((char: any) => (
-                            <button
-                              key={char.id}
-                              onClick={() => setSelectedCharacterId(char.id)}
-                              className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm">{char.name}</div>
-                                <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
-                              </div>
-                              {char.role && (
-                                <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
+                        </button>
+                        {showAllCharacters && (
+                          <div className="space-y-1">
+                            {otherCharacters.map((char: any) => (
+                              <Tip key={char.id} content="View character details">
+                                <button
+                                  onClick={() => setSelectedCharacterId(char.id)}
+                                  className="hover-glow w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 group"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="font-medium text-sm">{char.name}</div>
+                                    <span className="hover-fade text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">→</span>
+                                  </div>
+                                  {char.role && (
+                                    <div className="text-xs text-[var(--text-secondary)]">{char.role}</div>
+                                  )}
+                                </button>
+                              </Tip>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {/* Empty state when no page selected */}
+                    {/* Empty state when no characters detected on page/scene */}
                     {pageCharacters.length === 0 && sceneCharacters.length === 0 && selectedPageContext && (
                       <p className="text-xs text-[var(--text-muted)] italic text-center py-2">
                         No characters have dialogue in this scene yet
@@ -1399,7 +1468,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               <div className="space-y-3">
                 <button
                   onClick={() => setSelectedLocationId(null)}
-                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)]"
                 >
                   <span>←</span> Back to list
                 </button>
@@ -1460,7 +1529,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                   {/* Delete button */}
                   <button
                     onClick={() => deleteLocation(selectedLocation.id)}
-                    className="w-full mt-4 px-3 py-2 text-sm text-[var(--color-error)] hover:opacity-80 hover:bg-[var(--color-error)]/10 rounded transition-colors"
+                    className="hover-fade-danger w-full mt-4 px-3 py-2 text-sm text-[var(--color-error)] hover:opacity-80 hover:bg-[var(--color-error)]/10 rounded transition-colors"
                   >
                     Delete Location
                   </button>
@@ -1482,11 +1551,11 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       <button
                         key={loc.id}
                         onClick={() => setSelectedLocationId(loc.id)}
-                        className="w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 transition-colors group"
+                        className="hover-glow w-full text-left bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] rounded p-3 group"
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-medium text-sm">{loc.name}</div>
-                          <span className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">→</span>
+                          <span className="hover-fade text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">→</span>
                         </div>
                       </button>
                     ))}
@@ -1504,9 +1573,9 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             <div className="flex gap-1 mb-3 bg-[var(--bg-secondary)] rounded p-1 shrink-0">
               <button
                 onClick={() => setVisualsFilter('all')}
-                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'all'
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-[var(--color-success)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -1514,7 +1583,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               </button>
               <button
                 onClick={() => setVisualsFilter('characters')}
-                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'characters'
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1524,7 +1593,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               </button>
               <button
                 onClick={() => setVisualsFilter('locations')}
-                className={`flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                className={`hover-glow flex-1 py-1 px-2 rounded text-xs ${
                   visualsFilter === 'locations'
                     ? 'bg-[var(--accent-hover)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1540,7 +1609,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               <div className="flex flex-col h-full">
                 <button
                   onClick={() => setSelectedVisual(null)}
-                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2 shrink-0"
+                  className="hover-fade flex items-center gap-1 text-sm text-[var(--text-secondary)] mb-2 shrink-0"
                 >
                   <span>←</span> Back to gallery
                 </button>
@@ -1562,7 +1631,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     </span>
                     <span className="font-medium text-sm">{selectedVisual.entityName}</span>
                     {selectedVisual.is_primary && (
-                      <span className="text-xs text-emerald-400">★ Primary</span>
+                      <span className="text-xs text-[var(--color-success)]">★ Primary</span>
                     )}
                   </div>
                   {selectedVisual.caption && (
@@ -1572,7 +1641,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               </div>
             ) : visualsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-[var(--color-success)] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filteredVisuals.length === 0 ? (
               <div className="text-center py-8">
@@ -1585,12 +1654,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                 <p className="text-[var(--text-muted)] text-xs mt-1">
                   Add images from the Characters or Locations pages
                 </p>
-                <button
-                  onClick={fetchVisuals}
-                  className="mt-3 text-xs text-emerald-400 hover:text-emerald-300"
-                >
-                  Refresh
-                </button>
+                <Tip content="Refresh visuals">
+                  <button
+                    onClick={fetchVisuals}
+                    className="hover-fade mt-3 text-xs text-[var(--color-success)] hover:text-[var(--color-success-hover,var(--color-success))]"
+                  >
+                    Refresh
+                  </button>
+                </Tip>
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto">
@@ -1599,7 +1670,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     <button
                       key={visual.id}
                       onClick={() => setSelectedVisual(visual)}
-                      className="relative aspect-square rounded-lg overflow-hidden group border-2 border-transparent hover:border-emerald-500/50 transition-all"
+                      className="hover-glow relative aspect-square rounded-lg overflow-hidden group border-2 border-transparent hover:border-[var(--color-success)]/50 transition-all"
                     >
                       <img
                         src={visual.url}
@@ -1617,7 +1688,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         </div>
                       </div>
                       {visual.is_primary && (
-                        <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-[10px]">
+                        <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-success)] rounded-full flex items-center justify-center text-[10px]">
                           ★
                         </div>
                       )}
@@ -1637,7 +1708,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               {dismissedAlerts.size > 0 && (
                 <button
                   onClick={clearDismissed}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  className="hover-fade text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 >
                   Show dismissed ({dismissedAlerts.size})
                 </button>
@@ -1683,13 +1754,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         </div>
                         <p className="text-xs text-[var(--text-secondary)]">{alert.details}</p>
                       </div>
-                      <button
-                        onClick={() => dismissAlert(alert.id)}
-                        className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-sm shrink-0"
-                        title="Dismiss"
-                      >
-                        ×
-                      </button>
+                      <Tip content="Dismiss">
+                        <button
+                          onClick={() => dismissAlert(alert.id)}
+                          className="hover-fade text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-sm shrink-0"
+                        >
+                          ×
+                        </button>
+                      </Tip>
                     </div>
                   </div>
                 ))}
@@ -1699,7 +1771,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
             <div className="pt-4 border-t border-[var(--border)]">
               <a
                 href={`/series/${issue.series.id}/continuity`}
-                className="text-xs text-[var(--color-primary)] hover:opacity-80"
+                className="hover-fade text-xs text-[var(--color-primary)] hover:opacity-80"
               >
                 Run full continuity check →
               </a>
@@ -1767,20 +1839,10 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
               }}
             >
               {chatMessages.length === 0 && !streamingText ? (
-                <div className="text-center py-6 px-4">
-                  <p className="type-label mb-2">
-                    STRUCT_AI <span className="type-separator">{'\/\/'}</span> PARTNER
+                <div className="flex items-center justify-center h-full px-4">
+                  <p className="type-meta text-[var(--text-disabled)] text-center">
+                    Ask your editor anything about this project.
                   </p>
-                  <p className="type-meta mb-4">
-                    Your editor knows the full project — characters, plotlines, script, and structure.
-                    It can create characters, save ideas to canvas, draft panels, and more.
-                  </p>
-                  <div className="type-meta space-y-1.5 text-left bg-[var(--bg-tertiary)]/50 p-3">
-                    <p>&bull; &quot;What should this scene accomplish?&quot;</p>
-                    <p>&bull; &quot;Help me work out the act breaks&quot;</p>
-                    <p>&bull; &quot;Draft a tense establishing shot for this page&quot;</p>
-                    <p>&bull; &quot;Create a character for the detective&quot;</p>
-                  </div>
                 </div>
               ) : (
                 <>
@@ -1808,7 +1870,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                                 setChatInput(lastUserMsg.content)
                               }
                             }}
-                            className="mt-2 text-xs text-[var(--color-primary)] hover:underline"
+                            className="hover-fade mt-2 text-xs text-[var(--color-primary)] hover:underline"
                           >
                             Retry
                           </button>
@@ -1824,27 +1886,28 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                             <p className="type-console whitespace-pre-wrap">{msg.content}</p>
                           )}
                           {msg.role === 'assistant' && (
-                            <button
-                              onClick={async () => {
-                                const supabase = createClient()
-                                const { error } = await supabase
-                                  .from('project_notes')
-                                  .insert({
-                                    series_id: issue.series.id,
-                                    type: 'AI_INSIGHT',
-                                    content: msg.content.slice(0, 500),
-                                  })
-                                if (error) {
-                                  showToast('Failed to save note', 'error')
-                                } else {
-                                  showToast('Saved to project notes', 'success')
-                                }
-                              }}
-                              className="mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                              title="Save this insight to Project Notes"
-                            >
-                              Save to Notes
-                            </button>
+                            <Tip content="Save to project notes">
+                              <button
+                                onClick={async () => {
+                                  const supabase = createClient()
+                                  const { error } = await supabase
+                                    .from('project_notes')
+                                    .insert({
+                                      series_id: issue.series.id,
+                                      type: 'AI_INSIGHT',
+                                      content: msg.content.slice(0, 500),
+                                    })
+                                  if (error) {
+                                    showToast('Failed to save note', 'error')
+                                  } else {
+                                    showToast('Saved to project notes', 'success')
+                                  }
+                                }}
+                                className="hover-lift mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                              >
+                                Save to Notes
+                              </button>
+                            </Tip>
                           )}
                         </>
                       )}
@@ -1888,14 +1951,14 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                                     <button
                                       onClick={() => handleToolProposal(proposal, true, i)}
                                       disabled={isLoading}
-                                      className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50"
+                                      className="hover-lift flex-1 py-1.5 px-3 rounded text-xs font-medium bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50"
                                     >
                                       Confirm
                                     </button>
                                     <button
                                       onClick={() => handleToolProposal(proposal, false, i)}
                                       disabled={isLoading}
-                                      className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className="hover-fade flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       Skip
                                     </button>
@@ -1979,7 +2042,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                   }}
                   placeholder="Talk to your editor..."
                   rows={1}
-                  className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none resize-none max-h-32 overflow-y-auto"
+                  className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/50 resize-none max-h-32 overflow-y-auto disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLoading}
                   style={{ minHeight: '38px' }}
                   onInput={(e) => {
@@ -1988,13 +2051,15 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                     el.style.height = Math.min(el.scrollHeight, 128) + 'px'
                   }}
                 />
-                <button
-                  onClick={sendMessage}
-                  disabled={isLoading || !chatInput.trim()}
-                  className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] px-4 py-2 rounded text-sm shrink-0"
-                >
-                  Send
-                </button>
+                <Tip content="Send message">
+                  <button
+                    onClick={sendMessage}
+                    disabled={isLoading || !chatInput.trim()}
+                    className="hover-lift bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] px-4 py-2 rounded text-sm shrink-0"
+                  >
+                    Send
+                  </button>
+                </Tip>
               </div>
             </div>
           </div>

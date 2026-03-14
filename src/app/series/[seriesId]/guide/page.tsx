@@ -47,11 +47,9 @@ export default async function GuidePage({
     notFound()
   }
 
-  // If a session ID is provided, fetch it
-  let existingSession = null
-  let sessionMessages: any[] = []
-
-  if (sessionId) {
+  // Fetch session (if provided), writer insights, and recent sessions in parallel
+  const sessionPromise = (async () => {
+    if (!sessionId) return { session: null, messages: [] as any[] }
     const { data: session } = await supabase
       .from('guided_sessions')
       .select('*')
@@ -59,33 +57,38 @@ export default async function GuidePage({
       .eq('user_id', user.id)
       .single()
 
-    if (session) {
-      existingSession = session
+    if (!session) return { session: null, messages: [] as any[] }
 
-      const { data: messages } = await supabase
-        .from('guided_messages')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true })
+    const { data: messages } = await supabase
+      .from('guided_messages')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true })
 
-      sessionMessages = messages || []
-    }
-  }
+    return { session, messages: messages || [] }
+  })()
 
-  // Fetch writer insights for this user
-  const { data: writerInsights } = await supabase
+  const writerInsightsPromise = supabase
     .from('writer_insights')
     .select('*')
     .eq('user_id', user.id)
 
-  // Fetch recent guided sessions for this series
-  const { data: recentSessions } = await supabase
+  const recentSessionsPromise = supabase
     .from('guided_sessions')
     .select('*')
     .eq('series_id', seriesId)
     .eq('user_id', user.id)
     .order('last_active_at', { ascending: false })
     .limit(5)
+
+  const [sessionResult, { data: writerInsights }, { data: recentSessions }] = await Promise.all([
+    sessionPromise,
+    writerInsightsPromise,
+    recentSessionsPromise,
+  ])
+
+  const existingSession = sessionResult.session
+  const sessionMessages = sessionResult.messages
 
   return (
     <GuidedMode

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 
 interface Character {
   id: string
@@ -218,7 +219,7 @@ ${JSON.stringify(appearanceData, null, 2)}`,
           <select
             value={selectedCharacter || ''}
             onChange={(e) => setSelectedCharacter(e.target.value)}
-            className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2"
+            className="bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 hover-glow"
           >
             {series.characters.map((char) => (
               <option key={char.id} value={char.id}>
@@ -227,13 +228,15 @@ ${JSON.stringify(appearanceData, null, 2)}`,
             ))}
           </select>
         </div>
-        <button
-          onClick={generateStates}
-          disabled={isGenerating || !selectedCharacter}
-          className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium active:scale-[0.97] transition-all duration-150 ease-out"
-        >
-          {isGenerating ? 'Analyzing...' : 'Generate Arc with AI'}
-        </button>
+        <Tip content="Use AI to analyze this character's emotional journey across issues">
+          <button
+            onClick={generateStates}
+            disabled={isGenerating || !selectedCharacter}
+            className="bg-[var(--color-primary)] hover:opacity-90 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift"
+          >
+            {isGenerating ? 'Analyzing...' : 'Generate Arc with AI'}
+          </button>
+        </Tip>
       </div>
 
       {/* Arc Visualization */}
@@ -283,7 +286,7 @@ ${JSON.stringify(appearanceData, null, 2)}`,
                       fill="#3b82f6"
                       className="cursor-pointer hover:fill-blue-400"
                     >
-                      <title>Issue #{d.issue}: {d.state} ({d.score}/10)</title>
+                      <title>{`Issue #${d.issue}: ${d.state} (${d.score}/10)`}</title>
                     </circle>
                   )
                 })}

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 
 interface Character {
   id: string
@@ -345,13 +346,15 @@ ${ic.text.slice(0, 3000)}
             Analyze your series for continuity errors, character inconsistencies, and timeline issues.
           </p>
         </div>
-        <button
-          onClick={analyze}
-          disabled={isAnalyzing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out"
-        >
-          {isAnalyzing ? 'Analyzing...' : hasAnalyzed ? 'Re-analyze' : 'Run Analysis'}
-        </button>
+        <Tip content="Scan all issues for continuity errors and inconsistencies">
+          <button
+            onClick={analyze}
+            disabled={isAnalyzing}
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium whitespace-nowrap hover-lift"
+          >
+            {isAnalyzing ? 'Analyzing...' : hasAnalyzed ? 'Re-analyze' : 'Run Analysis'}
+          </button>
+        </Tip>
       </div>
 
       {/* Series Overview */}
@@ -381,38 +384,46 @@ ${ic.text.slice(0, 3000)}
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
             <h3 className="font-medium mb-4">Analysis Summary</h3>
             <div className="flex flex-wrap gap-2 sm:gap-4">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-3 py-1.5 rounded text-sm active:scale-[0.97] transition-all duration-150 ease-out ${
-                  filter === 'all' ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]'
-                }`}
-              >
-                All ({issues.length})
-              </button>
-              <button
-                onClick={() => setFilter('error')}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
-                  filter === 'error' ? 'bg-[var(--color-error)]/30 text-[var(--color-error)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-error)]'
-                }`}
-              >
-                Errors ({issuesByType.error})
-              </button>
-              <button
-                onClick={() => setFilter('warning')}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
-                  filter === 'warning' ? 'bg-[var(--color-warning)]/30 text-[var(--color-warning)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-warning)]'
-                }`}
-              >
-                Warnings ({issuesByType.warning})
-              </button>
-              <button
-                onClick={() => setFilter('info')}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] transition-all duration-150 ease-out ${
-                  filter === 'info' ? 'bg-[var(--color-primary)]/30 text-[var(--color-primary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-primary)]'
-                }`}
-              >
-                Info ({issuesByType.info})
-              </button>
+              <Tip content="Show all findings">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`hover-glow px-3 py-1.5 rounded text-sm active:scale-[0.97] ${
+                    filter === 'all' ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]'
+                  }`}
+                >
+                  All ({issues.length})
+                </button>
+              </Tip>
+              <Tip content="Filter to errors only">
+                <button
+                  onClick={() => setFilter('error')}
+                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] ${
+                    filter === 'error' ? 'bg-[var(--color-error)]/30 text-[var(--color-error)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-error)]'
+                  }`}
+                >
+                  Errors ({issuesByType.error})
+                </button>
+              </Tip>
+              <Tip content="Filter to warnings only">
+                <button
+                  onClick={() => setFilter('warning')}
+                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] ${
+                    filter === 'warning' ? 'bg-[var(--color-warning)]/30 text-[var(--color-warning)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-warning)]'
+                  }`}
+                >
+                  Warnings ({issuesByType.warning})
+                </button>
+              </Tip>
+              <Tip content="Filter to informational notes">
+                <button
+                  onClick={() => setFilter('info')}
+                  className={`hover-glow px-3 py-1.5 rounded text-sm flex items-center gap-2 active:scale-[0.97] ${
+                    filter === 'info' ? 'bg-[var(--color-primary)]/30 text-[var(--color-primary)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--color-primary)]'
+                  }`}
+                >
+                  Info ({issuesByType.info})
+                </button>
+              </Tip>
             </div>
           </div>
 

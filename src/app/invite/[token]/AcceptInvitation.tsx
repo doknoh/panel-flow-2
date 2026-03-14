@@ -13,9 +13,6 @@ interface AcceptInvitationProps {
 
 export default function AcceptInvitation({
   invitationId,
-  seriesId,
-  role,
-  userId,
 }: AcceptInvitationProps) {
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,13 +24,47 @@ export default function AcceptInvitation({
     setError(null)
 
     try {
-      // Create collaborator record
+      // Get the current authenticated user from Supabase (don't trust props)
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw new Error('You must be logged in to accept an invitation')
+      }
+
+      // Re-fetch the invitation from the DB to get the actual role and series_id
+      // (don't trust values passed as props from the server component)
+      const { data: invitation, error: invError } = await supabase
+        .from('collaboration_invitations')
+        .select('id, series_id, role, email, accepted_at, expires_at')
+        .eq('id', invitationId)
+        .single()
+
+      if (invError || !invitation) {
+        throw new Error('Invitation not found or is no longer valid')
+      }
+
+      // Verify the invitation hasn't already been accepted
+      if (invitation.accepted_at) {
+        throw new Error('This invitation has already been accepted')
+      }
+
+      // Verify the invitation hasn't expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        throw new Error('This invitation has expired')
+      }
+
+      // Verify the invitation email matches the logged-in user
+      if (user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+        // Allow acceptance but this is already shown as a warning in the UI
+        // The server page already displays a note about email mismatch
+      }
+
+      // Create collaborator record using DB-fetched values
       const { error: collabError } = await supabase
         .from('series_collaborators')
         .insert({
-          series_id: seriesId,
-          user_id: userId,
-          role: role,
+          series_id: invitation.series_id,
+          user_id: user.id,
+          role: invitation.role,
           accepted_at: new Date().toISOString(),
         })
 
@@ -46,19 +77,19 @@ export default function AcceptInvitation({
         throw collabError
       }
 
-      // Mark invitation as accepted
+      // Mark invitation as accepted using the DB-fetched invitation ID
       const { error: updateError } = await supabase
         .from('collaboration_invitations')
         .update({ accepted_at: new Date().toISOString() })
-        .eq('id', invitationId)
+        .eq('id', invitation.id)
 
       if (updateError) {
         console.error('Error updating invitation:', updateError)
         // Non-fatal - continue anyway
       }
 
-      // Redirect to the series
-      router.push(`/series/${seriesId}`)
+      // Redirect to the series using DB-fetched series_id
+      router.push(`/series/${invitation.series_id}`)
     } catch (err: any) {
       setError(err.message)
       setAccepting(false)
@@ -76,7 +107,7 @@ export default function AcceptInvitation({
       <button
         onClick={handleAccept}
         disabled={accepting}
-        className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+        className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 hover-lift"
       >
         {accepting ? 'Accepting...' : 'Accept Invitation'}
       </button>

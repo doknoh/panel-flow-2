@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { CanvasItemData, ColorTag, COLOR_OPTIONS, FilingTarget, ITEM_TYPE_CONFIG, ITEM_TYPE_ICONS } from './NotebookClient'
 
 const COLOR_CLASSES: Record<ColorTag, string> = {
@@ -171,7 +172,7 @@ export default function NotebookItem({
             onArchive(item.id)
             setShowMenu(false)
           }}
-          className="dropdown-item text-[var(--color-error)]"
+          className="dropdown-item hover-fade-danger text-[var(--color-error)]"
         >
           Archive
         </button>
@@ -189,22 +190,25 @@ export default function NotebookItem({
       <div className="dropdown-panel absolute left-3 top-full mt-1 z-50 p-2">
         <div className="grid grid-cols-4 gap-1">
           {COLOR_OPTIONS.map(color => (
-            <button
-              key={color}
-              onClick={() => handleColorChange(color)}
-              className={`w-6 h-6 rounded ${COLOR_DOT_CLASSES[color]} hover:ring-2 ring-[var(--text-primary)]/50 transition-all ${
-                item.color_tag === color ? 'ring-2' : ''
-              }`}
-            />
+            <Tip key={color} content={color.charAt(0).toUpperCase() + color.slice(1)}>
+              <button
+                onClick={() => handleColorChange(color)}
+                className={`w-6 h-6 rounded hover-fade ${COLOR_DOT_CLASSES[color]} hover:ring-2 ring-[var(--text-primary)]/50 transition-all ${
+                  item.color_tag === color ? 'ring-2' : ''
+                }`}
+              />
+            </Tip>
           ))}
-          <button
-            onClick={() => handleColorChange(null)}
-            className={`w-6 h-6 rounded bg-[var(--bg-tertiary)] hover:ring-2 ring-[var(--text-primary)]/50 transition-all flex items-center justify-center text-xs ${
-              !item.color_tag ? 'ring-2' : ''
-            }`}
-          >
-            ✕
-          </button>
+          <Tip content="Remove color">
+            <button
+              onClick={() => handleColorChange(null)}
+              className={`w-6 h-6 rounded bg-[var(--bg-tertiary)] hover-fade hover:ring-2 ring-[var(--text-primary)]/50 transition-all flex items-center justify-center text-xs ${
+                !item.color_tag ? 'ring-2' : ''
+              }`}
+            >
+              ✕
+            </button>
+          </Tip>
         </div>
       </div>
     </>
@@ -247,14 +251,16 @@ export default function NotebookItem({
   // --- Menu button ---
   const menuButton = (
     <div className="relative">
-      <button
-        onClick={() => setShowMenu(!showMenu)}
-        className="p-1 rounded hover:bg-[var(--bg-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <svg className="w-4 h-4 text-[var(--text-muted)]" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </button>
+      <Tip content="Options">
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="p-1 rounded hover-fade hover:bg-[var(--bg-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <svg className="w-4 h-4 text-[var(--text-muted)]" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+        </button>
+      </Tip>
       {menuDropdown}
     </div>
   )
@@ -270,7 +276,7 @@ export default function NotebookItem({
         onDragOver={(e) => onDragOver?.(e, item.id)}
         onDragEnd={onDragEnd}
         className={`
-          relative group rounded-lg border-l-4 transition-all cursor-grab active:cursor-grabbing
+          relative group rounded-lg border-l-4 transition-all cursor-grab active:cursor-grabbing hover-glow
           ${item.color_tag ? COLOR_CLASSES[item.color_tag] : ''}
           ${isDragging ? 'opacity-50 scale-95' : 'opacity-100'}
           bg-[var(--bg-secondary)]
@@ -333,12 +339,14 @@ export default function NotebookItem({
 
         {/* Graduate badge for character/world items */}
         {canGraduate && (
-          <button
-            onClick={() => onGraduate(item)}
-            className="absolute bottom-2 right-2 type-micro px-2 py-0.5 border border-[var(--color-primary)]/50 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 opacity-0 group-hover:opacity-100 transition-all duration-150"
-          >
-            GRADUATE
-          </button>
+          <Tip content="Promote to character or location">
+            <button
+              onClick={() => onGraduate(item)}
+              className="absolute bottom-2 right-2 type-micro px-2 py-0.5 border border-[var(--color-primary)]/50 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 hover-lift opacity-0 group-hover:opacity-100 transition-all duration-150"
+            >
+              GRADUATE
+            </button>
+          </Tip>
         )}
 
         {/* Color picker modal */}
@@ -353,7 +361,7 @@ export default function NotebookItem({
   return (
     <div
       className={`
-        relative group w-[220px] transition-all
+        relative group w-[220px] transition-all hover-glow
         bg-[var(--bg-primary)]
         border border-[var(--border)] border-l-4
         shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)]

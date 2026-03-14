@@ -5,6 +5,7 @@ import IssueGrid from './IssueGrid'
 import CreateIssueButton from './CreateIssueButton'
 import SeriesMetadata from './SeriesMetadata'
 import Header from '@/components/ui/Header'
+import { Tip } from '@/components/ui/Tip'
 import ShareButton from './collaboration/ShareButton'
 import CollaboratorAvatars from './collaboration/CollaboratorAvatars'
 import { Calendar } from 'lucide-react'
@@ -20,23 +21,32 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     redirect('/login')
   }
 
-  // Fetch series first (simple query)
-  const { data: series, error: seriesError } = await supabase
-    .from('series')
-    .select('*')
-    .eq('id', seriesId)
-    .single()
-
-  // If series found, fetch issues separately
-  let issues: any[] = []
-  if (series) {
-    const { data: issuesData } = await supabase
+  // Fetch series, issues, counts, and collaborator role in parallel
+  // Series must be fetched first to check existence, but issues, counts, and role are independent
+  const [seriesResult, issuesResult, charCountResult, locCountResult, plotCountResult, collabResult] = await Promise.all([
+    supabase
+      .from('series')
+      .select('*')
+      .eq('id', seriesId)
+      .single(),
+    supabase
       .from('issues')
       .select('id, number, title, tagline, status, updated_at')
       .eq('series_id', seriesId)
-      .order('number')
-    issues = issuesData || []
-  }
+      .order('number'),
+    supabase.from('characters').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
+    supabase.from('locations').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
+    supabase.from('plotlines').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
+    supabase
+      .from('series_collaborators')
+      .select('role')
+      .eq('series_id', seriesId)
+      .eq('user_id', user.id)
+      .single(),
+  ])
+
+  const { data: series, error: seriesError } = seriesResult
+  const issues = issuesResult.data || []
 
   if (seriesError || !series) {
     return (
@@ -52,35 +62,19 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     )
   }
 
-  // Fetch counts
-  const [{ count: characterCount }, { count: locationCount }, { count: plotlineCount }] = await Promise.all([
-    supabase.from('characters').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
-    supabase.from('locations').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
-    supabase.from('plotlines').select('*', { count: 'exact', head: true }).eq('series_id', seriesId),
-  ])
-
   const counts = {
-    characters: characterCount || 0,
-    locations: locationCount || 0,
-    plotlines: plotlineCount || 0,
+    characters: charCountResult.count || 0,
+    locations: locCountResult.count || 0,
+    plotlines: plotCountResult.count || 0,
   }
 
   // Check if user is the owner
   const isOwner = series.user_id === user.id
 
-  // If not owner, get their collaboration role
+  // Determine user role from parallel-fetched collaborator data
   let userRole: 'owner' | 'editor' | 'commenter' | 'viewer' = isOwner ? 'owner' : 'viewer'
-  if (!isOwner) {
-    const { data: collab } = await supabase
-      .from('series_collaborators')
-      .select('role')
-      .eq('series_id', seriesId)
-      .eq('user_id', user.id)
-      .single()
-
-    if (collab) {
-      userRole = collab.role as 'editor' | 'commenter' | 'viewer'
-    }
+  if (!isOwner && collabResult.data) {
+    userRole = collabResult.data.role as 'editor' | 'commenter' | 'viewer'
   }
 
   const canEdit = userRole === 'owner' || userRole === 'editor'
@@ -89,13 +83,15 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <Header showBackLink title={series.title}>
         <div className="flex items-center gap-4">
-          <Link
-            href={`/series/${seriesId}/deadlines`}
-            className="type-micro flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] active:scale-[0.97] transition-all duration-150 ease-out"
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            DEADLINES
-          </Link>
+          <Tip content="Manage issue deadlines">
+            <Link
+              href={`/series/${seriesId}/deadlines`}
+              className="hover-glow type-micro flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] active:scale-[0.97]"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              DEADLINES
+            </Link>
+          </Tip>
           <CollaboratorAvatars seriesId={seriesId} />
           {isOwner && <ShareButton seriesId={seriesId} seriesTitle={series.title} />}
         </div>
@@ -163,78 +159,96 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         <div className="mb-8">
           <h2 className="type-section text-base mb-4">TOOLS</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 stagger-children">
-            <Link
-              href={`/series/${seriesId}/canvas`}
-              className="bg-[var(--bg-secondary)] border border-[var(--color-warning)]/30 p-4 hover:border-[var(--color-warning)]/50 transition-colors group"
-            >
-              <div className="type-micro text-[var(--color-warning)]/60 mb-2 group-hover:text-[var(--color-warning)] transition-colors">IDEA</div>
-              <h3 className="type-label text-[var(--color-warning)] mb-1">CANVAS</h3>
-              <p className="type-micro text-[var(--color-warning)]/70">Brainstorm fuzzy ideas</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/guide`}
-              className="bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 transition-colors group"
-            >
-              <div className="type-micro text-[var(--accent-hover)]/60 mb-2 group-hover:text-[var(--accent-hover)] transition-colors">AI</div>
-              <h3 className="type-label text-[var(--accent-hover)] mb-1">GUIDE</h3>
-              <p className="type-micro text-[var(--accent-hover)]/70">AI-guided writing sessions</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/outline`}
-              className="bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 transition-colors group"
-            >
-              <div className="type-micro text-[var(--accent-hover)]/60 mb-2 group-hover:text-[var(--accent-hover)] transition-colors">STRUCT</div>
-              <h3 className="type-label text-[var(--accent-hover)] mb-1">SERIES OUTLINE</h3>
-              <p className="type-micro text-[var(--accent-hover)]/70">Timeline view // plotline tracking</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/weave`}
-              className="bg-[var(--bg-secondary)] border border-[var(--color-error)]/30 p-4 hover:border-[var(--color-error)]/50 transition-colors group"
-            >
-              <div className="type-micro text-[var(--color-error)]/60 mb-2 group-hover:text-[var(--color-error)] transition-colors">WEAVE</div>
-              <h3 className="type-label text-[var(--color-error)] mb-1">SERIES WEAVE</h3>
-              <p className="type-micro text-[var(--color-error)]/70">Plotlines across all issues</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/analytics`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
-            >
-              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">DATA</div>
-              <h3 className="type-label mb-1">ANALYTICS</h3>
-              <p className="type-micro text-[var(--text-muted)]">Stats, progress, and insights</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/sessions`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
-            >
-              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">LOG</div>
-              <h3 className="type-label mb-1">SESSION HISTORY</h3>
-              <p className="type-micro text-[var(--text-muted)]">Track progress and loose ends</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/continuity`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
-            >
-              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">CHECK</div>
-              <h3 className="type-label mb-1">CONTINUITY CHECK</h3>
-              <p className="type-micro text-[var(--text-muted)]">Detect errors and inconsistencies</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/patterns`}
-              className="bg-[var(--bg-secondary)] border border-[var(--color-primary)]/30 p-4 hover:border-[var(--color-primary)]/50 transition-colors group"
-            >
-              <div className="type-micro text-[var(--color-primary)]/60 mb-2 group-hover:text-[var(--color-primary)] transition-colors">CROSS</div>
-              <h3 className="type-label text-[var(--color-primary)] mb-1">PATTERNS</h3>
-              <p className="type-micro text-[var(--color-primary)]/70">Cross-issue weaving</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/notes`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
-            >
-              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">NOTE</div>
-              <h3 className="type-label mb-1">PROJECT NOTES</h3>
-              <p className="type-micro text-[var(--text-muted)]">Questions, decisions, insights</p>
-            </Link>
+            <Tip content="Pre-structure brainstorming board for early ideation">
+              <Link
+                href={`/series/${seriesId}/canvas`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-warning)]/30 p-4 hover:border-[var(--color-warning)]/50 group"
+              >
+                <div className="type-micro text-[var(--color-warning)]/60 mb-2 group-hover:text-[var(--color-warning)] transition-colors">IDEA</div>
+                <h3 className="type-label text-[var(--color-warning)] mb-1">CANVAS</h3>
+                <p className="type-micro text-[var(--color-warning)]/70">Brainstorm fuzzy ideas</p>
+              </Link>
+            </Tip>
+            <Tip content="Socratic AI writing sessions for deep exploration">
+              <Link
+                href={`/series/${seriesId}/guide`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 group"
+              >
+                <div className="type-micro text-[var(--accent-hover)]/60 mb-2 group-hover:text-[var(--accent-hover)] transition-colors">AI</div>
+                <h3 className="type-label text-[var(--accent-hover)] mb-1">GUIDE</h3>
+                <p className="type-micro text-[var(--accent-hover)]/70">AI-guided writing sessions</p>
+              </Link>
+            </Tip>
+            <Tip content="Series outline with AI sync-from-scripts">
+              <Link
+                href={`/series/${seriesId}/outline`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--accent-hover)]/30 p-4 hover:border-[var(--accent-hover)]/50 group"
+              >
+                <div className="type-micro text-[var(--accent-hover)]/60 mb-2 group-hover:text-[var(--accent-hover)] transition-colors">STRUCT</div>
+                <h3 className="type-label text-[var(--accent-hover)] mb-1">SERIES OUTLINE</h3>
+                <p className="type-micro text-[var(--accent-hover)]/70">Timeline view // plotline tracking</p>
+              </Link>
+            </Tip>
+            <Tip content="Visualize plotline interleaving across all issues">
+              <Link
+                href={`/series/${seriesId}/weave`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-error)]/30 p-4 hover:border-[var(--color-error)]/50 group"
+              >
+                <div className="type-micro text-[var(--color-error)]/60 mb-2 group-hover:text-[var(--color-error)] transition-colors">WEAVE</div>
+                <h3 className="type-label text-[var(--color-error)] mb-1">SERIES WEAVE</h3>
+                <p className="type-micro text-[var(--color-error)]/70">Plotlines across all issues</p>
+              </Link>
+            </Tip>
+            <Tip content="Writing volume, velocity, and progress tracking">
+              <Link
+                href={`/series/${seriesId}/analytics`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
+              >
+                <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">DATA</div>
+                <h3 className="type-label mb-1">ANALYTICS</h3>
+                <p className="type-micro text-[var(--text-muted)]">Stats, progress, and insights</p>
+              </Link>
+            </Tip>
+            <Tip content="Review past writing sessions and loose ends">
+              <Link
+                href={`/series/${seriesId}/sessions`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
+              >
+                <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">LOG</div>
+                <h3 className="type-label mb-1">SESSION HISTORY</h3>
+                <p className="type-micro text-[var(--text-muted)]">Track progress and loose ends</p>
+              </Link>
+            </Tip>
+            <Tip content="AI-powered continuity and consistency checker">
+              <Link
+                href={`/series/${seriesId}/continuity`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
+              >
+                <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">CHECK</div>
+                <h3 className="type-label mb-1">CONTINUITY CHECK</h3>
+                <p className="type-micro text-[var(--text-muted)]">Detect errors and inconsistencies</p>
+              </Link>
+            </Tip>
+            <Tip content="Analyze cross-issue plotline patterns and connections">
+              <Link
+                href={`/series/${seriesId}/patterns`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--color-primary)]/30 p-4 hover:border-[var(--color-primary)]/50 group"
+              >
+                <div className="type-micro text-[var(--color-primary)]/60 mb-2 group-hover:text-[var(--color-primary)] transition-colors">CROSS</div>
+                <h3 className="type-label text-[var(--color-primary)] mb-1">PATTERNS</h3>
+                <p className="type-micro text-[var(--color-primary)]/70">Cross-issue weaving</p>
+              </Link>
+            </Tip>
+            <Tip content="Open questions, decisions, and AI insights">
+              <Link
+                href={`/series/${seriesId}/notes`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
+              >
+                <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">NOTE</div>
+                <h3 className="type-label mb-1">PROJECT NOTES</h3>
+                <p className="type-micro text-[var(--text-muted)]">Questions, decisions, insights</p>
+              </Link>
+            </Tip>
           </div>
         </div>
 
@@ -242,38 +256,46 @@ export default async function SeriesPage({ params }: { params: Promise<{ seriesI
         <div>
           <h2 className="type-section text-base mb-4">WORLD BUILDING</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
-            <Link
-              href={`/series/${seriesId}/characters`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
-            >
-              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">CHAR</div>
-              <h3 className="type-label mb-1">CHARACTERS</h3>
-              <p className="type-micro text-[var(--text-muted)]">Manage character database</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/character-arcs`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
-            >
-              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">ARC</div>
-              <h3 className="type-label mb-1">CHARACTER ARCS</h3>
-              <p className="type-micro text-[var(--text-muted)]">Track emotional journeys</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/locations`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
-            >
-              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">LOC</div>
-              <h3 className="type-label mb-1">LOCATIONS</h3>
-              <p className="type-micro text-[var(--text-muted)]">Manage location database</p>
-            </Link>
-            <Link
-              href={`/series/${seriesId}/plotlines`}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] transition-colors group"
-            >
-              <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">PLOT</div>
-              <h3 className="type-label mb-1">PLOTLINES</h3>
-              <p className="type-micro text-[var(--text-muted)]">Define narrative threads</p>
-            </Link>
+            <Tip content="Character profiles, speech patterns, and relationships">
+              <Link
+                href={`/series/${seriesId}/characters`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
+              >
+                <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">CHAR</div>
+                <h3 className="type-label mb-1">CHARACTERS</h3>
+                <p className="type-micro text-[var(--text-muted)]">Manage character database</p>
+              </Link>
+            </Tip>
+            <Tip content="Track character emotional arcs across issues">
+              <Link
+                href={`/series/${seriesId}/character-arcs`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
+              >
+                <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">ARC</div>
+                <h3 className="type-label mb-1">CHARACTER ARCS</h3>
+                <p className="type-micro text-[var(--text-muted)]">Track emotional journeys</p>
+              </Link>
+            </Tip>
+            <Tip content="Location profiles with visual descriptions and significance">
+              <Link
+                href={`/series/${seriesId}/locations`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
+              >
+                <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">LOC</div>
+                <h3 className="type-label mb-1">LOCATIONS</h3>
+                <p className="type-micro text-[var(--text-muted)]">Manage location database</p>
+              </Link>
+            </Tip>
+            <Tip content="Define and color-code narrative threads">
+              <Link
+                href={`/series/${seriesId}/plotlines`}
+                className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] group"
+              >
+                <div className="type-micro text-[var(--text-muted)] mb-2 group-hover:text-[var(--text-primary)] transition-colors">PLOT</div>
+                <h3 className="type-label mb-1">PLOTLINES</h3>
+                <p className="type-micro text-[var(--text-muted)]">Define narrative threads</p>
+              </Link>
+            </Tip>
           </div>
         </div>
       </main>

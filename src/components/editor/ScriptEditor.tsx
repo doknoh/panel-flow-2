@@ -76,10 +76,19 @@ export default function ScriptEditor({
   const onFocusRef = useRef(onFocus)
   const initialContentRef = useRef(initialContent)
 
+  const onEditorFocusRef = useRef(onEditorFocus)
+  const onEditorBlurRef = useRef(onEditorBlur)
+  const onRegisterEditorRef = useRef(onRegisterEditor)
+  const onUnregisterEditorRef = useRef(onUnregisterEditor)
+
   // Keep refs current without triggering re-renders
   useEffect(() => { onUpdateRef.current = onUpdate }, [onUpdate])
   useEffect(() => { onBlurRef.current = onBlur }, [onBlur])
   useEffect(() => { onFocusRef.current = onFocus }, [onFocus])
+  useEffect(() => { onEditorFocusRef.current = onEditorFocus }, [onEditorFocus])
+  useEffect(() => { onEditorBlurRef.current = onEditorBlur }, [onEditorBlur])
+  useEffect(() => { onRegisterEditorRef.current = onRegisterEditor }, [onRegisterEditor])
+  useEffect(() => { onUnregisterEditorRef.current = onUnregisterEditor }, [onUnregisterEditor])
 
   // Character mention refs — store in refs so TipTap plugin closures always see current values
   const charactersRef = useRef(characters)
@@ -90,19 +99,6 @@ export default function ScriptEditor({
 
   const onCharacterClickRef = useRef(onCharacterClick)
   useEffect(() => { onCharacterClickRef.current = onCharacterClick }, [onCharacterClick])
-
-  // Additional callback refs for editor lifecycle
-  const onEditorFocusRef = useRef(onEditorFocus)
-  useEffect(() => { onEditorFocusRef.current = onEditorFocus }, [onEditorFocus])
-
-  const onEditorBlurRef = useRef(onEditorBlur)
-  useEffect(() => { onEditorBlurRef.current = onEditorBlur }, [onEditorBlur])
-
-  const onRegisterEditorRef = useRef(onRegisterEditor)
-  useEffect(() => { onRegisterEditorRef.current = onRegisterEditor }, [onRegisterEditor])
-
-  const onUnregisterEditorRef = useRef(onUnregisterEditor)
-  useEffect(() => { onUnregisterEditorRef.current = onUnregisterEditor }, [onUnregisterEditor])
 
   // Stable suggestion renderer instance — created once, reused across re-renders
   const mentionRendererRef = useRef<ReturnType<typeof createMentionSuggestionRenderer> | null>(null)
@@ -278,6 +274,25 @@ export default function ScriptEditor({
       onUpdateRef.current(md)
     },
   })
+
+  // Report focused editor instance to parent (for adaptive toolbar)
+  useEffect(() => {
+    if (isFocused && editor && onEditorFocusRef.current) {
+      onEditorFocusRef.current(editor)
+    }
+  }, [isFocused, editor])
+
+  // Register/unregister editor instance for programmatic focus (tab navigation)
+  useEffect(() => {
+    if (editor && onRegisterEditorRef.current) {
+      onRegisterEditorRef.current(editor)
+    }
+    return () => {
+      if (onUnregisterEditorRef.current) {
+        onUnregisterEditorRef.current()
+      }
+    }
+  }, [editor])
 
   // Update content when initialContent changes externally (e.g., undo/redo)
   useEffect(() => {

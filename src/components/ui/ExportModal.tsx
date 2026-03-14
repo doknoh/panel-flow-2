@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 export type ExportFormat = 'pdf' | 'docx' | 'txt'
 
@@ -21,6 +22,7 @@ export default function ExportModal({ open, onExport, onCancel }: ExportModalPro
   const [includeSummary, setIncludeSummary] = useState(true)
   const [includeNotes, setIncludeNotes] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const focusTrapRef = useFocusTrap(open)
 
   useEffect(() => {
     if (open) {
@@ -39,7 +41,7 @@ export default function ExportModal({ open, onExport, onCancel }: ExportModalPro
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div ref={focusTrapRef} className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
 
@@ -61,10 +63,10 @@ export default function ExportModal({ open, onExport, onCancel }: ExportModalPro
               <button
                 key={f}
                 onClick={() => setFormat(f)}
-                className={`flex-1 py-2 px-3 type-meta border rounded transition-all duration-150 ${
+                className={`flex-1 py-2 px-3 type-meta border rounded hover-glow ${
                   format === f
                     ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10'
-                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
+                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)]'
                 }`}
               >
                 {f === 'docx' ? 'WORD' : f.toUpperCase()}
@@ -116,13 +118,13 @@ export default function ExportModal({ open, onExport, onCancel }: ExportModalPro
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className="type-meta px-4 py-2 border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] rounded transition-all duration-150"
+            className="type-meta px-4 py-2 border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] rounded transition-all duration-150 hover-fade"
           >
             Cancel
           </button>
           <button
             onClick={handleExport}
-            className="type-meta px-4 py-2 bg-[var(--color-primary)] text-white rounded hover:opacity-90 transition-all duration-150 active:scale-[0.97]"
+            className="type-meta px-4 py-2 bg-[var(--color-primary)] text-white rounded hover:opacity-90 hover-lift"
           >
             Export {format === 'docx' ? 'Word' : format.toUpperCase()}
           </button>

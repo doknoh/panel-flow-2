@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/contexts/ToastContext'
@@ -384,21 +385,31 @@ export default function GuidedMode({
     const supabase = createClient()
 
     // Fetch messages for this session
-    const { data: msgs } = await supabase
+    const { data: msgs, error: msgsError } = await supabase
       .from('guided_messages')
       .select('*')
       .eq('session_id', sessionToResume.id)
       .order('created_at', { ascending: true })
+
+    if (msgsError) {
+      console.error('Failed to fetch guided messages:', msgsError)
+      showToast('Failed to load session messages', 'error')
+      return
+    }
 
     setSession(sessionToResume)
     setDisplayMessages((msgs || []).map((m: any) => ({ id: m.id, role: m.role, content: m.content })))
     setShowSessionPicker(false)
 
     // Update last_active_at
-    await supabase
+    const { error: updateError } = await supabase
       .from('guided_sessions')
       .update({ last_active_at: new Date().toISOString() })
       .eq('id', sessionToResume.id)
+
+    if (updateError) {
+      console.error('Failed to update session last_active_at:', updateError)
+    }
   }
 
   // Generate the initial AI message (streaming)
@@ -429,7 +440,7 @@ export default function GuidedMode({
 
       // Save assistant message to DB
       const supabase = createClient()
-      const { data: savedMessage } = await supabase
+      const { data: savedMessage, error: saveError } = await supabase
         .from('guided_messages')
         .insert({
           session_id: sessionId,
@@ -439,6 +450,10 @@ export default function GuidedMode({
         })
         .select()
         .single()
+
+      if (saveError) {
+        console.error('Failed to save initial assistant message:', saveError)
+      }
 
       // Finalize the message
       setDisplayMessages([{
@@ -469,7 +484,7 @@ export default function GuidedMode({
     const supabase = createClient()
 
     // Save user message
-    const { data: savedUserMessage } = await supabase
+    const { data: savedUserMessage, error: userMsgError } = await supabase
       .from('guided_messages')
       .insert({
         session_id: session.id,
@@ -478,6 +493,10 @@ export default function GuidedMode({
       })
       .select()
       .single()
+
+    if (userMsgError) {
+      console.error('Failed to save user message:', userMsgError)
+    }
 
     const userMsg: DisplayMessage = {
       id: savedUserMessage?.id || `msg-${Date.now()}`,
@@ -509,7 +528,7 @@ export default function GuidedMode({
       const result = await processSSEStream(response)
 
       // Save assistant message to DB
-      const { data: savedAssistantMessage } = await supabase
+      const { data: savedAssistantMessage, error: assistantMsgError } = await supabase
         .from('guided_messages')
         .insert({
           session_id: session.id,
@@ -519,6 +538,10 @@ export default function GuidedMode({
         })
         .select()
         .single()
+
+      if (assistantMsgError) {
+        console.error('Failed to save assistant message:', assistantMsgError)
+      }
 
       // Finalize the message
       setDisplayMessages(prev => [...prev, {
@@ -531,10 +554,14 @@ export default function GuidedMode({
       setStreamingToolProposals([])
 
       // Update session last_active_at
-      await supabase
+      const { error: sessionUpdateError } = await supabase
         .from('guided_sessions')
         .update({ last_active_at: new Date().toISOString() })
         .eq('id', session.id)
+
+      if (sessionUpdateError) {
+        console.error('Failed to update session last_active_at:', sessionUpdateError)
+      }
     } catch (error) {
       showToast('Failed to send message', 'error')
     } finally {
@@ -565,7 +592,7 @@ export default function GuidedMode({
     const shiftMessage = `I'd like to shift our focus to ${newFocus.replace(/_/g, ' ')}. Let's explore that area while keeping in mind what we've discussed so far.`
 
     // Save user message
-    const { data: savedUserMessage } = await supabase
+    const { data: savedUserMessage, error: shiftUserMsgError } = await supabase
       .from('guided_messages')
       .insert({
         session_id: session.id,
@@ -574,6 +601,10 @@ export default function GuidedMode({
       })
       .select()
       .single()
+
+    if (shiftUserMsgError) {
+      console.error('Failed to save shift focus user message:', shiftUserMsgError)
+    }
 
     setDisplayMessages(prev => [...prev, {
       id: savedUserMessage?.id || `msg-${Date.now()}`,
@@ -604,7 +635,7 @@ export default function GuidedMode({
       const result = await processSSEStream(response)
 
       // Save assistant message
-      const { data: savedAssistantMessage } = await supabase
+      const { data: savedAssistantMessage, error: shiftAssistantMsgError } = await supabase
         .from('guided_messages')
         .insert({
           session_id: session.id,
@@ -614,6 +645,10 @@ export default function GuidedMode({
         })
         .select()
         .single()
+
+      if (shiftAssistantMsgError) {
+        console.error('Failed to save shift focus assistant message:', shiftAssistantMsgError)
+      }
 
       setDisplayMessages(prev => [...prev, {
         id: savedAssistantMessage?.id || `msg-${Date.now()}`,
@@ -625,13 +660,17 @@ export default function GuidedMode({
       setStreamingToolProposals([])
 
       // Update session focus area
-      await supabase
+      const { error: focusUpdateError } = await supabase
         .from('guided_sessions')
         .update({
           focus_area: newFocus,
           session_type: newFocus,
         })
         .eq('id', session.id)
+
+      if (focusUpdateError) {
+        console.error('Failed to update session focus area:', focusUpdateError)
+      }
 
       setSession(prev => prev ? { ...prev, focus_area: newFocus, session_type: newFocus } : null)
     } catch (error) {
@@ -717,7 +756,7 @@ export default function GuidedMode({
           <div className="relative">
             <button
               onClick={() => setShowSessionMenu(!showSessionMenu)}
-              className="type-micro text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
+              className="type-micro text-[var(--text-secondary)] px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] hover-fade flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
             >
               OPTIONS
               <span className="text-[10px]">&#9660;</span>
@@ -737,25 +776,25 @@ export default function GuidedMode({
                     <div className="type-micro text-[var(--text-muted)] px-2 py-1">SHIFT FOCUS TO</div>
                     <button
                       onClick={() => shiftFocus('character_deep_dive')}
-                      className="dropdown-item"
+                      className="dropdown-item hover-glow"
                     >
                       Characters
                     </button>
                     <button
                       onClick={() => shiftFocus('outline')}
-                      className="dropdown-item"
+                      className="dropdown-item hover-glow"
                     >
                       Story Structure
                     </button>
                     <button
                       onClick={() => shiftFocus('world_building')}
-                      className="dropdown-item"
+                      className="dropdown-item hover-glow"
                     >
                       World Building
                     </button>
                     <button
                       onClick={() => shiftFocus('general')}
-                      className="dropdown-item"
+                      className="dropdown-item hover-glow"
                     >
                       Open Exploration
                     </button>
@@ -771,7 +810,7 @@ export default function GuidedMode({
                         extractInsights()
                       }}
                       disabled={isExtracting || displayMessages.length < 2}
-                      className="dropdown-item disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="dropdown-item hover-lift disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isExtracting ? 'Extracting...' : 'Extract Insights'}
                     </button>
@@ -783,7 +822,7 @@ export default function GuidedMode({
                         setExtractionResults(null)
                         setShowSessionPicker(true)
                       }}
-                      className="dropdown-item text-[var(--color-error)]"
+                      className="dropdown-item hover-fade-danger text-[var(--color-error)]"
                     >
                       New Session
                     </button>
@@ -835,28 +874,28 @@ export default function GuidedMode({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md mb-6">
               <button
                 onClick={() => startNewSession('general')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97]"
               >
                 <div className="type-label mb-1">OPEN EXPLORATION</div>
                 <div className="type-micro text-[var(--text-secondary)]">Let the AI guide based on what&apos;s needed</div>
               </button>
               <button
                 onClick={() => startNewSession('character_deep_dive')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97]"
               >
                 <div className="type-label mb-1">CHARACTER DEEP DIVE</div>
                 <div className="type-micro text-[var(--text-secondary)]">Explore motivations, arcs, and voices</div>
               </button>
               <button
                 onClick={() => startNewSession('outline')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97]"
               >
                 <div className="type-label mb-1">STORY STRUCTURE</div>
                 <div className="type-micro text-[var(--text-secondary)]">Work out acts, beats, and pacing</div>
               </button>
               <button
                 onClick={() => startNewSession('world_building')}
-                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left active:scale-[0.97] transition-all duration-150 ease-out"
+                className="p-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left hover-glow active:scale-[0.97]"
               >
                 <div className="type-label mb-1">WORLD BUILDING</div>
                 <div className="type-micro text-[var(--text-secondary)]">Define locations, rules, and atmosphere</div>
@@ -872,7 +911,7 @@ export default function GuidedMode({
                     <button
                       key={s.id}
                       onClick={() => resumeSession(s)}
-                      className="w-full p-3 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] text-left active:scale-[0.97] hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-all duration-150 ease-out"
+                      className="w-full p-3 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border)] text-left hover-glow active:scale-[0.97] hover:border-[var(--border-strong)] hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--text-primary)_8%,transparent)]"
                     >
                       <div className="flex items-center justify-between">
                         <span className="type-label text-[var(--text-primary)]">
@@ -957,14 +996,14 @@ export default function GuidedMode({
                                   <button
                                     onClick={() => handleToolProposal(proposal, true, i)}
                                     disabled={isLoading}
-                                    className="flex-1 py-1.5 px-3 type-micro font-medium transition-colors border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
+                                    className="flex-1 py-1.5 px-3 type-micro font-medium border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift disabled:opacity-50"
                                   >
                                     CONFIRM
                                   </button>
                                   <button
                                     onClick={() => handleToolProposal(proposal, false, i)}
                                     disabled={isLoading}
-                                    className="flex-1 py-1.5 px-3 type-micro font-medium transition-colors border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]"
+                                    className="flex-1 py-1.5 px-3 type-micro font-medium transition-colors border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] hover-fade"
                                   >
                                     SKIP
                                   </button>
@@ -1106,13 +1145,15 @@ export default function GuidedMode({
                   rows={2}
                   disabled={isLoading}
                 />
-                <button
-                  onClick={sendMessage}
-                  disabled={!input.trim() || isLoading}
-                  className="type-label px-4 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:border-[var(--border)] disabled:text-[var(--text-muted)] active:scale-[0.97] transition-all duration-150 ease-out"
-                >
-                  SEND
-                </button>
+                <Tip content="Send message (Enter)">
+                  <button
+                    onClick={sendMessage}
+                    disabled={!input.trim() || isLoading}
+                    className="type-label px-4 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift disabled:border-[var(--border)] disabled:text-[var(--text-muted)]"
+                  >
+                    SEND
+                  </button>
+                </Tip>
               </div>
               <div className="max-w-2xl mx-auto mt-2 type-micro text-[var(--text-muted)] text-center">
                 ENTER TO SEND // SHIFT+ENTER FOR NEW LINE

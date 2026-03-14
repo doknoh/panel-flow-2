@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Tip } from '@/components/ui/Tip'
 
 interface Page {
   id: string
@@ -273,7 +274,7 @@ export default function QuickNav({
                   onNavigate(item.type, item.id)
                   onClose()
                 }}
-                className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${
+                className={`hover-glow w-full text-left px-4 py-2 flex items-center gap-3 ${
                   index === selectedIndex
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'hover:bg-[var(--bg-secondary)]'

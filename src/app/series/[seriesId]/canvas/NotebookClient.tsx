@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/contexts/ToastContext'
 import NotebookItem from './NotebookItem'
 import NotebookListView from './NotebookListView'
 import NotebookCorkBoard from './NotebookCorkBoard'
@@ -10,6 +11,7 @@ import GraduationModal from './GraduationModal'
 import SendToPageModal from './SendToPageModal'
 import EmptyState from '@/components/ui/EmptyState'
 import Header from '@/components/ui/Header'
+import { Tip } from '@/components/ui/Tip'
 import {
   Users, Lightbulb, Palette, HelpCircle, MessageSquare, Swords, Globe, MessageSquarePlus,
   LayoutGrid, List, Archive,
@@ -117,6 +119,7 @@ export default function NotebookClient({
   const [filingItemId, setFilingItemId] = useState<string | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
 
+  const { showToast } = useToast()
   const supabase = createClient()
 
   // Load filing targets (issues -> scenes -> pages)
@@ -260,6 +263,8 @@ export default function NotebookClient({
 
   // Archive item
   const handleArchiveItem = useCallback(async (id: string) => {
+    if (!confirm('Archive this item? It will be moved to your archives.')) return
+
     setItems(prev => prev.filter(item => item.id !== id))
 
     const { error } = await supabase
@@ -270,8 +275,11 @@ export default function NotebookClient({
     if (error) {
       console.error('Error archiving canvas item:', error)
       setItems(initialItems)
+      showToast('Failed to archive item: ' + error.message, 'error')
+    } else {
+      showToast('Item archived', 'success')
     }
-  }, [supabase, initialItems])
+  }, [supabase, initialItems, showToast])
 
   // File item to a page
   const handleFileItem = useCallback(async (id: string, target: FilingTarget) => {
@@ -482,21 +490,22 @@ export default function NotebookClient({
         {/* View toggle buttons */}
         <div className="flex items-center gap-1 mr-2">
           {([
-            { mode: 'corkboard' as ViewMode, icon: <LayoutGrid size={14} />, label: 'BOARD' },
-            { mode: 'list' as ViewMode, icon: <List size={14} />, label: 'LIST' },
-            { mode: 'filed' as ViewMode, icon: <Archive size={14} />, label: 'FILED' },
-          ]).map(({ mode, icon, label }) => (
-            <button
-              key={mode}
-              onClick={() => setView(mode)}
-              className={`type-micro px-3 py-1.5 flex items-center gap-1 whitespace-nowrap active:scale-[0.97] transition-all duration-150 ease-out ${
-                view === mode
-                  ? 'border border-[var(--text-primary)] text-[var(--text-primary)]'
-                  : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]'
-              }`}
-            >
-              {icon} {label}
-            </button>
+            { mode: 'corkboard' as ViewMode, icon: <LayoutGrid size={14} />, label: 'BOARD', tip: 'Cork board view' },
+            { mode: 'list' as ViewMode, icon: <List size={14} />, label: 'LIST', tip: 'List view' },
+            { mode: 'filed' as ViewMode, icon: <Archive size={14} />, label: 'FILED', tip: 'Filed notes' },
+          ]).map(({ mode, icon, label, tip }) => (
+            <Tip key={mode} content={tip}>
+              <button
+                onClick={() => setView(mode)}
+                className={`type-micro px-3 py-1.5 flex items-center gap-1 whitespace-nowrap hover-glow active:scale-[0.97] ${
+                  view === mode
+                    ? 'border border-[var(--text-primary)] text-[var(--text-primary)]'
+                    : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                {icon} {label}
+              </button>
+            </Tip>
           ))}
         </div>
 
@@ -504,7 +513,7 @@ export default function NotebookClient({
         <div className="relative">
           <button
             onClick={() => setIsCreating(!isCreating)}
-            className="type-label px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] active:scale-[0.97] transition-all duration-150 ease-out"
+            className="type-label px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover-lift"
           >
             + Add Idea
           </button>

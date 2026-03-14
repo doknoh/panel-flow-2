@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Tip } from '@/components/ui/Tip'
 
 interface SessionDebriefProps {
   isOpen: boolean
@@ -145,12 +146,14 @@ export default function SessionDebrief({
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Session Debrief
           </h2>
-          <button
-            onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl active:scale-[0.97] transition-all duration-150 ease-out"
-          >
-            ×
-          </button>
+          <Tip content="Close">
+            <button
+              onClick={onClose}
+              className="text-[var(--text-muted)] text-xl active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
+            >
+              ×
+            </button>
+          </Tip>
         </div>
 
         {/* Stats Bar */}
@@ -207,7 +210,7 @@ export default function SessionDebrief({
         <div className="flex items-center justify-between p-4 border-t border-[var(--border)]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
+            className="px-4 py-2 text-sm text-[var(--text-muted)] active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
           >
             Skip
           </button>
@@ -233,7 +236,7 @@ export default function SessionDebrief({
             <button
               onClick={handleSave}
               disabled={saving || loading || !debriefText}
-              className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 active:scale-[0.97] transition-all duration-150 ease-out"
+              className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 hover-lift"
             >
               {saving ? 'Saving...' : 'Save to Sessions'}
             </button>

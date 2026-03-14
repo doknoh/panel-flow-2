@@ -29,6 +29,7 @@ import {
   type PageDiff,
 } from '@/lib/version-diff'
 import VersionDiff from '@/components/VersionDiff'
+import { Tip } from '@/components/ui/Tip'
 
 interface Character {
   id: string
@@ -681,7 +682,7 @@ ${pageContent}`,
     if (hasExistingContent) {
       const confirmed = await confirm({
         title: `Replace all content in Issue #${issue.number}?`,
-        description: `This will import ${parsedPages.length} pages with ${parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels. All existing acts, scenes, and pages will be deleted. This cannot be undone.`,
+        description: `This will import ${parsedPages.length} pages with ${parsedPages.reduce((sum, p) => sum + p.panels.length, 0)} panels. All existing acts, scenes, and pages will be replaced. A backup snapshot will be saved to version history before import.`,
         confirmLabel: 'Replace',
       })
       if (!confirmed) return
@@ -694,6 +695,86 @@ ${pageContent}`,
     const supabase = createClient()
 
     try {
+      // Step 0: Save a version snapshot before destructive import
+      // This ensures data can be recovered if creation fails midway
+      console.log('[Import] Step 0: Saving safety snapshot before import...')
+      const { data: currentPages } = await supabase
+        .from('pages')
+        .select(`
+          id,
+          page_number,
+          panels (
+            id,
+            panel_number,
+            sort_order,
+            visual_description,
+            camera,
+            shot_type,
+            panel_size,
+            notes_to_artist,
+            internal_notes,
+            dialogue_blocks (text, speaker_name, character_id, dialogue_type, delivery_instruction, modifier, balloon_number, sort_order),
+            captions (text, caption_type, sort_order),
+            sound_effects (text, sort_order)
+          )
+        `)
+        .eq('issue_id', issue.id)
+        .order('page_number')
+
+      if (currentPages && currentPages.length > 0) {
+        const snapshotData = {
+          pages: currentPages.map((page: any) => ({
+            id: page.id,
+            page_number: page.page_number,
+            panels: (page.panels || []).map((panel: any) => ({
+              id: panel.id,
+              panel_number: panel.panel_number,
+              sort_order: panel.sort_order,
+              visual_description: panel.visual_description,
+              camera: panel.camera || null,
+              shot_type: panel.shot_type || null,
+              panel_size: panel.panel_size || null,
+              notes_to_artist: panel.notes_to_artist || null,
+              internal_notes: panel.internal_notes || null,
+              dialogue_blocks: (panel.dialogue_blocks || []).map((db: any) => ({
+                text: db.text,
+                speaker_name: db.speaker_name || null,
+                character_id: db.character_id || null,
+                dialogue_type: db.dialogue_type || 'dialogue',
+                delivery_instruction: db.delivery_instruction || null,
+                modifier: db.modifier || null,
+                balloon_number: db.balloon_number || 1,
+                sort_order: db.sort_order || 1,
+              })),
+              captions: (panel.captions || []).map((c: any) => ({
+                text: c.text,
+                caption_type: c.caption_type || 'narrative',
+                sort_order: c.sort_order || 1,
+              })),
+              sound_effects: (panel.sound_effects || []).map((sfx: any) => ({
+                text: sfx.text,
+                sort_order: sfx.sort_order || 1,
+              })),
+            })),
+          })),
+        }
+
+        const { error: snapshotError } = await supabase.from('version_snapshots').insert({
+          issue_id: issue.id,
+          snapshot_data: snapshotData,
+          description: 'Auto-save before import',
+        })
+
+        if (snapshotError) {
+          console.error('[Import] Snapshot save error:', snapshotError)
+          // Don't proceed with import if we can't save the safety snapshot
+          throw new Error(`Failed to save safety snapshot before import: ${snapshotError.message}`)
+        }
+        console.log('[Import] Safety snapshot saved successfully')
+      } else {
+        console.log('[Import] No existing pages to snapshot')
+      }
+
       console.log('[Import] Step 1: Deleting existing content...')
       // Delete existing content
       const { error: deleteError, count: deleteCount } = await supabase
@@ -1033,12 +1114,14 @@ ${pageContent}`,
           className="w-full h-64 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-4 py-3 text-sm font-mono resize-none focus:border-[var(--color-primary)] focus:outline-none"
         />
         {scriptText && (
-          <button
-            onClick={() => analyzeScript(scriptText)}
-            className="mt-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium"
-          >
-            Analyze Script
-          </button>
+          <Tip content="Detect format and structure of pasted script">
+            <button
+              onClick={() => analyzeScript(scriptText)}
+              className="mt-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded font-medium hover-lift"
+            >
+              Analyze Script
+            </button>
+          </Tip>
         )}
       </div>
     </div>
@@ -1124,7 +1207,7 @@ ${pageContent}`,
               <button
                 key={pattern.name}
                 onClick={() => setSelectedFormat(pattern)}
-                className={`text-left p-2 rounded text-sm ${
+                className={`text-left p-2 rounded text-sm hover-glow ${
                   selectedFormat?.name === pattern.name
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]/80'
@@ -1150,13 +1233,15 @@ ${pageContent}`,
         >
           ← Back
         </button>
-        <button
-          onClick={() => setCurrentStep('structure')}
-          disabled={!selectedFormat}
-          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
-        >
-          Continue to Structure →
-        </button>
+        <Tip content="Proceed to structure detection step">
+          <button
+            onClick={() => setCurrentStep('structure')}
+            disabled={!selectedFormat}
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift"
+          >
+            Continue to Structure →
+          </button>
+        </Tip>
       </div>
     </div>
   )
@@ -1177,13 +1262,15 @@ ${pageContent}`,
         </div>
 
         {!aiAnalysis && !isAnalyzingStructure && (
-          <button
-            onClick={analyzeStructureWithAI}
-            className="w-full bg-[var(--accent-hover)] hover:opacity-90 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-          >
-            <span>✨</span>
-            Analyze Structure with AI
-          </button>
+          <Tip content="Use AI to identify acts, scenes, and plotlines in your script">
+            <button
+              onClick={analyzeStructureWithAI}
+              className="w-full bg-[var(--accent-hover)] hover:opacity-90 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover-lift"
+            >
+              <span>✨</span>
+              Analyze Structure with AI
+            </button>
+          </Tip>
         )}
 
         {isAnalyzingStructure && (
@@ -1412,7 +1499,7 @@ ${pageContent}`,
             parseScript()
           }}
           disabled={isAnalyzingStructure}
-          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium"
+          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed px-4 py-2 rounded font-medium hover-lift"
         >
           Parse Script →
         </button>
@@ -1645,21 +1732,23 @@ ${pageContent}`,
                   <span className="text-sm text-[var(--text-secondary)]">
                     {page.panels.length} panel{page.panels.length !== 1 ? 's' : ''}
                   </span>
-                  <button
-                    onClick={() => addPanel(page.number)}
-                    className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded transition-opacity"
-                    title="Add panel"
-                  >
-                    + Panel
-                  </button>
-                  {parsedPages.length > 1 && (
+                  <Tip content="Add panel">
                     <button
-                      onClick={() => deletePage(page.number)}
-                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-error)] hover:opacity-90 rounded transition-opacity"
-                      title="Delete page"
+                      onClick={() => addPanel(page.number)}
+                      className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded hover-lift transition-opacity"
                     >
-                      ×
+                      + Panel
                     </button>
+                  </Tip>
+                  {parsedPages.length > 1 && (
+                    <Tip content="Delete page">
+                      <button
+                        onClick={() => deletePage(page.number)}
+                        className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 bg-[var(--color-error)] hover:opacity-90 rounded hover-fade-danger transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </Tip>
                   )}
                 </div>
               </div>
@@ -1697,13 +1786,14 @@ ${pageContent}`,
                             </button>
                           )}
                           {page.panels.length > 1 && (
-                            <button
-                              onClick={() => deletePanel(page.number, panel.number)}
-                              className="text-xs px-2 py-0.5 bg-[var(--color-error)]/50 hover:bg-[var(--color-error)] rounded"
-                              title="Delete panel"
-                            >
-                              ×
-                            </button>
+                            <Tip content="Delete panel">
+                              <button
+                                onClick={() => deletePanel(page.number, panel.number)}
+                                className="text-xs px-2 py-0.5 bg-[var(--color-error)]/50 hover:bg-[var(--color-error)] rounded hover-fade-danger"
+                              >
+                                ×
+                              </button>
+                            </Tip>
                           )}
                         </div>
                       </div>

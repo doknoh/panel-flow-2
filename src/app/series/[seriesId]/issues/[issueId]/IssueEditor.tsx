@@ -7,23 +7,26 @@ import NavigationTree from './NavigationTree'
 import PageEditor from './PageEditor'
 import PreviousPageContext, { findPreviousPage } from './PreviousPageContext'
 import Toolkit from './Toolkit'
-import FindReplaceModal from './FindReplaceModal'
-import KeyboardShortcutsModal from './KeyboardShortcutsModal'
+import dynamic from 'next/dynamic'
 import JumpToPageModal from './JumpToPageModal'
 import ZoomPanel from './ZoomPanel'
-import ZenMode from './ZenMode'
-import ScriptView from './ScriptView'
 import QuickNav from './QuickNav'
 import StatusBar from './StatusBar'
 import ResizablePanels from '@/components/ResizablePanels'
-import { exportIssueToPdf } from '@/lib/exportPdf'
-import { exportIssueToDocx } from '@/lib/exportDocx'
-import { exportIssueToTxt } from '@/lib/exportTxt'
-import ExportModal, { type ExportOptions } from '@/components/ui/ExportModal'
+// exportIssueToTxt is dynamically imported at the call site (like PDF/DOCX)
+import type { ExportOptions } from '@/components/ui/ExportModal'
+
+// Dynamically import heavy/conditional components to reduce initial bundle
+const ScriptView = dynamic(() => import('./ScriptView'), { ssr: false })
+const ZenMode = dynamic(() => import('./ZenMode'), { ssr: false })
+const FindReplaceModal = dynamic(() => import('./FindReplaceModal'), { ssr: false })
+const KeyboardShortcutsModal = dynamic(() => import('./KeyboardShortcutsModal'), { ssr: false })
+const ExportModal = dynamic(() => import('@/components/ui/ExportModal'), { ssr: false })
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import CommandPalette from '@/components/CommandPalette'
+import { Tip } from '@/components/ui/Tip'
 
 interface Plotline {
   id: string
@@ -98,7 +101,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Find the selected page data along with its Act/Scene context
-  const selectedPageContext = (() => {
+  const selectedPageContext = useMemo(() => {
     if (!selectedPageId) return null
     for (const act of (issue.acts || [])) {
       for (const scene of (act.scenes || [])) {
@@ -121,7 +124,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       }
     }
     return null
-  })()
+  }, [issue, selectedPageId])
 
   const selectedPage = selectedPageContext?.page
 
@@ -304,10 +307,32 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         panels: (page.panels || []).map((panel: any) => ({
           id: panel.id,
           panel_number: panel.panel_number,
+          sort_order: panel.sort_order,
           visual_description: panel.visual_description,
-          dialogue_blocks: (panel.dialogue_blocks || []).map((db: any) => ({ text: db.text })),
-          captions: (panel.captions || []).map((c: any) => ({ text: c.text })),
-          sound_effects: (panel.sound_effects || []).map((sfx: any) => ({ text: sfx.text })),
+          camera: panel.camera || null,
+          shot_type: panel.shot_type || null,
+          panel_size: panel.panel_size || null,
+          notes_to_artist: panel.notes_to_artist || null,
+          internal_notes: panel.internal_notes || null,
+          dialogue_blocks: (panel.dialogue_blocks || []).map((db: any) => ({
+            text: db.text,
+            speaker_name: db.speaker_name || null,
+            character_id: db.character_id || null,
+            dialogue_type: db.dialogue_type || 'dialogue',
+            delivery_instruction: db.delivery_instruction || null,
+            modifier: db.modifier || null,
+            balloon_number: db.balloon_number || 1,
+            sort_order: db.sort_order || 1,
+          })),
+          captions: (panel.captions || []).map((c: any) => ({
+            text: c.text,
+            caption_type: c.caption_type || 'narrative',
+            sort_order: c.sort_order || 1,
+          })),
+          sound_effects: (panel.sound_effects || []).map((sfx: any) => ({
+            text: sfx.text,
+            sort_order: sfx.sort_order || 1,
+          })),
         })),
       })) || []
 
@@ -323,18 +348,21 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
       snapshot_data: { pages },
     })
 
-    if (!error) {
-      // Keep only last 10 snapshots
-      const { data: allSnapshots } = await supabase
-        .from('version_snapshots')
-        .select('id')
-        .eq('issue_id', issue.id)
-        .order('created_at', { ascending: false })
+    if (error) {
+      console.error('Failed to create version snapshot:', error)
+      return
+    }
 
-      if (allSnapshots && allSnapshots.length > 10) {
-        const toDelete = allSnapshots.slice(10).map(s => s.id)
-        await supabase.from('version_snapshots').delete().in('id', toDelete)
-      }
+    // Keep only last 10 snapshots
+    const { data: allSnapshots } = await supabase
+      .from('version_snapshots')
+      .select('id')
+      .eq('issue_id', issue.id)
+      .order('created_at', { ascending: false })
+
+    if (allSnapshots && allSnapshots.length > 10) {
+      const toDelete = allSnapshots.slice(10).map(s => s.id)
+      await supabase.from('version_snapshots').delete().in('id', toDelete)
     }
   }, [issue])
 
@@ -856,9 +884,11 @@ function IssueEditorContent({
       <header className="border-b border-[var(--text-primary)] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
-            <Link href={`/series/${seriesId}`} className="type-meta text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0" aria-label="Back to series">
-              ←
-            </Link>
+            <Tip content="Back to series">
+              <Link href={`/series/${seriesId}`} className="type-meta text-[var(--text-muted)] shrink-0 hover-glow" aria-label="Back to series">
+                ←
+              </Link>
+            </Tip>
             <span className="text-2xl font-black tracking-[-0.04em] shrink-0 leading-none">ISSUE #{String(issue.number).padStart(2, '0')}</span>
             <span className="type-separator hidden sm:inline shrink-0">{'\/\/'}</span>
             {isEditingTitle ? (
@@ -879,39 +909,45 @@ function IssueEditorContent({
                 placeholder="Issue title..."
               />
             ) : (
-              <button
-                onClick={() => {
-                  setEditedTitle(issue.title || '')
-                  setIsEditingTitle(true)
-                }}
-                className="font-light tracking-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] hidden sm:inline truncate max-w-[300px] text-left group active:scale-[0.97] transition-all duration-150 ease-out"
-                title="Click to edit title"
-              >
-                {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
-                <svg className="w-3 h-3 inline ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
+              <Tip content="Click to edit title">
+                <button
+                  onClick={() => {
+                    setEditedTitle(issue.title || '')
+                    setIsEditingTitle(true)
+                  }}
+                  className="font-light tracking-normal text-[var(--text-secondary)] hidden sm:inline truncate max-w-[300px] text-left group active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
+                >
+                  {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
+                  <svg className="w-3 h-3 inline ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </Tip>
             )}
           </div>
           <div ref={dropdownRef} className="flex items-center gap-1.5 md:gap-2">
             {/* Direct access: Find */}
-            <button
-              onClick={() => setIsFindReplaceOpen(true)}
-              className="type-meta px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hidden md:block active:scale-[0.97] transition-all duration-150 ease-out"
-              title="Find & Replace (⌘F)"
-            >
-              FIND
-            </button>
+            <div className="relative hidden md:block">
+              <Tip content="Find & Replace (⌘F)">
+                <button
+                  onClick={() => setIsFindReplaceOpen(true)}
+                  className="type-meta px-2 py-1 text-[var(--text-muted)] hover-lift"
+                >
+                  FIND
+                </button>
+              </Tip>
+            </div>
 
             {/* View dropdown */}
             <div className="relative hidden md:block">
-              <button
-                onClick={() => setOpenDropdown(openDropdown === 'view' ? null : 'view')}
-                className={`type-meta px-2 py-1 active:scale-[0.97] transition-all duration-150 ease-out ${openDropdown === 'view' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
-              >
-                VIEW
-              </button>
+              <Tip content="Switch view mode">
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'view' ? null : 'view')}
+                  className={`type-meta px-2 py-1 hover-lift ${openDropdown === 'view' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
+                >
+                  VIEW
+                </button>
+              </Tip>
               {openDropdown === 'view' && (
                 <div className="dropdown-panel absolute right-0 top-full mt-1 py-1 w-48 z-50">
                   <button
@@ -955,12 +991,14 @@ function IssueEditorContent({
 
             {/* Navigate dropdown */}
             <div className="relative hidden md:block">
-              <button
-                onClick={() => setOpenDropdown(openDropdown === 'navigate' ? null : 'navigate')}
-                className={`type-meta px-2 py-1 active:scale-[0.97] transition-all duration-150 ease-out ${openDropdown === 'navigate' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
-              >
-                TOOLS
-              </button>
+              <Tip content="Keyboard shortcuts">
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'navigate' ? null : 'navigate')}
+                  className={`type-meta px-2 py-1 hover-lift ${openDropdown === 'navigate' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
+                >
+                  TOOLS
+                </button>
+              </Tip>
               {openDropdown === 'navigate' && (
                 <div className="dropdown-panel absolute right-0 top-full mt-1 py-1 w-44 z-50">
                   <Link
@@ -1010,12 +1048,14 @@ function IssueEditorContent({
             </div>
 
             {/* Export button + modal */}
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="type-meta px-2 md:px-3 py-1.5 active:scale-[0.97] transition-all duration-150 ease-out border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-            >
-              EXPORT
-            </button>
+            <Tip content="Export issue">
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="type-meta px-2 md:px-3 py-1.5 border border-[var(--border)] text-[var(--text-muted)] hover-lift"
+              >
+                EXPORT
+              </button>
+            </Tip>
             <ExportModal
               open={showExportModal}
               onCancel={() => setShowExportModal(false)}
@@ -1023,10 +1063,13 @@ function IssueEditorContent({
                 setShowExportModal(false)
                 try {
                   if (opts.format === 'pdf') {
-                    exportIssueToPdf(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })
+                    const { exportIssueToPdf } = await import('@/lib/exportPdf')
+                    await exportIssueToPdf(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })
                   } else if (opts.format === 'docx') {
+                    const { exportIssueToDocx } = await import('@/lib/exportDocx')
                     await exportIssueToDocx(issue, opts.includeNotes, { includeSummary: opts.includeSummary })
                   } else {
+                    const { exportIssueToTxt } = await import('@/lib/exportTxt')
                     exportIssueToTxt(issue, { includeSummary: opts.includeSummary, includeNotes: opts.includeNotes })
                   }
                   showToast(`${opts.format.toUpperCase()} exported successfully`, 'success')
@@ -1045,19 +1088,19 @@ function IssueEditorContent({
         <div className="flex md:hidden mt-3 gap-1 border-t border-[var(--border)] pt-3 -mx-4 px-4">
           <button
             onClick={() => setMobileView('nav')}
-            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'nav' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] hover-glow ${mobileView === 'nav' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
             NAV
           </button>
           <button
             onClick={() => setMobileView('editor')}
-            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'editor' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] hover-glow ${mobileView === 'editor' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
             EDITOR
           </button>
           <button
             onClick={() => setMobileView('toolkit')}
-            className={`flex-1 py-2 type-meta active:scale-[0.97] transition-all duration-150 ease-out ${mobileView === 'toolkit' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
+            className={`flex-1 py-2 type-meta active:scale-[0.97] hover-glow ${mobileView === 'toolkit' ? 'border-b-2 border-[var(--text-primary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
           >
             TOOLKIT
           </button>

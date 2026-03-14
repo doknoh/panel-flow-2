@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimiters } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+import { userCanAccessSeries } from '@/lib/auth-helpers'
 
 export const runtime = 'nodejs'
 
@@ -40,6 +41,12 @@ export async function GET(
         { error: 'Character not found' },
         { status: 404 }
       )
+    }
+
+    // Verify user has access to this character's series
+    const hasAccess = await userCanAccessSeries(supabase, user.id, character.series_id)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     // Fetch all dialogue for this character with context joins

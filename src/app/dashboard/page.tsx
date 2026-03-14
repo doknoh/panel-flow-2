@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/ui/Header'
+import { Tip } from '@/components/ui/Tip'
 import AllowedUsersManager from './AllowedUsersManager'
 
 interface SeriesWithRole {
@@ -72,12 +73,14 @@ export default async function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <h2 className="type-title">YOUR PROJECTS</h2>
-          <Link
-            href="/series/new"
-            className="type-label px-4 py-2 border border-[var(--border)] hover:border-[var(--text-primary)] bg-transparent text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out text-center sm:text-left"
-          >
-            [+ NEW SERIES]
-          </Link>
+          <Tip content="Create new series">
+            <Link
+              href="/series/new"
+              className="hover-lift type-label px-4 py-2 border border-[var(--border)] hover:border-[var(--text-primary)] bg-transparent text-[var(--text-primary)] text-center sm:text-left"
+            >
+              [+ NEW SERIES]
+            </Link>
+          </Tip>
         </div>
 
         {seriesList && seriesList.length > 0 ? (
@@ -86,7 +89,7 @@ export default async function DashboardPage() {
               <Link
                 key={series.id}
                 href={`/series/${series.id}`}
-                className="block bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 hover:border-[var(--border-strong)] hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--text-primary)_10%,transparent)] hover:-translate-y-0.5 transition-all duration-200"
+                className="hover-glow block bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 hover:border-[var(--border-strong)] hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--text-primary)_10%,transparent)] hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-xl font-extrabold tracking-tighter">{series.title}</h3>
@@ -115,12 +118,14 @@ export default async function DashboardPage() {
           <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)]">
             <h3 className="type-section mb-2">NO PROJECTS YET</h3>
             <p className="type-meta text-[var(--text-secondary)] mb-6">Create your first comic series to get started</p>
-            <Link
-              href="/series/new"
-              className="type-label inline-block px-6 py-3 border border-[var(--border)] hover:border-[var(--text-primary)] text-[var(--text-primary)] active:scale-[0.97] transition-all duration-150 ease-out"
-            >
-              [+ CREATE SERIES]
-            </Link>
+            <Tip content="Create new series">
+              <Link
+                href="/series/new"
+                className="hover-lift type-label inline-block px-6 py-3 border border-[var(--border)] hover:border-[var(--text-primary)] text-[var(--text-primary)]"
+              >
+                [+ CREATE SERIES]
+              </Link>
+            </Tip>
           </div>
         )}
 

@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimiters } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+import { userCanAccessSeries } from '@/lib/auth-helpers'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -77,6 +78,12 @@ export async function POST(request: NextRequest) {
         { error: 'seriesId is required' },
         { status: 400 }
       )
+    }
+
+    // Verify user has access to this series
+    const hasAccess = await userCanAccessSeries(supabase, user.id, seriesId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     // 1. Fetch existing characters (names + aliases for cross-reference)

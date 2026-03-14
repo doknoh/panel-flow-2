@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { rateLimiters } from '@/lib/rate-limit'
+import { userCanAccessSeries } from '@/lib/auth-helpers'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -62,6 +63,22 @@ export async function POST(
 
     if (pageError || !page) {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 })
+    }
+
+    // Verify user has access to this page's series
+    const { data: pageOwnership } = await supabase
+      .from('pages')
+      .select('scene:scene_id(act:act_id(issue:issue_id(series_id)))')
+      .eq('id', pageId)
+      .single()
+
+    const pageSeriesId = (pageOwnership as any)?.scene?.act?.issue?.series_id
+    if (!pageSeriesId) {
+      return NextResponse.json({ error: 'Page not linked to series' }, { status: 404 })
+    }
+    const hasAccess = await userCanAccessSeries(supabase, user.id, pageSeriesId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     const panels = (page.panels || []).sort((a: any, b: any) => a.sort_order - b.sort_order)

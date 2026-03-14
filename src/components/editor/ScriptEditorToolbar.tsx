@@ -7,6 +7,7 @@ type VariantType = 'description' | 'dialogue' | 'caption' | 'sfx' | 'notes'
 interface ScriptEditorToolbarProps {
   editor: Editor
   variant: VariantType
+  contextLabel?: string  // e.g., "EDITING: PANEL 3 DESCRIPTION"
 }
 
 interface ToolbarButton {
@@ -17,7 +18,7 @@ interface ToolbarButton {
   title: string
 }
 
-export default function ScriptEditorToolbar({ editor, variant }: ScriptEditorToolbarProps) {
+export default function ScriptEditorToolbar({ editor, variant, contextLabel }: ScriptEditorToolbarProps) {
   if (variant === 'sfx') return null
 
   const boldBtn: ToolbarButton = {
@@ -152,6 +153,7 @@ export default function ScriptEditorToolbar({ editor, variant }: ScriptEditorToo
               key={btn.label}
               type="button"
               onClick={btn.action}
+              onMouseDown={(e) => e.preventDefault()}
               title={btn.title}
               aria-label={btn.title}
               className={`px-1.5 py-0.5 text-xs font-medium rounded transition-colors ${
@@ -169,6 +171,11 @@ export default function ScriptEditorToolbar({ editor, variant }: ScriptEditorToo
           ))}
         </div>
       ))}
+      {contextLabel && (
+        <span className="ml-auto text-[var(--text-muted)] text-[9px] tracking-[0.5px] font-sans">
+          {contextLabel}
+        </span>
+      )}
     </div>
   )
 }

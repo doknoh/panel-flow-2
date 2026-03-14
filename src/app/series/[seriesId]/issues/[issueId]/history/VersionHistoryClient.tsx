@@ -1,28 +1,69 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog, { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
+interface SnapshotDialogueBlock {
+  text: string
+  speaker_name?: string | null
+  character_id?: string | null
+  dialogue_type?: string
+  delivery_instruction?: string | null
+  modifier?: string | null
+  balloon_number?: number
+  sort_order?: number
+}
+
+interface SnapshotCaption {
+  text: string
+  caption_type?: string
+  sort_order?: number
+}
+
+interface SnapshotSfx {
+  text: string
+  sort_order?: number
+}
+
+interface SnapshotPanel {
+  id: string
+  panel_number: number
+  sort_order?: number
+  visual_description?: string
+  camera?: string | null
+  shot_type?: string | null
+  panel_size?: string | null
+  notes_to_artist?: string | null
+  internal_notes?: string | null
+  dialogue_blocks?: SnapshotDialogueBlock[]
+  captions?: SnapshotCaption[]
+  sound_effects?: SnapshotSfx[]
+}
+
+interface SnapshotData {
+  pages?: Array<{
+    id: string
+    page_number: number
+    panels?: SnapshotPanel[]
+  }>
+}
+
+// Full snapshot with data loaded
 interface Snapshot {
   id: string
   issue_id: string
-  snapshot_data: {
-    pages?: Array<{
-      id: string
-      page_number: number
-      panels?: Array<{
-        id: string
-        panel_number: number
-        visual_description?: string
-        dialogue_blocks?: Array<{ text: string }>
-        captions?: Array<{ text: string }>
-        sound_effects?: Array<{ text: string }>
-      }>
-    }>
-  }
+  snapshot_data: SnapshotData
+  created_at: string
+  description: string | null
+}
+
+// Lightweight snapshot from the server (no snapshot_data)
+interface SnapshotListItem {
+  id: string
   created_at: string
   description: string | null
 }
@@ -30,7 +71,7 @@ interface Snapshot {
 interface VersionHistoryClientProps {
   issueId: string
   seriesId: string
-  initialSnapshots: Snapshot[]
+  initialSnapshots: SnapshotListItem[]
 }
 
 function formatDate(dateStr: string): string {
@@ -103,17 +144,86 @@ export default function VersionHistoryClient({
   seriesId,
   initialSnapshots,
 }: VersionHistoryClientProps) {
-  const [snapshots, setSnapshots] = useState<Snapshot[]>(initialSnapshots)
+  const [snapshotList] = useState<SnapshotListItem[]>(initialSnapshots)
+  // Cache of fully loaded snapshots keyed by id
+  const [loadedSnapshots, setLoadedSnapshots] = useState<Map<string, Snapshot>>(new Map())
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [isLoadingSnapshot, setIsLoadingSnapshot] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
   const { showToast } = useToast()
   const { confirm, dialogProps } = useConfirmDialog()
   const router = useRouter()
 
-  const selectedSnapshot = selectedIndex !== null ? snapshots[selectedIndex] : null
-  const previousSnapshot = selectedIndex !== null && selectedIndex < snapshots.length - 1
-    ? snapshots[selectedIndex + 1]
+  const selectedListItem = selectedIndex !== null ? snapshotList[selectedIndex] : null
+  const selectedSnapshot = selectedListItem ? loadedSnapshots.get(selectedListItem.id) ?? null : null
+  const previousListItem = selectedIndex !== null && selectedIndex < snapshotList.length - 1
+    ? snapshotList[selectedIndex + 1]
     : null
+  const previousSnapshot = previousListItem ? loadedSnapshots.get(previousListItem.id) ?? null : null
+
+  // Lazy-load full snapshot data for a given snapshot ID
+  const loadSnapshotData = useCallback(async (snapshotId: string) => {
+    if (loadedSnapshots.has(snapshotId)) return
+
+    setIsLoadingSnapshot(true)
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('version_snapshots')
+        .select('id, issue_id, snapshot_data, created_at, description')
+        .eq('id', snapshotId)
+        .single()
+
+      if (data) {
+        setLoadedSnapshots(prev => {
+          const next = new Map(prev)
+          next.set(snapshotId, data as Snapshot)
+          return next
+        })
+      }
+    } catch {
+      showToast('Failed to load snapshot details', 'error')
+    } finally {
+      setIsLoadingSnapshot(false)
+    }
+  }, [loadedSnapshots, showToast])
+
+  const handleSelectSnapshot = useCallback(async (index: number) => {
+    setSelectedIndex(index)
+    const item = snapshotList[index]
+    // Load the selected snapshot and the one before it (for diff comparison)
+    const toLoad: string[] = []
+    if (!loadedSnapshots.has(item.id)) toLoad.push(item.id)
+    if (index < snapshotList.length - 1) {
+      const prevItem = snapshotList[index + 1]
+      if (!loadedSnapshots.has(prevItem.id)) toLoad.push(prevItem.id)
+    }
+
+    if (toLoad.length > 0) {
+      setIsLoadingSnapshot(true)
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('version_snapshots')
+          .select('id, issue_id, snapshot_data, created_at, description')
+          .in('id', toLoad)
+
+        if (data) {
+          setLoadedSnapshots(prev => {
+            const next = new Map(prev)
+            for (const snap of data as Snapshot[]) {
+              next.set(snap.id, snap)
+            }
+            return next
+          })
+        }
+      } catch {
+        showToast('Failed to load snapshot details', 'error')
+      } finally {
+        setIsLoadingSnapshot(false)
+      }
+    }
+  }, [snapshotList, loadedSnapshots, showToast])
 
   const handleRestore = async (snapshot: Snapshot) => {
     const confirmed = await confirm({
@@ -174,14 +284,19 @@ export default function VersionHistoryClient({
         if (!newPage) continue
 
         // Recreate panels
-        for (const panel of page.panels || []) {
+        for (const [panelIdx, panel] of (page.panels || []).entries()) {
           const { data: newPanel } = await supabase
             .from('panels')
             .insert({
               page_id: newPage.id,
               panel_number: panel.panel_number,
               visual_description: panel.visual_description || '',
-              sort_order: panel.panel_number,
+              sort_order: panel.sort_order ?? panel.panel_number ?? panelIdx + 1,
+              camera: panel.camera || null,
+              shot_type: panel.shot_type || null,
+              panel_size: panel.panel_size || null,
+              notes_to_artist: panel.notes_to_artist || null,
+              internal_notes: panel.internal_notes || null,
             })
             .select()
             .single()
@@ -189,31 +304,36 @@ export default function VersionHistoryClient({
           if (!newPanel) continue
 
           // Recreate dialogue blocks
-          for (const db of panel.dialogue_blocks || []) {
+          for (const [dbIdx, db] of (panel.dialogue_blocks || []).entries()) {
             await supabase.from('dialogue_blocks').insert({
               panel_id: newPanel.id,
-              dialogue_type: 'dialogue',
               text: db.text,
-              sort_order: 1,
+              speaker_name: db.speaker_name || null,
+              character_id: db.character_id || null,
+              dialogue_type: db.dialogue_type || 'dialogue',
+              delivery_instruction: db.delivery_instruction || null,
+              modifier: db.modifier || null,
+              balloon_number: db.balloon_number ?? 1,
+              sort_order: db.sort_order ?? dbIdx + 1,
             })
           }
 
           // Recreate captions
-          for (const cap of panel.captions || []) {
+          for (const [capIdx, cap] of (panel.captions || []).entries()) {
             await supabase.from('captions').insert({
               panel_id: newPanel.id,
-              caption_type: 'narrative',
               text: cap.text,
-              sort_order: 1,
+              caption_type: cap.caption_type || 'narrative',
+              sort_order: cap.sort_order ?? capIdx + 1,
             })
           }
 
           // Recreate sound effects
-          for (const sfx of panel.sound_effects || []) {
+          for (const [sfxIdx, sfx] of (panel.sound_effects || []).entries()) {
             await supabase.from('sound_effects').insert({
               panel_id: newPanel.id,
               text: sfx.text,
-              sort_order: 1,
+              sort_order: sfx.sort_order ?? sfxIdx + 1,
             })
           }
         }
@@ -229,7 +349,7 @@ export default function VersionHistoryClient({
     }
   }
 
-  if (snapshots.length === 0) {
+  if (snapshotList.length === 0) {
     return (
       <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">
         <p className="text-[var(--text-secondary)] mb-2">No version history available</p>
@@ -246,56 +366,41 @@ export default function VersionHistoryClient({
       {/* Version List */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold mb-4">Saved Versions</h2>
-        {snapshots.map((snapshot, index) => {
-          const diffs = findDifferences(
-            index < snapshots.length - 1 ? snapshots[index + 1] : null,
-            snapshot
-          )
-
-          return (
-            <button
-              key={snapshot.id}
-              onClick={() => setSelectedIndex(index)}
-              className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                selectedIndex === index
-                  ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]'
-                  : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border)]'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <p className="font-medium">{formatDate(snapshot.created_at)}</p>
-                  <p className="text-sm text-[var(--text-secondary)]">{getSnapshotSummary(snapshot)}</p>
-                </div>
-                {index === 0 && (
-                  <span className="text-xs bg-[var(--color-success)]/20 text-[var(--color-success)] px-2 py-0.5 rounded">
-                    Current
-                  </span>
-                )}
+        {snapshotList.map((item, index) => (
+          <button
+            key={item.id}
+            onClick={() => handleSelectSnapshot(index)}
+            className={`w-full text-left p-4 rounded-lg border transition-colors hover-glow ${
+              selectedIndex === index
+                ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]'
+                : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-[var(--border)]'
+            }`}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <p className="font-medium">{formatDate(item.created_at)}</p>
               </div>
-              {snapshot.description && (
-                <p className="text-sm text-[var(--text-secondary)] mb-2 italic">{snapshot.description}</p>
+              {index === 0 && (
+                <span className="text-xs bg-[var(--color-success)]/20 text-[var(--color-success)] px-2 py-0.5 rounded">
+                  Current
+                </span>
               )}
-              <div className="mt-2">
-                {diffs.slice(0, 3).map((diff, i) => (
-                  <p key={i} className="text-xs text-[var(--text-secondary)]">
-                    <span className="text-[var(--color-warning)] mr-1">&bull;</span>
-                    {diff}
-                  </p>
-                ))}
-                {diffs.length > 3 && (
-                  <p className="text-xs text-[var(--text-muted)]">+{diffs.length - 3} more changes</p>
-                )}
-              </div>
-            </button>
-          )
-        })}
+            </div>
+            {item.description && (
+              <p className="text-sm text-[var(--text-secondary)] mb-2 italic">{item.description}</p>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Version Preview */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Preview</h2>
-        {selectedSnapshot ? (
+        {selectedIndex !== null && isLoadingSnapshot && !selectedSnapshot ? (
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 text-center text-[var(--text-secondary)]">
+            Loading snapshot details...
+          </div>
+        ) : selectedSnapshot ? (
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -303,13 +408,15 @@ export default function VersionHistoryClient({
                 <p className="text-sm text-[var(--text-secondary)]">{getSnapshotSummary(selectedSnapshot)}</p>
               </div>
               {selectedIndex !== 0 && (
-                <button
-                  onClick={() => handleRestore(selectedSnapshot)}
-                  disabled={isRestoring}
-                  className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded font-medium text-sm"
-                >
-                  {isRestoring ? 'Restoring...' : 'Restore This Version'}
-                </button>
+                <Tip content="Replace current content with this version (a backup will be saved)">
+                  <button
+                    onClick={() => handleRestore(selectedSnapshot)}
+                    disabled={isRestoring}
+                    className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--bg-tertiary)] px-4 py-2 rounded font-medium text-sm hover-lift"
+                  >
+                    {isRestoring ? 'Restoring...' : 'Restore This Version'}
+                  </button>
+                </Tip>
               )}
             </div>
 

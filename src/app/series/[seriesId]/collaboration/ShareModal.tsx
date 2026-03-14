@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { Tip } from '@/components/ui/Tip'
 
 type Role = 'editor' | 'commenter' | 'viewer'
 
@@ -369,13 +370,14 @@ export default function ShareModal({ isOpen, onClose, seriesId, seriesTitle }: S
                         <option value="commenter">Can Comment</option>
                         <option value="editor">Can Edit</option>
                       </select>
-                      <button
-                        onClick={() => handleRemoveCollaborator(collab.id)}
-                        className="text-[var(--text-muted)] hover:text-[var(--color-error)] text-sm p-1 active:scale-[0.97] transition-all duration-150 ease-out"
-                        title="Remove collaborator"
-                      >
-                        ×
-                      </button>
+                      <Tip content="Remove collaborator">
+                        <button
+                          onClick={() => handleRemoveCollaborator(collab.id)}
+                          className="text-[var(--text-muted)] hover:text-[var(--color-error)] text-sm p-1 hover-fade-danger active:scale-[0.97] transition-all duration-150 ease-out"
+                        >
+                          ×
+                        </button>
+                      </Tip>
                     </div>
                   </div>
                 ))}

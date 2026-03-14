@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import { Tip } from '@/components/ui/Tip'
 import EmptyState from '@/components/ui/EmptyState'
 
 interface Panel {
@@ -133,7 +134,7 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
   }
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--text-primary)_10%,transparent)] hover:-translate-y-0.5 transition-all duration-200 group relative">
+    <div className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)] hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--text-primary)_10%,transparent)] hover:-translate-y-0.5 transition-all duration-200 group relative">
       <Link
         href={`/series/${seriesId}/issues/${issue.id}`}
         className="absolute inset-0 rounded-lg"
@@ -172,7 +173,7 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
         ) : (
           <button
             onClick={handleTitleClick}
-            className="font-bold text-[var(--text-primary)] line-clamp-1 text-left w-full hover:text-[var(--color-primary)] active:scale-[0.97] transition-all duration-150 ease-out flex items-center gap-1 group/title"
+            className="hover-fade font-bold text-[var(--text-primary)] line-clamp-1 text-left w-full hover:text-[var(--color-primary)] active:scale-[0.97] transition-all duration-150 ease-out flex items-center gap-1 group/title"
           >
             {issue.title || <span className="italic text-[var(--text-muted)]">Add title...</span>}
             <svg className="w-3 h-3 opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,25 +190,31 @@ function IssueCard({ issue, seriesId, onTitleUpdate }: { issue: Issue; seriesId:
       {/* Stats Row */}
       {hasContent ? (
         <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] mt-auto pt-2 border-t border-[var(--border)]">
-          <span title="Pages" className="flex items-center gap-1">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {pageCount}
-          </span>
-          <span title="Panels" className="flex items-center gap-1">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-            {panelCount}
-          </span>
-          {wordCount > 0 && (
-            <span title="Words" className="flex items-center gap-1">
+          <Tip content="Pages">
+            <span className="flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {wordCount.toLocaleString()}
+              {pageCount}
             </span>
+          </Tip>
+          <Tip content="Panels">
+            <span className="flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+              {panelCount}
+            </span>
+          </Tip>
+          {wordCount > 0 && (
+            <Tip content="Words">
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+                {wordCount.toLocaleString()}
+              </span>
+            </Tip>
           )}
         </div>
       ) : (

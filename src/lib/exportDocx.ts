@@ -1,13 +1,4 @@
-import {
-  Document,
-  Packer,
-  Paragraph,
-  TextRun,
-  HeadingLevel,
-  AlignmentType,
-  PageBreak,
-} from 'docx'
-import { saveAs } from 'file-saver'
+import type { Paragraph as ParagraphType } from 'docx'
 import { parseMarkdown } from './markdown'
 
 interface DialogueBlock {
@@ -122,27 +113,6 @@ function autoCapitalizeCharacterNames(text: string, characterNames: string[]): s
   return result
 }
 
-/**
- * Parse markdown text into an array of styled TextRun objects for docx export.
- * Converts **bold**, *italic*, and ***bold-italic*** syntax into proper formatting.
- */
-function markdownToTextRuns(text: string, baseSize: number = 22): InstanceType<typeof TextRun>[] {
-  const { segments } = parseMarkdown(text)
-  return segments.map(segment => {
-    const options: Record<string, unknown> = {
-      text: segment.content,
-      size: baseSize,
-    }
-    if (segment.type === 'bold' || segment.type === 'bold-italic') {
-      options.bold = true
-    }
-    if (segment.type === 'italic' || segment.type === 'bold-italic') {
-      options.italics = true
-    }
-    return new TextRun(options as any)
-  })
-}
-
 export async function exportIssueToDocx(
   issue: Issue,
   includeNotes = false,
@@ -152,10 +122,42 @@ export async function exportIssueToDocx(
     includeSummary?: boolean
   }
 ) {
+  const {
+    Document,
+    Packer,
+    Paragraph,
+    TextRun,
+    HeadingLevel,
+    AlignmentType,
+    PageBreak,
+  } = await import('docx')
+  const { saveAs } = await import('file-saver')
+
+  /**
+   * Parse markdown text into an array of styled TextRun objects for docx export.
+   * Converts **bold**, *italic*, and ***bold-italic*** syntax into proper formatting.
+   */
+  function markdownToTextRuns(text: string, baseSize: number = 22) {
+    const { segments } = parseMarkdown(text)
+    return segments.map(segment => {
+      const options: Record<string, unknown> = {
+        text: segment.content,
+        size: baseSize,
+      }
+      if (segment.type === 'bold' || segment.type === 'bold-italic') {
+        options.bold = true
+      }
+      if (segment.type === 'italic' || segment.type === 'bold-italic') {
+        options.italics = true
+      }
+      return new TextRun(options as any)
+    })
+  }
+
   const characterMap = new Map(issue.series.characters.map(c => [c.id, c.name]))
   const charNames = options?.characterNames || issue.series.characters.map(c => c.name)
 
-  const children: Paragraph[] = []
+  const children: ParagraphType[] = []
 
   // Title - spec format: "[SERIES TITLE] - ISSUE #[NUMBER]"
   children.push(

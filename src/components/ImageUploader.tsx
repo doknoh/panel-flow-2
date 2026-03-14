@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { Tip } from '@/components/ui/Tip'
 import {
   uploadImage,
   deleteImage,
@@ -239,12 +240,14 @@ export default function ImageUploader({
                   alt={image.filename}
                   className="w-full h-full object-cover"
                 />
-                <button
-                  onClick={() => handleDelete(image)}
-                  className="absolute inset-0 bg-[var(--text-primary)]/60 opacity-0 group-hover:opacity-100 active:scale-[0.97] transition-all duration-150 ease-out flex items-center justify-center text-white text-xs"
-                >
-                  ✕
-                </button>
+                <Tip content="Remove image">
+                  <button
+                    onClick={() => handleDelete(image)}
+                    className="absolute inset-0 bg-[var(--text-primary)]/60 opacity-0 group-hover:opacity-100 active:scale-[0.97] transition-all duration-150 ease-out flex items-center justify-center text-white text-xs hover-fade-danger"
+                  >
+                    ✕
+                  </button>
+                </Tip>
               </div>
             ))}
           </div>
@@ -301,31 +304,34 @@ export default function ImageUploader({
               <div className="absolute inset-0 bg-[var(--text-primary)]/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
                 <div className="flex gap-2">
                   {!image.is_primary && (
-                    <button
-                      onClick={() => handleSetPrimary(image)}
-                      className="p-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out"
-                      title="Set as primary"
-                    >
-                      ★
-                    </button>
+                    <Tip content="Set as primary">
+                      <button
+                        onClick={() => handleSetPrimary(image)}
+                        className="p-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
+                      >
+                        ★
+                      </button>
+                    </Tip>
                   )}
-                  <button
-                    onClick={() => {
-                      setEditingCaption(image.id)
-                      setCaptionValue(image.caption || '')
-                    }}
-                    className="p-2 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out"
-                    title="Edit caption"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    onClick={() => handleDelete(image)}
-                    className="p-2 bg-[var(--color-error)] hover:bg-[var(--color-error)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out"
-                    title="Delete"
-                  >
-                    ✕
-                  </button>
+                  <Tip content="Edit caption">
+                    <button
+                      onClick={() => {
+                        setEditingCaption(image.id)
+                        setCaptionValue(image.caption || '')
+                      }}
+                      className="p-2 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
+                    >
+                      ✎
+                    </button>
+                  </Tip>
+                  <Tip content="Delete">
+                    <button
+                      onClick={() => handleDelete(image)}
+                      className="p-2 bg-[var(--color-error)] hover:bg-[var(--color-error)] rounded-full text-white text-sm active:scale-[0.97] transition-all duration-150 ease-out hover-fade-danger"
+                    >
+                      ✕
+                    </button>
+                  </Tip>
                 </div>
 
                 {/* Caption display */}
@@ -349,13 +355,13 @@ export default function ImageUploader({
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => setEditingCaption(null)}
-                      className="flex-1 py-1 text-sm text-[var(--text-secondary)] hover:text-white active:scale-[0.97] transition-all duration-150 ease-out"
+                      className="flex-1 py-1 text-sm text-[var(--text-secondary)] hover:text-white active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => handleSaveCaption(image)}
-                      className="flex-1 py-1 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded active:scale-[0.97] transition-all duration-150 ease-out"
+                      className="flex-1 py-1 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded hover-lift"
                     >
                       Save
                     </button>

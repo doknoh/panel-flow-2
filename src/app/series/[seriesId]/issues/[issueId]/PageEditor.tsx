@@ -12,11 +12,13 @@ import DescriptionAnalysis from '@/components/DescriptionAnalysis'
 import ScriptEditor from '@/components/editor/ScriptEditor'
 import { scanCharactersPresent } from '@/lib/character-utils'
 import { StickyNote, ChevronDown } from 'lucide-react'
+import { Tip } from '@/components/ui/Tip'
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -173,20 +175,21 @@ function PageIntentionSelector({
 
   return (
     <div ref={ref} className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`type-micro px-2 py-0.5 font-mono border transition-all duration-150 ${
-          isWrongSide
-            ? 'border-[var(--color-warning)] text-[var(--color-warning)]'
-            : 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-tertiary)]'
-        }`}
-        title={isWrongSide
-          ? `This ${currentIntention} lands on a left page — reader won't get the page-turn surprise`
-          : `Page intention: ${currentIntention || 'None'}`
-        }
-      >
-        {currentLabel}
-      </button>
+      <Tip content={isWrongSide
+        ? `This ${currentIntention} lands on a left page — reader won't get the page-turn surprise`
+        : `Page intention: ${currentIntention || 'None'}`
+      }>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`hover-glow type-micro px-2 py-0.5 font-mono border ${
+            isWrongSide
+              ? 'border-[var(--color-warning)] text-[var(--color-warning)]'
+              : 'border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-tertiary)]'
+          }`}
+        >
+          {currentLabel}
+        </button>
+      </Tip>
       {isOpen && (
         <div className="absolute top-full left-0 mt-1 bg-[var(--bg-primary)] border border-[var(--border-strong)] shadow-lg z-50 min-w-[150px]">
           <button
@@ -248,6 +251,7 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
 export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], onUpdate, setSaveStatus, filedNotes }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
+  const [expandedArtistNotes, setExpandedArtistNotes] = useState<Set<string>>(new Set())
   const [openDropdown, setOpenDropdown] = useState<string | null>(null) // tracks "shotType-{panelId}" or "captionType-{captionId}"
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -273,6 +277,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
@@ -1045,11 +1050,20 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   }
 
   const deleteSoundEffect = async (sfxId: string, panelId: string) => {
-    const supabase = createClient()
-
     // Get the sfx data for undo from local state
     const panel = panels.find(p => p.id === panelId)
     const localSfx = panel?.sound_effects?.find(s => s.id === sfxId)
+
+    // Confirm if SFX has text content
+    if (localSfx?.text?.trim()) {
+      const confirmed = await confirm({
+        title: 'Delete this sound effect?',
+        description: 'This can be undone.',
+      })
+      if (!confirmed) return
+    }
+
+    const supabase = createClient()
 
     // Optimistically remove the sound effect immediately
     setPanels(prev => prev.map(p =>
@@ -1261,7 +1275,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
             </>
           )}
           <span className="type-separator">{'\/\/'}</span>
-          <span className="text-[var(--text-muted)]">{pageOrientation.toUpperCase()}</span>
+          <Tip content="Page reads from this side">
+            <span className="text-[var(--text-muted)]">{pageOrientation.toUpperCase()}</span>
+          </Tip>
         </div>
       )}
       {/* Filed notebook notes */}
@@ -1269,7 +1285,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
         <div className="mb-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-3">
           <button
             onClick={() => setShowFiledNotes(!showFiledNotes)}
-            className="type-micro text-[var(--text-secondary)] flex items-center gap-1.5 w-full"
+            className="hover-fade type-micro text-[var(--text-secondary)] flex items-center gap-1.5 w-full"
           >
             <StickyNote size={12} />
             <span>{filedNotes.length} NOTEBOOK NOTE{filedNotes.length !== 1 ? 'S' : ''}</span>
@@ -1315,12 +1331,14 @@ export default function PageEditor({ page, pageContext, characters, locations, s
             <span>⌘D DLG</span>
             <span>⌘⇧D SFX</span>
           </div>
-          <button
-            onClick={addPanel}
-            className="type-micro px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all duration-150"
-          >
-            [+ ADD PANEL]
-          </button>
+          <Tip content="Add new panel (⌘Enter)">
+            <button
+              onClick={addPanel}
+              className="hover-lift type-micro px-3 py-1.5 border border-[var(--border)] text-[var(--text-secondary)]"
+            >
+              [+ ADD PANEL]
+            </button>
+          </Tip>
         </div>
       </div>
 
@@ -1330,12 +1348,14 @@ export default function PageEditor({ page, pageContext, characters, locations, s
           <p className="type-meta mb-6 max-w-sm mx-auto">
             Panels are the building blocks of your comic. Add visual descriptions, dialogue, captions, and sound effects.
           </p>
-          <button
-            onClick={addPanel}
-            className="type-micro px-5 py-2.5 font-medium transition-all duration-150 border border-[var(--border)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          >
-            [+ CREATE FIRST PANEL]
-          </button>
+          <Tip content="Add new panel (⌘Enter)">
+            <button
+              onClick={addPanel}
+              className="hover-lift type-micro px-5 py-2.5 font-medium border border-[var(--border)] text-[var(--text-secondary)]"
+            >
+              [+ CREATE FIRST PANEL]
+            </button>
+          </Tip>
           <p className="type-micro mt-4">
             or press <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] font-mono">⌘</kbd> + <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] font-mono">↵</kbd>
           </p>
@@ -1369,14 +1389,15 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                         <div className="flex items-center justify-between px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border)]">
                           <div className="flex items-center gap-3">
                             {/* Drag Handle */}
-                            <span
-                              {...dragListeners}
-                              className="cursor-grab active:cursor-grabbing text-[var(--text-disabled)] hover:text-[var(--text-muted)] select-none font-mono text-[9px]"
-                              title="Drag to reorder"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              ::
-                            </span>
+                            <Tip content="Drag to reorder" side="left">
+                              <span
+                                {...dragListeners}
+                                className="hover-fade cursor-grab active:cursor-grabbing text-[var(--text-disabled)] hover:text-[var(--text-muted)] select-none font-mono text-[9px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                ::
+                              </span>
+                            </Tip>
                             <span
                               className="type-label cursor-pointer text-[var(--text-primary)]"
                               onClick={(e) => {
@@ -1396,20 +1417,22 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                data-panel-field="2"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setOpenDropdown(openDropdown === `shot-${panel.id}` ? null : `shot-${panel.id}`)
-                                }}
-                                onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
-                                className="type-micro px-2 py-1 bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center gap-1 hover:bg-[var(--bg-secondary)] transition-colors"
-                              >
+                              <Tip content="Panel shot type">
+                                <button
+                                  data-panel-field="2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenDropdown(openDropdown === `shot-${panel.id}` ? null : `shot-${panel.id}`)
+                                  }}
+                                  onKeyDown={(e) => handleFieldTabNavigation(e as any, panel.id)}
+                                  className="hover-glow type-micro px-2 py-1 bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center gap-1 hover:bg-[var(--bg-secondary)]"
+                                >
                                 {panel.camera
                                   ? { wide: 'WIDE', medium: 'MEDIUM', close: 'CLOSE-UP', extreme_close: 'EXTREME CU', bird: "BIRD'S EYE", worm: "WORM'S EYE", pov: 'POV' }[panel.camera] || 'SHOT TYPE'
                                   : 'SHOT TYPE'}
                                 <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                               </button>
+                              </Tip>
                               {openDropdown === `shot-${panel.id}` && (
                                 <div className="dropdown-panel absolute right-0 top-full mt-1 z-50 min-w-[140px] py-1" onClick={(e) => e.stopPropagation()}>
                                   {[
@@ -1437,13 +1460,15 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                 </div>
                               )}
                             </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deletePanel(panel.id) }}
-                              className="type-micro text-[var(--text-disabled)] hover:text-[var(--color-error)]"
-                              aria-label="Delete panel"
-                            >
-                              [DEL]
-                            </button>
+                            <Tip content="Delete panel">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); deletePanel(panel.id) }}
+                                className="hover-fade-danger type-micro text-[var(--text-disabled)]"
+                                aria-label="Delete panel"
+                              >
+                                [DEL]
+                              </button>
+                            </Tip>
                           </div>
                         </div>
 
@@ -1540,12 +1565,14 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                     ) : null
                                   })()}
                                 </div>
-                                <button
-                                  onClick={() => addDialogue(panel.id)}
-                                  className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
-                                >
-                                  [+ DLG]
-                                </button>
+                                <Tip content="Add dialogue">
+                                  <button
+                                    onClick={() => addDialogue(panel.id)}
+                                    className="hover-lift type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                  >
+                                    [+ DLG]
+                                  </button>
+                                </Tip>
                               </div>
                               <div className="space-y-2">
                                 {(panel.dialogue_blocks || [])
@@ -1561,7 +1588,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                               e.stopPropagation()
                                               setOpenDropdown(openDropdown === `char-${dialogue.id}` ? null : `char-${dialogue.id}`)
                                             }}
-                                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center justify-between gap-1 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                                            className="hover-glow w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center justify-between gap-1 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
                                           >
                                             <span className={dialogue.character_id ? '' : 'text-[var(--text-muted)]'}>
                                               {dialogue.character_id ? characters.find(c => c.id === dialogue.character_id)?.name || 'Unknown' : 'Select Character'}
@@ -1614,7 +1641,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                               e.stopPropagation()
                                               setOpenDropdown(openDropdown === `dlgtype-${dialogue.id}` ? null : `dlgtype-${dialogue.id}`)
                                             }}
-                                            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors"
+                                            className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)]"
                                           >
                                             <span>{({dialogue: 'Dialogue', thought: 'Thought', whisper: 'Whisper', shout: 'Shout', off_panel: 'Off-Panel', electronic: 'Electronic'} as Record<string, string>)[dialogue.dialogue_type] || 'Dialogue'}</span>
                                             <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -1649,13 +1676,15 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                             </div>
                                           )}
                                         </div>
-                                        <button
-                                          onClick={() => deleteDialogue(dialogue.id, panel.id)}
-                                          className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
-                                          aria-label="Delete dialogue"
-                                        >
-                                          ×
-                                        </button>
+                                        <Tip content="Delete">
+                                          <button
+                                            onClick={() => deleteDialogue(dialogue.id, panel.id)}
+                                            className="hover-fade-danger text-[var(--text-muted)] px-2"
+                                            aria-label="Delete dialogue"
+                                          >
+                                            ×
+                                          </button>
+                                        </Tip>
                                       </div>
                                       <ScriptEditor
                                         variant="dialogue"
@@ -1702,12 +1731,14 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             <div>
                               <div className="flex items-center justify-between mb-2">
                                 <label className="type-micro text-[var(--text-secondary)]">CAPTIONS</label>
-                                <button
-                                  onClick={() => addCaption(panel.id)}
-                                  className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
-                                >
-                                  [+ CAP]
-                                </button>
+                                <Tip content="Add caption">
+                                  <button
+                                    onClick={() => addCaption(panel.id)}
+                                    className="hover-lift type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                  >
+                                    [+ CAP]
+                                  </button>
+                                </Tip>
                               </div>
                               <div className="space-y-2">
                                 {(panel.captions || [])
@@ -1721,7 +1752,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                               e.stopPropagation()
                                               setOpenDropdown(openDropdown === `cap-${caption.id}` ? null : `cap-${caption.id}`)
                                             }}
-                                            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors"
+                                            className="hover-glow bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex items-center gap-1 hover:bg-[var(--bg-tertiary)]"
                                           >
                                             {{ narrative: 'Narrative', location: 'Location', time: 'Time', editorial: 'Editorial' }[caption.caption_type] || 'Narrative'}
                                             <svg className="w-2.5 h-2.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -1755,13 +1786,15 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                             </div>
                                           )}
                                         </div>
-                                        <button
-                                          onClick={() => deleteCaption(caption.id, panel.id)}
-                                          className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2 ml-auto"
-                                          aria-label="Delete caption"
-                                        >
-                                          ×
-                                        </button>
+                                        <Tip content="Delete">
+                                          <button
+                                            onClick={() => deleteCaption(caption.id, panel.id)}
+                                            className="hover-fade-danger text-[var(--text-muted)] px-2 ml-auto"
+                                            aria-label="Delete caption"
+                                          >
+                                            ×
+                                          </button>
+                                        </Tip>
                                       </div>
                                       <ScriptEditor
                                         variant="caption"
@@ -1791,12 +1824,14 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             <div>
                               <div className="flex items-center justify-between mb-2">
                                 <label className="type-micro text-[var(--text-secondary)]">SFX</label>
-                                <button
-                                  onClick={() => addSoundEffect(panel.id)}
-                                  className="type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
-                                >
-                                  [+ SFX]
-                                </button>
+                                <Tip content="Add sound effect">
+                                  <button
+                                    onClick={() => addSoundEffect(panel.id)}
+                                    className="hover-lift type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                  >
+                                    [+ SFX]
+                                  </button>
+                                </Tip>
                               </div>
                               <div className="space-y-2">
                                 {(panel.sound_effects || [])
@@ -1823,39 +1858,88 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                           placeholder="CRASH!, BANG!, WHOOSH!..."
                                         />
                                       </div>
-                                      <button
-                                        onClick={() => deleteSoundEffect(sfx.id, panel.id)}
-                                        className="text-[var(--text-muted)] hover:text-[var(--color-error)] px-2"
-                                      >
-                                        ×
-                                      </button>
+                                      <Tip content="Delete">
+                                        <button
+                                          onClick={() => deleteSoundEffect(sfx.id, panel.id)}
+                                          className="hover-fade-danger text-[var(--text-muted)] px-2"
+                                          aria-label="Delete sound effect"
+                                        >
+                                          ×
+                                        </button>
+                                      </Tip>
                                     </div>
                                   ))}
                               </div>
                             </div>
 
-                            {/* Panel Notes */}
+                            {/* Artist Notes — collapsed when empty */}
                             <div>
-                              <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
-                              <ScriptEditor
-                                variant="notes"
-                                characters={characters}
-                                initialContent={panel.notes_to_artist || ''}
-                                onUpdate={(md) => {
-                                  updatePanelField(panel.id, 'notes_to_artist', md)
-                                }}
-                                onFocus={() => handleTextFieldFocus(panel.id, 'notes_to_artist', panel.notes_to_artist)}
-                                onBlur={(md) => {
-                                  // Update with latest text, then end text edit
-                                  if (md !== panel.notes_to_artist) {
-                                    updatePanelField(panel.id, 'notes_to_artist', md)
-                                  }
-                                  setTimeout(() => handleOtherFieldBlur(
-                                    { ...panel, notes_to_artist: md }, 'notes_to_artist'
-                                  ), 0)
-                                }}
-                                placeholder="Additional notes for the artist..."
-                              />
+                              {panel.notes_to_artist ? (
+                                <>
+                                  <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
+                                  <ScriptEditor
+                                    variant="notes"
+                                    characters={characters}
+                                    initialContent={panel.notes_to_artist || ''}
+                                    onUpdate={(md) => {
+                                      updatePanelField(panel.id, 'notes_to_artist', md)
+                                    }}
+                                    onFocus={() => handleTextFieldFocus(panel.id, 'notes_to_artist', panel.notes_to_artist)}
+                                    onBlur={(md) => {
+                                      // Update with latest text, then end text edit
+                                      if (md !== panel.notes_to_artist) {
+                                        updatePanelField(panel.id, 'notes_to_artist', md)
+                                      }
+                                      setTimeout(() => handleOtherFieldBlur(
+                                        { ...panel, notes_to_artist: md }, 'notes_to_artist'
+                                      ), 0)
+                                    }}
+                                    placeholder="Additional notes for the artist..."
+                                  />
+                                </>
+                              ) : expandedArtistNotes.has(panel.id) ? (
+                                <>
+                                  <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
+                                  <ScriptEditor
+                                    variant="notes"
+                                    characters={characters}
+                                    initialContent=""
+                                    onUpdate={(md) => {
+                                      updatePanelField(panel.id, 'notes_to_artist', md)
+                                    }}
+                                    onFocus={() => handleTextFieldFocus(panel.id, 'notes_to_artist', panel.notes_to_artist)}
+                                    onBlur={(md) => {
+                                      if (md !== panel.notes_to_artist) {
+                                        updatePanelField(panel.id, 'notes_to_artist', md)
+                                      }
+                                      // Collapse back if user left it empty
+                                      if (!md || md.trim() === '') {
+                                        setExpandedArtistNotes(prev => {
+                                          const next = new Set(prev)
+                                          next.delete(panel.id)
+                                          return next
+                                        })
+                                      }
+                                      setTimeout(() => handleOtherFieldBlur(
+                                        { ...panel, notes_to_artist: md }, 'notes_to_artist'
+                                      ), 0)
+                                    }}
+                                    placeholder="Additional notes for the artist..."
+                                  />
+                                </>
+                              ) : (
+                                <div className="flex items-center justify-between">
+                                  <label className="type-label">ARTIST NOTES</label>
+                                  <Tip content="Add artist notes">
+                                    <button
+                                      onClick={() => setExpandedArtistNotes(prev => new Set(prev).add(panel.id))}
+                                      className="hover-lift type-micro text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                    >
+                                      [+ NOTES]
+                                    </button>
+                                  </Tip>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

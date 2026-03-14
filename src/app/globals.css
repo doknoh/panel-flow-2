@@ -301,6 +301,86 @@ body {
   color: var(--text-primary);
 }
 
+/* ── Hover Tiers ────────────────────────────────────────── */
+
+/* Tier 1 — Primary actions: buttons that trigger actions */
+.hover-lift {
+  cursor: pointer;
+  transition: all 150ms var(--ease-micro);
+}
+.hover-lift:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+.hover-lift:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+/* Tier 2 — Navigation & selection: things you click to go somewhere */
+.hover-glow {
+  cursor: pointer;
+  transition: all 150ms var(--ease-micro);
+}
+.hover-glow:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: 4px;
+}
+
+/* Tier 3 — Contextual: secondary actions, quiet feedback */
+.hover-fade {
+  cursor: pointer;
+  transition: color 150ms var(--ease-micro);
+}
+.hover-fade:hover {
+  color: var(--text-primary);
+}
+
+/* Tier 3 variant — Destructive: delete/remove actions */
+.hover-fade-danger {
+  cursor: pointer;
+  transition: color 150ms var(--ease-micro);
+}
+.hover-fade-danger:hover {
+  color: var(--color-error);
+}
+
+/* ── Tooltips ───────────────────────────────────────────── */
+
+.tip-content {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px color-mix(in srgb, black 30%, transparent);
+  animation: tooltip-enter 150ms var(--ease-out-expo);
+  z-index: 50;
+  max-width: 200px;
+}
+
+.tip-arrow {
+  fill: var(--bg-primary);
+}
+
+@keyframes tooltip-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* ============================================
    ANIMATIONS
    ============================================ */
@@ -1019,27 +1099,94 @@ html[data-theme-transitioning] * {
   font-weight: 600;
 }
 
+/* ============================================
+   ZEN MODE — Warm Parchment Theme
+   ============================================ */
+
+.zen-mode {
+  background-image: none;
+  color-scheme: light;
+
+  --zen-bg: #faf8f4;
+  --zen-text: #3d3428;
+  --zen-text-dialogue: #5a4d3a;
+  --zen-text-caption: #6b5d4a;
+  --zen-text-notes: #9e9080;
+  --zen-accent: #8b7355;
+  --zen-label: #c4baa8;
+  --zen-divider: #e0d8cc;
+  --zen-border-dialogue: #c4b89a;
+  --zen-ghost: #c4baa8;
+  --zen-dot: #ddd6c8;
+  --zen-footer: #cdc4b4;
+}
+
+/* Zen mode intentionally ignores dark mode — warm parchment IS the experience */
+
 /* Zen mode editor overrides */
-.zen-editor.script-editor {
+.zen-mode .script-editor {
   background: transparent;
   border: none;
 }
-.zen-editor .script-editor__content {
-  min-height: 200px;
-  font-size: 1.125rem;
-  line-height: 1.75;
-  color: white;
-}
-.zen-editor .script-editor__content:focus {
-  outline: none;
-}
-.zen-editor.script-editor--focused {
+
+.zen-mode .script-editor--focused {
   border-color: transparent;
 }
-.zen-editor--notes .script-editor__content {
-  min-height: 60px;
-  font-size: 0.875rem;
-  color: var(--text-muted);
+
+.zen-mode .script-editor__content {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: var(--zen-text);
+  outline: none;
+}
+
+.zen-mode .script-editor__content:focus {
+  outline: none;
+}
+
+/* Override placeholder to match parchment palette (prevents dark mode leak) */
+.zen-mode .script-editor .ProseMirror p.is-empty:first-child::before {
+  color: var(--zen-ghost);
+}
+
+/* Description variant in zen mode */
+.zen-mode .script-editor--description .script-editor__content {
+  min-height: 100px;
+  font-size: 19px;
+  line-height: 1.85;
+  color: var(--zen-text);
+}
+
+/* Dialogue variant in zen mode */
+.zen-mode .script-editor--dialogue .script-editor__content {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--zen-text-dialogue);
+  font-style: italic;
+}
+
+/* Caption variant in zen mode */
+.zen-mode .script-editor--caption .script-editor__content {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--zen-text-caption);
+}
+
+/* SFX variant in zen mode — stays monospace */
+.zen-mode .script-editor--sfx .script-editor__content {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--zen-accent);
+}
+
+/* Notes variant in zen mode */
+.zen-mode .script-editor--notes .script-editor__content {
+  min-height: 40px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--zen-text-notes);
 }
 
 /* Script view editor overrides — seamless inline appearance */
@@ -1055,7 +1202,6 @@ html[data-theme-transitioning] * {
 }
 .script-view-editor.script-editor--focused {
   background: var(--bg-secondary);
-  background-opacity: 0.3;
   border-color: transparent;
 }
 .script-view-editor--sfx .script-editor__content {
@@ -1063,6 +1209,7 @@ html[data-theme-transitioning] * {
   color: var(--accent-hover);
 }
 
+<<<<<<< HEAD
 /* ===== Character @Mention Dropdown ===== */
 
 .mention-dropdown-container {
@@ -1111,4 +1258,273 @@ html[data-theme-transitioning] * {
   font-size: 10px;
   color: var(--text-muted);
   margin-left: auto;
+}
+
+/* ===== Script View Redesign ===== */
+
+/* Header: matches site-wide standard */
+.script-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* Adaptive toolbar: sticky below header */
+.script-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  font-family: -apple-system, sans-serif;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+/* Page header in body: sans-serif structural element */
+.script-page-header {
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--text-secondary);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.script-page-header .orientation {
+  font-weight: 400;
+  opacity: 0.5;
+}
+
+/* Act/scene context below page header */
+.script-context-line {
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+/* Panel label: sans-serif structural */
+.script-panel-label {
+  font-family: -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  transition: color 0.15s ease;
+}
+
+/* Script body container */
+.script-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px;
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Block types — base styles */
+.script-block-description {
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  border-left: 2px solid color-mix(in srgb, var(--text-secondary) 40%, transparent);
+  padding-left: 14px;
+  color: var(--text-secondary);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.script-block-dialogue {
+  margin-left: 40px;
+  margin-bottom: 6px;
+}
+
+.script-block-dialogue .speaker-label {
+  font-family: -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-primary) 70%, transparent);
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+
+.script-block-dialogue .speaker-label:hover {
+  color: var(--color-primary);
+}
+
+.script-block-dialogue .dialogue-text {
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  border-left: 2px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+  padding-left: 12px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.script-block-caption {
+  margin-left: 40px;
+  margin-bottom: 6px;
+}
+
+.script-block-caption .caption-label {
+  font-family: -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-warning) 70%, transparent);
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+
+.script-block-caption .caption-label:hover {
+  color: var(--color-warning);
+}
+
+.script-block-caption .caption-text {
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  border-left: 2px solid color-mix(in srgb, var(--color-warning) 40%, transparent);
+  padding-left: 12px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.script-block-sfx {
+  margin-left: 40px;
+}
+
+.script-block-sfx .sfx-text {
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-hover);
+  letter-spacing: 1px;
+}
+
+/* Active field highlighting */
+.script-block-description.is-active {
+  border-left-color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+  border-radius: 0 4px 4px 0;
+  padding: 8px 8px 8px 14px;
+}
+
+.script-block-dialogue .dialogue-text.is-active {
+  border-left-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  border-radius: 0 4px 4px 0;
+  padding: 8px 8px 8px 12px;
+}
+
+.script-block-caption .caption-text.is-active {
+  border-left-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+  border-radius: 0 4px 4px 0;
+  padding: 8px 8px 8px 12px;
+}
+
+/* Active panel label brightens to match */
+.script-panel-label.is-active-description {
+  color: var(--text-secondary);
+}
+.script-panel-label.is-active-dialogue {
+  color: var(--color-primary);
+}
+.script-panel-label.is-active-caption {
+  color: var(--color-warning);
+}
+.script-panel-label.is-active-sfx {
+  color: var(--accent-hover);
+}
+
+/* Quick-add menu */
+.script-quick-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 6px 14px;
+  font-family: -apple-system, sans-serif;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  transition: opacity 0.15s ease, height 0.15s ease;
+}
+
+.script-quick-add.is-visible {
+  opacity: 1;
+  height: auto;
+  padding: 8px 0 8px 14px;
+}
+
+.script-quick-add .quick-add-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.script-quick-add .quick-add-key:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.script-quick-add .quick-add-key kbd {
+  font-family: -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.script-quick-add .quick-add-separator {
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+
+/* Footer keyboard hints */
+.script-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 20px;
+  border-top: 1px solid var(--border-subtle);
+  font-family: -apple-system, sans-serif;
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.script-footer kbd {
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-right: 3px;
+  font-family: -apple-system, sans-serif;
+  font-size: 9px;
 }

@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf'
 import { parseMarkdownForPdf } from './markdown'
 
 interface DialogueBlock {
@@ -113,7 +112,7 @@ function autoCapitalizeCharacterNames(text: string, characterNames: string[]): s
   return result
 }
 
-export function exportIssueToPdf(
+export async function exportIssueToPdf(
   issue: Issue,
   options?: {
     authorName?: string
@@ -122,6 +121,8 @@ export function exportIssueToPdf(
     includeNotes?: boolean
   }
 ) {
+  const { jsPDF } = await import('jspdf')
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',

@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
+import { Tip } from '@/components/ui/Tip'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -138,17 +139,20 @@ function ToastContainer({
           {toast.action && (
             <button
               onClick={() => onAction(toast)}
-              className="text-sm font-semibold underline underline-offset-2 hover:no-underline whitespace-nowrap"
+              className="text-sm font-semibold underline underline-offset-2 hover:no-underline whitespace-nowrap hover-fade"
             >
               {toast.action.label}
             </button>
           )}
-          <button
-            onClick={() => onDismiss(toast.id)}
-            className="text-white/70 hover:text-white active:scale-[0.97] transition-all duration-150 ease-out"
-          >
-            ×
-          </button>
+          <Tip content="Dismiss">
+            <button
+              onClick={() => onDismiss(toast.id)}
+              className="text-white/70 hover:text-white active:scale-[0.97] transition-all duration-150 ease-out hover-fade"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </Tip>
         </div>
       ))}
     </div>

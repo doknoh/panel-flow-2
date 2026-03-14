@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -24,19 +25,28 @@ export default function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const confirmRef = useRef<HTMLButtonElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const focusTrapRef = useFocusTrap(open)
 
   // Focus the cancel button when dialog opens (safer default)
   useEffect(() => {
     if (open) {
-      // Trap focus inside dialog
+      // Focus cancel button after a short delay to override focus trap's default
+      const timer = setTimeout(() => {
+        cancelRef.current?.focus()
+      }, 60)
+
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           onCancel()
         }
       }
       document.addEventListener('keydown', handleKeyDown)
-      return () => document.removeEventListener('keydown', handleKeyDown)
+      return () => {
+        clearTimeout(timer)
+        document.removeEventListener('keydown', handleKeyDown)
+      }
     }
   }, [open, onCancel])
 
@@ -50,6 +60,7 @@ export default function ConfirmDialog({
 
   return (
     <div
+      ref={focusTrapRef}
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={handleBackdropClick}
       role="dialog"
@@ -83,8 +94,9 @@ export default function ConfirmDialog({
 
         <div className="flex justify-end gap-3">
           <button
+            ref={cancelRef}
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border)] rounded transition-colors hover-fade"
           >
             {cancelLabel}
           </button>
@@ -93,8 +105,8 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
               variant === 'danger'
-                ? 'bg-[var(--color-error)] hover:bg-[var(--color-error)]/90 text-white'
-                : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white'
+                ? 'bg-[var(--color-error)] hover:bg-[var(--color-error)]/90 text-white hover-fade-danger'
+                : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white hover-lift'
             }`}
           >
             {confirmLabel}
