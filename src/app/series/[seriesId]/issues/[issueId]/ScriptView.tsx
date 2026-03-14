@@ -2120,13 +2120,14 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onMentionInsert={({ characterId }) => {
               if (block.panelId) {
                 const supabase = createClient()
-                supabase.from('panels').select('characters_present').eq('id', block.panelId).single().then(({ data }) => {
+                supabase.from('panels').select('characters_present').eq('id', block.panelId).single().then(({ data, error: readErr }) => {
+                  if (readErr) { console.error('Failed to read characters_present:', readErr); return }
                   const current = ((data?.characters_present || []) as string[])
                   if (!current.includes(characterId)) {
                     supabase.from('panels').update({ characters_present: [...current, characterId] }).eq('id', block.panelId)
                       .then(({ error }) => { if (error) console.error('Failed to update characters_present:', error) })
                   }
-                }).catch(err => console.error('Failed to read characters_present:', err))
+                })
               }
             }}
             onCharacterClick={(charId) => {

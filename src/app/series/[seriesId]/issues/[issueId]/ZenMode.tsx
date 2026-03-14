@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import ScriptEditor from '@/components/editor/ScriptEditor'
+import { scanCharactersPresent } from '@/lib/character-utils'
 
 interface Panel {
   id: string
@@ -43,6 +44,8 @@ interface SoundEffect {
 interface Character {
   id: string
   name: string
+  display_name?: string | null
+  role?: string | null
 }
 
 interface SceneContext {
@@ -60,6 +63,7 @@ interface ZenModeProps {
     panels: Panel[]
   }
   characters: Character[]
+  seriesId: string
   pagePosition: string // e.g., "Page 5 of 22"
   sceneContext?: SceneContext | null
   onExit: () => void
@@ -70,6 +74,7 @@ interface ZenModeProps {
 export default function ZenMode({
   page,
   characters,
+  seriesId,
   pagePosition,
   sceneContext,
   onExit,
@@ -248,6 +253,13 @@ export default function ZenMode({
 
       if (error) throw error
 
+      // Save-time scan: update characters_present
+      const characterIds = scanCharactersPresent(currentPanel.visual_description || '', characters)
+      await supabase
+        .from('panels')
+        .update({ characters_present: characterIds })
+        .eq('id', currentPanel.id)
+
       setHasChanges(false)
       onSave()
     } catch (error) {
@@ -390,6 +402,23 @@ export default function ZenMode({
               onUpdate={(md) => updatePanelField('visual_description', md)}
               placeholder="Describe what we see in this panel..."
               className="zen-editor"
+              characters={characters}
+              onMentionInsert={({ characterId }) => {
+                if (currentPanel.id) {
+                  const supa = createClient()
+                  supa.from('panels').select('characters_present').eq('id', currentPanel.id).single().then(({ data, error: readErr }) => {
+                    if (readErr) { console.error('Failed to read characters_present:', readErr); return }
+                    const current = ((data?.characters_present || []) as string[])
+                    if (!current.includes(characterId)) {
+                      supa.from('panels').update({ characters_present: [...current, characterId] }).eq('id', currentPanel.id)
+                        .then(({ error }) => { if (error) console.error('Failed to update characters_present:', error) })
+                    }
+                  })
+                }
+              }}
+              onCharacterClick={(charId) => {
+                window.location.href = `/series/${seriesId}/characters/${charId}`
+              }}
             />
           </div>
 
@@ -439,6 +468,7 @@ export default function ZenMode({
               onUpdate={(md) => updatePanelField('internal_notes', md)}
               placeholder="Internal notes..."
               className="zen-editor zen-editor--notes"
+              characters={characters}
             />
           </div>
 

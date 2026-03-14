@@ -1287,6 +1287,7 @@ function IssueEditorContent({
         <ZenMode
           page={selectedPage}
           characters={issue.series.characters}
+          seriesId={seriesId}
           pagePosition={`Page ${selectedPage.page_number} of ${allPages.length}`}
           sceneContext={selectedPageContext ? {
             actName: selectedPageContext.act.name || `Act ${selectedPageContext.act.sort_order + 1}`,
