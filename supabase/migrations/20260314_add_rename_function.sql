@@ -9,11 +9,17 @@ CREATE OR REPLACE FUNCTION rename_character_in_descriptions(
   p_new_name TEXT
 )
 RETURNS void AS $$
+DECLARE
+  v_escaped_old TEXT;
 BEGIN
+  -- Escape regex metacharacters in p_old_name so names like "J.J." or "O'Neil"
+  -- don't cause the pattern to malfunction.
+  v_escaped_old := regexp_replace(p_old_name, '([.\\*+?^${}()|[\]])', '\\\1', 'g');
+
   UPDATE panels
   SET visual_description = regexp_replace(
     visual_description,
-    '\m' || p_old_name || '\M',  -- \m and \M are word boundaries in Postgres regex
+    '\m' || v_escaped_old || '\M',  -- \m and \M are word boundaries in Postgres regex
     p_new_name,
     'gi'
   )
@@ -24,6 +30,8 @@ BEGIN
     JOIN issues i ON a.issue_id = i.id
     WHERE i.series_id = p_series_id
   )
-  AND visual_description ~* ('\m' || p_old_name || '\M');
+  AND visual_description ~* ('\m' || v_escaped_old || '\M');
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION rename_character_in_descriptions TO authenticated;

@@ -301,8 +301,12 @@ function ProfileTab({
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Rename failed')
+        let message = 'Rename failed'
+        try {
+          const err = await res.json()
+          message = err.error || message
+        } catch { /* non-JSON response */ }
+        throw new Error(message)
       }
 
       onCharacterUpdate({ ...character, display_name: trimmed })
