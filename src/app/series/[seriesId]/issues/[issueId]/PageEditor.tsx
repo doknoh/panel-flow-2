@@ -354,6 +354,12 @@ export default function PageEditor({ page, pageContext, characters, locations, s
         setNavigateMode(true)
       } else if (e.target instanceof HTMLElement && e.target.getAttribute('contenteditable') === 'true') {
         setNavigateMode(false)
+        // Sync focusedPanelIndex when user clicks directly into a panel
+        const panelEl = (e.target as HTMLElement).closest('[data-panel-index]')
+        if (panelEl) {
+          const idx = parseInt(panelEl.getAttribute('data-panel-index') || '0', 10)
+          if (!isNaN(idx)) setFocusedPanelIndex(idx)
+        }
       }
     }
     container.addEventListener('focusin', handleFocusIn)
