@@ -879,15 +879,22 @@ function IssueEditorContent({
         return
       }
 
-      // Alt + Arrow Up/Down = Quick page peek (prev/next page preview)
-      if (e.altKey && !isMod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      // Cmd+Shift+Left/Right = Hold-to-peek previous/next page
+      if (isMod && e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        // Don't intercept when user is editing text (Cmd+Shift+Arrow is "select to line start/end")
+        const activeElement = document.activeElement
+        const isInput = activeElement instanceof HTMLInputElement ||
+                       activeElement instanceof HTMLTextAreaElement ||
+                       activeElement?.getAttribute('contenteditable') === 'true'
+        if (isInput) return // Let text selection work normally
+
         e.preventDefault()
         if (!selectedPageId || allPages.length === 0) return
         const currentIndex = allPages.findIndex(p => p.id === selectedPageId)
         if (currentIndex === -1) return
-        const peekIndex = e.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1
+        const peekIndex = e.key === 'ArrowLeft' ? currentIndex - 1 : currentIndex + 1
         if (peekIndex >= 0 && peekIndex < allPages.length) {
-          setPeekPageId(prev => prev === allPages[peekIndex].id ? null : allPages[peekIndex].id)
+          setPeekPageId(allPages[peekIndex].id)
         }
         return
       }
@@ -904,9 +911,20 @@ function IssueEditorContent({
       }
     }
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Release peek when modifier keys released
+      if (peekPageId && (e.key === 'Meta' || e.key === 'Control' || e.key === 'Shift' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        setPeekPageId(null)
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene, isZenMode, selectedPageId, allPages])
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene, isZenMode, selectedPageId, allPages, peekPageId])
 
   return (
     <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
