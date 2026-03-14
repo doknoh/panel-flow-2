@@ -24,6 +24,7 @@ const KeyboardShortcutsModal = dynamic(() => import('./KeyboardShortcutsModal'),
 const ExportModal = dynamic(() => import('@/components/ui/ExportModal'), { ssr: false })
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
+import FontScaleToggle from '@/components/ui/FontScaleToggle'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import CommandPalette from '@/components/CommandPalette'
 import { Tip } from '@/components/ui/Tip'
@@ -127,6 +128,32 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   }, [issue, selectedPageId])
 
   const selectedPage = selectedPageContext?.page
+
+  // Compute position data for the page position indicator
+  const pagePosition = useMemo(() => {
+    if (!selectedPageId) return null
+    const pages: { id: string; pageNumber: number }[] = []
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        for (const page of scene.pages || []) {
+          pages.push({ id: page.id, pageNumber: page.page_number })
+        }
+      }
+    }
+    if (pages.length === 0) return null
+    const index = pages.findIndex(p => p.id === selectedPageId)
+    if (index === -1) return null
+    const page = pages[index]
+    const actName = selectedPageContext?.act?.name || ''
+    const sceneTitle = selectedPageContext?.scene?.name || ''
+    return {
+      current: index + 1,
+      total: pages.length,
+      pageNumber: page.pageNumber,
+      actName,
+      sceneTitle,
+    }
+  }, [selectedPageId, issue.acts, selectedPageContext])
 
   // Find the previous page for context
   const previousPageData = selectedPageId
@@ -436,6 +463,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         titleInputRef={titleInputRef}
         saveTitle={saveTitle}
         filedNotes={filedNotes}
+        pagePosition={pagePosition}
       />
     </UndoProvider>
   )
@@ -477,6 +505,7 @@ function IssueEditorContent({
   titleInputRef,
   saveTitle,
   filedNotes,
+  pagePosition,
 }: {
   issue: Issue
   setIssue: React.Dispatch<React.SetStateAction<Issue>>
@@ -503,6 +532,7 @@ function IssueEditorContent({
   titleInputRef: React.RefObject<HTMLInputElement | null>
   saveTitle: () => Promise<void>
   filedNotes: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
+  pagePosition: { current: number; total: number; pageNumber: number; actName: string; sceneTitle: string } | null
 }) {
   const { undo, redo, canUndo, canRedo } = useUndo()
   const [mobileView, setMobileView] = useState<MobileView>('editor')
@@ -514,6 +544,7 @@ function IssueEditorContent({
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
   const [isRightCollapsed, setIsRightCollapsed] = useState(false)
   const [peekPageId, setPeekPageId] = useState<string | null>(null)
+  const [floatingRefPageId, setFloatingRefPageId] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<'view' | 'navigate' | 'export' | null>(null)
   const [showExportModal, setShowExportModal] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -849,15 +880,22 @@ function IssueEditorContent({
         return
       }
 
-      // Alt + Arrow Up/Down = Quick page peek (prev/next page preview)
-      if (e.altKey && !isMod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      // Cmd+Shift+Left/Right = Hold-to-peek previous/next page
+      if (isMod && e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        // Don't intercept when user is editing text (Cmd+Shift+Arrow is "select to line start/end")
+        const activeElement = document.activeElement
+        const isInput = activeElement instanceof HTMLInputElement ||
+                       activeElement instanceof HTMLTextAreaElement ||
+                       activeElement?.getAttribute('contenteditable') === 'true'
+        if (isInput) return // Let text selection work normally
+
         e.preventDefault()
         if (!selectedPageId || allPages.length === 0) return
         const currentIndex = allPages.findIndex(p => p.id === selectedPageId)
         if (currentIndex === -1) return
-        const peekIndex = e.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1
+        const peekIndex = e.key === 'ArrowLeft' ? currentIndex - 1 : currentIndex + 1
         if (peekIndex >= 0 && peekIndex < allPages.length) {
-          setPeekPageId(prev => prev === allPages[peekIndex].id ? null : allPages[peekIndex].id)
+          setPeekPageId(allPages[peekIndex].id)
         }
         return
       }
@@ -872,11 +910,29 @@ function IssueEditorContent({
         }
         return
       }
+
+      // Escape = Dismiss floating reference panel (only when not actively editing)
+      if (e.key === 'Escape' && floatingRefPageId && !document.activeElement?.getAttribute('contenteditable')) {
+        e.preventDefault()
+        setFloatingRefPageId(null)
+        return
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Release peek when modifier keys released
+      if (peekPageId && (e.key === 'Meta' || e.key === 'Control' || e.key === 'Shift' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        setPeekPageId(null)
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene, isZenMode, selectedPageId, allPages])
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [canUndo, canRedo, undo, redo, saveStatus, showToast, setIsFindReplaceOpen, setIsShortcutsOpen, navigateToPage, navigateToScene, selectedPageContext, addPageToScene, isZenMode, selectedPageId, allPages, peekPageId, floatingRefPageId])
 
   return (
     <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -1080,6 +1136,7 @@ function IssueEditorContent({
               }}
             />
 
+            <FontScaleToggle />
             <ThemeToggle />
           </div>
         </div>
@@ -1132,47 +1189,117 @@ function IssueEditorContent({
                 onSelectPage={(pageId) => {
                   setSelectedPageId(pageId)
                 }}
+                onAltClickPage={(pageId: string) => setFloatingRefPageId(pageId)}
                 onRefresh={refreshIssue}
               />
             </div>
           }
           centerPanel={
-            selectedPage ? (
-              <div className="flex flex-col h-full">
-                {/* Previous page context */}
-                <PreviousPageContext
-                  previousPage={previousPageData?.page || null}
-                  sceneName={previousPageData?.sceneName}
-                />
-                {/* Current page editor — keyed for transition animation */}
-                <div key={selectedPage.id} className="flex-1 overflow-y-auto" style={{ animation: 'page-enter 150ms ease-out' }}>
-                  <PageEditor
-                    page={selectedPage}
-                    pageContext={selectedPageContext}
-                    characters={issue.series.characters}
-                    locations={issue.series.locations}
-                    seriesId={seriesId}
-                    scenePages={currentScenePages}
-                    onUpdate={refreshIssue}
-                    setSaveStatus={setSaveStatus}
-                    filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
+            <div className="editor-center-column h-full flex flex-col">
+              {selectedPage ? (
+                <div className="flex flex-col h-full">
+                  {/* Previous page context */}
+                  <PreviousPageContext
+                    previousPage={previousPageData?.page || null}
+                    sceneName={previousPageData?.sceneName}
                   />
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
-                <div className="text-center p-8 max-w-md">
-                  <div className="text-5xl mb-4 opacity-30">📄</div>
-                  <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">No pages yet</h3>
-                  <p className="text-sm text-[var(--text-muted)] mb-6">
-                    Start by creating an act and scene in the navigation tree on the left. Each scene can contain multiple pages, and each page holds your comic panels.
-                  </p>
-                  <div className="text-xs text-[var(--text-muted)] space-y-1">
-                    <p>💡 Tip: Use <kbd className="px-1 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded">?</kbd> to see keyboard shortcuts</p>
+                  {/* Page position indicator */}
+                  {pagePosition && (
+                    <div className="px-4 py-1.5 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)] text-xs text-[var(--text-muted)] flex items-center justify-between">
+                      <span>
+                        Page {pagePosition.pageNumber} of {pagePosition.total}
+                        {pagePosition.actName && ` — ${pagePosition.actName}`}
+                        {pagePosition.sceneTitle && `, ${pagePosition.sceneTitle}`}
+                      </span>
+                      <span className="text-[var(--text-muted)]">
+                        {pagePosition.current}/{pagePosition.total}
+                      </span>
+                    </div>
+                  )}
+                  {/* Current page editor — keyed for transition animation */}
+                  <div key={selectedPage.id} className="flex-1 overflow-y-auto animate-page-crossfade">
+                    <PageEditor
+                      page={selectedPage}
+                      pageContext={selectedPageContext}
+                      characters={issue.series.characters}
+                      locations={issue.series.locations}
+                      seriesId={seriesId}
+                      scenePages={currentScenePages}
+                      onUpdate={refreshIssue}
+                      setSaveStatus={setSaveStatus}
+                      filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
+                      onNavigateToPage={navigateToPage}
+                    />
                   </div>
                 </div>
-              </div>
-            )
+              ) : (
+                <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
+                  <div className="text-center p-8 max-w-md">
+                    <div className="text-5xl mb-4 opacity-30">📄</div>
+                    <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">No pages yet</h3>
+                    <p className="text-sm text-[var(--text-muted)] mb-6">
+                      Start by creating an act and scene in the navigation tree on the left. Each scene can contain multiple pages, and each page holds your comic panels.
+                    </p>
+                    <div className="text-xs text-[var(--text-muted)] space-y-1">
+                      <p>💡 Tip: Use <kbd className="px-1 py-0.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded">?</kbd> to see keyboard shortcuts</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Floating reference panel — shown when Alt+Click on a nav tree page */}
+              {floatingRefPageId && (() => {
+                let refPage: any = null
+                for (const act of issue.acts || []) {
+                  for (const scene of act.scenes || []) {
+                    const found = (scene.pages || []).find((p: any) => p.id === floatingRefPageId)
+                    if (found) { refPage = found; break }
+                  }
+                  if (refPage) break
+                }
+                if (!refPage) return null
+                return (
+                  <div className="floating-reference-panel">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]">
+                      <span className="text-xs font-medium text-[var(--text-muted)]">
+                        Reference: Page {refPage.page_number}
+                      </span>
+                      <button
+                        onClick={() => setFloatingRefPageId(null)}
+                        className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <div className="p-3 overflow-y-auto max-h-[60vh] text-sm">
+                      {(refPage.panels || []).map((panel: any, i: number) => (
+                        <div key={panel.id || i} className="mb-3">
+                          <div className="text-xs font-medium text-[var(--text-muted)] mb-1">Panel {i + 1}</div>
+                          {panel.visual_description && (
+                            <div className="text-[var(--text-secondary)] mb-1">{panel.visual_description}</div>
+                          )}
+                          {(panel.dialogue_blocks || []).map((d: any, j: number) => (
+                            <div key={d.id || j} className="ml-3 mb-0.5">
+                              <span className="font-bold text-[var(--text-primary)]">{d.speaker_name}: </span>
+                              <span className="text-[var(--text-secondary)]">{d.text}</span>
+                            </div>
+                          ))}
+                          {(panel.captions || []).map((c: any, j: number) => (
+                            <div key={c.id || j} className="ml-3 mb-0.5 italic text-[var(--text-muted)]">
+                              CAP: {c.text}
+                            </div>
+                          ))}
+                          {(panel.sound_effects || []).map((s: any, j: number) => (
+                            <div key={s.id || j} className="ml-3 mb-0.5 font-bold uppercase text-[var(--text-muted)]">
+                              SFX: {s.text}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
           }
           rightPanel={
             <div className="h-full border-l border-[var(--border)]">
@@ -1200,6 +1327,7 @@ function IssueEditorContent({
               setSelectedPageId(pageId)
               setMobileView('editor')
             }}
+            onAltClickPage={(pageId: string) => setFloatingRefPageId(pageId)}
             onRefresh={refreshIssue}
           />
         </div>
@@ -1225,6 +1353,7 @@ function IssueEditorContent({
                   onUpdate={refreshIssue}
                   setSaveStatus={setSaveStatus}
                   filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
+                  onNavigateToPage={navigateToPage}
                 />
               </div>
             </>

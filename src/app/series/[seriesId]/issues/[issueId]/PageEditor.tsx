@@ -115,6 +115,7 @@ interface PageEditorProps {
   onUpdate: () => void
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
   filedNotes?: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
+  onNavigateToPage?: (direction: 'prev' | 'next') => void
 }
 
 // Word count helper
@@ -248,9 +249,12 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
   )
 }
 
-export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], onUpdate, setSaveStatus, filedNotes }: PageEditorProps) {
+export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], onUpdate, setSaveStatus, filedNotes, onNavigateToPage }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
+  const [navigateMode, setNavigateMode] = useState(true) // start in navigate mode
+  const [focusedPanelIndex, setFocusedPanelIndex] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [expandedArtistNotes, setExpandedArtistNotes] = useState<Set<string>>(new Set())
   const [openDropdown, setOpenDropdown] = useState<string | null>(null) // tracks "shotType-{panelId}" or "captionType-{captionId}"
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
@@ -334,6 +338,33 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     // Don't overwrite local state if page ID hasn't changed -
     // local state contains optimistic updates (dialogues, captions, etc.)
   }, [page])
+
+  // Reset navigate mode state when page changes
+  useEffect(() => {
+    setFocusedPanelIndex(0)
+    setNavigateMode(true)
+  }, [page.id])
+
+  // Handle focus events to toggle navigate mode
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const handleFocusIn = (e: FocusEvent) => {
+      if (e.target === container) {
+        setNavigateMode(true)
+      } else if (e.target instanceof HTMLElement && e.target.getAttribute('contenteditable') === 'true') {
+        setNavigateMode(false)
+        // Sync focusedPanelIndex when user clicks directly into a panel
+        const panelEl = (e.target as HTMLElement).closest('[data-panel-index]')
+        if (panelEl) {
+          const idx = parseInt(panelEl.getAttribute('data-panel-index') || '0', 10)
+          if (!isNaN(idx)) setFocusedPanelIndex(idx)
+        }
+      }
+    }
+    container.addEventListener('focusin', handleFocusIn)
+    return () => container.removeEventListener('focusin', handleFocusIn)
+  }, [])
 
   // Save all pending changes - defined before scheduleAutoSave to avoid circular dependency
   const saveAllPendingChanges = useCallback(async () => {
@@ -468,19 +499,66 @@ export default function PageEditor({ page, pageContext, characters, locations, s
         return
       }
 
-      // Escape: deactivate panel editing (show all panels)
-      if (e.key === 'Escape' && editingPanel) {
+      // Tab = move to next field within panel, then next panel
+      if (e.key === 'Tab' && !navigateMode) {
+        e.preventDefault()
+        const currentPanelId = panels[focusedPanelIndex]?.id
+        const focusableFields = Array.from(
+          document.querySelectorAll(`[data-panel-id="${currentPanelId}"] .ProseMirror`)
+        ) as HTMLElement[]
+
+        const currentFieldIndex = focusableFields.indexOf(document.activeElement as HTMLElement)
+
+        if (e.shiftKey) {
+          if (currentFieldIndex > 0) {
+            focusableFields[currentFieldIndex - 1].focus()
+          } else if (focusedPanelIndex > 0) {
+            const newIndex = focusedPanelIndex - 1
+            setFocusedPanelIndex(newIndex)
+            requestAnimationFrame(() => {
+              const prevPanelId = panels[newIndex]?.id
+              const prevFields = Array.from(
+                document.querySelectorAll(`[data-panel-id="${prevPanelId}"] .ProseMirror`)
+              ) as HTMLElement[]
+              prevFields[prevFields.length - 1]?.focus()
+            })
+          }
+        } else {
+          if (currentFieldIndex < focusableFields.length - 1) {
+            focusableFields[currentFieldIndex + 1].focus()
+          } else if (focusedPanelIndex < panels.length - 1) {
+            const newIndex = focusedPanelIndex + 1
+            setFocusedPanelIndex(newIndex)
+            requestAnimationFrame(() => {
+              const nextPanelId = panels[newIndex]?.id
+              const nextFields = Array.from(
+                document.querySelectorAll(`[data-panel-id="${nextPanelId}"] .ProseMirror`)
+              ) as HTMLElement[]
+              nextFields[0]?.focus()
+            })
+          } else {
+            // Last field of last panel — advance to next page
+            onNavigateToPage?.('next')
+          }
+        }
+        return
+      }
+
+      // Escape: return to navigate mode and deactivate panel editing
+      if (e.key === 'Escape' && (editingPanel || !navigateMode)) {
         const activeElement = document.activeElement
         const isInModal = activeElement?.closest('[role="dialog"]')
         if (!isInModal) {
+          setNavigateMode(true)
           setEditingPanel(null)
+          containerRef.current?.focus()
         }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [manualSave, panels, editingPanel, findLastSpeakerId])
+  }, [manualSave, panels, editingPanel, navigateMode, findLastSpeakerId, focusedPanelIndex, onNavigateToPage])
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -661,6 +739,18 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     endTextEdit(panel.id, field, panel[field] || null)
     handlePanelBlur(panel)
   }
+
+  // Auto-advance: when a field blurs and nothing else inside the editor gets focus,
+  // return to navigate mode so arrow keys work immediately
+  const handleAutoAdvance = useCallback(() => {
+    requestAnimationFrame(() => {
+      const active = document.activeElement
+      if (active === document.body || active === containerRef.current) {
+        setNavigateMode(true)
+        containerRef.current?.focus()
+      }
+    })
+  }, [])
 
   const addDialogue = async (panelId: string, options?: { defaultCharacterId?: string | null; autoFocus?: boolean }) => {
     const supabase = createClient()
@@ -1203,6 +1293,28 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     }
   }
 
+  // Navigate mode: arrow key panel traversal
+  const focusedPanelId = panels[focusedPanelIndex]?.id
+
+  const handleContainerKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!navigateMode) return // TipTap handles keys when editing
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setFocusedPanelIndex(prev => Math.min(prev + 1, panels.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setFocusedPanelIndex(prev => Math.max(prev - 1, 0))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      setNavigateMode(false)
+      const panelEl = document.querySelector(`[data-panel-id="${focusedPanelId}"] .ProseMirror`)
+      if (panelEl instanceof HTMLElement) {
+        panelEl.focus()
+      }
+    }
+  }, [navigateMode, panels.length, focusedPanelIndex, focusedPanelId])
+
   // Tab navigation between panel fields
   // Uses Alt+ArrowDown / Alt+ArrowUp to move between fields within a panel
   const handleFieldTabNavigation = useCallback((e: React.KeyboardEvent, panelId: string) => {
@@ -1363,11 +1475,17 @@ export default function PageEditor({ page, pageContext, characters, locations, s
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={panels.map(p => p.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-6">
-              {panels.map((panel) => {
+            <div
+              ref={containerRef}
+              tabIndex={0}
+              onKeyDown={handleContainerKeyDown}
+              className="space-y-6 outline-none"
+            >
+              {panels.map((panel, index) => {
                 const isActive = editingPanel === panel.id
                 const isAnyActive = editingPanel !== null
                 const isCollapsed = isAnyActive && !isActive
+                const isFocused = navigateMode && index === focusedPanelIndex
                 const wordCount = panelWordCount(panel)
 
                 return (
@@ -1375,14 +1493,15 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                     {(dragListeners) => (
                       <div
                         data-panel-id={panel.id}
-                        className={`bg-[var(--bg-secondary)] border rounded-lg overflow-hidden transition-all duration-150 ${
+                        data-panel-index={index}
+                        className={`panel-card bg-[var(--bg-secondary)] border rounded-lg overflow-hidden transition-all duration-150 ${
                           isActive
                             ? 'border-l-4 border-l-[var(--color-primary)] border-t-[var(--border)] border-r-[var(--border)] border-b-[var(--border)] shadow-md'
                             : isCollapsed
                               ? 'border-[var(--border)] opacity-60 hover:opacity-90 cursor-pointer'
                               : 'border-[var(--border)]'
-                        }`}
-                        onFocus={() => { if (!isActive) setEditingPanel(panel.id) }}
+                        } ${isFocused ? 'panel-card--focused' : ''}`}
+                        onFocus={() => { if (!navigateMode && !isActive) setEditingPanel(panel.id) }}
                         onClick={() => { if (isCollapsed) setEditingPanel(panel.id) }}
                       >
                         {/* Panel Header */}
@@ -1535,6 +1654,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   setTimeout(() => handleVisualDescriptionBlur(
                                     { ...panel, visual_description: md }
                                   ), 0)
+                                  handleAutoAdvance()
                                 }}
                                 placeholder="Describe what the reader sees..."
                               />
@@ -1702,6 +1822,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                         onFocus={() => { focusStartValueRef.current = dialogue.text || '' }}
                                         onBlur={(md) => {
                                           updateDialogue(dialogue.id, 'text', md, focusStartValueRef.current)
+                                          handleAutoAdvance()
                                         }}
                                         placeholder="Enter dialogue..."
                                         showWordCount

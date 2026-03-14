@@ -47,6 +47,7 @@ interface NavigationTreeProps {
   plotlines: Plotline[]
   selectedPageId: string | null
   onSelectPage: (pageId: string) => void
+  onAltClickPage?: (pageId: string) => void
   onRefresh: () => Promise<void> | void
 }
 
@@ -130,7 +131,7 @@ function selectionGroupSummaryClass(position: GroupPosition | undefined, level: 
   }
 }
 
-export default function NavigationTree({ issue, setIssue, plotlines, selectedPageId, onSelectPage, onRefresh }: NavigationTreeProps) {
+export default function NavigationTree({ issue, setIssue, plotlines, selectedPageId, onSelectPage, onAltClickPage, onRefresh }: NavigationTreeProps) {
   const [expandedActs, setExpandedActs] = useState<Set<string>>(new Set(issue.acts?.map((a: any) => a.id) || []))
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
   const [isMounted, setIsMounted] = useState(false)
@@ -2351,6 +2352,11 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                 <div
                                                   onClick={(e) => {
                                                     if (editingItemId) return
+                                                    if (e.altKey) {
+                                                      e.preventDefault()
+                                                      onAltClickPage?.(page.id)
+                                                      return
+                                                    }
                                                     const handled = handleMultiSelectClick(page.id, 'page', e)
                                                     if (!handled) {
                                                       onSelectPage(page.id)

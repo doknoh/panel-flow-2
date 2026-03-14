@@ -16,6 +16,9 @@ const shortcuts = [
     { keys: ['⌘', '⇧', '↓'], description: 'Next scene' },
     { keys: ['⌘', 'J'], description: 'Jump to page...' },
     { keys: ['⌘', 'K'], description: 'Quick navigate (search pages, panels, scenes)' },
+    { keys: ['⌘', '⇧', '←'], description: 'Peek previous page (hold)' },
+    { keys: ['⌘', '⇧', '→'], description: 'Peek next page (hold)' },
+    { keys: ['⌥', 'Click'], description: 'Open floating reference in nav tree' },
   ]},
   { category: 'General', items: [
     { keys: ['⌘', 'S'], description: 'Save (confirms auto-save status)' },
@@ -27,6 +30,14 @@ const shortcuts = [
     { keys: ['⌘', ']'], description: 'Toggle right panel' },
     { keys: ['⌘', '⇧', '↵'], description: 'Zen Mode (distraction-free)' },
     { keys: ['?'], description: 'Show keyboard shortcuts' },
+  ]},
+  { category: 'Panel Navigation', items: [
+    { keys: ['↑'], description: 'Navigate to previous panel' },
+    { keys: ['↓'], description: 'Navigate to next panel' },
+    { keys: ['↵'], description: 'Edit focused panel' },
+    { keys: ['Esc'], description: 'Return to navigate mode' },
+    { keys: ['⇥'], description: 'Cycle to next field' },
+    { keys: ['⇧', '⇥'], description: 'Cycle to previous field' },
   ]},
   { category: 'Editor', items: [
     { keys: ['⌘', '↵'], description: 'Add new panel' },
