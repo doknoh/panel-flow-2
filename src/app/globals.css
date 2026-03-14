@@ -1594,6 +1594,7 @@ html[data-theme-transitioning] * {
 }
 .dual-page-editor__panes {
   display: flex;
+  flex-direction: row;
   flex: 1;
   overflow: hidden;
 }

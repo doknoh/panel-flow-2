@@ -149,14 +149,14 @@ export default function DualPageEditor({
         <span className="type-micro text-[var(--text-muted)]">
           {mode === 'spread' ? 'SPREAD VIEW' : mode === 'mirror' ? 'MIRROR VIEW' : 'COMPARE VIEW'}
         </span>
-        {onClose && (
+        {mode === 'compare' && onClose && (
           <button onClick={onClose} className="type-micro hover-fade text-[var(--text-muted)]">
             [CLOSE SPLIT]
           </button>
         )}
       </div>
 
-      <div className={`dual-page-editor__panes ${isVertical ? 'flex-col' : ''}`}>
+      <div className="dual-page-editor__panes">
         {/* Left pane */}
         <div className="dual-page-editor__pane">
           <PageEditor
