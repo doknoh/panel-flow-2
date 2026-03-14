@@ -1,4 +1,5 @@
 import type { Paragraph as ParagraphType } from 'docx'
+import { parseMarkdown } from './markdown'
 
 interface DialogueBlock {
   character_id: string | null
@@ -131,6 +132,27 @@ export async function exportIssueToDocx(
     PageBreak,
   } = await import('docx')
   const { saveAs } = await import('file-saver')
+
+  /**
+   * Parse markdown text into an array of styled TextRun objects for docx export.
+   * Converts **bold**, *italic*, and ***bold-italic*** syntax into proper formatting.
+   */
+  function markdownToTextRuns(text: string, baseSize: number = 22) {
+    const { segments } = parseMarkdown(text)
+    return segments.map(segment => {
+      const options: Record<string, unknown> = {
+        text: segment.content,
+        size: baseSize,
+      }
+      if (segment.type === 'bold' || segment.type === 'bold-italic') {
+        options.bold = true
+      }
+      if (segment.type === 'italic' || segment.type === 'bold-italic') {
+        options.italics = true
+      }
+      return new TextRun(options as any)
+    })
+  }
 
   const characterMap = new Map(issue.series.characters.map(c => [c.id, c.name]))
   const charNames = options?.characterNames || issue.series.characters.map(c => c.name)
@@ -275,7 +297,7 @@ export async function exportIssueToDocx(
             }))
             if (panel.visual_description) {
               const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
-              children.push(new Paragraph({ children: [new TextRun({ text: capitalizedDesc, size: 22 })], indent: { left: 360 }, spacing: { after: 100 } }))
+              children.push(new Paragraph({ children: markdownToTextRuns(capitalizedDesc, 22), indent: { left: 360 }, spacing: { after: 100 } }))
             }
             const sortedCaptions = [...(panel.captions || [])].sort((a, b) => a.sort_order - b.sort_order)
             for (const caption of sortedCaptions) {
@@ -379,12 +401,7 @@ export async function exportIssueToDocx(
             const capitalizedDesc = autoCapitalizeCharacterNames(panel.visual_description, charNames)
             children.push(
               new Paragraph({
-                children: [
-                  new TextRun({
-                    text: capitalizedDesc,
-                    size: 22,
-                  }),
-                ],
+                children: markdownToTextRuns(capitalizedDesc, 22),
                 indent: { left: 360 }, // 0.25 inch
                 spacing: { after: 100 },
               })

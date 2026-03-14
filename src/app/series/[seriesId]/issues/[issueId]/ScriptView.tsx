@@ -9,6 +9,7 @@ import CharacterAutocomplete from '@/components/CharacterAutocomplete'
 import TypeSelector from '@/components/TypeSelector'
 import FindReplaceModal from './FindReplaceModal'
 import { stripMarkdown } from '@/lib/markdown'
+import { scanCharactersPresent } from '@/lib/character-utils'
 import ScriptEditor from '@/components/editor/ScriptEditor'
 import ScriptEditorToolbar from '@/components/editor/ScriptEditorToolbar'
 import { Editor } from '@tiptap/react'
@@ -78,6 +79,8 @@ interface Act {
 interface Character {
   id: string
   name: string
+  display_name?: string | null
+  role?: string | null
 }
 
 interface Issue {
@@ -496,9 +499,10 @@ export default function ScriptView({
       switch (block.type) {
         case 'visual':
           if (block.panelId) {
+            const presentIds = scanCharactersPresent(block.content || '', characters)
             const { error } = await supabase
               .from('panels')
-              .update({ visual_description: block.content })
+              .update({ visual_description: block.content, characters_present: presentIds })
               .eq('id', block.panelId)
             if (error) throw error
           }
@@ -2005,6 +2009,28 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
             onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
             onUnregisterEditor={() => onUnregisterEditor(block.id)}
+            characters={characters}
+            onMentionInsert={block.panelId ? ({ characterId }) => {
+              const supabase = createClient()
+              supabase
+                .from('panels')
+                .select('characters_present')
+                .eq('id', block.panelId!)
+                .single()
+                .then(({ data, error: readErr }) => {
+                  if (readErr) { console.error('Failed to read panel for mention insert:', readErr); return }
+                  const existing: string[] = (data?.characters_present as string[]) || []
+                  if (!existing.includes(characterId)) {
+                    supabase
+                      .from('panels')
+                      .update({ characters_present: [...existing, characterId] })
+                      .eq('id', block.panelId!)
+                      .then(({ error: writeErr }) => {
+                        if (writeErr) console.error('Failed to update characters_present:', writeErr)
+                      })
+                  }
+                })
+            } : undefined}
             hideToolbar={true}
             placeholder="Describe what we see in this panel..."
             className="script-view-editor"
@@ -2041,6 +2067,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
             onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
             onUnregisterEditor={() => onUnregisterEditor(block.id)}
+            characters={characters}
             hideToolbar={true}
             placeholder="Dialogue..."
             className="script-view-editor"
@@ -2071,6 +2098,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
             onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
             onUnregisterEditor={() => onUnregisterEditor(block.id)}
+            characters={characters}
             hideToolbar={true}
             placeholder="Caption text..."
             className="script-view-editor"
@@ -2094,6 +2122,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
           onEditorFocus={(editor) => onEditorFocus(editor, block.id)}
           onRegisterEditor={(editor) => onRegisterEditor(block.id, editor)}
           onUnregisterEditor={() => onUnregisterEditor(block.id)}
+          characters={characters}
           hideToolbar={true}
           placeholder="Sound effect..."
           className="script-view-editor script-view-editor--sfx"

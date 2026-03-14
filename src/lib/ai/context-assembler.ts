@@ -637,7 +637,8 @@ async function assembleCurrentPage(
           id, sort_order, visual_description, camera,
           dialogue_blocks (speaker_name, text, delivery_type, delivery_instruction, sort_order),
           captions (text, caption_type, sort_order),
-          sound_effects (text, sort_order)
+          sound_effects (text, sort_order),
+          characters_present
         )
       `)
       .eq('id', pageId)
@@ -651,6 +652,7 @@ async function assembleCurrentPage(
     page_number: number; orientation: string;
     panels: Array<{
       id: string; sort_order: number; visual_description?: string; camera?: string;
+      characters_present?: string[];
       dialogue_blocks: Array<{ speaker_name?: string; text: string; delivery_type: string; delivery_instruction?: string; sort_order: number }>;
       captions: Array<{ text: string; caption_type: string; sort_order: number }>;
       sound_effects: Array<{ text: string; sort_order: number }>;
@@ -658,6 +660,11 @@ async function assembleCurrentPage(
   }
 
   const sortedPanels = [...(p.panels || [])].sort((a, b) => a.sort_order - b.sort_order)
+
+  // Build character ID → display name map for characters_present resolution
+  const charMap = new Map(
+    (context.characters || []).map(c => [c.id, c.display_name || c.name])
+  )
 
   const panelContexts = sortedPanels.map(panel => {
     const sortedDialogue = [...(panel.dialogue_blocks || [])].sort((a, b) => a.sort_order - b.sort_order)
@@ -669,7 +676,9 @@ async function assembleCurrentPage(
       order: panel.sort_order,
       visual_description: panel.visual_description || undefined,
       camera: panel.camera || undefined,
-      characters_present: undefined as string[] | undefined,
+      characters_present: ((panel.characters_present || []) as string[])
+        .map(id => charMap.get(id))
+        .filter(Boolean) as string[] || undefined,
       dialogue: sortedDialogue.length > 0
         ? sortedDialogue.map(d => ({
             speaker: d.speaker_name || 'UNKNOWN',

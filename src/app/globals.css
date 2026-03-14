@@ -1209,6 +1209,57 @@ html[data-theme-transitioning] * {
   color: var(--accent-hover);
 }
 
+<<<<<<< HEAD
+/* ===== Character @Mention Dropdown ===== */
+
+.mention-dropdown-container {
+  pointer-events: auto;
+}
+
+.mention-dropdown {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  min-width: 200px;
+  max-width: 280px;
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+}
+
+.mention-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.mention-dropdown-item:hover,
+.mention-dropdown-item.is-selected {
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  color: var(--text-primary);
+}
+
+.mention-dropdown-name {
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.mention-dropdown-role {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
 /* ===== Script View Redesign ===== */
 
 /* Header: matches site-wide standard */

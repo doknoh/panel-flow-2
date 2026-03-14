@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useOffline } from '@/contexts/OfflineContext'
@@ -10,6 +10,7 @@ import PageTypeSelector from './PageTypeSelector'
 import CommentButton from '../../collaboration/CommentButton'
 import DescriptionAnalysis from '@/components/DescriptionAnalysis'
 import ScriptEditor from '@/components/editor/ScriptEditor'
+import { scanCharactersPresent } from '@/lib/character-utils'
 import { StickyNote, ChevronDown } from 'lucide-react'
 import { Tip } from '@/components/ui/Tip'
 import {
@@ -34,6 +35,8 @@ import { CSS } from '@dnd-kit/utilities'
 interface Character {
   id: string
   name: string
+  display_name?: string | null
+  role?: string | null
 }
 
 interface Location {
@@ -107,6 +110,7 @@ interface PageEditorProps {
   pageContext?: PageContext | null
   characters: Character[]
   locations: Location[]
+  seriesId: string
   scenePages?: PageForLinking[]
   onUpdate: () => void
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
@@ -244,19 +248,12 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
   )
 }
 
-export default function PageEditor({ page, pageContext, characters, locations, scenePages = [], onUpdate, setSaveStatus, filedNotes }: PageEditorProps) {
+export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], onUpdate, setSaveStatus, filedNotes }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [expandedArtistNotes, setExpandedArtistNotes] = useState<Set<string>>(new Set())
   const [openDropdown, setOpenDropdown] = useState<string | null>(null) // tracks "shotType-{panelId}" or "captionType-{captionId}"
   const [pendingChanges, setPendingChanges] = useState<Map<string, Panel>>(new Map())
-  const [mentionState, setMentionState] = useState<{
-    panelId: string
-    query: string
-    position: { top: number; left: number }
-    startIndex: number
-  } | null>(null)
-  const [mentionIndex, setMentionIndex] = useState(0)
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const summarizeTimerRef = useRef<NodeJS.Timeout | null>(null)
   const lastPageIdRef = useRef<string | null>(null)
@@ -380,6 +377,19 @@ export default function PageEditor({ page, pageContext, characters, locations, s
     try {
       await Promise.all(updates)
       setPendingChanges(new Map())
+
+      // Save-time scan: update characters_present for panels with visual descriptions
+      const supabaseForScan = createClient()
+      for (const panel of Array.from(pendingChanges.values())) {
+        if (panel.visual_description) {
+          const characterIds = scanCharactersPresent(panel.visual_description, characters)
+          await supabaseForScan
+            .from('panels')
+            .update({ characters_present: characterIds })
+            .eq('id', panel.id)
+        }
+      }
+
       setSaveStatus('saved')
 
       // Auto-regenerate page summary after panel save
@@ -394,7 +404,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
       setSaveStatus('unsaved')
       showToast('Failed to save changes', 'error')
     }
-  }, [pendingChanges, setSaveStatus, showToast, isOnline, queueChange, page.id, onUpdate])
+  }, [pendingChanges, setSaveStatus, showToast, isOnline, queueChange, page.id, onUpdate, characters])
 
   // Auto-save with 2 second debounce
   const scheduleAutoSave = useCallback(() => {
@@ -650,84 +660,6 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   const handleOtherFieldBlur = (panel: Panel, field: 'notes_to_artist' | 'camera') => {
     endTextEdit(panel.id, field, panel[field] || null)
     handlePanelBlur(panel)
-  }
-
-  // @mention filtering
-  const filteredMentionCharacters = useMemo(() => {
-    if (!mentionState) return []
-    const q = mentionState.query.toLowerCase()
-    return characters.filter(c =>
-      c.name.toLowerCase().includes(q)
-    ).slice(0, 8)
-  }, [mentionState, characters])
-
-  // Handle @mention keydown in visual_description
-  const handleDescriptionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, panelId: string) => {
-    if (mentionState && mentionState.panelId === panelId) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setMentionIndex(prev => Math.min(prev + 1, filteredMentionCharacters.length - 1))
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setMentionIndex(prev => Math.max(prev - 1, 0))
-      } else if (e.key === 'Enter' || e.key === 'Tab') {
-        if (filteredMentionCharacters.length > 0) {
-          e.preventDefault()
-          insertMention(panelId, filteredMentionCharacters[mentionIndex])
-        }
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        setMentionState(null)
-      }
-    }
-  }
-
-  // Handle @mention input change
-  const handleDescriptionInput = (e: React.ChangeEvent<HTMLTextAreaElement>, panelId: string) => {
-    const textarea = e.target
-    const value = textarea.value
-    const cursorPos = textarea.selectionStart
-
-    // Look backward from cursor for @ trigger
-    const textBeforeCursor = value.slice(0, cursorPos)
-    const atIndex = textBeforeCursor.lastIndexOf('@')
-
-    if (atIndex >= 0) {
-      const query = textBeforeCursor.slice(atIndex + 1)
-      // Only show if @ is at start or after a space, and query has no spaces
-      const charBefore = atIndex > 0 ? textBeforeCursor[atIndex - 1] : ' '
-      if ((charBefore === ' ' || charBefore === '\n' || atIndex === 0) && !query.includes(' ')) {
-        // Calculate position for dropdown
-        const rect = textarea.getBoundingClientRect()
-        setMentionState({
-          panelId,
-          query,
-          position: { top: rect.bottom + 4, left: rect.left },
-          startIndex: atIndex,
-        })
-        setMentionIndex(0)
-        return
-      }
-    }
-
-    setMentionState(null)
-  }
-
-  // Insert selected character mention
-  const insertMention = (panelId: string, character: Character) => {
-    if (!mentionState) return
-    const panel = panels.find(p => p.id === panelId)
-    if (!panel) return
-
-    const text = panel.visual_description || ''
-    const displayName = character.name.toUpperCase()
-    // Replace @query with CHARACTER NAME
-    const before = text.slice(0, mentionState.startIndex)
-    const after = text.slice(mentionState.startIndex + 1 + mentionState.query.length)
-    const newText = before + displayName + after
-
-    updatePanelField(panelId, 'visual_description', newText)
-    setMentionState(null)
   }
 
   const addDialogue = async (panelId: string, options?: { defaultCharacterId?: string | null; autoFocus?: boolean }) => {
@@ -1572,6 +1504,24 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                               <ScriptEditor
                                 variant="description"
                                 initialContent={panel.visual_description || ''}
+                                characters={characters}
+                                onMentionInsert={({ characterId }) => {
+                                  // Fast-path: immediately add character to panel's characters_present
+                                  if (panel.id) {
+                                    const supabase = createClient()
+                                    supabase.from('panels').select('characters_present').eq('id', panel.id).single().then(({ data, error: readErr }) => {
+                                      if (readErr) { console.error('Failed to read characters_present:', readErr); return }
+                                      const current = ((data?.characters_present || []) as string[])
+                                      if (!current.includes(characterId)) {
+                                        supabase.from('panels').update({ characters_present: [...current, characterId] }).eq('id', panel.id)
+                                          .then(({ error }) => { if (error) console.error('Failed to update characters_present:', error) })
+                                      }
+                                    })
+                                  }
+                                }}
+                                onCharacterClick={(charId) => {
+                                  window.location.href = `/series/${seriesId}/characters/${charId}`
+                                }}
                                 onUpdate={(md) => {
                                   updatePanelField(panel.id, 'visual_description', md)
                                 }}
@@ -1587,7 +1537,6 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   ), 0)
                                 }}
                                 placeholder="Describe what the reader sees..."
-                                characters={characters}
                               />
                               <DescriptionAnalysis
                                 visualDescription={panel.visual_description || ''}
@@ -1739,6 +1688,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       </div>
                                       <ScriptEditor
                                         variant="dialogue"
+                                        characters={characters}
                                         initialContent={dialogue.text || ''}
                                         onUpdate={(md) => {
                                           // Sync local state live for word count badge
@@ -1848,6 +1798,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       </div>
                                       <ScriptEditor
                                         variant="caption"
+                                        characters={characters}
                                         initialContent={caption.text || ''}
                                         onUpdate={(md) => {
                                           // Sync local state live
@@ -1890,6 +1841,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       <div className="flex-1">
                                         <ScriptEditor
                                           variant="sfx"
+                                          characters={characters}
                                           initialContent={sfx.text || ''}
                                           onUpdate={(md) => {
                                             setPanels(prev => prev.map(p => ({
@@ -1927,6 +1879,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
                                   <ScriptEditor
                                     variant="notes"
+                                    characters={characters}
                                     initialContent={panel.notes_to_artist || ''}
                                     onUpdate={(md) => {
                                       updatePanelField(panel.id, 'notes_to_artist', md)
@@ -1949,6 +1902,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                   <label className="block type-micro text-[var(--text-secondary)] mb-1">ARTIST NOTES</label>
                                   <ScriptEditor
                                     variant="notes"
+                                    characters={characters}
                                     initialContent=""
                                     onUpdate={(md) => {
                                       updatePanelField(panel.id, 'notes_to_artist', md)

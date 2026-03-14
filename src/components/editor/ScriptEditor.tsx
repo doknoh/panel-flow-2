@@ -6,17 +6,15 @@ import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown, type MarkdownStorage } from 'tiptap-markdown'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Suggestion from '@tiptap/suggestion'
+import { Extension } from '@tiptap/core'
+import { Plugin } from '@tiptap/pm/state'
 import ScriptEditorToolbar from './ScriptEditorToolbar'
 import { getWordCountClass } from '@/lib/markdown'
+import { createMentionSuggestionRenderer, type MentionCharacter } from './MentionSuggestion'
 
 type VariantType = 'description' | 'dialogue' | 'caption' | 'sfx' | 'notes'
-
-interface Character {
-  id: string
-  name: string
-  display_name?: string
-}
 
 interface ScriptEditorProps {
   variant: VariantType
@@ -25,7 +23,9 @@ interface ScriptEditorProps {
   onFocus?: () => void
   onBlur?: (markdown: string) => void
   placeholder?: string
-  characters?: Character[]
+  characters?: MentionCharacter[]
+  onMentionInsert?: (info: { characterId: string }) => void
+  onCharacterClick?: (characterId: string) => void
   showWordCount?: boolean
   className?: string
   editable?: boolean
@@ -58,6 +58,8 @@ export default function ScriptEditor({
   onBlur,
   placeholder,
   characters,
+  onMentionInsert,
+  onCharacterClick,
   showWordCount = false,
   className = '',
   editable = true,
@@ -87,6 +89,114 @@ export default function ScriptEditor({
   useEffect(() => { onEditorBlurRef.current = onEditorBlur }, [onEditorBlur])
   useEffect(() => { onRegisterEditorRef.current = onRegisterEditor }, [onRegisterEditor])
   useEffect(() => { onUnregisterEditorRef.current = onUnregisterEditor }, [onUnregisterEditor])
+
+  // Character mention refs — store in refs so TipTap plugin closures always see current values
+  const charactersRef = useRef(characters)
+  useEffect(() => { charactersRef.current = characters }, [characters])
+
+  const onMentionInsertRef = useRef(onMentionInsert)
+  useEffect(() => { onMentionInsertRef.current = onMentionInsert }, [onMentionInsert])
+
+  const onCharacterClickRef = useRef(onCharacterClick)
+  useEffect(() => { onCharacterClickRef.current = onCharacterClick }, [onCharacterClick])
+
+  // Stable suggestion renderer instance — created once, reused across re-renders
+  const mentionRendererRef = useRef<ReturnType<typeof createMentionSuggestionRenderer> | null>(null)
+
+  // Build mention suggestion extension — always created so plugin registers at mount time.
+  // Uses refs internally so it always sees current characters without needing to re-create.
+  const mentionExtension = useMemo(() => {
+    return Extension.create({
+      name: 'characterMention',
+
+      addProseMirrorPlugins() {
+        return [
+          Suggestion({
+            editor: this.editor,
+            char: '@',
+            allowSpaces: false,
+            startOfLine: false,
+            allowedPrefixes: [' ', '\n', '\t', '\0'],
+            items: ({ query }: { query: string }) => {
+              const currentCharacters = charactersRef.current || []
+              if (currentCharacters.length === 0) return []
+              const q = query.toLowerCase()
+              return currentCharacters
+                .filter(c => {
+                  const name = (c.display_name || c.name).toLowerCase()
+                  const baseName = c.name.toLowerCase()
+                  return name.includes(q) || baseName.includes(q)
+                })
+                .slice(0, 8)
+            },
+            command: ({ editor, range, props: item }: { editor: any; range: any; props: MentionCharacter }) => {
+              const displayName = (item.display_name || item.name).toUpperCase()
+              editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                  type: 'text',
+                  text: displayName,
+                  marks: [{ type: 'bold' }],
+                })
+                .unsetMark('bold')
+                .run()
+
+              // Fire fast-path callback for immediate characters_present update
+              onMentionInsertRef.current?.({ characterId: item.id })
+            },
+            render: () => {
+              if (!mentionRendererRef.current) {
+                mentionRendererRef.current = createMentionSuggestionRenderer()
+              }
+              return mentionRendererRef.current
+            },
+          }),
+        ]
+      },
+    })
+  }, []) // No deps — always created once, uses refs internally
+
+  // Cmd+Click on bold character names to navigate to character.
+  // Always created so plugin registers at mount time; uses refs internally.
+  const cmdClickExtension = useMemo(() => {
+    return Extension.create({
+      name: 'characterCmdClick',
+
+      addProseMirrorPlugins() {
+        return [
+          new Plugin({
+            props: {
+              handleClick(_view: any, _pos: number, event: MouseEvent) {
+                if (!event.metaKey && !event.ctrlKey) return false
+
+                const target = event.target as HTMLElement
+                const boldEl = target.closest('strong') || (target.tagName === 'STRONG' ? target : null)
+                if (!boldEl) return false
+
+                const text = boldEl.textContent || ''
+                const currentCharacters = charactersRef.current || []
+                const match = currentCharacters.find(c => {
+                  const displayName = (c.display_name || c.name).toUpperCase()
+                  const baseName = c.name.toUpperCase()
+                  return text.toUpperCase() === displayName || text.toUpperCase() === baseName
+                })
+
+                if (match && onCharacterClickRef.current) {
+                  event.preventDefault()
+                  onCharacterClickRef.current(match.id)
+                  return true
+                }
+
+                return false
+              },
+            },
+          }),
+        ]
+      },
+    })
+  }, []) // No deps — always created once, uses refs internally
 
   // Configure extensions based on variant
   const extensions = useCallback(() => {
@@ -121,10 +231,12 @@ export default function ScriptEditor({
         transformCopiedText: true,
         transformPastedText: true,
       }),
+      mentionExtension,
+      cmdClickExtension,
     ]
 
     return exts
-  }, [variant, placeholder])
+  }, [variant, placeholder, mentionExtension, cmdClickExtension])
 
   const editor = useEditor({
     extensions: extensions(),
@@ -144,9 +256,10 @@ export default function ScriptEditor({
         return false
       } : undefined,
     },
-    onFocus: () => {
+    onFocus: ({ editor: ed }) => {
       setIsFocused(true)
       onFocusRef.current?.()
+      onEditorFocusRef.current?.(ed)
     },
     onBlur: ({ editor: ed }) => {
       setIsFocused(false)
@@ -200,6 +313,16 @@ export default function ScriptEditor({
       editor.setEditable(editable)
     }
   }, [editor, editable])
+
+  // Register/unregister editor with parent
+  useEffect(() => {
+    if (editor) {
+      onRegisterEditorRef.current?.(editor)
+    }
+    return () => {
+      onUnregisterEditorRef.current?.()
+    }
+  }, [editor])
 
   // Word count
   const wordCount = editor?.storage.characterCount.words() ?? 0
