@@ -32,6 +32,7 @@ import VersionDiff from '@/components/VersionDiff'
 import { Tip } from '@/components/ui/Tip'
 import SearchableSelect from '@/components/ui/SearchableSelect'
 import { batchMatchSpeakers } from '@/lib/character-matching'
+import EnrichmentChecklist from './EnrichmentChecklist'
 
 interface Character {
   id: string
@@ -159,7 +160,18 @@ interface AIScriptAnalysis {
   summary: string
 }
 
-type ImportStep = 'upload' | 'format' | 'structure' | 'parse' | 'characters' | 'preview' | 'importing'
+type ImportStep = 'upload' | 'format' | 'structure' | 'parse' | 'characters' | 'preview' | 'importing' | 'checklist'
+
+interface ChecklistStats {
+  charactersLinked: number
+  charactersTotal: number
+  charactersNeedAttention: number
+  plotlinesAssigned: number
+  plotlinesTotal: number
+  descriptionsCapitalized: boolean
+  storyBeatsPopulated: number
+  storyBeatsTotal: number
+}
 
 export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   // Step management
@@ -196,6 +208,7 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   // Import
   const [isImporting, setIsImporting] = useState(false)
   const [importProgress, setImportProgress] = useState(0)
+  const [checklistStats, setChecklistStats] = useState<ChecklistStats | null>(null)
 
   // Diff view
   const [pageDiffs, setPageDiffs] = useState<PageDiff[]>([])
@@ -1022,7 +1035,39 @@ ${pageContent}`,
       }
 
       showToast(`Successfully imported ${parsedPages.length} pages`, 'success')
-      router.push(`/series/${seriesId}/issues/${issue.id}`)
+
+      // Compute enrichment checklist stats from the imported data
+      const linkedSpeakers = detectedSpeakers.filter(s => s.mapping === 'existing')
+      const newSpeakers = detectedSpeakers.filter(s => s.mapping === 'new')
+      const skippedSpeakers = detectedSpeakers.filter(s => s.mapping === 'skip')
+      const charactersLinked = linkedSpeakers.length + newSpeakers.length
+      const charactersTotal = detectedSpeakers.length - skippedSpeakers.length
+      // New characters created during import haven't been profiled yet — flag them
+      const charactersNeedAttention = newSpeakers.length
+
+      // Plotlines: scenes aren't assigned plotlines during import; report honestly
+      const totalScenes = sceneIdMap.size
+      const plotlinesAssigned = 0
+      const plotlinesTotal = totalScenes
+
+      // Visual descriptions are imported as raw text; auto-format hasn't run yet
+      const descriptionsCapitalized = false
+
+      // Story beats: pages don't have story_beat populated on import
+      const storyBeatsPopulated = 0
+      const storyBeatsTotal = parsedPages.length
+
+      setChecklistStats({
+        charactersLinked,
+        charactersTotal,
+        charactersNeedAttention,
+        plotlinesAssigned,
+        plotlinesTotal,
+        descriptionsCapitalized,
+        storyBeatsPopulated,
+        storyBeatsTotal,
+      })
+      setCurrentStep('checklist')
     } catch (error: any) {
       console.error('Import error:', error)
       console.error('Import error message:', error?.message)
@@ -1931,6 +1976,13 @@ ${pageContent}`,
     </div>
   )
 
+  // Stub for suggest-beats action.
+  // TODO: Wire this to the scaffold API (Task 11 / Section 4c) once the full
+  // beat-suggestion flow is implemented end-to-end.
+  const handleSuggestBeats = () => {
+    showToast('Coming soon — scaffold panels from beats', 'info')
+  }
+
   // Step 7: Importing
   const renderImportingStep = () => (
     <div className="space-y-6">
@@ -1969,6 +2021,15 @@ ${pageContent}`,
       {currentStep === 'characters' && renderCharactersStep()}
       {currentStep === 'preview' && renderPreviewStep()}
       {currentStep === 'importing' && renderImportingStep()}
+      {currentStep === 'checklist' && checklistStats && (
+        <EnrichmentChecklist
+          seriesId={seriesId}
+          issueId={issue.id}
+          stats={checklistStats}
+          onDismiss={() => router.push(`/series/${seriesId}/issues/${issue.id}`)}
+          onSuggestBeats={handleSuggestBeats}
+        />
+      )}
     </div>
   )
 }
