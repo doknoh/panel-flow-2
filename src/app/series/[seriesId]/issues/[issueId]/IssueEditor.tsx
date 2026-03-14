@@ -1189,7 +1189,7 @@ function IssueEditorContent({
                   </div>
                 )}
                 {/* Current page editor — keyed for transition animation */}
-                <div key={selectedPage.id} className="flex-1 overflow-y-auto" style={{ animation: 'page-enter 150ms ease-out' }}>
+                <div key={selectedPage.id} className="flex-1 overflow-y-auto animate-page-crossfade">
                   <PageEditor
                     page={selectedPage}
                     pageContext={selectedPageContext}
