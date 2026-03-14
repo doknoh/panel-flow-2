@@ -1488,8 +1488,9 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       const current = ((data?.characters_present || []) as string[])
                                       if (!current.includes(characterId)) {
                                         supabase.from('panels').update({ characters_present: [...current, characterId] }).eq('id', panel.id)
+                                          .then(({ error }) => { if (error) console.error('Failed to update characters_present:', error) })
                                       }
-                                    })
+                                    }).catch(err => console.error('Failed to read characters_present:', err))
                                   }
                                 }}
                                 onCharacterClick={(charId) => {

@@ -17,6 +17,7 @@ import {
 } from '@/lib/markdown'
 import ScriptEditor from '@/components/editor/ScriptEditor'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import { scanCharactersPresent } from '@/lib/character-utils'
 
 // ============================================================================
 // Types
@@ -83,6 +84,8 @@ interface Act {
 interface Character {
   id: string
   name: string
+  display_name?: string | null
+  role?: string | null
 }
 
 interface Issue {
@@ -346,6 +349,13 @@ export default function ScriptView({
               .from('panels')
               .update({ visual_description: block.content })
               .eq('id', block.panelId)
+
+            // Save-time scan: update characters_present
+            const characterIds = scanCharactersPresent(block.content, characters)
+            await supabase
+              .from('panels')
+              .update({ characters_present: characterIds })
+              .eq('id', block.panelId)
           }
           break
 
@@ -380,7 +390,7 @@ export default function ScriptView({
       showToast('Failed to save changes', 'error')
       setSaveStatus('unsaved')
     }
-  }, [supabase, showToast])
+  }, [supabase, showToast, characters])
 
   const scheduleAutoSave = useCallback(() => {
     if (saveTimeoutRef.current) {
@@ -1935,6 +1945,7 @@ export default function ScriptView({
                     key={block.id}
                     block={block}
                     characters={characters}
+                    seriesId={issue.series.id}
                     isFocused={index === focusedBlockIndex}
                     onFocus={() => {
                       setFocusedBlockIndex(index)
@@ -2017,6 +2028,7 @@ export default function ScriptView({
 interface ScriptBlockComponentProps {
   block: ScriptBlock
   characters: Character[]
+  seriesId: string
   isFocused: boolean
   onFocus: () => void
   onBlur: () => void
@@ -2040,6 +2052,7 @@ interface ScriptBlockComponentProps {
 const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
   block,
   characters,
+  seriesId,
   isFocused,
   onFocus,
   onBlur,
@@ -2103,6 +2116,22 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             placeholder="Describe what we see in this panel..."
             showWordCount
             className="script-view-editor"
+            characters={characters}
+            onMentionInsert={({ characterId }) => {
+              if (block.panelId) {
+                const supabase = createClient()
+                supabase.from('panels').select('characters_present').eq('id', block.panelId).single().then(({ data }) => {
+                  const current = ((data?.characters_present || []) as string[])
+                  if (!current.includes(characterId)) {
+                    supabase.from('panels').update({ characters_present: [...current, characterId] }).eq('id', block.panelId)
+                      .then(({ error }) => { if (error) console.error('Failed to update characters_present:', error) })
+                  }
+                }).catch(err => console.error('Failed to read characters_present:', err))
+              }
+            }}
+            onCharacterClick={(charId) => {
+              window.location.href = `/series/${seriesId}/characters/${charId}`
+            }}
           />
         </div>
 
@@ -2197,6 +2226,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             placeholder="Dialogue..."
             showWordCount
             className="script-view-editor"
+            characters={characters}
           />
         </div>
 
@@ -2272,6 +2302,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
             placeholder="Caption text..."
             showWordCount
             className="script-view-editor"
+            characters={characters}
           />
         </div>
 
@@ -2333,6 +2364,7 @@ const ScriptBlockComponent = React.memo(function ScriptBlockComponent({
               onBlur={() => onBlur?.()}
               placeholder="Sound effect..."
               className="script-view-editor script-view-editor--sfx"
+              characters={characters}
             />
           </div>
           <button
