@@ -30,6 +30,7 @@ import FontScaleToggle from '@/components/ui/FontScaleToggle'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import CommandPalette from '@/components/CommandPalette'
 import { Tip } from '@/components/ui/Tip'
+import { getDraftTracker } from '@/lib/ai/draft-tracking'
 
 interface Plotline {
   id: string
@@ -576,6 +577,8 @@ function IssueEditorContent({
 
     const supabase = createClient()
     const newIds: string[] = []
+    // Map panel id -> original visual_description for draft tracking
+    const draftTexts = new Map<string, string>()
     for (const panel of panels) {
       const { data } = await supabase.from('panels').insert({
         page_id: selectedPage.id,
@@ -584,7 +587,10 @@ function IssueEditorContent({
         visual_description: panel.visual_description,
         camera: panel.shot_type || null,
       }).select('id').single()
-      if (data) newIds.push(data.id)
+      if (data) {
+        newIds.push(data.id)
+        draftTexts.set(data.id, panel.visual_description || '')
+      }
 
       // Insert dialogue if present
       if (panel.dialogue?.length && data) {
@@ -602,6 +608,13 @@ function IssueEditorContent({
     }
 
     setDraftPanelIds(prev => new Set([...prev, ...newIds]))
+
+    // Record original AI draft text for each panel so we can diff edits later
+    const tracker = getDraftTracker()
+    for (const [panelId, text] of draftTexts) {
+      tracker.recordDraft(panelId, text)
+    }
+
     refreshIssue()
   }, [selectedPage, seriesId, setDraftPanelIds, refreshIssue])
 

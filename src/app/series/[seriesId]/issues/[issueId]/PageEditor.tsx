@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { getDraftTracker } from '@/lib/ai/draft-tracking'
+import type { DraftEditDiff } from '@/lib/ai/draft-tracking'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { useOffline } from '@/contexts/OfflineContext'
@@ -276,6 +278,35 @@ export default function PageEditor({ page, pageContext, characters, locations, s
   const { recordAction, startTextEdit, endTextEdit } = useUndo()
   const { confirm, dialogProps } = useConfirmDialog()
   const [showFiledNotes, setShowFiledNotes] = useState(false)
+
+  // Draft-edit batch tracking (F26)
+  const pendingEditsRef = useRef<DraftEditDiff[]>([])
+
+  const flushDraftEdits = useCallback(() => {
+    const edits = pendingEditsRef.current
+    if (edits.length === 0) return
+    pendingEditsRef.current = []
+    for (const diff of edits) {
+      fetch('/api/ai/draft-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(diff),
+      }).catch(() => {}) // non-critical telemetry
+    }
+  }, [])
+
+  const queueDraftEdit = useCallback((diff: DraftEditDiff) => {
+    pendingEditsRef.current.push(diff)
+  }, [])
+
+  // Flush draft edits every 10 seconds; also flush on unmount (page navigation)
+  useEffect(() => {
+    const interval = setInterval(flushDraftEdits, 10_000)
+    return () => {
+      clearInterval(interval)
+      flushDraftEdits()
+    }
+  }, [flushDraftEdits])
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -725,6 +756,14 @@ export default function PageEditor({ page, pageContext, characters, locations, s
 
     // Record the text edit for undo
     endTextEdit(panel.id, 'visual_description', capitalizedText)
+
+    // Draft tracking: compute diff if this panel had an AI draft
+    const tracker = getDraftTracker()
+    const diff = tracker.computeEditDiff(panel.id, capitalizedText)
+    if (diff) {
+      onClearDraft?.(panel.id)
+      queueDraftEdit(diff)
+    }
 
     // Only update if text changed
     if (capitalizedText !== panel.visual_description) {
