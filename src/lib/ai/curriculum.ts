@@ -142,6 +142,7 @@ export const PHASE_BEHAVIORS: PhaseBehavior[] = [
       'Flag bloated Act 2s — the most common structural failure',
       'Push back on scenes that serve plot but not character',
       'Before advancing: run the gap-naming ritual — explicitly list what\'s locked and what\'s open',
+      'Propose saving crystallized beats as story_beat on pages or canvas items',
     ],
     hardNos: [
       'Do NOT discuss panel-level detail',
@@ -186,6 +187,7 @@ export const PHASE_BEHAVIORS: PhaseBehavior[] = [
       'Flag spreads that don\'t land on even-odd pairs — a spread starting on odd means the reader sees the right half first',
       'Flag spreads with heavy dialogue (balloon placement across the gutter is a production constraint)',
       'After a spread, check that the next page re-establishes the four-beat rhythm',
+      'Propose saving visual moments as draft panel descriptions when specific enough',
     ],
     hardNos: [
       'Do NOT write dialogue or panel descriptions',

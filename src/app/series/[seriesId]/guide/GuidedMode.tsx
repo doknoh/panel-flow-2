@@ -9,6 +9,8 @@ import { analyzeProjectCompleteness, type CompletenessAnalysis } from './analyze
 import { parseSSEData, type ToolUseSSEEvent } from '@/lib/ai/streaming'
 import Header from '@/components/ui/Header'
 import ChatMessageContent from '@/components/ChatMessageContent'
+import SessionCaptureTally from './SessionCaptureTally'
+import HarvestReview from './HarvestReview'
 import {
   Users, MapPin, GitBranch, Lightbulb, StickyNote, Film,
   PenTool, MessageSquare, Pin, Trophy, Search, List, FileText, Wrench,
@@ -68,6 +70,18 @@ const TOOL_DISPLAY: Record<string, { icon: ReactNode; label: string; color: stri
   draft_scene_summary: { icon: <FileText size={TOOL_ICON_SIZE} />, label: 'Scene Summary', color: 'var(--color-success)' },
 }
 const DEFAULT_TOOL_DISPLAY = { icon: <Wrench size={TOOL_ICON_SIZE} />, label: '', color: 'var(--text-secondary)' }
+
+const TOOL_TO_CAPTURE_KEY: Record<string, string> = {
+  update_scene_metadata: 'scene_descriptions',
+  draft_panel_description: 'panel_drafts',
+  create_character: 'characters',
+  update_character: 'characters',
+  create_location: 'locations',
+  create_plotline: 'plotlines',
+  save_canvas_beat: 'canvas_items',
+  save_project_note: 'project_notes',
+  update_page_story_beat: 'story_beats',
+}
 
 function getToolSummary(toolName: string, input: Record<string, unknown>): string {
   switch (toolName) {
@@ -154,6 +168,13 @@ export default function GuidedMode({
   const [showSessionMenu, setShowSessionMenu] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractionResults, setExtractionResults] = useState<any>(null)
+  const [sessionCaptures, setSessionCaptures] = useState({
+    story_beats: 0, scene_descriptions: 0, panel_drafts: 0,
+    characters: 0, locations: 0, plotlines: 0,
+    canvas_items: 0, project_notes: 0,
+  })
+  const [harvestItems, setHarvestItems] = useState<any[] | null>(null)
+  const [harvesting, setHarvesting] = useState(false)
 
   // Find the current context based on URL params
   const currentIssue = issueId ? series.issues?.find((i: any) => i.id === issueId) : null
@@ -321,6 +342,12 @@ export default function GuidedMode({
           ),
         }
       }))
+
+      // Increment capture tally
+      const captureKey = TOOL_TO_CAPTURE_KEY[proposal.toolName]
+      if (captureKey) {
+        setSessionCaptures(prev => ({ ...prev, [captureKey]: prev[captureKey as keyof typeof prev] + 1 }))
+      }
 
       // Process SSE stream for the continuation
       const result = await processSSEStream(response)
@@ -718,6 +745,20 @@ export default function GuidedMode({
     } finally {
       setIsExtracting(false)
     }
+  }
+
+  // Harvest session insights into actionable items
+  const handleHarvest = async () => {
+    if (!session) return
+    setHarvesting(true)
+    const res = await fetch('/api/guide/harvest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: session.id }),
+    })
+    const { items } = await res.json()
+    setHarvestItems(items || [])
+    setHarvesting(false)
   }
 
   // Determine the context label
@@ -1132,6 +1173,19 @@ export default function GuidedMode({
               </div>
             )}
 
+            {/* Session Capture Tally */}
+            <SessionCaptureTally captures={sessionCaptures} />
+
+            {/* Harvest Review results */}
+            {harvestItems && harvestItems.length > 0 && (
+              <HarvestReview
+                items={harvestItems}
+                seriesId={series.id}
+                issueId={issueId}
+                onDone={() => setHarvestItems(null)}
+              />
+            )}
+
             {/* Input */}
             <div className="p-4 border-t border-[var(--border)]">
               <div className="max-w-2xl mx-auto flex gap-3">
@@ -1155,8 +1209,20 @@ export default function GuidedMode({
                   </button>
                 </Tip>
               </div>
-              <div className="max-w-2xl mx-auto mt-2 type-micro text-[var(--text-muted)] text-center">
-                ENTER TO SEND // SHIFT+ENTER FOR NEW LINE
+              <div className="max-w-2xl mx-auto mt-2 flex items-center justify-between">
+                <div className="type-micro text-[var(--text-muted)]">
+                  ENTER TO SEND // SHIFT+ENTER FOR NEW LINE
+                </div>
+                {/* Harvest button - visible when session has messages */}
+                {session && displayMessages.length > 0 && !harvestItems && (
+                  <button
+                    onClick={handleHarvest}
+                    disabled={harvesting}
+                    className="hover-lift type-micro px-3 py-1.5 border border-[var(--border)] text-[var(--text-secondary)]"
+                  >
+                    {harvesting ? 'Harvesting...' : '[HARVEST SESSION]'}
+                  </button>
+                )}
               </div>
             </div>
           </>

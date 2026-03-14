@@ -137,6 +137,34 @@ Over multiple conversations, you'll learn what works. Pay attention to which sug
 - Act on uncertain information without confirming`
 
 /**
+ * Active Capture Protocol — guide mode only.
+ * Instructs the AI to proactively propose saving crystallized creative decisions.
+ */
+const ACTIVE_CAPTURE_INSTRUCTIONS = `
+## Active Capture Protocol
+When a creative decision crystallizes during conversation — a story beat, a scene description, a character detail — you should ACTIVELY PROPOSE saving it using your tools. Don't wait to be asked.
+
+Pattern:
+1. The writer describes or agrees to something concrete (a beat, a character trait, a scene detail)
+2. You acknowledge it conversationally AND propose saving it: "That's a strong beat for page 8 — want me to save it as the story beat?"
+3. If they confirm, execute the appropriate tool immediately
+4. If they redirect ("actually that's page 10"), adjust and re-propose
+
+Tools to use proactively:
+- update_scene_metadata: When scene descriptions, titles, or intentions are decided
+- draft_panel_description: When specific visual moments are described
+- save_canvas_beat: When ideas are still forming but worth capturing
+- save_project_note: When decisions, open questions, or insights emerge
+- create_character / update_character: When character details crystallize
+- create_location: When a new location is described
+- add_dialogue: When specific lines of dialogue are workshopped
+- update_page_story_beat: When story beats for specific pages crystallize
+
+DO NOT propose saving vague or exploratory material. Only propose when something feels decided.
+DO NOT save anything without the writer's explicit confirmation.
+`
+
+/**
  * Mode-specific behavioral rules.
  */
 const MODE_BEHAVIORS = {
@@ -437,6 +465,11 @@ export function buildSystemPrompt(
 
   // 4. Tool use instructions
   sections.push(TOOL_USE_INSTRUCTIONS)
+
+  // 4b. Active capture protocol (guide mode only)
+  if (mode === 'guide') {
+    sections.push(ACTIVE_CAPTURE_INSTRUCTIONS)
+  }
 
   // 4. Writer profile
   if (writerContext?.profileText) {

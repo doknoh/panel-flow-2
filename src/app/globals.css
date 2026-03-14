@@ -1577,3 +1577,80 @@ html[data-theme-transitioning] * {
 .panel-card--focused .panel-card__inner {
   background: var(--bg-tertiary);
 }
+
+/* ── Dual-page editor layout ── */
+.dual-page-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.dual-page-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.dual-page-editor__panes {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+}
+.dual-page-editor__pane {
+  flex: 1;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+.dual-page-editor__pane:last-of-type {
+  border-right: none;
+}
+.dual-page-editor--vertical .dual-page-editor__panes {
+  flex-direction: column;
+}
+.dual-page-editor--vertical .dual-page-editor__pane {
+  border-right: none;
+  border-bottom: 1px solid var(--border);
+}
+.dual-page-editor--vertical .dual-page-editor__pane:last-of-type {
+  border-bottom: none;
+}
+.dual-page-editor__gutter {
+  width: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 120px;
+  background: var(--bg-tertiary);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.dual-page-editor__gutter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Draft badge for AI-generated content ── */
+.panel-card--draft {
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--color-primary);
+  position: relative;
+}
+.panel-card--draft::before {
+  content: 'DRAFT';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-primary);
+  background: var(--color-primary-surface, rgba(59, 59, 181, 0.1));
+  padding: 2px 6px;
+  border-radius: 2px;
+  z-index: 1;
+}

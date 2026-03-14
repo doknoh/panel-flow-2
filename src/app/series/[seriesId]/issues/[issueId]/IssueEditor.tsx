@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import NavigationTree from './NavigationTree'
 import PageEditor from './PageEditor'
+import DualPageEditor from './DualPageEditor'
+import MirrorLinkModal from './MirrorLinkModal'
 import PreviousPageContext, { findPreviousPage } from './PreviousPageContext'
 import Toolkit from './Toolkit'
 import dynamic from 'next/dynamic'
@@ -28,6 +30,7 @@ import FontScaleToggle from '@/components/ui/FontScaleToggle'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import CommandPalette from '@/components/CommandPalette'
 import { Tip } from '@/components/ui/Tip'
+import { getDraftTracker } from '@/lib/ai/draft-tracking'
 
 interface Plotline {
   id: string
@@ -96,6 +99,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState(issue.title || '')
   const [filedNotes, setFiledNotes] = useState<Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>>([])
+  const [draftPanelIds, setDraftPanelIds] = useState<Set<string>>(new Set())
   const titleInputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
   const lastSnapshotRef = useRef<string>('')
@@ -464,6 +468,8 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         saveTitle={saveTitle}
         filedNotes={filedNotes}
         pagePosition={pagePosition}
+        draftPanelIds={draftPanelIds}
+        setDraftPanelIds={setDraftPanelIds}
       />
     </UndoProvider>
   )
@@ -506,6 +512,8 @@ function IssueEditorContent({
   saveTitle,
   filedNotes,
   pagePosition,
+  draftPanelIds,
+  setDraftPanelIds,
 }: {
   issue: Issue
   setIssue: React.Dispatch<React.SetStateAction<Issue>>
@@ -533,6 +541,8 @@ function IssueEditorContent({
   saveTitle: () => Promise<void>
   filedNotes: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
   pagePosition: { current: number; total: number; pageNumber: number; actName: string; sceneTitle: string } | null
+  draftPanelIds: Set<string>
+  setDraftPanelIds: React.Dispatch<React.SetStateAction<Set<string>>>
 }) {
   const { undo, redo, canUndo, canRedo } = useUndo()
   const [mobileView, setMobileView] = useState<MobileView>('editor')
@@ -545,9 +555,76 @@ function IssueEditorContent({
   const [isRightCollapsed, setIsRightCollapsed] = useState(false)
   const [peekPageId, setPeekPageId] = useState<string | null>(null)
   const [floatingRefPageId, setFloatingRefPageId] = useState<string | null>(null)
+  const [dualPageMode, setDualPageMode] = useState<'single' | 'spread' | 'mirror' | 'compare'>('single')
+  const [secondPageId, setSecondPageId] = useState<string | null>(null)
+  const [dualVertical, setDualVertical] = useState(false)
+  const [mirrorLinkPageId, setMirrorLinkPageId] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<'view' | 'navigate' | 'export' | null>(null)
   const [showExportModal, setShowExportModal] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Draft panels from beat handler
+  const handleDraftPanelsFromBeat = useCallback(async () => {
+    if (!selectedPage?.story_beat || (selectedPage.panels?.length > 0)) return
+
+    const res = await fetch('/api/scaffold', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageId: selectedPage.id, seriesId }),
+    })
+    const { panels } = await res.json()
+    if (!panels?.length) return
+
+    const supabase = createClient()
+    const newIds: string[] = []
+    // Map panel id -> original visual_description for draft tracking
+    const draftTexts = new Map<string, string>()
+    for (const panel of panels) {
+      const { data } = await supabase.from('panels').insert({
+        page_id: selectedPage.id,
+        panel_number: panel.panel_number,
+        sort_order: panel.panel_number,
+        visual_description: panel.visual_description,
+        camera: panel.shot_type || null,
+      }).select('id').single()
+      if (data) {
+        newIds.push(data.id)
+        draftTexts.set(data.id, panel.visual_description || '')
+      }
+
+      // Insert dialogue if present
+      if (panel.dialogue?.length && data) {
+        for (const [idx, d] of panel.dialogue.entries()) {
+          await supabase.from('dialogue_blocks').insert({
+            panel_id: data.id,
+            speaker_name: d.speaker,
+            dialogue_type: d.type || 'dialogue',
+            text: d.text,
+            sort_order: idx,
+            balloon_number: 1,
+          })
+        }
+      }
+    }
+
+    setDraftPanelIds(prev => new Set([...prev, ...newIds]))
+
+    // Record original AI draft text for each panel so we can diff edits later
+    const tracker = getDraftTracker()
+    for (const [panelId, text] of draftTexts) {
+      tracker.recordDraft(panelId, text)
+    }
+
+    refreshIssue()
+  }, [selectedPage, seriesId, setDraftPanelIds, refreshIssue])
+
+  const handleClearDraft = useCallback((panelId: string) => {
+    setDraftPanelIds(prev => {
+      const next = new Set(prev)
+      next.delete(panelId)
+      return next
+    })
+  }, [setDraftPanelIds])
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -563,7 +640,7 @@ function IssueEditorContent({
 
   // Get all pages in order for navigation
   const allPages = React.useMemo(() => {
-    const pages: { id: string; pageNumber: number; sceneId: string; actId: string }[] = []
+    const pages: { id: string; pageNumber: number; sceneId: string; actId: string; linkedPageId: string | null }[] = []
     for (const act of issue.acts || []) {
       for (const scene of act.scenes || []) {
         for (const page of scene.pages || []) {
@@ -572,6 +649,7 @@ function IssueEditorContent({
             pageNumber: page.page_number,
             sceneId: scene.id,
             actId: act.id,
+            linkedPageId: page.linked_page_id || null,
           })
         }
       }
@@ -579,6 +657,12 @@ function IssueEditorContent({
     // Sort by act order, scene order, page number
     return pages
   }, [issue.acts])
+
+  // Flat list of all pages with page_number for PageTypeSelector mirror option
+  const allPagesForSelector = React.useMemo(() =>
+    allPages.map(p => ({ id: p.id, page_number: p.pageNumber })),
+    [allPages]
+  )
 
   // Get scene pages for the current page (used for spread linking)
   const currentScenePages = React.useMemo(() => {
@@ -591,6 +675,7 @@ function IssueEditorContent({
             page_number: p.page_number,
             page_type: p.page_type || 'SINGLE',
             linked_page_id: p.linked_page_id || null,
+            mirror_page_id: p.mirror_page_id || null,
           }))
         }
       }
@@ -614,6 +699,59 @@ function IssueEditorContent({
   useEffect(() => {
     setPeekPageId(null)
   }, [selectedPageId])
+
+  // Auto-detect spread/mirror mode when selected page changes
+  useEffect(() => {
+    if (!selectedPage) {
+      setDualPageMode('single')
+      setSecondPageId(null)
+      return
+    }
+    // Don't override compare mode
+    if (dualPageMode === 'compare') return
+
+    const pageType = selectedPage.page_type || 'SINGLE'
+    if ((pageType === 'SPREAD_LEFT' || pageType === 'SPREAD_RIGHT') && selectedPage.linked_page_id) {
+      setDualPageMode('spread')
+      setSecondPageId(selectedPage.linked_page_id)
+    } else if (selectedPage.mirror_page_id) {
+      setDualPageMode('mirror')
+      setSecondPageId(selectedPage.mirror_page_id)
+    } else {
+      setDualPageMode('single')
+      setSecondPageId(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dualPageMode intentionally omitted:
+  // including it would cause an infinite loop since this effect sets dualPageMode.
+  // The compare guard reads the stale closure value, which is correct: compare mode
+  // is only exited by explicit user action (close button), not by page data changes.
+  }, [selectedPage?.id, selectedPage?.page_type, selectedPage?.linked_page_id, selectedPage?.mirror_page_id])
+
+  // Find second page context for dual-page view
+  const secondPageContext = useMemo(() => {
+    if (!secondPageId) return null
+    for (const act of (issue.acts || [])) {
+      for (const scene of (act.scenes || [])) {
+        const pageIndex = (scene.pages || []).findIndex((p: any) => p.id === secondPageId)
+        if (pageIndex !== -1) {
+          const page = scene.pages[pageIndex]
+          return {
+            page,
+            act: { id: act.id, name: act.name, number: act.number, sort_order: act.sort_order },
+            scene: {
+              id: scene.id,
+              name: scene.title || scene.name,
+              sort_order: scene.sort_order,
+              plotline_name: scene.plotline?.name || null,
+              total_pages: (scene.pages || []).length,
+            },
+            pagePositionInScene: pageIndex + 1,
+          }
+        }
+      }
+    }
+    return null
+  }, [issue, secondPageId])
 
   // Navigation helpers
   const navigateToPage = useCallback((direction: 'prev' | 'next') => {
@@ -1186,10 +1324,12 @@ function IssueEditorContent({
                 setIssue={setIssue}
                 plotlines={issue.series.plotlines || []}
                 selectedPageId={selectedPageId}
+                secondSelectedPageId={secondPageId}
                 onSelectPage={(pageId) => {
                   setSelectedPageId(pageId)
                 }}
                 onAltClickPage={(pageId: string) => setFloatingRefPageId(pageId)}
+                onMirrorLink={(pageId: string) => setMirrorLinkPageId(pageId)}
                 onRefresh={refreshIssue}
               />
             </div>
@@ -1211,26 +1351,71 @@ function IssueEditorContent({
                         {pagePosition.actName && ` — ${pagePosition.actName}`}
                         {pagePosition.sceneTitle && `, ${pagePosition.sceneTitle}`}
                       </span>
-                      <span className="text-[var(--text-muted)]">
-                        {pagePosition.current}/{pagePosition.total}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {dualPageMode !== 'single' && (
+                          <button
+                            onClick={() => setDualVertical(v => !v)}
+                            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] px-1"
+                            title={dualVertical ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
+                          >
+                            {dualVertical ? '⬍' : '⬌'}
+                          </button>
+                        )}
+                        <span className="text-[var(--text-muted)]">
+                          {pagePosition.current}/{pagePosition.total}
+                        </span>
+                      </div>
                     </div>
                   )}
-                  {/* Current page editor — keyed for transition animation */}
-                  <div key={selectedPage.id} className="flex-1 overflow-y-auto animate-page-crossfade">
-                    <PageEditor
-                      page={selectedPage}
-                      pageContext={selectedPageContext}
-                      characters={issue.series.characters}
-                      locations={issue.series.locations}
-                      seriesId={seriesId}
-                      scenePages={currentScenePages}
-                      onUpdate={refreshIssue}
-                      setSaveStatus={setSaveStatus}
-                      filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
-                      onNavigateToPage={navigateToPage}
-                    />
-                  </div>
+                  {/* Dual page editor or single page editor */}
+                  {dualPageMode !== 'single' && secondPageContext ? (
+                    <div key={`dual-${selectedPage.id}-${secondPageId}`} className="flex-1 overflow-y-auto animate-page-crossfade">
+                      <DualPageEditor
+                        leftPage={selectedPage}
+                        rightPage={secondPageContext.page}
+                        leftPageContext={selectedPageContext}
+                        rightPageContext={secondPageContext}
+                        characters={issue.series.characters}
+                        locations={issue.series.locations}
+                        seriesId={seriesId}
+                        scenePages={currentScenePages}
+                        allPages={allPagesForSelector}
+                        onUpdate={refreshIssue}
+                        setSaveStatus={setSaveStatus}
+                        filedNotes={filedNotes}
+                        onNavigateToPage={navigateToPage}
+                        mode={dualPageMode as 'spread' | 'mirror' | 'compare'}
+                        isVertical={dualVertical}
+                        onClose={() => {
+                          setDualPageMode('single')
+                          setSecondPageId(null)
+                        }}
+                        draftPanelIds={draftPanelIds}
+                        onClearDraft={handleClearDraft}
+                        onDraftPanelsFromBeat={handleDraftPanelsFromBeat}
+                      />
+                    </div>
+                  ) : (
+                    /* Current page editor — keyed for transition animation */
+                    <div key={selectedPage.id} className="flex-1 overflow-y-auto animate-page-crossfade">
+                      <PageEditor
+                        page={selectedPage}
+                        pageContext={selectedPageContext}
+                        characters={issue.series.characters}
+                        locations={issue.series.locations}
+                        seriesId={seriesId}
+                        scenePages={currentScenePages}
+                        allPages={allPagesForSelector}
+                        onUpdate={refreshIssue}
+                        setSaveStatus={setSaveStatus}
+                        filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
+                        onNavigateToPage={navigateToPage}
+                        draftPanelIds={draftPanelIds}
+                        onClearDraft={handleClearDraft}
+                        onDraftPanelsFromBeat={handleDraftPanelsFromBeat}
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
@@ -1263,12 +1448,24 @@ function IssueEditorContent({
                       <span className="text-xs font-medium text-[var(--text-muted)]">
                         Reference: Page {refPage.page_number}
                       </span>
-                      <button
-                        onClick={() => setFloatingRefPageId(null)}
-                        className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                      >
-                        Close
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSecondPageId(floatingRefPageId)
+                            setDualPageMode('compare')
+                            setFloatingRefPageId(null)
+                          }}
+                          className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                        >
+                          Expand to split
+                        </button>
+                        <button
+                          onClick={() => setFloatingRefPageId(null)}
+                          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        >
+                          Close
+                        </button>
+                      </div>
                     </div>
                     <div className="p-3 overflow-y-auto max-h-[60vh] text-sm">
                       {(refPage.panels || []).map((panel: any, i: number) => (
@@ -1323,11 +1520,13 @@ function IssueEditorContent({
             setIssue={setIssue}
             plotlines={issue.series.plotlines || []}
             selectedPageId={selectedPageId}
+            secondSelectedPageId={secondPageId}
             onSelectPage={(pageId) => {
               setSelectedPageId(pageId)
               setMobileView('editor')
             }}
             onAltClickPage={(pageId: string) => setFloatingRefPageId(pageId)}
+            onMirrorLink={(pageId: string) => setMirrorLinkPageId(pageId)}
             onRefresh={refreshIssue}
           />
         </div>
@@ -1350,10 +1549,14 @@ function IssueEditorContent({
                   locations={issue.series.locations}
                   seriesId={seriesId}
                   scenePages={currentScenePages}
+                  allPages={allPagesForSelector}
                   onUpdate={refreshIssue}
                   setSaveStatus={setSaveStatus}
                   filedNotes={filedNotes.filter(n => n.filed_to_page_id === selectedPage?.id)}
                   onNavigateToPage={navigateToPage}
+                  draftPanelIds={draftPanelIds}
+                  onClearDraft={handleClearDraft}
+                  onDraftPanelsFromBeat={handleDraftPanelsFromBeat}
                 />
               </div>
             </>
@@ -1621,6 +1824,36 @@ function IssueEditorContent({
           <div className="flex-1 bg-black/20" />
         </div>
       )}
+
+      {/* Mirror Link Modal (triggered from NavigationTree context menu) */}
+      {mirrorLinkPageId && (() => {
+        // Find page data for the mirror link target
+        let mirrorPage: any = null
+        for (const act of issue.acts || []) {
+          for (const scene of act.scenes || []) {
+            const found = (scene.pages || []).find((p: any) => p.id === mirrorLinkPageId)
+            if (found) { mirrorPage = found; break }
+          }
+          if (mirrorPage) break
+        }
+        if (!mirrorPage) return null
+        return (
+          <MirrorLinkModal
+            pageId={mirrorLinkPageId}
+            pageNumber={mirrorPage.page_number}
+            currentMirrorId={mirrorPage.mirror_page_id || null}
+            availablePages={allPages
+              .filter(p => p.id !== mirrorLinkPageId && !p.linkedPageId)
+              .map(p => ({ id: p.id, page_number: p.pageNumber }))
+            }
+            onDone={() => {
+              setMirrorLinkPageId(null)
+              refreshIssue()
+            }}
+            onCancel={() => setMirrorLinkPageId(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

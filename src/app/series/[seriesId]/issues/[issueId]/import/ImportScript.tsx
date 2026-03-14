@@ -30,10 +30,15 @@ import {
 } from '@/lib/version-diff'
 import VersionDiff from '@/components/VersionDiff'
 import { Tip } from '@/components/ui/Tip'
+import SearchableSelect from '@/components/ui/SearchableSelect'
+import { batchMatchSpeakers } from '@/lib/character-matching'
+import EnrichmentChecklist from './EnrichmentChecklist'
 
 interface Character {
   id: string
   name: string
+  display_name?: string | null
+  aliases?: string[]
 }
 
 interface Location {
@@ -119,6 +124,7 @@ interface DetectedSpeaker {
   mapping: 'new' | 'existing' | 'skip'
   existingCharacterId?: string
   linkToDetected?: string
+  confidence?: 'exact' | 'alias' | 'fuzzy' | 'none'
 }
 
 // AI Script Analysis Types
@@ -154,7 +160,18 @@ interface AIScriptAnalysis {
   summary: string
 }
 
-type ImportStep = 'upload' | 'format' | 'structure' | 'parse' | 'characters' | 'preview' | 'importing'
+type ImportStep = 'upload' | 'format' | 'structure' | 'parse' | 'characters' | 'preview' | 'importing' | 'checklist'
+
+interface ChecklistStats {
+  charactersLinked: number
+  charactersTotal: number
+  charactersNeedAttention: number
+  plotlinesAssigned: number
+  plotlinesTotal: number
+  descriptionsCapitalized: boolean
+  storyBeatsPopulated: number
+  storyBeatsTotal: number
+}
 
 export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   // Step management
@@ -191,6 +208,7 @@ export default function ImportScript({ issue, seriesId }: ImportScriptProps) {
   // Import
   const [isImporting, setIsImporting] = useState(false)
   const [importProgress, setImportProgress] = useState(0)
+  const [checklistStats, setChecklistStats] = useState<ChecklistStats | null>(null)
 
   // Diff view
   const [pageDiffs, setPageDiffs] = useState<PageDiff[]>([])
@@ -630,22 +648,29 @@ ${pageContent}`,
         }
       }
 
-      // Build existing character map (handle case where no characters exist yet)
-      const existingCharacters = new Map(
-        (issue.series.characters || []).map(c => [c.name.toLowerCase(), c.id])
-      )
+      // Run batch matching using character-matching lib (supports aliases + display_name)
+      const existingCharacters = issue.series.characters || []
+      const speakerNames = Array.from(characterCounts.keys())
+      const matchResults = batchMatchSpeakers(speakerNames, existingCharacters.map(c => ({
+        id: c.id,
+        name: c.name,
+        display_name: c.display_name ?? null,
+        aliases: c.aliases,
+      })))
 
       // Create detected speakers list
       const speakers: DetectedSpeaker[] = []
       for (const [name, counts] of characterCounts) {
-        const existingId = existingCharacters.get(name.toLowerCase())
+        const match = matchResults.get(name)
+        const hasMatch = match && match.characterId && (match.confidence === 'exact' || match.confidence === 'alias' || match.confidence === 'fuzzy')
         speakers.push({
           name,
           count: counts.dialogue + counts.appearances,
           dialogueCount: counts.dialogue,
           appearanceCount: counts.appearances,
-          mapping: existingId ? 'existing' : 'new',
-          existingCharacterId: existingId,
+          mapping: hasMatch ? 'existing' : 'new',
+          existingCharacterId: hasMatch ? match!.characterId! : undefined,
+          confidence: match?.confidence ?? 'none',
         })
       }
 
@@ -1010,7 +1035,39 @@ ${pageContent}`,
       }
 
       showToast(`Successfully imported ${parsedPages.length} pages`, 'success')
-      router.push(`/series/${seriesId}/issues/${issue.id}`)
+
+      // Compute enrichment checklist stats from the imported data
+      const linkedSpeakers = detectedSpeakers.filter(s => s.mapping === 'existing')
+      const newSpeakers = detectedSpeakers.filter(s => s.mapping === 'new')
+      const skippedSpeakers = detectedSpeakers.filter(s => s.mapping === 'skip')
+      const charactersLinked = linkedSpeakers.length + newSpeakers.length
+      const charactersTotal = detectedSpeakers.length - skippedSpeakers.length
+      // New characters created during import haven't been profiled yet — flag them
+      const charactersNeedAttention = newSpeakers.length
+
+      // Plotlines: scenes aren't assigned plotlines during import; report honestly
+      const totalScenes = sceneIdMap.size
+      const plotlinesAssigned = 0
+      const plotlinesTotal = totalScenes
+
+      // Visual descriptions are imported as raw text; auto-format hasn't run yet
+      const descriptionsCapitalized = false
+
+      // Story beats: pages don't have story_beat populated on import
+      const storyBeatsPopulated = 0
+      const storyBeatsTotal = parsedPages.length
+
+      setChecklistStats({
+        charactersLinked,
+        charactersTotal,
+        charactersNeedAttention,
+        plotlinesAssigned,
+        plotlinesTotal,
+        descriptionsCapitalized,
+        storyBeatsPopulated,
+        storyBeatsTotal,
+      })
+      setCurrentStep('checklist')
     } catch (error: any) {
       console.error('Import error:', error)
       console.error('Import error message:', error?.message)
@@ -1530,7 +1587,26 @@ ${pageContent}`,
   )
 
   // Step 5: Character Review
-  const renderCharactersStep = () => (
+  const renderCharactersStep = () => {
+    const exactMatches = detectedSpeakers.filter(s => s.confidence === 'exact')
+    const unmatched = detectedSpeakers.filter(s => s.confidence === 'none')
+
+    // Build options for SearchableSelect
+    const existingCharOptions = (issue.series.characters || []).map(char => ({
+      value: char.id,
+      label: char.display_name || char.name,
+      sublabel: '(existing)',
+    }))
+    const newCharOptions = detectedSpeakers
+      .filter(s => s.mapping === 'new')
+      .map(s => ({
+        value: `detected:${s.name}`,
+        label: s.name,
+        sublabel: '(new)',
+      }))
+    const allCharOptions = [...existingCharOptions, ...newCharOptions]
+
+    return (
     <div className="space-y-6">
       <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
@@ -1539,6 +1615,33 @@ ${pageContent}`,
             <p className="text-sm text-[var(--text-secondary)]">
               {detectedSpeakers.length} character{detectedSpeakers.length !== 1 ? 's' : ''} found
             </p>
+          </div>
+          {/* Bulk action buttons */}
+          <div className="flex gap-2">
+            {exactMatches.length > 0 && (
+              <button
+                onClick={() => {
+                  setDetectedSpeakers(prev => prev.map(s =>
+                    s.confidence === 'exact' ? { ...s, mapping: 'existing' } : s
+                  ))
+                }}
+                className="text-xs px-3 py-1.5 bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/30 rounded hover:bg-[var(--color-success)]/20"
+              >
+                Confirm all exact matches ({exactMatches.length})
+              </button>
+            )}
+            {unmatched.length > 0 && (
+              <button
+                onClick={() => {
+                  setDetectedSpeakers(prev => prev.map(s =>
+                    s.confidence === 'none' ? { ...s, mapping: 'new' } : s
+                  ))
+                }}
+                className="text-xs px-3 py-1.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)] rounded hover:bg-[var(--bg-tertiary)]/80"
+              >
+                Create all unmatched as new ({unmatched.length})
+              </button>
+            )}
           </div>
         </div>
 
@@ -1549,7 +1652,28 @@ ${pageContent}`,
               className="bg-[var(--bg-tertiary)] rounded-lg p-3 flex items-center gap-4"
             >
               <div className="flex-1 min-w-0">
-                <div className="font-medium">{speaker.name}</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{speaker.name}</span>
+                  {/* Confidence badge */}
+                  {speaker.confidence === 'exact' && (
+                    <span className="flex items-center gap-1 text-xs text-[var(--color-success)]">
+                      <span className="w-2 h-2 rounded-full bg-[var(--color-success)] inline-block" />
+                      Exact match
+                    </span>
+                  )}
+                  {speaker.confidence === 'alias' && (
+                    <span className="flex items-center gap-1 text-xs text-[var(--color-warning)]">
+                      <span className="w-2 h-2 rounded-full bg-[var(--color-warning)] inline-block" />
+                      Alias match — confirm?
+                    </span>
+                  )}
+                  {(speaker.confidence === 'none' || speaker.confidence === 'fuzzy') && (
+                    <span className="flex items-center gap-1 text-xs text-[var(--color-error)]">
+                      <span className="w-2 h-2 rounded-full bg-[var(--color-error)] inline-block" />
+                      No match
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-[var(--text-secondary)]">
                   {speaker.dialogueCount ? `${speaker.dialogueCount} line(s)` : 'No dialogue'}
                   {speaker.appearanceCount ? ` · ${speaker.appearanceCount} panel(s)` : ''}
@@ -1575,47 +1699,33 @@ ${pageContent}`,
               </select>
 
               {speaker.mapping === 'existing' && (
-                <select
-                  value={speaker.existingCharacterId || speaker.linkToDetected || ''}
-                  onChange={(e) => {
-                    const newSpeakers = [...detectedSpeakers]
-                    if (e.target.value.startsWith('detected:')) {
-                      newSpeakers[idx] = {
-                        ...speaker,
-                        existingCharacterId: undefined,
-                        linkToDetected: e.target.value,
+                <div className="w-52">
+                  <SearchableSelect
+                    options={allCharOptions.filter(o =>
+                      // Exclude the "will be created" option for self
+                      o.value !== `detected:${speaker.name}`
+                    )}
+                    value={speaker.existingCharacterId || speaker.linkToDetected || null}
+                    onChange={(val) => {
+                      const newSpeakers = [...detectedSpeakers]
+                      if (val && val.startsWith('detected:')) {
+                        newSpeakers[idx] = {
+                          ...speaker,
+                          existingCharacterId: undefined,
+                          linkToDetected: val,
+                        }
+                      } else {
+                        newSpeakers[idx] = {
+                          ...speaker,
+                          existingCharacterId: val || undefined,
+                          linkToDetected: undefined,
+                        }
                       }
-                    } else {
-                      newSpeakers[idx] = {
-                        ...speaker,
-                        existingCharacterId: e.target.value || undefined,
-                        linkToDetected: undefined,
-                      }
-                    }
-                    setDetectedSpeakers(newSpeakers)
-                  }}
-                  className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
-                >
-                  <option value="">Select...</option>
-                  {(issue.series?.characters?.length || 0) > 0 && (
-                    <optgroup label="Existing Characters">
-                      {(issue.series.characters || []).map((char) => (
-                        <option key={char.id} value={char.id}>{char.name}</option>
-                      ))}
-                    </optgroup>
-                  )}
-                  {detectedSpeakers.filter(s => s.mapping === 'new' && s.name !== speaker.name).length > 0 && (
-                    <optgroup label="Will Be Created">
-                      {detectedSpeakers
-                        .filter(s => s.mapping === 'new' && s.name !== speaker.name)
-                        .map((s) => (
-                          <option key={`detected:${s.name}`} value={`detected:${s.name}`}>
-                            {s.name} (new)
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
-                </select>
+                      setDetectedSpeakers(newSpeakers)
+                    }}
+                    placeholder="Select character..."
+                  />
+                </div>
               )}
 
               <div className="w-20 text-right">
@@ -1649,7 +1759,8 @@ ${pageContent}`,
         </button>
       </div>
     </div>
-  )
+    )
+  }
 
   // Get existing page count
   const existingPageCount = (issue.acts || []).reduce((total, act) =>
@@ -1865,6 +1976,13 @@ ${pageContent}`,
     </div>
   )
 
+  // Stub for suggest-beats action.
+  // TODO: Wire this to the scaffold API (Task 11 / Section 4c) once the full
+  // beat-suggestion flow is implemented end-to-end.
+  const handleSuggestBeats = () => {
+    showToast('Coming soon — scaffold panels from beats', 'info')
+  }
+
   // Step 7: Importing
   const renderImportingStep = () => (
     <div className="space-y-6">
@@ -1903,6 +2021,15 @@ ${pageContent}`,
       {currentStep === 'characters' && renderCharactersStep()}
       {currentStep === 'preview' && renderPreviewStep()}
       {currentStep === 'importing' && renderImportingStep()}
+      {currentStep === 'checklist' && checklistStats && (
+        <EnrichmentChecklist
+          seriesId={seriesId}
+          issueId={issue.id}
+          stats={checklistStats}
+          onDismiss={() => router.push(`/series/${seriesId}/issues/${issue.id}`)}
+          onSuggestBeats={handleSuggestBeats}
+        />
+      )}
     </div>
   )
 }
