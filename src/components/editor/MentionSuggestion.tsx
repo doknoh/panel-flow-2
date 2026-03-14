@@ -94,7 +94,7 @@ export function createMentionSuggestionRenderer() {
   let listRef: MentionListRef | null = null
 
   return {
-    onStart: (props: { items: MentionCharacter[]; command: (item: MentionCharacter) => void; clientRect: (() => DOMRect | null) | null; query: string }) => {
+    onStart: (props: { items: MentionCharacter[]; command: (item: MentionCharacter) => void; clientRect?: (() => DOMRect | null) | null; query: string }) => {
       container = document.createElement('div')
       container.className = 'mention-dropdown-container'
       document.body.appendChild(container)
@@ -121,7 +121,7 @@ export function createMentionSuggestionRenderer() {
       )
     },
 
-    onUpdate: (props: { items: MentionCharacter[]; command: (item: MentionCharacter) => void; clientRect: (() => DOMRect | null) | null; query: string }) => {
+    onUpdate: (props: { items: MentionCharacter[]; command: (item: MentionCharacter) => void; clientRect?: (() => DOMRect | null) | null; query: string }) => {
       if (!root || !container) return
 
       // Reposition
