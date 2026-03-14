@@ -649,7 +649,7 @@ async function assembleCurrentPage(
   const { data: panels } = await withTimeout(
     supabase
       .from('panels')
-      .select('id, sort_order, visual_description, camera')
+      .select('id, sort_order, visual_description, camera, characters_present')
       .eq('page_id', pageId)
       .order('sort_order'),
     DB_TIMEOUT,
@@ -663,19 +663,11 @@ async function assembleCurrentPage(
 
   const panelContexts = []
   for (const panel of panels as Array<{
-    id: string; sort_order: number; visual_description?: string; camera?: string
+    id: string; sort_order: number; visual_description?: string; camera?: string;
+    characters_present?: string[]
   }>) {
-    // Get characters present
-    const { data: panelChars } = await withTimeout(
-      supabase
-        .from('panel_characters')
-        .select('character_id')
-        .eq('panel_id', panel.id),
-      DB_TIMEOUT,
-    )
-
-    const characterNames = ((panelChars || []) as Array<{ character_id: string }>)
-      .map(pc => charMap.get(pc.character_id))
+    const characterNames = ((panel.characters_present || []) as string[])
+      .map(id => charMap.get(id))
       .filter(Boolean) as string[]
 
     // Get dialogue
