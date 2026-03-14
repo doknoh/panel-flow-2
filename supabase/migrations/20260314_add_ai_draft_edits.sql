@@ -20,7 +20,7 @@ BEGIN
       SELECT elem FROM jsonb_array_elements(
         COALESCE(ai_draft_edits, '[]'::jsonb) || p_edit
       ) AS elem
-      ORDER BY elem->>'timestamp' DESC
+      ORDER BY elem->>'timestamp' ASC
       LIMIT 200
     ) sub
   )

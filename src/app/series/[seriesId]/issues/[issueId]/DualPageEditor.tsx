@@ -107,6 +107,10 @@ interface DualPageEditorProps {
   mode: 'spread' | 'mirror' | 'compare'
   isVertical: boolean
   onClose?: () => void // close split view (for compare mode)
+  allPages?: { id: string; page_number: number }[]
+  draftPanelIds?: Set<string>
+  onClearDraft?: (panelId: string) => void
+  onDraftPanelsFromBeat?: () => void
 }
 
 export default function DualPageEditor({
@@ -125,6 +129,10 @@ export default function DualPageEditor({
   mode,
   isVertical,
   onClose,
+  allPages,
+  draftPanelIds,
+  onClearDraft,
+  onDraftPanelsFromBeat,
 }: DualPageEditorProps) {
   // Mirror alignment indicators
   const mirrorAlignment = useMemo(() => {
@@ -166,10 +174,14 @@ export default function DualPageEditor({
             locations={locations}
             seriesId={seriesId}
             scenePages={scenePages}
+            allPages={allPages}
             onUpdate={onUpdate}
             setSaveStatus={setSaveStatus}
             filedNotes={filedNotes.filter((n) => n.filed_to_page_id === leftPage.id)}
             onNavigateToPage={onNavigateToPage}
+            draftPanelIds={draftPanelIds}
+            onClearDraft={onClearDraft}
+            onDraftPanelsFromBeat={onDraftPanelsFromBeat}
           />
         </div>
 
@@ -199,10 +211,14 @@ export default function DualPageEditor({
             locations={locations}
             seriesId={seriesId}
             scenePages={scenePages}
+            allPages={allPages}
             onUpdate={onUpdate}
             setSaveStatus={setSaveStatus}
             filedNotes={filedNotes.filter((n) => n.filed_to_page_id === rightPage.id)}
             onNavigateToPage={onNavigateToPage}
+            draftPanelIds={draftPanelIds}
+            onClearDraft={onClearDraft}
+            onDraftPanelsFromBeat={onDraftPanelsFromBeat}
           />
         </div>
       </div>

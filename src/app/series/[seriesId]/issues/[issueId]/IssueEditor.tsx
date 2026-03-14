@@ -1379,6 +1379,7 @@ function IssueEditorContent({
                         locations={issue.series.locations}
                         seriesId={seriesId}
                         scenePages={currentScenePages}
+                        allPages={allPagesForSelector}
                         onUpdate={refreshIssue}
                         setSaveStatus={setSaveStatus}
                         filedNotes={filedNotes}
@@ -1389,6 +1390,9 @@ function IssueEditorContent({
                           setDualPageMode('single')
                           setSecondPageId(null)
                         }}
+                        draftPanelIds={draftPanelIds}
+                        onClearDraft={handleClearDraft}
+                        onDraftPanelsFromBeat={handleDraftPanelsFromBeat}
                       />
                     </div>
                   ) : (
