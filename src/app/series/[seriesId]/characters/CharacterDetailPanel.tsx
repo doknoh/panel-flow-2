@@ -268,10 +268,58 @@ function AliasTagInput({
 function ProfileTab({
   character,
   onFieldSave,
+  onCharacterUpdate,
 }: {
   character: CharacterWithStats
   onFieldSave: (field: string, value: any) => void
+  onCharacterUpdate: (updated: CharacterWithStats) => void
 }) {
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [renameInput, setRenameInput] = useState('')
+  const [isRenameLoading, setIsRenameLoading] = useState(false)
+  const { showToast } = useToast()
+
+  const handleRenameEverywhere = useCallback(async () => {
+    const trimmed = renameInput.trim()
+    if (!trimmed) return
+
+    const oldName = character.display_name || character.name
+    if (
+      !window.confirm(
+        `Rename "${oldName.toUpperCase()}" to "${trimmed.toUpperCase()}" across all dialogue and descriptions?`
+      )
+    ) {
+      return
+    }
+
+    setIsRenameLoading(true)
+    try {
+      const res = await fetch(`/api/characters/${character.id}/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newDisplayName: trimmed }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Rename failed')
+      }
+
+      onCharacterUpdate({ ...character, display_name: trimmed })
+      showToast(`Renamed to "${trimmed}" everywhere`, 'success')
+      setIsRenaming(false)
+      setRenameInput('')
+    } catch (err) {
+      showToast(
+        'Rename failed: ' +
+          (err instanceof Error ? err.message : 'Unknown error'),
+        'error'
+      )
+    } finally {
+      setIsRenameLoading(false)
+    }
+  }, [renameInput, character, onCharacterUpdate, showToast])
+
   return (
     <div className="space-y-4">
       {/* Identity */}
@@ -290,6 +338,57 @@ function ProfileTab({
             onSave={v => onFieldSave('display_name', v || null)}
             placeholder="How they appear on-page"
           />
+          {!isRenaming ? (
+            <button
+              onClick={() => {
+                setRenameInput(character.display_name || character.name)
+                setIsRenaming(true)
+              }}
+              className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors"
+            >
+              <RefreshCw size={10} />
+              Rename everywhere
+            </button>
+          ) : (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <input
+                type="text"
+                value={renameInput}
+                onChange={e => setRenameInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleRenameEverywhere()
+                  if (e.key === 'Escape') {
+                    setIsRenaming(false)
+                    setRenameInput('')
+                  }
+                }}
+                placeholder="New display name"
+                autoFocus
+                className="flex-1 text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
+              />
+              <button
+                onClick={handleRenameEverywhere}
+                disabled={!renameInput.trim() || isRenameLoading}
+                className="inline-flex items-center gap-1 text-[10px] font-medium bg-[var(--color-primary)] text-white rounded px-2 py-1 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRenameLoading ? (
+                  <Loader2 size={10} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={10} />
+                )}
+                Apply
+              </button>
+              <button
+                onClick={() => {
+                  setIsRenaming(false)
+                  setRenameInput('')
+                }}
+                className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors px-1"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
         <AliasTagInput
           aliases={character.aliases || []}
@@ -1375,6 +1474,7 @@ export default function CharacterDetailPanel({
             <ProfileTab
               character={character}
               onFieldSave={handleFieldSave}
+              onCharacterUpdate={onCharacterUpdate}
             />
           )}
           {activeTab === 'voice' && <VoiceTab character={character} />}
