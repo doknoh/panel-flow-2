@@ -470,6 +470,27 @@ body {
   animation: page-crossfade 150ms ease-out;
 }
 
+/* --- Floating reference panel --- */
+
+.editor-center-column {
+  position: relative;
+}
+
+.floating-reference-panel {
+  position: absolute;
+  right: 1rem;
+  top: 4rem;
+  width: 380px;
+  max-height: calc(100% - 6rem);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  z-index: 40;
+  overflow: hidden;
+  animation: page-enter 150ms ease-out;
+}
+
 @keyframes save-confirm {
   0% { transform: scale(1); }
   40% { transform: scale(2.5); }
