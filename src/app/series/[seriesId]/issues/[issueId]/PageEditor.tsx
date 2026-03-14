@@ -85,6 +85,7 @@ interface PageForLinking {
   page_number: number
   page_type: PageType
   linked_page_id: string | null
+  mirror_page_id?: string | null
 }
 
 type PageIntention = 'setup' | 'reveal' | 'transition' | 'climax' | 'breathing_room' | 'silent_beat'
@@ -95,6 +96,7 @@ interface Page {
   page_type?: PageType
   intention?: PageIntention | null
   linked_page_id?: string | null
+  mirror_page_id?: string | null
   panels: Panel[]
 }
 
@@ -112,6 +114,7 @@ interface PageEditorProps {
   locations: Location[]
   seriesId: string
   scenePages?: PageForLinking[]
+  allPages?: { id: string; page_number: number }[]
   onUpdate: () => void
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void
   filedNotes?: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
@@ -249,7 +252,7 @@ function SortablePanelCard({ id, children }: { id: string; children: (listeners:
   )
 }
 
-export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], onUpdate, setSaveStatus, filedNotes, onNavigateToPage }: PageEditorProps) {
+export default function PageEditor({ page, pageContext, characters, locations, seriesId, scenePages = [], allPages, onUpdate, setSaveStatus, filedNotes, onNavigateToPage }: PageEditorProps) {
   const [panels, setPanels] = useState<Panel[]>([])
   const [editingPanel, setEditingPanel] = useState<string | null>(null)
   const [navigateMode, setNavigateMode] = useState(true) // start in navigate mode
@@ -1425,7 +1428,10 @@ export default function PageEditor({ page, pageContext, characters, locations, s
             pageId={page.id}
             currentType={page.page_type || 'SINGLE'}
             currentLinkedPageId={page.linked_page_id || null}
+            currentMirrorPageId={page.mirror_page_id || null}
+            pageNumber={page.page_number}
             scenePages={scenePages}
+            allPages={allPages}
             onUpdate={onUpdate}
           />
           <PageIntentionSelector

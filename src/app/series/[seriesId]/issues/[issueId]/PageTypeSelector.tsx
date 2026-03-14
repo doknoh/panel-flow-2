@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
 import { Tip } from '@/components/ui/Tip'
+import MirrorLinkModal from './MirrorLinkModal'
 
 type PageType = 'SINGLE' | 'SPLASH' | 'SPREAD_LEFT' | 'SPREAD_RIGHT'
 
@@ -12,13 +13,17 @@ interface PageForLinking {
   page_number: number
   page_type: PageType
   linked_page_id: string | null
+  mirror_page_id?: string | null
 }
 
 interface PageTypeSelectorProps {
   pageId: string
   currentType: PageType
   currentLinkedPageId: string | null
+  currentMirrorPageId?: string | null
+  pageNumber?: number
   scenePages: PageForLinking[]
+  allPages?: { id: string; page_number: number }[]
   onUpdate: () => void
 }
 
@@ -33,11 +38,15 @@ export default function PageTypeSelector({
   pageId,
   currentType,
   currentLinkedPageId,
+  currentMirrorPageId,
+  pageNumber,
   scenePages,
+  allPages,
   onUpdate,
 }: PageTypeSelectorProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isLinkingModalOpen, setIsLinkingModalOpen] = useState(false)
+  const [isMirrorModalOpen, setIsMirrorModalOpen] = useState(false)
   const [pendingType, setPendingType] = useState<PageType | null>(null)
   const [saving, setSaving] = useState(false)
   const [flipUp, setFlipUp] = useState(false)
@@ -220,9 +229,51 @@ export default function PageTypeSelector({
                 )}
               </button>
             ))}
+            {/* Mirror link option */}
+            {allPages && pageNumber != null && (
+              <>
+                <div className="dropdown-separator my-1" />
+                <button
+                  onClick={() => {
+                    setIsDropdownOpen(false)
+                    setIsMirrorModalOpen(true)
+                  }}
+                  className="hover-glow w-full px-3 py-2 text-left flex items-center gap-3 transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                >
+                  <span className="text-xl w-6 text-center">⟷</span>
+                  <div>
+                    <div className="text-sm font-medium">
+                      {currentMirrorPageId ? 'Change Mirror' : 'Link Mirror'}
+                    </div>
+                    <div className="text-xs opacity-50">
+                      {currentMirrorPageId
+                        ? `Mirrored with Page ${allPages.find(p => p.id === currentMirrorPageId)?.page_number || '?'}`
+                        : 'Side-by-side comparison page'}
+                    </div>
+                  </div>
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
+
+      {/* Mirror Link Modal */}
+      {isMirrorModalOpen && allPages && pageNumber != null && (
+        <MirrorLinkModal
+          pageId={pageId}
+          pageNumber={pageNumber}
+          currentMirrorId={currentMirrorPageId || null}
+          availablePages={allPages.filter(p =>
+            p.id !== pageId && !scenePages.find(sp => sp.id === p.id && sp.linked_page_id)
+          )}
+          onDone={() => {
+            setIsMirrorModalOpen(false)
+            onUpdate()
+          }}
+          onCancel={() => setIsMirrorModalOpen(false)}
+        />
+      )}
 
       {/* Linking Modal */}
       {isLinkingModalOpen && pendingType && (

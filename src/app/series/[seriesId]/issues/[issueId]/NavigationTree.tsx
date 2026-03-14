@@ -46,8 +46,10 @@ interface NavigationTreeProps {
   setIssue: React.Dispatch<React.SetStateAction<any>>
   plotlines: Plotline[]
   selectedPageId: string | null
+  secondSelectedPageId?: string | null
   onSelectPage: (pageId: string) => void
   onAltClickPage?: (pageId: string) => void
+  onMirrorLink?: (pageId: string) => void
   onRefresh: () => Promise<void> | void
 }
 
@@ -131,7 +133,7 @@ function selectionGroupSummaryClass(position: GroupPosition | undefined, level: 
   }
 }
 
-export default function NavigationTree({ issue, setIssue, plotlines, selectedPageId, onSelectPage, onAltClickPage, onRefresh }: NavigationTreeProps) {
+export default function NavigationTree({ issue, setIssue, plotlines, selectedPageId, secondSelectedPageId, onSelectPage, onAltClickPage, onMirrorLink, onRefresh }: NavigationTreeProps) {
   const [expandedActs, setExpandedActs] = useState<Set<string>>(new Set(issue.acts?.map((a: any) => a.id) || []))
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
   const [isMounted, setIsMounted] = useState(false)
@@ -2345,6 +2347,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                           {sortedPages.map((page: any) => {
                                             const panelCount = page.panels?.length || 0
                                             const isSelected = selectedPageId === page.id
+                                            const isSecondSelected = secondSelectedPageId === page.id
                                             const hasVisibleSummary = !!(editingPageSummaryId === page.id || page.page_summary || (page.panels || []).length > 0)
 
                                             return (
@@ -2368,7 +2371,9 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
                                                       ? `pl-3 ${selectionGroupClass(pageGroups.get(page.id), 'page', hasVisibleSummary)}`
                                                       : isSelected && selectedIds.size === 0
                                                         ? 'pl-10 bg-[var(--color-primary)] text-white'
-                                                        : 'pl-10 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
+                                                        : isSecondSelected && selectedIds.size === 0
+                                                          ? 'pl-10 bg-[var(--bg-tertiary)] border-l-2 border-[var(--color-primary)] text-[var(--text-secondary)]'
+                                                          : 'pl-10 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]'
                                                   }`}
                                                 >
                                                   {editingItemId === page.id ? (
@@ -2729,6 +2734,20 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
               Add Page Below
             </button>
           )}
+
+          {/* Link Mirror - for pages only */}
+          {contextMenu.type === 'page' && onMirrorLink && (
+            <button
+              onClick={() => {
+                onMirrorLink(contextMenu.id)
+                closeContextMenu()
+              }}
+              className="dropdown-item text-xs"
+            >
+              Link Mirror
+            </button>
+          )}
+
           {contextMenu.type === 'scene' && (
             <button
               onClick={() => {
