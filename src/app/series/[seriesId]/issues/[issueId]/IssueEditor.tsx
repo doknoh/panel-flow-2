@@ -129,6 +129,32 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
 
   const selectedPage = selectedPageContext?.page
 
+  // Compute position data for the page position indicator
+  const pagePosition = useMemo(() => {
+    if (!selectedPageId) return null
+    const pages: { id: string; pageNumber: number }[] = []
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        for (const page of scene.pages || []) {
+          pages.push({ id: page.id, pageNumber: page.page_number })
+        }
+      }
+    }
+    if (pages.length === 0) return null
+    const index = pages.findIndex(p => p.id === selectedPageId)
+    if (index === -1) return null
+    const page = pages[index]
+    const actName = selectedPageContext?.act?.name || ''
+    const sceneTitle = selectedPageContext?.scene?.name || ''
+    return {
+      current: index + 1,
+      total: pages.length,
+      pageNumber: page.pageNumber,
+      actName,
+      sceneTitle,
+    }
+  }, [selectedPageId, issue.acts, selectedPageContext])
+
   // Find the previous page for context
   const previousPageData = selectedPageId
     ? findPreviousPage(issue.acts, selectedPageId)
@@ -437,6 +463,7 @@ export default function IssueEditor({ issue: initialIssue, seriesId }: { issue: 
         titleInputRef={titleInputRef}
         saveTitle={saveTitle}
         filedNotes={filedNotes}
+        pagePosition={pagePosition}
       />
     </UndoProvider>
   )
@@ -478,6 +505,7 @@ function IssueEditorContent({
   titleInputRef,
   saveTitle,
   filedNotes,
+  pagePosition,
 }: {
   issue: Issue
   setIssue: React.Dispatch<React.SetStateAction<Issue>>
@@ -504,6 +532,7 @@ function IssueEditorContent({
   titleInputRef: React.RefObject<HTMLInputElement | null>
   saveTitle: () => Promise<void>
   filedNotes: Array<{ id: string; title: string; content: string | null; item_type: string; filed_to_page_id: string; filed_at: string }>
+  pagePosition: { current: number; total: number; pageNumber: number; actName: string; sceneTitle: string } | null
 }) {
   const { undo, redo, canUndo, canRedo } = useUndo()
   const [mobileView, setMobileView] = useState<MobileView>('editor')
@@ -1146,6 +1175,19 @@ function IssueEditorContent({
                   previousPage={previousPageData?.page || null}
                   sceneName={previousPageData?.sceneName}
                 />
+                {/* Page position indicator */}
+                {pagePosition && (
+                  <div className="px-4 py-1.5 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)] text-xs text-[var(--text-muted)] flex items-center justify-between">
+                    <span>
+                      Page {pagePosition.pageNumber} of {pagePosition.total}
+                      {pagePosition.actName && ` — ${pagePosition.actName}`}
+                      {pagePosition.sceneTitle && `, ${pagePosition.sceneTitle}`}
+                    </span>
+                    <span className="text-[var(--text-muted)]">
+                      {pagePosition.current}/{pagePosition.total}
+                    </span>
+                  </div>
+                )}
                 {/* Current page editor — keyed for transition animation */}
                 <div key={selectedPage.id} className="flex-1 overflow-y-auto" style={{ animation: 'page-enter 150ms ease-out' }}>
                   <PageEditor
