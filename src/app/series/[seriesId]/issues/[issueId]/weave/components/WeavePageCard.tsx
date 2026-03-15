@@ -97,7 +97,7 @@ export function WeavePageCard({
       onClick={() => onClick(page.page.id)}
     >
       {/* Fixed size wrapper */}
-      <div style={{ width: 86, height: 148, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: 86, height: 132, position: 'relative', display: 'flex', flexDirection: 'column' }}>
         {/* Plotline color bar — 4px top border */}
         <div
           style={{
