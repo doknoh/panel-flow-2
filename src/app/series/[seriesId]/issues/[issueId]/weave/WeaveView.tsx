@@ -925,11 +925,11 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                   <div className="relative">
                     {count > 1 && (
                       <>
-                        <div className="absolute -top-1 -left-1 w-[86px] h-[148px] bg-[var(--bg-tertiary)] rounded opacity-60 rotate-2" />
-                        <div className="absolute -top-0.5 -left-0.5 w-[86px] h-[148px] bg-[var(--bg-tertiary)] rounded opacity-80 rotate-1" />
+                        <div className="absolute -top-1 -left-1 w-[86px] h-[132px] bg-[var(--bg-tertiary)] rounded opacity-60 rotate-2" />
+                        <div className="absolute -top-0.5 -left-0.5 w-[86px] h-[132px] bg-[var(--bg-tertiary)] rounded opacity-80 rotate-1" />
                       </>
                     )}
-                    <div className="w-[86px] h-[148px] bg-[var(--bg-elevated)] border border-[var(--color-primary)] rounded shadow-lg p-2 relative">
+                    <div className="w-[86px] h-[132px] bg-[var(--bg-elevated)] border border-[var(--color-primary)] rounded shadow-lg p-2 relative">
                       <div className="font-mono text-[0.4375rem] text-[var(--text-muted)] mb-1">
                         pg {fp.globalPageNumber} · {pageStats.get(fp.page.id)?.panelCount ?? 0}p
                       </div>
