@@ -8,7 +8,7 @@ import { WeaveHeader } from './components/WeaveHeader'
 import { WeaveSelectionToolbar } from './components/WeaveSelectionToolbar'
 import { WeaveSceneRegion } from './components/WeaveSceneRegion'
 import { WeaveSpread } from './components/WeaveSpread'
-import { WeavePageCard } from './components/WeavePageCard'
+import { WeavePageCard, CARD_W, CARD_H } from './components/WeavePageCard'
 import { WeaveDrawer } from './components/WeaveDrawer'
 import { useToast } from '@/contexts/ToastContext'
 import Link from 'next/link'
@@ -925,17 +925,17 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                   <div className="relative">
                     {count > 1 && (
                       <>
-                        <div className="absolute -top-1 -left-1 w-[86px] h-[132px] bg-[var(--bg-tertiary)] rounded opacity-60 rotate-2" />
-                        <div className="absolute -top-0.5 -left-0.5 w-[86px] h-[132px] bg-[var(--bg-tertiary)] rounded opacity-80 rotate-1" />
+                        <div className="absolute -top-1 -left-1 bg-[var(--bg-tertiary)] rounded opacity-60 rotate-2" style={{ width: CARD_W, height: CARD_H }} />
+                        <div className="absolute -top-0.5 -left-0.5 bg-[var(--bg-tertiary)] rounded opacity-80 rotate-1" style={{ width: CARD_W, height: CARD_H }} />
                       </>
                     )}
-                    <div className="w-[86px] h-[132px] bg-[var(--bg-elevated)] border border-[var(--color-primary)] rounded shadow-lg p-2 relative">
+                    <div className="bg-[var(--bg-elevated)] border border-[var(--color-primary)] rounded shadow-lg p-2 relative" style={{ width: CARD_W, height: CARD_H }}>
                       <div className="font-mono text-[0.4375rem] text-[var(--text-muted)] mb-1">
                         pg {fp.globalPageNumber} · {pageStats.get(fp.page.id)?.panelCount ?? 0}p
                       </div>
                       {(fp.page.page_summary || fp.page.story_beat) && (
-                        <div className="text-[0.5rem] text-[var(--text-secondary)] overflow-hidden"
-                             style={{ display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.35 }}>
+                        <div className="text-[0.5rem] text-[var(--text-secondary)]"
+                             style={{ display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.35, wordBreak: 'break-word' as const, fontWeight: 500 }}>
                           {fp.page.page_summary || fp.page.story_beat}
                         </div>
                       )}

@@ -1,6 +1,7 @@
 'use client'
 
 import { SpreadGroup } from '@/lib/weave-spreads'
+import { CARD_W, CARD_H } from './WeavePageCard'
 
 interface SceneInfo {
   id: string
@@ -17,7 +18,10 @@ interface WeaveSpreadProps {
 
 function InsideCover() {
   return (
-    <div className="w-[86px] h-[132px] bg-[var(--bg-secondary)] rounded-l flex items-center justify-center border border-[var(--border-subtle)]">
+    <div
+      className="bg-[var(--bg-secondary)] rounded-l flex items-center justify-center border border-[var(--border-subtle)]"
+      style={{ width: CARD_W, height: CARD_H }}
+    >
       <span className="font-mono text-[0.4375rem] text-[var(--text-muted)] text-center leading-tight">
         INSIDE
         <br />
@@ -110,7 +114,7 @@ export function WeaveSpread({
               Array.isArray(children) ? (children as React.ReactNode[])[1] : children
             ) : (
               // Empty right placeholder
-              <div className="w-[86px] h-[132px] bg-[var(--bg-secondary)] opacity-30" />
+              <div className="bg-[var(--bg-secondary)] opacity-30" style={{ width: CARD_W, height: CARD_H }} />
             )}
           </div>
         )}
@@ -122,7 +126,7 @@ export function WeaveSpread({
           {/* Left page number */}
           <div
             className="font-mono text-[0.5625rem] font-bold text-[var(--text-secondary)] flex items-center justify-center"
-            style={{ width: 86, ...leftPageNumStyle }}
+            style={{ width: CARD_W, ...leftPageNumStyle }}
           >
             {leftPageNum != null ? leftPageNum : ''}
           </div>
@@ -133,7 +137,7 @@ export function WeaveSpread({
           {/* Right page number */}
           <div
             className="font-mono text-[0.5625rem] font-bold text-[var(--text-secondary)] flex items-center justify-center"
-            style={{ width: 86, ...rightPageNumStyle }}
+            style={{ width: CARD_W, ...rightPageNumStyle }}
           >
             {rightPageNum != null ? rightPageNum : ''}
           </div>
