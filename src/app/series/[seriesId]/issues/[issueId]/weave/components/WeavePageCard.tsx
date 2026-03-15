@@ -108,9 +108,9 @@ export function WeavePageCard({
         />
 
         {/* Card body */}
-        <div className="flex flex-col flex-1 px-1.5 pt-1 pb-1 overflow-hidden">
+        <div className="flex flex-col flex-1 p-2 pr-5 overflow-hidden">
           {/* Top row: drag handle + stats */}
-          <div className="flex items-center gap-1 mb-0.5">
+          <div className="flex items-center gap-1 mb-1">
             {/* Drag handle — 6-dot grip, 2×3 grid of circles */}
             {!isFirstPage && (
               <button
@@ -146,7 +146,8 @@ export function WeavePageCard({
               className="text-[var(--text-secondary)] overflow-hidden flex-1"
               style={{
                 fontSize: '0.5rem',
-                lineHeight: 1.35,
+                fontWeight: 500,
+                lineHeight: 1.4,
                 display: '-webkit-box',
                 WebkitLineClamp: 7,
                 WebkitBoxOrient: 'vertical',
@@ -160,7 +161,7 @@ export function WeavePageCard({
 
         {/* Checkbox — absolute top-right */}
         <button
-          className="absolute top-1.5 right-1.5 flex-shrink-0 flex items-center justify-center focus:outline-none"
+          className="absolute top-1.5 right-1 flex-shrink-0 flex items-center justify-center focus:outline-none"
           style={{
             width: 13,
             height: 13,
