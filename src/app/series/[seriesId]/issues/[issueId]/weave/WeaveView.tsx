@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { computeSpreads, SpreadGroup } from '@/lib/weave-spreads'
 import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
+import { WeavePlotlineManager } from './components/WeavePlotlineManager'
 import { useToast } from '@/contexts/ToastContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -525,9 +526,6 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
   const [editingField, setEditingField] = useState<'story_beat' | 'time_period' | 'visual_motif' | null>(null)
   const [editValue, setEditValue] = useState('')
   const [showPlotlineManager, setShowPlotlineManager] = useState(false)
-  const [newPlotlineName, setNewPlotlineName] = useState('')
-  const [editingPlotlineId, setEditingPlotlineId] = useState<string | null>(null)
-  const [editingPlotlineColor, setEditingPlotlineColor] = useState('')
   const [activePageId, setActivePageId] = useState<string | null>(null)
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set())
   const [lastSelectedPageId, setLastSelectedPageId] = useState<string | null>(null)
@@ -880,12 +878,12 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
     }
   }
 
-  const createPlotline = async () => {
-    if (!newPlotlineName.trim()) return
+  const createPlotline = async (plotlineName: string) => {
+    if (!plotlineName.trim()) return
 
     const nextColor = PLOTLINE_COLORS[plotlines.length % PLOTLINE_COLORS.length]
     const tempId = `temp-plotline-${Date.now()}`
-    const name = newPlotlineName.trim()
+    const name = plotlineName.trim()
 
     // Optimistic update FIRST - add with temp ID
     const optimisticPlotline: Plotline = {
@@ -899,7 +897,6 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       ...prevIssue,
       plotlines: [...prevIssue.plotlines, optimisticPlotline],
     }))
-    setNewPlotlineName('')
     showToast('Plotline created', 'success')
 
     // Then persist to database
@@ -1017,7 +1014,6 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
         })),
       })),
     }))
-    setEditingPlotlineId(null)
 
     // Then persist to database
     const supabase = createClient()
@@ -1125,85 +1121,12 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
 
       {/* Plotline Manager */}
       {showPlotlineManager && (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5">
-          <h3 className="font-semibold text-[var(--text-primary)] mb-4">Plotlines</h3>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {plotlines.map((pl) => (
-              <div
-                key={pl.id}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm relative border"
-                style={{
-                  backgroundColor: pl.color + '20',
-                  borderColor: pl.color + '60',
-                }}
-              >
-                <Tip content="Change color">
-                <button
-                  className="w-5 h-5 rounded-full border-2 border-white/40 hover:scale-110 hover-fade transition-transform shadow-sm"
-                  style={{ backgroundColor: pl.color }}
-                  onClick={() => {
-                    setEditingPlotlineId(editingPlotlineId === pl.id ? null : pl.id)
-                    setEditingPlotlineColor(pl.color)
-                  }}
-                />
-                </Tip>
-                <span className="font-medium">{pl.name}</span>
-                <Tip content="Delete plotline">
-                <button
-                  onClick={() => deletePlotline(pl.id)}
-                  className="text-[var(--text-secondary)] hover-fade-danger ml-1 text-lg leading-none"
-                >
-                  ×
-                </button>
-                </Tip>
-
-                {editingPlotlineId === pl.id && (
-                  <div className="absolute top-full left-0 mt-2 p-3 bg-[var(--bg-tertiary)] rounded-lg shadow-xl border border-[var(--border)] z-50">
-                    <div className="grid grid-cols-4 gap-2 mb-2">
-                      {PLOTLINE_COLORS.map((color) => (
-                        <button
-                          key={color}
-                          className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 hover-fade ${
-                            editingPlotlineColor === color ? 'border-white scale-110' : 'border-transparent'
-                          }`}
-                          style={{ backgroundColor: color }}
-                          onClick={() => updatePlotlineColor(pl.id, color)}
-                        />
-                      ))}
-                    </div>
-                    <input
-                      type="color"
-                      value={editingPlotlineColor}
-                      onChange={(e) => setEditingPlotlineColor(e.target.value)}
-                      onBlur={() => updatePlotlineColor(pl.id, editingPlotlineColor)}
-                      className="w-full h-8 rounded cursor-pointer"
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-            {plotlines.length === 0 && (
-              <span className="text-sm text-[var(--text-muted)] py-2">No plotlines yet — create one to start color-coding your pages</span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newPlotlineName}
-              onChange={(e) => setNewPlotlineName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && createPlotline()}
-              placeholder="New plotline (e.g., A Plot - Marshall's Story)"
-              className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
-            />
-            <button
-              onClick={createPlotline}
-              disabled={!newPlotlineName.trim()}
-              className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-muted)] rounded-lg text-sm font-medium"
-            >
-              Add
-            </button>
-          </div>
-        </div>
+        <WeavePlotlineManager
+          plotlines={plotlines}
+          onCreatePlotline={createPlotline}
+          onDeletePlotline={deletePlotline}
+          onUpdateColor={updatePlotlineColor}
+        />
       )}
 
       {/* Legend - always show if plotlines exist */}
