@@ -135,7 +135,7 @@ export function WeavePageCard({
               className="text-[var(--text-primary)] leading-none"
               style={{
                 fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-                fontSize: 24,
+                fontSize: '1.5rem',
                 fontWeight: 900,
                 lineHeight: 1,
               }}
@@ -150,7 +150,7 @@ export function WeavePageCard({
             >
               <span
                 className="text-white leading-none"
-                style={{ fontSize: 6, fontWeight: 700 }}
+                style={{ fontSize: '0.375rem', fontWeight: 700 }}
               >
                 {page.orientation === 'left' ? 'L' : 'R'}
               </span>
@@ -160,7 +160,7 @@ export function WeavePageCard({
           {/* Stats row */}
           <div
             className="font-mono text-[var(--text-muted)] mb-0.5"
-            style={{ fontSize: 7 }}
+            style={{ fontSize: '0.4375rem' }}
           >
             {panelCount}p · {wordCount}w
           </div>
@@ -170,7 +170,7 @@ export function WeavePageCard({
             <div
               className="font-mono text-[var(--text-secondary)] overflow-hidden"
               style={{
-                fontSize: 6.5,
+                fontSize: '0.40625rem',
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',

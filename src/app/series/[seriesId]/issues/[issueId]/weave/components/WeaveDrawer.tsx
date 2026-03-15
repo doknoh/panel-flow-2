@@ -97,7 +97,7 @@ export function WeaveDrawer({
           <span
             style={{
               fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-              fontSize: 22,
+              fontSize: '1.375rem',
               fontWeight: 900,
               color: 'var(--text-primary)',
               lineHeight: 1,
@@ -107,7 +107,7 @@ export function WeaveDrawer({
           </span>
           <span
             className="font-mono text-[var(--text-muted)]"
-            style={{ fontSize: 9, letterSpacing: '0.08em' }}
+            style={{ fontSize: '0.5625rem', letterSpacing: '0.08em' }}
           >
             {page.orientation === 'right' ? 'RIGHT' : 'LEFT'}
           </span>
@@ -116,7 +116,7 @@ export function WeaveDrawer({
           onClick={onClose}
           className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex-shrink-0"
           aria-label="Close drawer"
-          style={{ fontSize: 16, lineHeight: 1, padding: 2 }}
+          style={{ fontSize: '1rem', lineHeight: 1, padding: 2 }}
         >
           ✕
         </button>
@@ -127,7 +127,7 @@ export function WeaveDrawer({
         <label
           style={{
             fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-            fontSize: 7,
+            fontSize: '0.4375rem',
             fontWeight: 700,
             color: 'var(--text-muted)',
             letterSpacing: '0.1em',
@@ -157,7 +157,7 @@ export function WeaveDrawer({
               onAssignPlotline(page.page.id, val === '' ? null : val)
             }}
             className="font-mono text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--border)] flex-1"
-            style={{ fontSize: 10, padding: '3px 6px', borderRadius: 3 }}
+            style={{ fontSize: '0.625rem', padding: '3px 6px', borderRadius: 3 }}
           >
             <option value="">None</option>
             {plotlines.map((pl) => (
@@ -183,7 +183,7 @@ export function WeaveDrawer({
             <span
               style={{
                 fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-                fontSize: 7,
+                fontSize: '0.4375rem',
                 fontWeight: 700,
                 color: 'var(--text-muted)',
                 letterSpacing: '0.1em',
@@ -195,7 +195,7 @@ export function WeaveDrawer({
             </span>
             <span
               className="font-mono text-[var(--text-primary)]"
-              style={{ fontSize: 14, fontWeight: 700 }}
+              style={{ fontSize: '0.875rem', fontWeight: 700 }}
             >
               {value}
             </span>
@@ -208,7 +208,7 @@ export function WeaveDrawer({
         <label
           style={{
             fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-            fontSize: 7,
+            fontSize: '0.4375rem',
             fontWeight: 700,
             color: 'var(--text-muted)',
             letterSpacing: '0.1em',
@@ -224,7 +224,7 @@ export function WeaveDrawer({
           onChange={(e) => setStoryBeat(e.target.value)}
           onBlur={() => onSaveStoryBeat(page.page.id, storyBeat)}
           className="font-mono text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--border)] w-full resize-none"
-          style={{ fontSize: 11, padding: '6px 8px', borderRadius: 3, minHeight: 64 }}
+          style={{ fontSize: '0.6875rem', padding: '6px 8px', borderRadius: 3, minHeight: 64 }}
           placeholder="What happens on this page..."
         />
       </div>
@@ -234,7 +234,7 @@ export function WeaveDrawer({
         <label
           style={{
             fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-            fontSize: 7,
+            fontSize: '0.4375rem',
             fontWeight: 700,
             color: 'var(--text-muted)',
             letterSpacing: '0.1em',
@@ -251,14 +251,14 @@ export function WeaveDrawer({
               <span
                 key={name}
                 className="font-mono text-[var(--text-secondary)] bg-[var(--bg-tertiary)]"
-                style={{ fontSize: 9, padding: '2px 6px', borderRadius: 3 }}
+                style={{ fontSize: '0.5625rem', padding: '2px 6px', borderRadius: 3 }}
               >
                 {name}
               </span>
             ))}
           </div>
         ) : (
-          <span className="font-mono text-[var(--text-muted)]" style={{ fontSize: 10 }}>
+          <span className="font-mono text-[var(--text-muted)]" style={{ fontSize: '0.625rem' }}>
             —
           </span>
         )}
@@ -269,7 +269,7 @@ export function WeaveDrawer({
         <label
           style={{
             fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-            fontSize: 7,
+            fontSize: '0.4375rem',
             fontWeight: 700,
             color: 'var(--text-muted)',
             letterSpacing: '0.1em',
@@ -282,7 +282,7 @@ export function WeaveDrawer({
         </label>
         <span
           className="font-mono text-[var(--color-primary)]"
-          style={{ fontSize: 10 }}
+          style={{ fontSize: '0.625rem' }}
         >
           {page.page.intention || '—'}
         </span>
@@ -293,7 +293,7 @@ export function WeaveDrawer({
         <label
           style={{
             fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-            fontSize: 7,
+            fontSize: '0.4375rem',
             fontWeight: 700,
             color: 'var(--text-muted)',
             letterSpacing: '0.1em',
@@ -306,7 +306,7 @@ export function WeaveDrawer({
         </label>
         <span
           className="font-mono"
-          style={{ fontSize: 10, color: scenePlotlineColor }}
+          style={{ fontSize: '0.625rem', color: scenePlotlineColor }}
         >
           {page.scene.title || '—'}
         </span>
@@ -322,7 +322,7 @@ export function WeaveDrawer({
         style={{
           backgroundColor: 'var(--color-primary)',
           padding: '10px 0',
-          fontSize: 11,
+          fontSize: '0.6875rem',
           fontWeight: 700,
           letterSpacing: '0.08em',
           borderRadius: 3,

@@ -319,10 +319,10 @@ export default function ZenMode({
           </button>
         </Tip>
         <div className="text-center">
-          <p className="text-[17px] text-[var(--zen-ghost)] mb-4" style={{ fontFamily: "'Georgia', serif" }}>
+          <p className="text-[1.0625rem] text-[var(--zen-ghost)] mb-4" style={{ fontFamily: "'Georgia', serif" }}>
             No panels on this page
           </p>
-          <p className="text-[10px] tracking-[0.1em] uppercase text-[var(--zen-ghost)]" style={{ fontFamily: 'var(--font-mono)' }}>
+          <p className="text-[0.625rem] tracking-[0.1em] uppercase text-[var(--zen-ghost)]" style={{ fontFamily: 'var(--font-mono)' }}>
             Press Escape to exit
           </p>
         </div>
@@ -353,14 +353,14 @@ export default function ZenMode({
       {/* Header — centered, no border */}
       <div className="py-4 text-center">
         <div
-          className="text-[11px] tracking-[0.12em] uppercase"
+          className="text-[0.6875rem] tracking-[0.12em] uppercase"
           style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
         >
           Page {page.page_number} &middot; Panel {currentPanel.panel_number}
         </div>
         {sceneContext && (
           <div
-            className="text-[10px] tracking-[0.08em] mt-0.5"
+            className="text-[0.625rem] tracking-[0.08em] mt-0.5"
             style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
           >
             {sceneContext.actName} &middot; {sceneContext.sceneName}
@@ -397,7 +397,7 @@ export default function ZenMode({
           {currentPanelIndex > 0 && panels[currentPanelIndex - 1] && (
             <div className="mb-8">
               <span
-                className="block mb-1.5 text-[10px] tracking-[0.1em] uppercase"
+                className="block mb-1.5 text-[0.625rem] tracking-[0.1em] uppercase"
                 style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-ghost)' }}
               >
                 Panel {panels[currentPanelIndex - 1].panel_number}
@@ -414,7 +414,7 @@ export default function ZenMode({
           {/* VISUAL DESCRIPTION */}
           <div className="mb-2">
             <span
-              className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
+              className="block mb-2.5 text-[0.625rem] tracking-[0.12em] uppercase"
               style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
             >
               Visual Description
@@ -456,7 +456,7 @@ export default function ZenMode({
             <>
               <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
               <span
-                className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
+                className="block mb-2.5 text-[0.625rem] tracking-[0.12em] uppercase"
                 style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
               >
                 Dialogue
@@ -469,7 +469,7 @@ export default function ZenMode({
                     style={{ borderColor: 'var(--zen-border-dialogue)' }}
                   >
                     <div
-                      className="mb-0.5 text-[11px] font-semibold tracking-[0.05em]"
+                      className="mb-0.5 text-[0.6875rem] font-semibold tracking-[0.05em]"
                       style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-accent)' }}
                     >
                       {formatSpeaker(d)}
@@ -494,7 +494,7 @@ export default function ZenMode({
             <>
               <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
               <span
-                className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
+                className="block mb-2.5 text-[0.625rem] tracking-[0.12em] uppercase"
                 style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
               >
                 Captions
@@ -507,7 +507,7 @@ export default function ZenMode({
                     style={{ borderColor: 'var(--zen-border-dialogue)' }}
                   >
                     <div
-                      className="mb-0.5 text-[10px] tracking-[0.06em] uppercase"
+                      className="mb-0.5 text-[0.625rem] tracking-[0.06em] uppercase"
                       style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-accent)' }}
                     >
                       {(c.caption_type || 'narrative').toUpperCase()}
@@ -532,7 +532,7 @@ export default function ZenMode({
             <>
               <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
               <span
-                className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
+                className="block mb-2.5 text-[0.625rem] tracking-[0.12em] uppercase"
                 style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
               >
                 SFX
@@ -557,7 +557,7 @@ export default function ZenMode({
           {/* INTERNAL NOTES */}
           <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
           <span
-            className="block mb-2.5 text-[10px] tracking-[0.12em] uppercase"
+            className="block mb-2.5 text-[0.625rem] tracking-[0.12em] uppercase"
             style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-label)' }}
           >
             Internal Notes
@@ -578,7 +578,7 @@ export default function ZenMode({
               <div className="w-10 h-px mx-auto my-7" style={{ background: 'var(--zen-divider)' }} />
               <div>
                 <span
-                  className="block mb-1.5 text-[10px] tracking-[0.1em] uppercase"
+                  className="block mb-1.5 text-[0.625rem] tracking-[0.1em] uppercase"
                   style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-ghost)' }}
                 >
                   Panel {panels[currentPanelIndex + 1].panel_number}
@@ -599,13 +599,13 @@ export default function ZenMode({
       <div className="py-3 px-8">
         <div className="max-w-[620px] mx-auto flex items-center justify-between">
           <span
-            className="text-[10px] tracking-[0.08em] uppercase"
+            className="text-[0.625rem] tracking-[0.08em] uppercase"
             style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
           >
             +{sessionWordCount} words this session
           </span>
           <div
-            className="flex items-center gap-4 text-[10px] tracking-[0.04em]"
+            className="flex items-center gap-4 text-[0.625rem] tracking-[0.04em]"
             style={{ fontFamily: 'var(--font-mono)', color: 'var(--zen-footer)' }}
           >
             <span><span className="font-semibold" style={{ color: 'var(--zen-label)' }}>Tab</span> next</span>

@@ -18,7 +18,7 @@ interface WeaveSpreadProps {
 function InsideCover() {
   return (
     <div className="w-[86px] h-[118px] bg-[var(--bg-secondary)] rounded-l flex items-center justify-center border border-[var(--border-subtle)]">
-      <span className="font-mono text-[7px] text-[var(--text-muted)] text-center leading-tight">
+      <span className="font-mono text-[0.4375rem] text-[var(--text-muted)] text-center leading-tight">
         INSIDE
         <br />
         COVER
@@ -121,7 +121,7 @@ export function WeaveSpread({
         <div className="flex flex-row gap-0 mt-1">
           {/* Left page number */}
           <div
-            className="font-mono text-[9px] font-bold text-[var(--text-secondary)] flex items-center justify-center"
+            className="font-mono text-[0.5625rem] font-bold text-[var(--text-secondary)] flex items-center justify-center"
             style={{ width: 86, ...leftPageNumStyle }}
           >
             {leftPageNum != null ? leftPageNum : ''}
@@ -132,7 +132,7 @@ export function WeaveSpread({
 
           {/* Right page number */}
           <div
-            className="font-mono text-[9px] font-bold text-[var(--text-secondary)] flex items-center justify-center"
+            className="font-mono text-[0.5625rem] font-bold text-[var(--text-secondary)] flex items-center justify-center"
             style={{ width: 86, ...rightPageNumStyle }}
           >
             {rightPageNum != null ? rightPageNum : ''}
@@ -142,14 +142,14 @@ export function WeaveSpread({
 
       {/* Splash page number */}
       {isSplash && left != null && (
-        <div className="mt-1 font-mono text-[9px] font-bold text-[var(--text-secondary)] text-center">
+        <div className="mt-1 font-mono text-[0.5625rem] font-bold text-[var(--text-secondary)] text-center">
           {left.globalPageNumber}
         </div>
       )}
 
       {/* Scene break label */}
       {hasSceneBreak && (
-        <div className="mt-0.5 font-mono text-[7px] text-[var(--text-muted)] text-center tracking-wider">
+        <div className="mt-0.5 font-mono text-[0.4375rem] text-[var(--text-muted)] text-center tracking-wider">
           SCENE BREAK
         </div>
       )}

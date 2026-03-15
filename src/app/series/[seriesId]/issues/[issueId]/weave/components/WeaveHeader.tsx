@@ -26,20 +26,20 @@ export function WeaveHeader({
         <Link
           href={`/series/${seriesId}/issues/${issueId}`}
           className="text-[var(--text-muted)] hover:opacity-80"
-          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '11px', fontWeight: 800 }}
+          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '0.6875rem', fontWeight: 800 }}
         >
           ← ISSUE #{issueNumber}
         </Link>
         <span className="text-[var(--text-disabled)]">{'//'}</span>
         <span
           className="text-[var(--text-primary)]"
-          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '18px', fontWeight: 900 }}
+          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '1.125rem', fontWeight: 900 }}
         >
           THE WEAVE
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <span className="font-mono text-[10px] text-[var(--text-muted)]">
+        <span className="font-mono text-[0.625rem] text-[var(--text-muted)]">
           {pageCount} PAGES · {spreadCount} SPREADS
         </span>
         <FontScaleToggle />
@@ -47,7 +47,7 @@ export function WeaveHeader({
         <button
           onClick={onTogglePlotlineManager}
           className="text-[var(--color-primary)] cursor-pointer hover:opacity-80"
-          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '10px', fontWeight: 700 }}
+          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '0.625rem', fontWeight: 700 }}
         >
           MANAGE PLOTLINES
         </button>

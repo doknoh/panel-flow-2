@@ -115,7 +115,7 @@ function CollapsibleSection({
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return (
-    <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+    <label className="block text-[0.625rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
       {children}
     </label>
   )
@@ -348,7 +348,7 @@ function ProfileTab({
                 setRenameInput(character.display_name || character.name)
                 setIsRenaming(true)
               }}
-              className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors"
+              className="mt-1.5 inline-flex items-center gap-1 text-[0.625rem] text-[var(--text-muted)] hover:text-[var(--color-primary)] transition-colors"
             >
               <RefreshCw size={10} />
               Rename everywhere
@@ -373,7 +373,7 @@ function ProfileTab({
               <button
                 onClick={handleRenameEverywhere}
                 disabled={!renameInput.trim() || isRenameLoading}
-                className="inline-flex items-center gap-1 text-[10px] font-medium bg-[var(--color-primary)] text-white rounded px-2 py-1 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1 text-[0.625rem] font-medium bg-[var(--color-primary)] text-white rounded px-2 py-1 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRenameLoading ? (
                   <Loader2 size={10} className="animate-spin" />
@@ -387,7 +387,7 @@ function ProfileTab({
                   setIsRenaming(false)
                   setRenameInput('')
                 }}
-                className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors px-1"
+                className="text-[0.625rem] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors px-1"
               >
                 Cancel
               </button>
@@ -757,7 +757,7 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
 
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-[var(--bg-secondary)] rounded px-3 py-2">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+              <div className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
                 Vocabulary
               </div>
               <span
@@ -767,7 +767,7 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
               </span>
             </div>
             <div className="bg-[var(--bg-secondary)] rounded px-3 py-2">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+              <div className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
                 Avg. Sentence
               </div>
               <div className="text-xs font-medium text-[var(--text-primary)]">
@@ -778,14 +778,14 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
 
           {profile.common_words?.length > 0 && (
             <div>
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              <div className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider mb-1">
                 Common Words
               </div>
               <div className="flex flex-wrap gap-1">
                 {profile.common_words.map((w: string) => (
                   <span
                     key={w}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                    className="text-[0.625rem] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                   >
                     {w}
                   </span>
@@ -796,14 +796,14 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
 
           {profile.avoided_words?.length > 0 && (
             <div>
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              <div className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider mb-1">
                 Avoided Words
               </div>
               <div className="flex flex-wrap gap-1">
                 {profile.avoided_words.map((w: string) => (
                   <span
                     key={w}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--color-error)]/10 text-[var(--color-error)]"
+                    className="text-[0.625rem] px-2 py-0.5 rounded-full bg-[var(--color-error)]/10 text-[var(--color-error)]"
                   >
                     {w}
                   </span>
@@ -814,14 +814,14 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
 
           {profile.tone_markers?.length > 0 && (
             <div>
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              <div className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider mb-1">
                 Tone Markers
               </div>
               <div className="flex flex-wrap gap-1">
                 {profile.tone_markers.map((m: string) => (
                   <span
                     key={m}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                    className="text-[0.625rem] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                   >
                     {m}
                   </span>
@@ -832,7 +832,7 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
 
           {profile.speech_quirks?.length > 0 && (
             <div>
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              <div className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider mb-1">
                 Speech Quirks
               </div>
               <ul className="space-y-0.5">
@@ -850,7 +850,7 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
 
           {profile.sample_quotes?.length > 0 && (
             <div>
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              <div className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider mb-1">
                 Sample Quotes
               </div>
               <div className="space-y-1">
@@ -885,11 +885,11 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  <span className="text-[0.625rem] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                     {getFlagTypeLabel(flag.flag_type as any)}
                   </span>
                   <span
-                    className={`text-[10px] font-medium ${getFlagSeverityColor(flag.severity as any)}`}
+                    className={`text-[0.625rem] font-medium ${getFlagSeverityColor(flag.severity as any)}`}
                   >
                     {flag.severity}
                   </span>
@@ -898,7 +898,7 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
                   {flag.message}
                 </p>
                 {flag.suggested_alternative && (
-                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                  <p className="text-[0.625rem] text-[var(--text-muted)] mt-0.5">
                     Suggestion: {flag.suggested_alternative}
                   </p>
                 )}
@@ -932,7 +932,7 @@ function VoiceTab({ character }: { character: CharacterWithStats }) {
                   &ldquo;{d.text}&rdquo;
                 </p>
                 {(d.issueNumber || d.pageNumber) && (
-                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                  <p className="text-[0.625rem] text-[var(--text-muted)] mt-1">
                     {d.issueNumber != null && `Issue #${d.issueNumber}`}
                     {d.pageNumber != null && ` / Page ${d.pageNumber}`}
                     {d.sceneName && ` / ${d.sceneName}`}
@@ -1019,7 +1019,7 @@ function AppearancesTab({
               <span className="text-lg font-bold text-[var(--text-primary)] tabular-nums">
                 {data.panels}
               </span>
-              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+              <span className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider">
                 panels
               </span>
             </div>
@@ -1027,7 +1027,7 @@ function AppearancesTab({
               <span className="text-lg font-bold text-[var(--text-secondary)] tabular-nums">
                 {data.dialogues}
               </span>
-              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+              <span className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider">
                 dialogues
               </span>
             </div>
@@ -1319,13 +1319,13 @@ function AIScanTab({
                           {field.label}
                         </span>
                         {isEmpty && (
-                          <span className="text-[10px] px-1.5 py-0 rounded bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                          <span className="text-[0.625rem] px-1.5 py-0 rounded bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                             NEW
                           </span>
                         )}
                       </div>
                       {!isEmpty && (
-                        <p className="text-[10px] text-[var(--text-muted)] line-through mb-0.5 truncate">
+                        <p className="text-[0.625rem] text-[var(--text-muted)] line-through mb-0.5 truncate">
                           {currentVal}
                         </p>
                       )}

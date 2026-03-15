@@ -187,7 +187,7 @@ export default function CharacterCard({
         <div className="relative inline-block mb-3">
           <button
             onClick={handleRoleBadgeClick}
-            className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded hover-glow ${roleStyle.bg} ${roleStyle.text} hover:opacity-80`}
+            className={`text-[0.625rem] font-semibold uppercase tracking-wider px-2 py-0.5 rounded hover-glow ${roleStyle.bg} ${roleStyle.text} hover:opacity-80`}
           >
             {role}
           </button>
@@ -222,7 +222,7 @@ export default function CharacterCard({
           <span className="text-2xl font-black text-[var(--text-primary)] leading-none tabular-nums">
             {totalPanels}
           </span>
-          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+          <span className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider">
             panels
           </span>
         </div>
@@ -230,7 +230,7 @@ export default function CharacterCard({
           <span className="text-sm font-semibold text-[var(--text-secondary)] tabular-nums">
             {totalDialogues}
           </span>
-          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+          <span className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider">
             lines
           </span>
         </div>
@@ -238,7 +238,7 @@ export default function CharacterCard({
           <span className="text-sm font-semibold text-[var(--text-secondary)] tabular-nums">
             {issueCount}/{issues.length}
           </span>
-          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+          <span className="text-[0.625rem] text-[var(--text-muted)] uppercase tracking-wider">
             issues
           </span>
         </div>
@@ -268,7 +268,7 @@ export default function CharacterCard({
             <Tip key={rc.id} content={rc.display_name || rc.name}>
               <button
                 onClick={(e) => handleRelationshipClick(e, rc.id)}
-                className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)] truncate max-w-[120px] hover-glow"
+                className="text-[0.625rem] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border)] truncate max-w-[120px] hover-glow"
               >
                 {rc.display_name || rc.name}
               </button>

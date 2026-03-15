@@ -1573,7 +1573,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                             <Tip content="Drag to reorder" side="left">
                               <span
                                 {...dragListeners}
-                                className="hover-fade cursor-grab active:cursor-grabbing text-[var(--text-disabled)] hover:text-[var(--text-muted)] select-none font-mono text-[9px]"
+                                className="hover-fade cursor-grab active:cursor-grabbing text-[var(--text-disabled)] hover:text-[var(--text-muted)] select-none font-mono text-[0.5625rem]"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 ::
@@ -1739,11 +1739,11 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       (sum, d) => sum + countWords(d.text), 0
                                     )
                                     return totalDialogueWords > 50 ? (
-                                      <span className="text-[10px] font-mono text-[var(--color-error)]">
+                                      <span className="text-[0.625rem] font-mono text-[var(--color-error)]">
                                         {totalDialogueWords}w total - too text-heavy!
                                       </span>
                                     ) : totalDialogueWords > 40 ? (
-                                      <span className="text-[10px] font-mono text-[var(--color-warning)]">
+                                      <span className="text-[0.625rem] font-mono text-[var(--color-warning)]">
                                         {totalDialogueWords}w total
                                       </span>
                                     ) : null
@@ -1896,7 +1896,7 @@ export default function PageEditor({ page, pageContext, characters, locations, s
                                       {(() => {
                                         const dialogueWordCount = countWords(dialogue.text)
                                         return dialogueWordCount > 0 ? (
-                                          <div className={`text-[10px] font-mono mt-1 flex items-center gap-1 ${
+                                          <div className={`text-[0.625rem] font-mono mt-1 flex items-center gap-1 ${
                                             dialogueWordCount > 30
                                               ? 'text-[var(--color-error)]'
                                               : dialogueWordCount > 25

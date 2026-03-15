@@ -1805,7 +1805,7 @@ export default function ScriptView({
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value as Scope)}
-            className="border border-[var(--border)] px-2.5 py-1 rounded bg-transparent text-[10px] tracking-[1.5px] uppercase hover-glow"
+            className="border border-[var(--border)] px-2.5 py-1 rounded bg-transparent text-[0.625rem] tracking-[1.5px] uppercase hover-glow"
           >
             <option value="page">Page</option>
             <option value="scene">Scene</option>
@@ -1813,15 +1813,15 @@ export default function ScriptView({
             <option value="issue">Full Issue</option>
           </select>
           {/* Copy */}
-          <button onClick={copyToClipboard} className="border border-[var(--border)] px-2.5 py-1 rounded hover-lift text-[10px] tracking-[1.5px] uppercase">
+          <button onClick={copyToClipboard} className="border border-[var(--border)] px-2.5 py-1 rounded hover-lift text-[0.625rem] tracking-[1.5px] uppercase">
             COPY
           </button>
           {/* Export */}
-          <button onClick={exportToPdf} className="border border-[var(--border)] px-2.5 py-1 rounded hover-lift text-[10px] tracking-[1.5px] uppercase">
+          <button onClick={exportToPdf} className="border border-[var(--border)] px-2.5 py-1 rounded hover-lift text-[0.625rem] tracking-[1.5px] uppercase">
             EXPORT
           </button>
           {/* Save status */}
-          <span className={`text-[9px] tracking-[0.5px] ${saveStatus === 'saved' ? 'opacity-40' : saveStatus === 'saving' ? 'opacity-60' : 'text-[var(--color-warning)]'}`}>
+          <span className={`text-[0.5625rem] tracking-[0.5px] ${saveStatus === 'saved' ? 'opacity-40' : saveStatus === 'saving' ? 'opacity-60' : 'text-[var(--color-warning)]'}`}>
             {saveStatus === 'saved' ? 'SAVED' : saveStatus === 'saving' ? 'SAVING...' : 'UNSAVED'}
           </span>
         </div>

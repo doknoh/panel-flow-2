@@ -62,7 +62,7 @@ export default function BlueprintNav({ seriesId, issueId, issueTitle, issueNumbe
         </Tip>
       </div>
 
-      <div style={{ fontFamily: 'var(--bp-mono)', fontSize: '10px' }}>
+      <div style={{ fontFamily: 'var(--bp-mono)', fontSize: '0.625rem' }}>
         VER 2.0
       </div>
     </nav>

@@ -172,7 +172,7 @@ export default function ScriptEditorToolbar({ editor, variant, contextLabel }: S
         </div>
       ))}
       {contextLabel && (
-        <span className="ml-auto text-[var(--text-muted)] text-[9px] tracking-[0.5px] font-sans">
+        <span className="ml-auto text-[var(--text-muted)] text-[0.5625rem] tracking-[0.5px] font-sans">
           {contextLabel}
         </span>
       )}

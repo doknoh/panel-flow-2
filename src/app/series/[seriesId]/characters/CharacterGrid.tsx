@@ -588,7 +588,7 @@ export default function CharacterGrid({
             <button
               key={opt.value}
               onClick={() => toggleRoleFilter(opt.value)}
-              className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border hover-glow ${
+              className={`text-[0.625rem] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border hover-glow ${
                 roleFilter.has(opt.value)
                   ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
                   : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]'

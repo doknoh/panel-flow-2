@@ -934,7 +934,7 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                         {fp.globalPageNumber}
                       </div>
                       {count > 1 && (
-                        <div className="absolute top-1 right-1 bg-[var(--color-primary)] text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                        <div className="absolute top-1 right-1 bg-[var(--color-primary)] text-white text-[0.5625rem] font-bold w-5 h-5 rounded-full flex items-center justify-center">
                           {count}
                         </div>
                       )}

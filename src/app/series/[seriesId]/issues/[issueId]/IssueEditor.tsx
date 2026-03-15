@@ -1784,7 +1784,7 @@ function IssueEditorContent({
                         Panel {panel.panel_number}
                       </span>
                       {panel.camera && (
-                        <span className="text-[10px] text-[var(--text-muted)]">{panel.camera}</span>
+                        <span className="text-[0.625rem] text-[var(--text-muted)]">{panel.camera}</span>
                       )}
                     </div>
                     {panel.visual_description && (

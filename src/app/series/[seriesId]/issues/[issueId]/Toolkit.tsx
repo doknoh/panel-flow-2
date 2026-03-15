@@ -1679,7 +1679,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="absolute bottom-0 left-0 right-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className={`text-[10px] px-1 py-0.5 rounded inline-block ${
+                        <div className={`text-[0.625rem] px-1 py-0.5 rounded inline-block ${
                           visual.entityType === 'character'
                             ? 'bg-[var(--color-primary)]'
                             : 'bg-[var(--accent-hover)]'
@@ -1688,7 +1688,7 @@ export default function Toolkit({ issue, selectedPageContext, onRefresh }: Toolk
                         </div>
                       </div>
                       {visual.is_primary && (
-                        <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-success)] rounded-full flex items-center justify-center text-[10px]">
+                        <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-success)] rounded-full flex items-center justify-center text-[0.625rem]">
                           ★
                         </div>
                       )}
