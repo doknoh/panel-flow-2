@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import SeriesWeaveClient from './SeriesWeaveClient'
-import Header from '@/components/ui/Header'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,15 +75,6 @@ export default async function SeriesWeavePage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
-      <Header
-        variant="subpage"
-        backHref={`/series/${seriesId}`}
-        backLabel={series.title}
-        title="Series Weave"
-        maxWidth="max-w-6xl"
-      />
-
-      {/* Main content */}
       <SeriesWeaveClient
         series={series}
         issues={sortedIssues}
