@@ -269,7 +269,7 @@ export default function SeriesWeaveClient({
           >
             ← {series.title}
           </Link>
-          <span className="text-[var(--text-disabled)] mx-2">//</span>
+          <span className="text-[var(--text-disabled)] mx-2">{'/'}{'/'}</span>
           <span
             className="text-[var(--text-primary)] tracking-tight uppercase"
             style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '18px', fontWeight: 900 }}

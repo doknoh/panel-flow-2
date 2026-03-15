@@ -44,6 +44,7 @@ export default async function ReadPage({
         sort_order,
         pages (
           page_number,
+          sort_order,
           page_type,
           panels (
             panel_number,
@@ -101,11 +102,11 @@ export default async function ReadPage({
       ...act,
       scenes: (act.scenes || [])
         .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-        .map((scene: { sort_order: number; pages: Array<{ page_number: number; page_type: string; panels: Array<{ panel_number: number; sort_order: number; visual_description: string | null; camera: string | null; dialogue_blocks: Array<{ character_id: string | null; speaker_name: string | null; dialogue_type: string; text: string; delivery_instruction: string | null; sort_order: number }>; captions: Array<{ caption_type: string; text: string; sort_order: number }>; sound_effects: Array<{ text: string; sort_order: number }> }> }> }) => ({
+        .map((scene: { sort_order: number; pages: Array<{ page_number: number; sort_order: number; page_type: string; panels: Array<{ panel_number: number; sort_order: number; visual_description: string | null; camera: string | null; dialogue_blocks: Array<{ character_id: string | null; speaker_name: string | null; dialogue_type: string; text: string; delivery_instruction: string | null; sort_order: number }>; captions: Array<{ caption_type: string; text: string; sort_order: number }>; sound_effects: Array<{ text: string; sort_order: number }> }> }> }) => ({
           ...scene,
           pages: (scene.pages || [])
-            .sort((a: { page_number: number }, b: { page_number: number }) => a.page_number - b.page_number)
-            .map((page: { page_number: number; page_type: string; panels: Array<{ panel_number: number; sort_order: number; visual_description: string | null; camera: string | null; dialogue_blocks: Array<{ character_id: string | null; speaker_name: string | null; dialogue_type: string; text: string; delivery_instruction: string | null; sort_order: number }>; captions: Array<{ caption_type: string; text: string; sort_order: number }>; sound_effects: Array<{ text: string; sort_order: number }> }> }) => ({
+            .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
+            .map((page: { page_number: number; sort_order: number; page_type: string; panels: Array<{ panel_number: number; sort_order: number; visual_description: string | null; camera: string | null; dialogue_blocks: Array<{ character_id: string | null; speaker_name: string | null; dialogue_type: string; text: string; delivery_instruction: string | null; sort_order: number }>; captions: Array<{ caption_type: string; text: string; sort_order: number }>; sound_effects: Array<{ text: string; sort_order: number }> }> }) => ({
               ...page,
               panels: (page.panels || [])
                 .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
