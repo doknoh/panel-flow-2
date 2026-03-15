@@ -134,13 +134,24 @@ export default function ReadingView({
     return map
   }, [characters])
 
-  // Flatten all pages across acts and scenes in order
+  // Flatten all pages across acts and scenes in order, computing page numbers
+  // from position (sort_order) rather than the stale page_number column
   const allPages = useMemo(() => {
-    const pages: Page[] = []
+    const pages: (Page & { computedPageNumber: number })[] = []
+    let pageCounter = 1
     for (const act of issue.acts) {
       for (const scene of act.scenes) {
         for (const page of scene.pages) {
-          pages.push(page)
+          if (page.page_type === 'SPREAD_RIGHT') {
+            // SPREAD_RIGHT doesn't get its own number — it shares with SPREAD_LEFT
+            pages.push({ ...page, computedPageNumber: pageCounter - 1 })
+          } else if (page.page_type === 'SPREAD_LEFT') {
+            pages.push({ ...page, computedPageNumber: pageCounter })
+            pageCounter += 2 // Spread takes two page numbers
+          } else {
+            pages.push({ ...page, computedPageNumber: pageCounter })
+            pageCounter++
+          }
         }
       }
     }
@@ -158,20 +169,21 @@ export default function ReadingView({
     return 'UNKNOWN'
   }
 
-  // Get page header text
-  function getPageHeader(page: Page): string {
-    const orientation = getOrientation(page.page_number)
+  // Get page header text — uses computed page number (from position), not stale DB column
+  function getPageHeader(page: Page & { computedPageNumber: number }): string {
+    const pageNum = page.computedPageNumber
+    const orientation = getOrientation(pageNum)
     if (page.page_type === 'SPREAD_LEFT') {
-      return `PAGES ${page.page_number}-${page.page_number + 1} (DOUBLE-PAGE SPREAD)`
+      return `PAGES ${pageNum}-${pageNum + 1} (DOUBLE-PAGE SPREAD)`
     }
     if (page.page_type === 'SPREAD_RIGHT') {
       // Skip rendering a separate header for the right side of a spread
       return ''
     }
     if (page.page_type === 'SPLASH') {
-      return `PAGE ${page.page_number} (${orientation}) - SPLASH`
+      return `PAGE ${pageNum} (${orientation}) - SPLASH`
     }
-    return `PAGE ${page.page_number} (${orientation})`
+    return `PAGE ${pageNum} (${orientation})`
   }
 
   return (
@@ -235,7 +247,7 @@ export default function ReadingView({
             let panelCounter = 0
 
             return (
-              <div key={`page-${page.page_number}`} className="mb-8">
+              <div key={`page-${page.computedPageNumber}-${pageIndex}`} className="mb-8">
                 {/* Page divider (not before the first page) */}
                 {pageIndex > 0 && (
                   <hr className="border-[var(--border)] mb-6" />
@@ -250,7 +262,7 @@ export default function ReadingView({
                 {page.panels.map((panel) => {
                   panelCounter++
                   return (
-                    <div key={`panel-${page.page_number}-${panelCounter}`} className="mb-5">
+                    <div key={`panel-${page.computedPageNumber}-${panelCounter}`} className="mb-5">
                       {/* Panel header + visual description */}
                       {panel.visual_description && (
                         <p className="mb-1">

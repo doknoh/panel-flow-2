@@ -32,6 +32,7 @@ interface Panel {
 
 interface Page {
   page_number: number
+  sort_order: number
   page_type?: string | null
   linked_page_id?: string | null
   notes_to_artist?: string | null
@@ -155,6 +156,9 @@ export function exportIssueToTxt(
   // Sort acts
   const sortedActs = [...(issue.acts || [])].sort((a, b) => a.sort_order - b.sort_order)
 
+  // Running page counter across all acts/scenes — computes page numbers from position
+  let pageCounter = 1
+
   for (const act of sortedActs) {
     // Act header
     lines.push((act.name || `ACT ${act.number}`).toUpperCase())
@@ -171,19 +175,30 @@ export function exportIssueToTxt(
         lines.push('')
       }
 
-      // Sort pages
-      const sortedPages = [...(scene.pages || [])].sort((a, b) => a.page_number - b.page_number)
+      // Sort pages by sort_order (not page_number which can be stale after reordering)
+      const sortedPages = [...(scene.pages || [])].sort((a, b) => a.sort_order - b.sort_order)
 
       for (const page of sortedPages) {
-        // Determine page orientation (odd = right, even = left)
-        const orientation = page.page_number % 2 === 1 ? 'right' : 'left'
+        // Compute page number from position
+        const computedPageNum = pageCounter
         const pageType = page.page_type?.toUpperCase()
+
+        if (pageType === 'SPREAD_RIGHT') {
+          // SPREAD_RIGHT shares the number with SPREAD_LEFT (already incremented)
+        } else if (pageType === 'SPREAD_LEFT') {
+          pageCounter += 2 // Spread takes two page numbers
+        } else {
+          pageCounter++
+        }
+
+        // Determine page orientation (odd = right, even = left)
+        const orientation = computedPageNum % 2 === 1 ? 'right' : 'left'
 
         // For SPREAD_RIGHT, render panels without a full page header
         if (pageType === 'SPREAD_RIGHT') {
           const sortedRightPanels = [...(page.panels || [])].sort((a, b) => a.panel_number - b.panel_number)
           if (sortedRightPanels.length > 0) {
-            lines.push(`  — Page ${page.page_number} panels —`)
+            lines.push(`  — Page ${computedPageNum} panels —`)
             lines.push('')
           }
           sortedRightPanels.forEach((panel, panelIndex) => {
@@ -219,12 +234,11 @@ export function exportIssueToTxt(
 
         // Page header - handle spreads vs. single pages
         if (pageType === 'SPREAD_LEFT') {
-          const nextPageNum = page.page_number + 1
-          lines.push(`PAGES ${page.page_number}-${nextPageNum} (DOUBLE-PAGE SPREAD)`)
+          lines.push(`PAGES ${computedPageNum}-${computedPageNum + 1} (DOUBLE-PAGE SPREAD)`)
         } else if (pageType === 'SPLASH') {
-          lines.push(`PAGE ${page.page_number} (${orientation}, SPLASH)`)
+          lines.push(`PAGE ${computedPageNum} (${orientation}, SPLASH)`)
         } else {
-          lines.push(`PAGE ${page.page_number} (${orientation})`)
+          lines.push(`PAGE ${computedPageNum} (${orientation})`)
         }
 
         // Artist notes for the page
