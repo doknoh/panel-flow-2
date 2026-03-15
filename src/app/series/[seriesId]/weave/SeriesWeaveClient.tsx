@@ -5,6 +5,7 @@ import { Tip } from '@/components/ui/Tip'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/contexts/ToastContext'
+import FontScaleToggle from '@/components/ui/FontScaleToggle'
 
 interface Plotline {
   id: string
@@ -280,6 +281,7 @@ export default function SeriesWeaveClient({
           <span className="font-mono text-[10px] text-[var(--text-muted)] tracking-wider">
             {issues.length} ISSUES · {plotlines.length} PLOTLINES
           </span>
+          <FontScaleToggle />
           {plotlines.length > 0 && (
             <>
               <div className="w-px h-3.5 bg-[var(--border)]" />
