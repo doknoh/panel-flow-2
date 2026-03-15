@@ -67,6 +67,7 @@ interface Page {
   id: string
   page_number: number
   sort_order: number
+  page_summary: string | null
   story_beat: string | null
   intention: string | null
   visual_motif: string | null
@@ -924,15 +925,20 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                   <div className="relative">
                     {count > 1 && (
                       <>
-                        <div className="absolute -top-1 -left-1 w-[86px] h-[118px] bg-[var(--bg-tertiary)] rounded opacity-60 rotate-2" />
-                        <div className="absolute -top-0.5 -left-0.5 w-[86px] h-[118px] bg-[var(--bg-tertiary)] rounded opacity-80 rotate-1" />
+                        <div className="absolute -top-1 -left-1 w-[86px] h-[148px] bg-[var(--bg-tertiary)] rounded opacity-60 rotate-2" />
+                        <div className="absolute -top-0.5 -left-0.5 w-[86px] h-[148px] bg-[var(--bg-tertiary)] rounded opacity-80 rotate-1" />
                       </>
                     )}
-                    <div className="w-[86px] h-[118px] bg-[var(--bg-elevated)] border border-[var(--color-primary)] rounded shadow-lg p-2 relative">
-                      <div className="text-2xl font-black text-[var(--text-primary)]"
-                           style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif" }}>
-                        {fp.globalPageNumber}
+                    <div className="w-[86px] h-[148px] bg-[var(--bg-elevated)] border border-[var(--color-primary)] rounded shadow-lg p-2 relative">
+                      <div className="font-mono text-[0.4375rem] text-[var(--text-muted)] mb-1">
+                        pg {fp.globalPageNumber} · {pageStats.get(fp.page.id)?.panelCount ?? 0}p
                       </div>
+                      {(fp.page.page_summary || fp.page.story_beat) && (
+                        <div className="text-[0.5rem] text-[var(--text-secondary)] overflow-hidden"
+                             style={{ display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.35 }}>
+                          {fp.page.page_summary || fp.page.story_beat}
+                        </div>
+                      )}
                       {count > 1 && (
                         <div className="absolute top-1 right-1 bg-[var(--color-primary)] text-white text-[0.5625rem] font-bold w-5 h-5 rounded-full flex items-center justify-center">
                           {count}

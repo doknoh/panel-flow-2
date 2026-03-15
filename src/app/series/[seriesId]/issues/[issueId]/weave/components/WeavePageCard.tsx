@@ -9,6 +9,7 @@ interface FlatPage {
     id: string
     page_number: number
     sort_order: number
+    page_summary: string | null
     story_beat: string | null
     intention: string | null
     page_type?: 'SINGLE' | 'SPLASH' | 'SPREAD_LEFT' | 'SPREAD_RIGHT'
@@ -96,7 +97,7 @@ export function WeavePageCard({
       onClick={() => onClick(page.page.id)}
     >
       {/* Fixed size wrapper */}
-      <div style={{ width: 86, height: 118, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: 86, height: 148, position: 'relative', display: 'flex', flexDirection: 'column' }}>
         {/* Plotline color bar — 4px top border */}
         <div
           style={{
@@ -108,8 +109,8 @@ export function WeavePageCard({
 
         {/* Card body */}
         <div className="flex flex-col flex-1 px-1.5 pt-1 pb-1 overflow-hidden">
-          {/* Top row: drag handle + page number + orientation */}
-          <div className="flex items-center gap-0.5 mb-0.5">
+          {/* Top row: drag handle + stats */}
+          <div className="flex items-center gap-1 mb-0.5">
             {/* Drag handle — 6-dot grip, 2×3 grid of circles */}
             {!isFirstPage && (
               <button
@@ -130,54 +131,29 @@ export function WeavePageCard({
               </button>
             )}
 
-            {/* Page number */}
-            <span
-              className="text-[var(--text-primary)] leading-none"
-              style={{
-                fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-                fontSize: '1.5rem',
-                fontWeight: 900,
-                lineHeight: 1,
-              }}
-            >
-              {page.globalPageNumber}
-            </span>
-
-            {/* Orientation badge */}
+            {/* Stats */}
             <div
-              className="w-3 h-3 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: 'var(--color-primary)' }}
+              className="font-mono text-[var(--text-muted)]"
+              style={{ fontSize: '0.4375rem' }}
             >
-              <span
-                className="text-white leading-none"
-                style={{ fontSize: '0.375rem', fontWeight: 700 }}
-              >
-                {page.orientation === 'left' ? 'L' : 'R'}
-              </span>
+              {panelCount}p · {wordCount}w
             </div>
           </div>
 
-          {/* Stats row */}
-          <div
-            className="font-mono text-[var(--text-muted)] mb-0.5"
-            style={{ fontSize: '0.4375rem' }}
-          >
-            {panelCount}p · {wordCount}w
-          </div>
-
-          {/* Story beat preview */}
-          {page.page.story_beat && (
+          {/* Page summary / story beat preview — main content area */}
+          {(page.page.page_summary || page.page.story_beat) && (
             <div
-              className="font-mono text-[var(--text-secondary)] overflow-hidden"
+              className="text-[var(--text-secondary)] overflow-hidden flex-1"
               style={{
-                fontSize: '0.40625rem',
+                fontSize: '0.5rem',
+                lineHeight: 1.35,
                 display: '-webkit-box',
-                WebkitLineClamp: 2,
+                WebkitLineClamp: 7,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
               }}
             >
-              {page.page.story_beat}
+              {page.page.page_summary || page.page.story_beat}
             </div>
           )}
         </div>

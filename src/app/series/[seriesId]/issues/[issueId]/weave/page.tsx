@@ -30,6 +30,7 @@ export default async function WeavePage({
             id,
             page_number,
             sort_order,
+            page_summary,
             story_beat,
             intention,
             visual_motif,
