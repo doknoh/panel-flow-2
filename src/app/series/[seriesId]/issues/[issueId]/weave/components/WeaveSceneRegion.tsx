@@ -38,6 +38,7 @@ export function WeaveSceneRegion({
         onClick={() => onSelectAll(scene.id)}
         role="button"
         tabIndex={0}
+        aria-label={`Select all pages in ${sceneName}`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()

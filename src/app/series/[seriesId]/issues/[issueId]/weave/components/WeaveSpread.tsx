@@ -1,6 +1,6 @@
 'use client'
 
-import { FlatPage, SpreadGroup } from '@/lib/weave-spreads'
+import { SpreadGroup } from '@/lib/weave-spreads'
 
 interface SceneInfo {
   id: string
