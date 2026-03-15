@@ -4,6 +4,10 @@ import React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+// Card dimensions in rem — scales with font toggle, maintains 1:1.54 aspect ratio
+const CARD_W = '5.375rem'  // 86px at 1x
+const CARD_H = '8.25rem'   // 132px at 1x
+
 interface FlatPage {
   page: {
     id: string
@@ -46,6 +50,8 @@ interface WeavePageCardProps {
   panelCount: number
   wordCount: number
 }
+
+export { CARD_W, CARD_H }
 
 export function WeavePageCard({
   page,
@@ -94,28 +100,28 @@ export function WeavePageCard({
         .join(' ')}
       onClick={() => onClick(page.page.id)}
     >
-      {/* Fixed size wrapper */}
-      <div style={{ width: 86, height: 132, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-        {/* Plotline color bar — 4px top border */}
+      {/* Scalable size wrapper — rem units so it grows with font toggle */}
+      <div style={{ width: CARD_W, height: CARD_H, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        {/* Plotline color bar */}
         <div
           style={{
-            height: 4,
+            height: '0.25rem',
             backgroundColor: plotlineColor,
             flexShrink: 0,
           }}
         />
 
         {/* Card body */}
-        <div className="flex flex-col flex-1" style={{ padding: '5px 6px 4px' }}>
+        <div className="flex flex-col flex-1" style={{ padding: '0.3125rem 0.375rem 0.25rem' }}>
           {/* Top row: drag handle + stats */}
-          <div className="flex items-center gap-1" style={{ marginBottom: 3, paddingRight: 14 }}>
-            {/* Drag handle — 6-dot grip, 2×3 grid of circles */}
+          <div className="flex items-center gap-1" style={{ marginBottom: '0.1875rem', paddingRight: '0.875rem' }}>
+            {/* Drag handle */}
             {!isFirstPage && (
               <button
                 {...attributes}
                 {...listeners}
                 className="flex-shrink-0 cursor-grab active:cursor-grabbing focus:outline-none"
-                style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5, padding: '1px' }}
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.09375rem', padding: '0.0625rem' }}
                 aria-label={`Drag page ${page.globalPageNumber}`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -123,27 +129,27 @@ export function WeavePageCard({
                   <div
                     key={i}
                     className="rounded-full bg-[var(--border)] group-hover:bg-[var(--text-muted)] transition-colors"
-                    style={{ width: 2.5, height: 2.5 }}
+                    style={{ width: '0.15625rem', height: '0.15625rem' }}
                   />
                 ))}
               </button>
             )}
 
-            {/* Stats — px units since card is fixed-size */}
+            {/* Stats */}
             <div
               className="font-mono text-[var(--text-muted)] truncate"
-              style={{ fontSize: 7 }}
+              style={{ fontSize: '0.4375rem' }}
             >
               {panelCount}p · {wordCount}w
             </div>
           </div>
 
-          {/* Page summary / story beat preview — px units since card is fixed-size */}
+          {/* Page summary / story beat preview */}
           {(page.page.page_summary || page.page.story_beat) && (
             <div
               className="text-[var(--text-secondary)]"
               style={{
-                fontSize: 8,
+                fontSize: '0.5rem',
                 fontWeight: 500,
                 lineHeight: 1.35,
                 display: '-webkit-box',
@@ -160,10 +166,12 @@ export function WeavePageCard({
 
         {/* Checkbox — absolute top-right */}
         <button
-          className="absolute top-1.5 right-1 flex-shrink-0 flex items-center justify-center focus:outline-none"
+          className="absolute flex-shrink-0 flex items-center justify-center focus:outline-none"
           style={{
-            width: 13,
-            height: 13,
+            top: '0.375rem',
+            right: '0.25rem',
+            width: '0.8125rem',
+            height: '0.8125rem',
             border: isSelected ? 'none' : '1.5px solid var(--border)',
             borderRadius: 2,
             backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
