@@ -483,14 +483,18 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       const field = itemType === 'act' ? 'name' : 'title'
 
       if (itemType === 'act') {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('acts')
           .update({ name: trimmedTitle })
           .eq('id', id)
+          .select('id')
 
         if (error) {
           console.error('Act title save error:', error)
           showToast(`Failed to rename act: ${error.message}`, 'error')
+        } else if (!data || data.length === 0) {
+          console.error('Act title save: no rows updated for id:', id)
+          showToast('Failed to rename act: no rows updated', 'error')
         } else {
           setIssue((prev: any) => ({
             ...prev,
@@ -503,14 +507,18 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           }
         }
       } else if (itemType === 'scene') {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('scenes')
           .update({ title: trimmedTitle })
           .eq('id', id)
+          .select('id')
 
         if (error) {
           console.error('Scene title save error:', error)
           showToast(`Failed to rename scene: ${error.message}`, 'error')
+        } else if (!data || data.length === 0) {
+          console.error('Scene title save: no rows updated for id:', id)
+          showToast('Failed to rename scene: no rows updated', 'error')
         } else {
           setIssue((prev: any) => ({
             ...prev,
@@ -526,14 +534,18 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
           }
         }
       } else if (itemType === 'page') {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('pages')
           .update({ title: trimmedTitle })
           .eq('id', id)
+          .select('id')
 
         if (error) {
           console.error('Page title save error:', error)
           showToast(`Failed to rename page: ${error.message}`, 'error')
+        } else if (!data || data.length === 0) {
+          console.error('Page title save: no rows updated for id:', id)
+          showToast('Failed to rename page: no rows updated', 'error')
         } else {
           setIssue((prev: any) => ({
             ...prev,
@@ -575,13 +587,16 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     try {
       const supabase = createClient()
       const trimmedSummary = editingPageSummary.trim() || null
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('pages')
         .update({ page_summary: trimmedSummary })
         .eq('id', pageId)
+        .select('id')
 
       if (error) {
         showToast(`Failed to save summary: ${error.message}`, 'error')
+      } else if (!data || data.length === 0) {
+        showToast('Failed to save summary: no rows updated', 'error')
       } else {
         setIssue((prev: any) => ({
           ...prev,
@@ -1293,6 +1308,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const newOrder = reorderedWithSortOrder.map((a) => ({ id: a.id, sort_order: a.sort_order }))
     recordAction({ type: 'act_reorder', issueId: issue.id, previousOrder, newOrder, description: 'Reorder acts' })
     showToast('Acts reordered', 'success')
+    await onRefresh()
   }
 
   const handleSceneDragEnd = async (actId: string, event: DragEndEvent) => {
@@ -1341,6 +1357,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const newOrder = reorderedWithSortOrder.map((s: any) => ({ id: s.id, sort_order: s.sort_order }))
     recordAction({ type: 'scene_reorder', actId, previousOrder, newOrder, description: 'Reorder scenes' })
     showToast('Scenes reordered', 'success')
+    await onRefresh()
   }
 
   const handlePageDragEnd = async (sceneId: string, event: DragEndEvent) => {
@@ -1407,6 +1424,7 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
     const newOrder = reorderedWithSortOrder.map((p: any) => ({ id: p.id, sort_order: p.sort_order }))
     recordAction({ type: 'page_reorder', sceneId, previousOrder, newOrder, description: 'Reorder pages' })
     showToast(`Reordered ${successCount} pages`, 'success')
+    await onRefresh()
   }
 
   const movePageToScene = async (pageId: string, targetSceneId: string, insertBeforePageId?: string) => {
@@ -1515,15 +1533,27 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
 
     // Recalculate sort_order for all pages in the target scene in the database
     // (the moved page may have displaced others)
-    const refreshedScene = issue.acts?.flatMap((a: any) => a.scenes || [])
-      .find((s: any) => s.id === targetSceneId)
-    if (refreshedScene) {
-      const allPages = [...(refreshedScene.pages || [])].filter((p: any) => p.id !== pageId)
-      allPages.splice(insertIndex, 0, { id: pageId })
-      const sortUpdates = allPages.map((p: any, i: number) =>
-        supabase.from('pages').update({ sort_order: i + 1 }).eq('id', p.id)
-      )
-      await Promise.all(sortUpdates)
+    // Use existingPages (captured before the move) to avoid stale closure on issue prop
+    const allPagesInTarget = [...existingPages].filter((p: any) => p.id !== pageId)
+    allPagesInTarget.splice(insertIndex, 0, { id: pageId })
+    const sortUpdates = allPagesInTarget.map((p: any, i: number) =>
+      supabase.from('pages').update({ sort_order: i + 1 }).eq('id', p.id)
+    )
+    await Promise.all(sortUpdates)
+
+    // Also recalculate sort_order for pages remaining in the source scene
+    if (fromSceneId && fromSceneId !== targetSceneId) {
+      const sourceScene = issue.acts?.flatMap((a: any) => a.scenes || [])
+        .find((s: any) => s.id === fromSceneId)
+      if (sourceScene) {
+        const remainingPages = [...(sourceScene.pages || [])]
+          .filter((p: any) => p.id !== pageId)
+          .sort((a: any, b: any) => a.sort_order - b.sort_order)
+        const sourceUpdates = remainingPages.map((p: any, i: number) =>
+          supabase.from('pages').update({ sort_order: i + 1 }).eq('id', p.id)
+        )
+        await Promise.all(sourceUpdates)
+      }
     }
 
     // Expand the target scene so user can see the moved page
@@ -1650,6 +1680,17 @@ export default function NavigationTree({ issue, setIssue, plotlines, selectedPag
       supabase.from('scenes').update({ sort_order: i + 1 }).eq('id', s.id)
     )
     await Promise.all(sortUpdates)
+
+    // Also recalculate sort_order for scenes remaining in the source act
+    if (sourceAct) {
+      const remainingScenes = [...(sourceAct.scenes || [])]
+        .filter((s: any) => s.id !== sceneId)
+        .sort((a: any, b: any) => a.sort_order - b.sort_order)
+      const sourceUpdates = remainingScenes.map((s: any, i: number) =>
+        supabase.from('scenes').update({ sort_order: i + 1 }).eq('id', s.id)
+      )
+      await Promise.all(sourceUpdates)
+    }
 
     // Expand the target act
     setExpandedActs(new Set([...expandedActs, targetActId]))
