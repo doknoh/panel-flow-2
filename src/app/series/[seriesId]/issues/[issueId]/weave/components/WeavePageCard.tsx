@@ -108,9 +108,9 @@ export function WeavePageCard({
         />
 
         {/* Card body */}
-        <div className="flex flex-col flex-1 p-2 pr-5 overflow-hidden">
+        <div className="flex flex-col flex-1" style={{ padding: '5px 6px 4px' }}>
           {/* Top row: drag handle + stats */}
-          <div className="flex items-center gap-1 mb-1">
+          <div className="flex items-center gap-1" style={{ marginBottom: 3, paddingRight: 14 }}>
             {/* Drag handle — 6-dot grip, 2×3 grid of circles */}
             {!isFirstPage && (
               <button
@@ -131,27 +131,28 @@ export function WeavePageCard({
               </button>
             )}
 
-            {/* Stats */}
+            {/* Stats — px units since card is fixed-size */}
             <div
-              className="font-mono text-[var(--text-muted)]"
-              style={{ fontSize: '0.4375rem' }}
+              className="font-mono text-[var(--text-muted)] truncate"
+              style={{ fontSize: 7 }}
             >
               {panelCount}p · {wordCount}w
             </div>
           </div>
 
-          {/* Page summary / story beat preview — main content area */}
+          {/* Page summary / story beat preview — px units since card is fixed-size */}
           {(page.page.page_summary || page.page.story_beat) && (
             <div
-              className="text-[var(--text-secondary)] overflow-hidden flex-1"
+              className="text-[var(--text-secondary)]"
               style={{
-                fontSize: '0.5rem',
+                fontSize: 8,
                 fontWeight: 500,
-                lineHeight: 1.4,
+                lineHeight: 1.35,
                 display: '-webkit-box',
-                WebkitLineClamp: 7,
+                WebkitLineClamp: 6,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
+                wordBreak: 'break-word',
               }}
             >
               {page.page.page_summary || page.page.story_beat}
