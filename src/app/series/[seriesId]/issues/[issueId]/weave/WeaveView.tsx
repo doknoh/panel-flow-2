@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { computeSpreads, SpreadGroup } from '@/lib/weave-spreads'
 import { Tip } from '@/components/ui/Tip'
 import { createClient } from '@/lib/supabase/client'
-import { WeavePlotlineManager } from './components/WeavePlotlineManager'
+import { WeavePlotlineManager, PLOTLINE_COLORS } from './components/WeavePlotlineManager'
 import { useToast } from '@/contexts/ToastContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -123,17 +123,6 @@ interface FlatPage {
 }
 
 // Default plotline colors - vibrant and distinct
-const PLOTLINE_COLORS = [
-  '#FACC15', // Yellow (A plot)
-  '#F87171', // Red (B plot)
-  '#60A5FA', // Blue (C plot)
-  '#4ADE80', // Green (D plot)
-  '#C084FC', // Purple (E plot)
-  '#FB923C', // Orange
-  '#2DD4BF', // Teal
-  '#F472B6', // Pink
-]
-
 // Page dimensions - comic book aspect ratio (roughly 2:3)
 const PAGE_WIDTH = 160
 const PAGE_HEIGHT = 220
@@ -597,6 +586,48 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
       orientation: i === 0 ? 'right' : (i % 2 === 1 ? 'left' : 'right'),
     }))
   }, [localPageOrder, baseFlatPages, pageMap])
+
+  const pageStats = useMemo(() => {
+    const stats = new Map<string, { panelCount: number; wordCount: number; dialogueRatio: number }>()
+    for (const fp of baseFlatPages) {
+      const panels = fp.page.panels || []
+      const panelCount = panels.length
+      let totalWords = 0
+      let dialogueWords = 0
+      for (const panel of panels) {
+        // Visual description words
+        const descWords = (panel.visual_description || '').trim().split(/\s+/).filter(Boolean).length
+        totalWords += descWords
+        // Dialogue words
+        for (const db of panel.dialogue_blocks || []) {
+          const dw = (db.text || '').trim().split(/\s+/).filter(Boolean).length
+          totalWords += dw
+          dialogueWords += dw
+        }
+        // Caption words
+        for (const cap of panel.captions || []) {
+          const cw = (cap.text || '').trim().split(/\s+/).filter(Boolean).length
+          totalWords += cw
+        }
+      }
+      stats.set(fp.page.id, {
+        panelCount,
+        wordCount: totalWords,
+        dialogueRatio: totalWords > 0 ? Math.round((dialogueWords / totalWords) * 100) : 0,
+      })
+    }
+    return stats
+  }, [baseFlatPages])
+
+  const allScenes = useMemo(() => {
+    const scenes: Scene[] = []
+    for (const act of issue.acts || []) {
+      for (const scene of act.scenes || []) {
+        scenes.push(scene)
+      }
+    }
+    return scenes.sort((a, b) => a.sort_order - b.sort_order)
+  }, [issue])
 
   const plotlines = issue.plotlines || []
 
@@ -1076,6 +1107,35 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
   // Enhanced to handle linked spreads and splash pages
   // Cast because weave-spreads.FlatPage uses a minimal page shape; at runtime these are the same objects
   const spreads = computeSpreads(flatPages as Parameters<typeof computeSpreads>[0]) as Array<SpreadGroup & { left: FlatPage | null; right: FlatPage | null }>
+
+  const sceneGroupedSpreads = useMemo(() => {
+    const groups: Array<{ scene: Scene; spreads: typeof spreads }> = []
+    let currentScene: Scene | null = null
+    let currentGroup: typeof spreads = []
+
+    for (const spread of spreads) {
+      // Determine the scene for this spread (use left page's scene, or right if left is null/IFC)
+      const spreadPage = spread.left || spread.right
+      const scene = spreadPage ? (spreadPage as any).scene : null
+
+      if (scene && scene.id !== currentScene?.id) {
+        // New scene — flush current group
+        if (currentScene && currentGroup.length > 0) {
+          groups.push({ scene: currentScene, spreads: currentGroup })
+        }
+        currentScene = scene
+        currentGroup = [spread]
+      } else {
+        currentGroup.push(spread)
+      }
+    }
+    // Flush final group
+    if (currentScene && currentGroup.length > 0) {
+      groups.push({ scene: currentScene, spreads: currentGroup })
+    }
+
+    return groups
+  }, [spreads])
 
   return (
     <div className="space-y-6">
