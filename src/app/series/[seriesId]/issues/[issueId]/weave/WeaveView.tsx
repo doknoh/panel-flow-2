@@ -701,43 +701,73 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
     return scene?.pages?.length || 0
   }, [allScenes])
 
-  // Placeholder handlers for batch operations (Task 11)
-  const handleMoveToScene = useCallback(async (_targetSceneId: string) => {
-    // TODO: Implement in Task 11
-    console.warn('handleMoveToScene not yet implemented')
-  }, [])
+  const handleMoveToScene = useCallback(async (targetSceneId: string) => {
+    const pagesToMove = Array.from(selectedPageIds)
+    if (pagesToMove.length === 0) return
 
-  const handleBatchAssignPlotline = useCallback(async (_plotlineId: string) => {
-    // TODO: Implement in Task 11
-    console.warn('handleBatchAssignPlotline not yet implemented')
-  }, [])
+    const targetScene = allScenes.find(s => s.id === targetSceneId)
+    if (!targetScene) return
 
-  // Empty state
-  if (flatPages.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-12 text-center max-w-md">
-          <div className="text-6xl mb-4 opacity-30">🧵</div>
-          <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">No pages to weave yet</h3>
-          <p className="text-sm text-[var(--text-muted)] mb-6">
-            The Weave shows your story beats arranged across physical page spreads.
-            Add some pages to your issue first.
-          </p>
-          <Link
-            href={`/series/${seriesId}/issues/${issue.id}`}
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift px-4 py-2 rounded-lg font-medium"
-          >
-            ← Back to Editor
-          </Link>
-        </div>
-      </div>
+    const supabase = createClient()
+    const results = await Promise.all(
+      pagesToMove.map(pageId =>
+        supabase.from('pages').update({ scene_id: targetSceneId }).eq('id', pageId)
+      )
     )
-  }
+    const errors = results.filter(r => r.error)
+    if (errors.length > 0) {
+      showToast('Failed to move some pages', 'error')
+    } else {
+      showToast(`Moved ${pagesToMove.length} pages`, 'success')
+      clearSelection()
+      router.refresh()
+    }
+  }, [selectedPageIds, allScenes, clearSelection, router, showToast])
+
+  const handleBatchAssignPlotline = useCallback(async (plotlineId: string) => {
+    const pagesToUpdate = Array.from(selectedPageIds)
+    if (pagesToUpdate.length === 0) return
+
+    // Optimistic update
+    setIssue(prev => {
+      const newIssue = { ...prev }
+      const targetPlotline = plotlines.find(p => p.id === plotlineId) || null
+      newIssue.acts = prev.acts.map(act => ({
+        ...act,
+        scenes: act.scenes.map(scene => ({
+          ...scene,
+          pages: scene.pages.map(page =>
+            pagesToUpdate.includes(page.id)
+              ? { ...page, plotline_id: plotlineId, plotline: targetPlotline }
+              : page
+          ),
+        })),
+      }))
+      return newIssue
+    })
+
+    const supabase = createClient()
+    const results = await Promise.all(
+      pagesToUpdate.map(pageId =>
+        supabase.from('pages').update({ plotline_id: plotlineId }).eq('id', pageId)
+      )
+    )
+    const errors = results.filter(r => r.error)
+    if (errors.length > 0) {
+      showToast('Failed to assign plotline to some pages', 'error')
+      router.refresh() // Rollback by re-fetching
+    } else {
+      showToast(`Assigned plotline to ${pagesToUpdate.length} pages`, 'success')
+      clearSelection()
+    }
+  }, [selectedPageIds, plotlines, clearSelection, router, showToast])
 
   // Group pages into visual spreads (for display only, drag is per-page)
-  // Enhanced to handle linked spreads and splash pages
   // Cast because weave-spreads.FlatPage uses a minimal page shape; at runtime these are the same objects
-  const spreads = computeSpreads(flatPages as Parameters<typeof computeSpreads>[0]) as Array<SpreadGroup & { left: FlatPage | null; right: FlatPage | null }>
+  const spreads = useMemo(() =>
+    computeSpreads(flatPages as Parameters<typeof computeSpreads>[0]) as Array<SpreadGroup & { left: FlatPage | null; right: FlatPage | null }>,
+    [flatPages]
+  )
 
   const sceneGroupedSpreads = useMemo(() => {
     const groups: Array<{ scene: Scene; spreads: typeof spreads }> = []
@@ -767,6 +797,28 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
 
     return groups
   }, [spreads])
+
+  // Empty state
+  if (flatPages.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-12 text-center max-w-md">
+          <div className="text-6xl mb-4 opacity-30">🧵</div>
+          <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">No pages to weave yet</h3>
+          <p className="text-sm text-[var(--text-muted)] mb-6">
+            The Weave shows your story beats arranged across physical page spreads.
+            Add some pages to your issue first.
+          </p>
+          <Link
+            href={`/series/${seriesId}/issues/${issue.id}`}
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover-lift px-4 py-2 rounded-lg font-medium"
+          >
+            ← Back to Editor
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-screen flex flex-col bg-[var(--bg-primary)]">
@@ -838,7 +890,6 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                           isSelected={selectedPageIds.has(spread.left.page.id)}
                           isActive={activeDrawerPageId === spread.left.page.id}
                           isJustMoved={justMovedPageIds.has(spread.left.page.id)}
-                          plotlines={plotlines}
                           onSelect={handleSelectPage}
                           onClick={setActiveDrawerPageId}
                           panelCount={pageStats.get(spread.left.page.id)?.panelCount ?? 0}
@@ -853,7 +904,6 @@ export default function WeaveView({ issue: initialIssue, seriesId }: WeaveViewPr
                           isSelected={selectedPageIds.has(spread.right.page.id)}
                           isActive={activeDrawerPageId === spread.right.page.id}
                           isJustMoved={justMovedPageIds.has(spread.right.page.id)}
-                          plotlines={plotlines}
                           onSelect={handleSelectPage}
                           onClick={setActiveDrawerPageId}
                           panelCount={pageStats.get(spread.right.page.id)?.panelCount ?? 0}
