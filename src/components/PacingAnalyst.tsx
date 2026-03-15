@@ -110,7 +110,7 @@ function PanelEconomyStrip({
       <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-3">Panel Economy</h4>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--text-muted)] mb-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.625rem] text-[var(--text-muted)] mb-2">
         {['SPLASH', 'OPEN', 'STANDARD', 'DENSE', 'GRID', 'CRAMPED'].map(label => (
           <span key={label} className="flex items-center gap-1">
             <span className={`w-2 h-2 rounded-sm ${densityColors[label]}`} />
@@ -129,7 +129,7 @@ function PanelEconomyStrip({
                 onClick={() => onPageClick?.(page.pageId)}
                 className={`flex-1 h-6 ${color} rounded-sm hover:opacity-80 flex items-center justify-center hover-glow`}
               >
-                <span className="text-[9px] text-white font-bold opacity-80">
+                <span className="text-[0.5625rem] text-white font-bold opacity-80">
                   {page.panelCount}
                 </span>
               </button>
@@ -228,7 +228,7 @@ function RhythmChart({
                   style={{ height: `${Math.max(height, 4)}%` }}
                 />
                 <span
-                  className={`text-[10px] mt-1 ${
+                  className={`text-[0.625rem] mt-1 ${
                     isOddPage ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'
                   }`}
                 >

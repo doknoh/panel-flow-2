@@ -328,7 +328,7 @@ export default function MergeModal({
                     {c.display_name || c.name}
                   </span>
                   {c.role && (
-                    <span className="ml-2 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                    <span className="ml-2 text-[0.625rem] uppercase tracking-wider text-[var(--text-muted)]">
                       {c.role}
                     </span>
                   )}

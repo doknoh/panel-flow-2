@@ -400,7 +400,7 @@ export default function NotebookItem({
       {/* Filed badge */}
       {item.filed_to_page_id && (
         <div className="px-2 pb-1.5">
-          <span className="type-micro px-1.5 py-0.5 border border-[var(--color-primary)]/30 text-[var(--color-primary)] text-[10px]">
+          <span className="type-micro px-1.5 py-0.5 border border-[var(--color-primary)]/30 text-[var(--color-primary)] text-[0.625rem]">
             PG {filingTargets.find(t => t.pageId === item.filed_to_page_id)?.pageNumber || '?'}
           </span>
         </div>
@@ -409,7 +409,7 @@ export default function NotebookItem({
       {/* Source badge for AI-generated items */}
       {item.source === 'ai' && !item.filed_to_page_id && (
         <div className="px-2 pb-1.5">
-          <span className="type-micro px-1.5 py-0.5 border border-[var(--accent-hover)]/30 text-[var(--accent-hover)] text-[10px]">AI</span>
+          <span className="type-micro px-1.5 py-0.5 border border-[var(--accent-hover)]/30 text-[var(--accent-hover)] text-[0.625rem]">AI</span>
         </div>
       )}
 

@@ -114,7 +114,7 @@ function renderBlock(block: Block, key: number): React.ReactNode {
         <p
           key={key}
           className={`font-semibold text-[var(--text-primary)] ${
-            block.level === 1 ? 'text-sm' : block.level === 2 ? 'text-[13px]' : 'text-xs'
+            block.level === 1 ? 'text-sm' : block.level === 2 ? 'text-[0.8125rem]' : 'text-xs'
           }`}
         >
           {renderInline(block.text)}
@@ -136,7 +136,7 @@ function renderBlock(block: Block, key: number): React.ReactNode {
       return (
         <Tag
           key={key}
-          className={`text-[13px] leading-relaxed space-y-0.5 ${
+          className={`text-[0.8125rem] leading-relaxed space-y-0.5 ${
             block.ordered ? 'list-decimal' : 'list-disc'
           } pl-4`}
         >
@@ -149,7 +149,7 @@ function renderBlock(block: Block, key: number): React.ReactNode {
     case 'paragraph':
     default:
       return (
-        <p key={key} className="text-[13px] leading-relaxed whitespace-pre-wrap">
+        <p key={key} className="text-[0.8125rem] leading-relaxed whitespace-pre-wrap">
           {renderInline(block.text)}
         </p>
       )

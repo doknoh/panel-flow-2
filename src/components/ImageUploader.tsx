@@ -295,7 +295,7 @@ export default function ImageUploader({
 
               {/* Primary badge */}
               {image.is_primary && (
-                <div className="absolute top-2 left-2 bg-[var(--color-primary)] text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+                <div className="absolute top-2 left-2 bg-[var(--color-primary)] text-white text-[0.625rem] font-medium px-2 py-0.5 rounded-full">
                   PRIMARY
                 </div>
               )}

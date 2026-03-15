@@ -186,7 +186,7 @@ export default function CommandPalette({ seriesId, issueId }: CommandPaletteProp
             placeholder="Search issues, characters, locations, actions..."
             className="flex-1 bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none"
           />
-          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border)] rounded">
+          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[0.625rem] font-mono text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border)] rounded">
             ESC
           </kbd>
         </div>
@@ -206,7 +206,7 @@ export default function CommandPalette({ seriesId, issueId }: CommandPaletteProp
                 <div key={type}>
                   {/* Group header */}
                   <div className="px-4 pt-2 pb-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    <span className="text-[0.625rem] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                       {TYPE_LABELS[type]}
                     </span>
                   </div>
@@ -265,7 +265,7 @@ export default function CommandPalette({ seriesId, issueId }: CommandPaletteProp
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-[var(--border)] flex items-center gap-4 text-[10px] text-[var(--text-muted)]">
+        <div className="px-4 py-2 border-t border-[var(--border)] flex items-center gap-4 text-[0.625rem] text-[var(--text-muted)]">
           <span className="flex items-center gap-1">
             <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded font-mono">
               &uarr;&darr;

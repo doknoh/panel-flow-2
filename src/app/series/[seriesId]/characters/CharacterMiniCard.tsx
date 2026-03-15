@@ -69,7 +69,7 @@ export default function CharacterMiniCard({
       {/* Role badge */}
       <Tip content={`Role: ${role}`}>
         <span
-          className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 hover-glow ${roleStyle.bg} ${roleStyle.text}`}
+          className={`text-[0.5625rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 hover-glow ${roleStyle.bg} ${roleStyle.text}`}
         >
           {role}
         </span>

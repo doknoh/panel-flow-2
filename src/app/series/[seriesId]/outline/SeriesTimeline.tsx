@@ -203,7 +203,7 @@ export default function SeriesTimeline({ series, onRefresh }: SeriesTimelineProp
                   }
                 }}
                 disabled={isSaving}
-                className={`w-4 h-4 rounded-full transition-all flex items-center justify-center text-[8px] font-bold ${
+                className={`w-4 h-4 rounded-full transition-all flex items-center justify-center text-[0.5rem] font-bold ${
                   assignment
                     ? 'ring-2 ring-white/50'
                     : 'opacity-30 ring-1 ring-white/20'
@@ -284,7 +284,7 @@ export default function SeriesTimeline({ series, onRefresh }: SeriesTimelineProp
                   className="w-4 h-4 rounded-full border-2 border-white"
                   style={{ backgroundColor: plotline.color }}
                 />
-                <span className="text-[10px] text-[var(--text-secondary)] mt-1">
+                <span className="text-[0.625rem] text-[var(--text-secondary)] mt-1">
                   #{issue.number}
                   {assignment?.first_appearance && ' (Start)'}
                   {assignment?.climax_issue && ' (Climax)'}

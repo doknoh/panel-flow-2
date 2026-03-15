@@ -265,20 +265,20 @@ export default function SeriesWeaveClient({
           <Link
             href={`/series/${series.id}`}
             className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors tracking-widest uppercase"
-            style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '11px', fontWeight: 800 }}
+            style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '0.6875rem', fontWeight: 800 }}
           >
             ← {series.title}
           </Link>
           <span className="text-[var(--text-disabled)] mx-2">{'/'}{'/'}</span>
           <span
             className="text-[var(--text-primary)] tracking-tight uppercase"
-            style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '18px', fontWeight: 900 }}
+            style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '1.125rem', fontWeight: 900 }}
           >
             SERIES WEAVE
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[10px] text-[var(--text-muted)] tracking-wider">
+          <span className="font-mono text-[0.625rem] text-[var(--text-muted)] tracking-wider">
             {issues.length} ISSUES · {plotlines.length} PLOTLINES
           </span>
           <FontScaleToggle />
@@ -287,7 +287,7 @@ export default function SeriesWeaveClient({
               <div className="w-px h-3.5 bg-[var(--border)]" />
               <Link
                 href={`/series/${series.id}/plotlines`}
-                className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] tracking-wider uppercase transition-colors"
+                className="text-[0.625rem] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] tracking-wider uppercase transition-colors"
                 style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif" }}
               >
                 MANAGE PLOTLINES
@@ -306,7 +306,7 @@ export default function SeriesWeaveClient({
               <th className="sticky left-0 z-[2] bg-[var(--bg-primary)] p-2 text-left min-w-[140px]">
                 <span
                   className="text-[var(--text-muted)] tracking-widest uppercase"
-                  style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '8px', fontWeight: 700 }}
+                  style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '0.5rem', fontWeight: 700 }}
                 >
                   PLOTLINES
                 </span>
@@ -321,18 +321,18 @@ export default function SeriesWeaveClient({
                     >
                       <div
                         className="text-[var(--text-primary)] tracking-tight leading-none"
-                        style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '16px', fontWeight: 900 }}
+                        style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '1rem', fontWeight: 900 }}
                       >
                         #{issue.number}
                       </div>
                       {issue.title && (
-                        <div className="font-mono text-[var(--text-muted)] mt-0.5 truncate max-w-[90px] mx-auto" style={{ fontSize: '8px' }}>
+                        <div className="font-mono text-[var(--text-muted)] mt-0.5 truncate max-w-[90px] mx-auto" style={{ fontSize: '0.5rem' }}>
                           {issue.title}
                         </div>
                       )}
                       <div
                         className={`mt-0.5 tracking-wider uppercase leading-none ${getSeriesArcColor(arc)}`}
-                        style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '7px', fontWeight: 700 }}
+                        style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '0.4375rem', fontWeight: 700 }}
                       >
                         {arc}
                       </div>
@@ -374,7 +374,7 @@ export default function SeriesWeaveClient({
                           />
                           <span
                             className="uppercase tracking-wide whitespace-nowrap"
-                            style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '10px', fontWeight: 700, color: plotline.color }}
+                            style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '0.625rem', fontWeight: 700, color: plotline.color }}
                           >
                             {plotline.name}
                           </span>
@@ -400,12 +400,12 @@ export default function SeriesWeaveClient({
                                 {/* Page count */}
                                 <div className="flex justify-between items-baseline">
                                   <span
-                                    className="text-[16px] font-black text-[var(--text-primary)] tracking-tight"
+                                    className="text-[1rem] font-black text-[var(--text-primary)] tracking-tight"
                                     style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif" }}
                                   >
                                     {cellData.pageCount}
                                   </span>
-                                  <span className="font-mono text-[8px] text-[var(--text-muted)]">pages</span>
+                                  <span className="font-mono text-[0.5rem] text-[var(--text-muted)]">pages</span>
                                 </div>
                                 {/* Density bar */}
                                 <div className="h-1 bg-[var(--bg-tertiary)] rounded-sm mt-1.5 overflow-hidden">
@@ -417,13 +417,13 @@ export default function SeriesWeaveClient({
                                 {/* Marker badges */}
                                 <div className="mt-1.5 flex gap-1 flex-wrap">
                                   {cellData.firstAppearance && (
-                                    <span className="text-[7px] font-extrabold tracking-wider text-[var(--color-success)] bg-[var(--color-success)]/10 px-1.5 py-0.5 rounded-sm">1ST</span>
+                                    <span className="text-[0.4375rem] font-extrabold tracking-wider text-[var(--color-success)] bg-[var(--color-success)]/10 px-1.5 py-0.5 rounded-sm">1ST</span>
                                   )}
                                   {cellData.climax && (
-                                    <span className="text-[7px] font-extrabold tracking-wider text-[var(--color-warning)] bg-[var(--color-warning)]/10 px-1.5 py-0.5 rounded-sm">CLIMAX</span>
+                                    <span className="text-[0.4375rem] font-extrabold tracking-wider text-[var(--color-warning)] bg-[var(--color-warning)]/10 px-1.5 py-0.5 rounded-sm">CLIMAX</span>
                                   )}
                                   {cellData.resolution && (
-                                    <span className="text-[7px] font-extrabold tracking-wider text-[var(--color-error)] bg-[var(--color-error)]/10 px-1.5 py-0.5 rounded-sm">RESOLVED</span>
+                                    <span className="text-[0.4375rem] font-extrabold tracking-wider text-[var(--color-error)] bg-[var(--color-error)]/10 px-1.5 py-0.5 rounded-sm">RESOLVED</span>
                                   )}
                                 </div>
                               </div>
@@ -435,7 +435,7 @@ export default function SeriesWeaveClient({
                                   setEditNotes(cellData.notes || '')
                                 }}
                               >
-                                <span className="font-mono text-[8px] text-[var(--text-disabled)]">—</span>
+                                <span className="font-mono text-[0.5rem] text-[var(--text-disabled)]">—</span>
                               </div>
                             )}
 
@@ -560,7 +560,7 @@ export default function SeriesWeaveClient({
                 <tr>
                   <td className="p-2 pt-3 sticky left-0 z-[1] bg-[var(--bg-primary)] border-t-2 border-[var(--border)]">
                     <span
-                      className="text-[8px] font-bold text-[var(--text-muted)] tracking-widest uppercase"
+                      className="text-[0.5rem] font-bold text-[var(--text-muted)] tracking-widest uppercase"
                       style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif" }}
                     >
                       TOTAL
@@ -574,7 +574,7 @@ export default function SeriesWeaveClient({
                       >
                         {issueTotals.get(iss.id) || 0}
                       </span>
-                      <div className="font-mono text-[7px] text-[var(--text-muted)] mt-0.5">pages</div>
+                      <div className="font-mono text-[0.4375rem] text-[var(--text-muted)] mt-0.5">pages</div>
                     </td>
                   ))}
                 </tr>

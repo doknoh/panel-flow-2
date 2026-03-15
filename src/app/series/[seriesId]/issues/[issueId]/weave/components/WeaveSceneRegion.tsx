@@ -60,7 +60,7 @@ export function WeaveSceneRegion({
             className="uppercase tracking-wide"
             style={{
               fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-              fontSize: 9,
+              fontSize: '0.5625rem',
               fontWeight: 700,
               color: plotlineColor,
             }}
@@ -72,7 +72,7 @@ export function WeaveSceneRegion({
         {/* Right: page count hint */}
         <span
           className="font-mono text-[var(--text-muted)]"
-          style={{ fontSize: 8 }}
+          style={{ fontSize: '0.5rem' }}
         >
           {pageCount} {pageCount === 1 ? 'page' : 'pages'} · click to select all
         </span>

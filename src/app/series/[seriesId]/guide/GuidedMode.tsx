@@ -800,7 +800,7 @@ export default function GuidedMode({
               className="type-micro text-[var(--text-secondary)] px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] hover-fade flex items-center gap-1 active:scale-[0.97] transition-all duration-150 ease-out"
             >
               OPTIONS
-              <span className="text-[10px]">&#9660;</span>
+              <span className="text-[0.625rem]">&#9660;</span>
             </button>
 
             {showSessionMenu && (

@@ -51,7 +51,7 @@ export default function PanelNotesList({ notes, onAccept, onDismiss }: PanelNote
             {/* Header: source badge + status */}
             <div className="flex items-center justify-between mb-2">
               <span
-                className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
+                className="inline-block px-2 py-0.5 rounded text-[0.625rem] font-semibold uppercase tracking-wider"
                 style={{
                   backgroundColor: `var(${sourceConfig.colorVar})`,
                   color: '#fff',
@@ -62,7 +62,7 @@ export default function PanelNotesList({ notes, onAccept, onDismiss }: PanelNote
 
               {note.status !== 'pending' && (
                 <span
-                  className="text-[10px] font-medium uppercase tracking-wider"
+                  className="text-[0.625rem] font-medium uppercase tracking-wider"
                   style={{
                     color:
                       note.status === 'accepted'

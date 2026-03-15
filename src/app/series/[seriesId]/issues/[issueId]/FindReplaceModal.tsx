@@ -416,7 +416,7 @@ export default function FindReplaceModal({
         {/* Current match preview */}
         {currentMatch && (
           <div className="px-3 pb-3 border-t border-[var(--border)] pt-2">
-            <div className="text-[10px] text-[var(--text-muted)] mb-1">
+            <div className="text-[0.625rem] text-[var(--text-muted)] mb-1">
               Act {currentMatch.actNumber} / Page {currentMatch.pageNumber} / Panel {currentMatch.panelNumber}
               <span className="mx-1">-</span>
               {currentMatch.fieldName}

@@ -282,7 +282,7 @@ export default function ResizablePanels({
             }`}
           title={isLeftCollapsed ? 'Expand (⌘[)' : 'Collapse (⌘[)'}
         >
-          <span className="text-[10px] font-mono leading-none">
+          <span className="text-[0.625rem] font-mono leading-none">
             {isLeftCollapsed ? '»' : '«'}
           </span>
         </button>
@@ -332,7 +332,7 @@ export default function ResizablePanels({
             }`}
           title={isRightCollapsed ? 'Expand (⌘])' : 'Collapse (⌘])'}
         >
-          <span className="text-[10px] font-mono leading-none">
+          <span className="text-[0.625rem] font-mono leading-none">
             {isRightCollapsed ? '«' : '»'}
           </span>
         </button>

@@ -350,11 +350,11 @@ export default function ManuscriptScanModal({
                     <span className="text-sm font-semibold text-[var(--text-primary)]">
                       {item.name}
                     </span>
-                    <span className="text-[10px] text-[var(--text-muted)]">
+                    <span className="text-[0.625rem] text-[var(--text-muted)]">
                       {item.frequency}x
                     </span>
                     <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      className={`text-[0.625rem] px-1.5 py-0.5 rounded-full ${
                         item.confidence >= 0.7
                           ? 'bg-[var(--color-success)]/10 text-[var(--color-success)]'
                           : item.confidence >= 0.5
@@ -376,7 +376,7 @@ export default function ManuscriptScanModal({
                       <button
                         onClick={() => handleCreateCharacter(item.name)}
                         disabled={processingName !== null}
-                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] disabled:opacity-50 hover-lift"
+                        className="flex items-center gap-1 text-[0.6875rem] font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] disabled:opacity-50 hover-lift"
                       >
                         <UserPlus size={12} />
                         Create
@@ -393,7 +393,7 @@ export default function ManuscriptScanModal({
                             )
                           }
                           disabled={processingName !== null}
-                          className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] disabled:opacity-50 hover-fade"
+                          className="flex items-center gap-1 text-[0.6875rem] font-medium text-[var(--text-secondary)] disabled:opacity-50 hover-fade"
                         >
                           <Tag size={12} />
                           Alias
@@ -426,7 +426,7 @@ export default function ManuscriptScanModal({
                       <button
                         onClick={() => handleIgnore(item.name)}
                         disabled={processingName !== null}
-                        className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-50 hover-fade"
+                        className="flex items-center gap-1 text-[0.6875rem] font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-50 hover-fade"
                       >
                         <EyeOff size={12} />
                         Ignore
