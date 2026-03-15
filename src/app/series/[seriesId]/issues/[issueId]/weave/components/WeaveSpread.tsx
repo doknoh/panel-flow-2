@@ -17,7 +17,7 @@ interface WeaveSpreadProps {
 
 function InsideCover() {
   return (
-    <div className="w-[86px] h-[118px] bg-[var(--bg-secondary)] rounded-l flex items-center justify-center border border-[var(--border-subtle)]">
+    <div className="w-[86px] h-[148px] bg-[var(--bg-secondary)] rounded-l flex items-center justify-center border border-[var(--border-subtle)]">
       <span className="font-mono text-[0.4375rem] text-[var(--text-muted)] text-center leading-tight">
         INSIDE
         <br />
@@ -110,7 +110,7 @@ export function WeaveSpread({
               Array.isArray(children) ? (children as React.ReactNode[])[1] : children
             ) : (
               // Empty right placeholder
-              <div className="w-[86px] h-[118px] bg-[var(--bg-secondary)] opacity-30" />
+              <div className="w-[86px] h-[148px] bg-[var(--bg-secondary)] opacity-30" />
             )}
           </div>
         )}
