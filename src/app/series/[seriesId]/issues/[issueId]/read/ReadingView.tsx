@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import FontScaleToggle from '@/components/ui/FontScaleToggle'
 import { Tip } from '@/components/ui/Tip'
 
 // ============================================================================
@@ -188,6 +189,7 @@ export default function ReadingView({
           </Tip>
           <div className="flex items-center gap-3">
             <span className="type-micro text-[var(--text-muted)]">READING MODE</span>
+            <FontScaleToggle />
             <ThemeToggle />
           </div>
         </div>

@@ -27,6 +27,7 @@ const ExportModal = dynamic(() => import('@/components/ui/ExportModal'), { ssr: 
 import { useToast } from '@/contexts/ToastContext'
 import { UndoProvider, useUndo } from '@/contexts/UndoContext'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import FontScaleToggle from '@/components/ui/FontScaleToggle'
 import CommandPalette from '@/components/CommandPalette'
 import { Tip } from '@/components/ui/Tip'
 import { getDraftTracker } from '@/lib/ai/draft-tracking'
@@ -1273,6 +1274,7 @@ function IssueEditorContent({
               }}
             />
 
+            <FontScaleToggle />
             <ThemeToggle />
           </div>
         </div>
