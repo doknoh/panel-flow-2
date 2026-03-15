@@ -59,7 +59,7 @@ export function WeaveSceneRegion({
           <span
             className="uppercase tracking-wide"
             style={{
-              fontFamily: 'Helvetica, Arial, sans-serif',
+              fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
               fontSize: 9,
               fontWeight: 700,
               color: plotlineColor,

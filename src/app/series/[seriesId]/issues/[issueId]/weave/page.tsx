@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import WeaveView from './WeaveView'
-import Header from '@/components/ui/Header'
 
 export default async function WeavePage({
   params
@@ -89,18 +88,8 @@ export default async function WeavePage({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <Header
-        variant="subpage"
-        backHref={`/series/${seriesId}/issues/${issueId}`}
-        backLabel={`Issue #${issue.number}`}
-        title="The Weave"
-        maxWidth="max-w-6xl"
-      />
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <WeaveView issue={issueWithPlotlines} seriesId={seriesId} />
-      </main>
+    <div className="h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <WeaveView issue={issueWithPlotlines} seriesId={seriesId} />
     </div>
   )
 }

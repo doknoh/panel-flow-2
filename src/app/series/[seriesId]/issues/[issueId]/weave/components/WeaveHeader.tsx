@@ -25,14 +25,14 @@ export function WeaveHeader({
         <Link
           href={`/series/${seriesId}/issues/${issueId}`}
           className="text-[var(--text-muted)] hover:opacity-80"
-          style={{ fontFamily: 'Helvetica, Arial, sans-serif', fontSize: '11px', fontWeight: 800 }}
+          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '11px', fontWeight: 800 }}
         >
           ← ISSUE #{issueNumber}
         </Link>
         <span className="text-[var(--text-disabled)]">{'//'}</span>
         <span
           className="text-[var(--text-primary)]"
-          style={{ fontFamily: 'Helvetica, Arial, sans-serif', fontSize: '18px', fontWeight: 900 }}
+          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '18px', fontWeight: 900 }}
         >
           THE WEAVE
         </span>
@@ -45,7 +45,7 @@ export function WeaveHeader({
         <button
           onClick={onTogglePlotlineManager}
           className="text-[var(--color-primary)] cursor-pointer hover:opacity-80"
-          style={{ fontFamily: 'Helvetica, Arial, sans-serif', fontSize: '10px', fontWeight: 700 }}
+          style={{ fontFamily: "'Helvetica Neue', Helvetica, sans-serif", fontSize: '10px', fontWeight: 700 }}
         >
           MANAGE PLOTLINES
         </button>
