@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import ThemeToggle from './ThemeToggle'
+import FontScaleToggle from './FontScaleToggle'
 import { Tip } from '@/components/ui/Tip'
 
 interface HeaderProps {
@@ -72,6 +73,7 @@ export default function Header({
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             {children}
+            <FontScaleToggle />
             <ThemeToggle />
             {userEmail && (
               <span className="type-micro text-[var(--text-muted)] truncate max-w-[120px] sm:max-w-none">

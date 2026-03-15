@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import FontScaleToggle from '@/components/ui/FontScaleToggle'
 
 interface WeaveHeaderProps {
   issueNumber: number
@@ -41,6 +42,7 @@ export function WeaveHeader({
         <span className="font-mono text-[10px] text-[var(--text-muted)]">
           {pageCount} PAGES · {spreadCount} SPREADS
         </span>
+        <FontScaleToggle />
         <span className="text-[var(--text-disabled)]">|</span>
         <button
           onClick={onTogglePlotlineManager}
