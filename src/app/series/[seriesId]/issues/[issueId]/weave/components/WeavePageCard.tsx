@@ -40,7 +40,6 @@ interface WeavePageCardProps {
   isSelected: boolean
   isActive: boolean
   isJustMoved: boolean
-  plotlines: Array<{ id: string; name: string; color: string }>
   onSelect: (pageId: string, event: React.MouseEvent) => void
   onClick: (pageId: string) => void
   panelCount: number

@@ -33,7 +33,7 @@ export function WeaveSelectionToolbar({
             }
           }}
         >
-          <option value="" disabled selected>
+          <option value="" disabled>
             MOVE TO SCENE ▾
           </option>
           {scenes.map((scene) => (
@@ -52,7 +52,7 @@ export function WeaveSelectionToolbar({
             }
           }}
         >
-          <option value="" disabled selected>
+          <option value="" disabled>
             ASSIGN PLOTLINE ▾
           </option>
           {plotlines.map((plotline) => (

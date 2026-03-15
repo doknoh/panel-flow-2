@@ -87,7 +87,7 @@ const getSeriesArc = (issue: Issue, totalIssues: number): 'SETUP' | 'CONFRONTATI
 const getSeriesArcColor = (arc: 'SETUP' | 'CONFRONTATION' | 'RESOLUTION') => {
   switch (arc) {
     case 'SETUP': return 'text-[var(--color-success)]'
-    case 'CONFRONTATION': return 'text-amber-400'
+    case 'CONFRONTATION': return 'text-[var(--color-warning)]'
     case 'RESOLUTION': return 'text-[var(--color-error)]'
   }
 }
@@ -488,7 +488,7 @@ export default function SeriesWeaveClient({
                                         onClick={() => toggleMarker(plotline.id, issue.id, 'climax_issue')}
                                         className={`px-3 py-1.5 rounded text-sm hover-fade active:scale-[0.97] transition-all duration-150 ease-out ${
                                           cellData.climax
-                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500'
+                                            ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning)]'
                                             : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border)]'
                                         }`}
                                       >

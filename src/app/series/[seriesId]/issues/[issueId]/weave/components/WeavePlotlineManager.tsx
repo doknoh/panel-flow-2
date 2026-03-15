@@ -18,7 +18,7 @@ interface WeavePlotlineManagerProps {
   onUpdateColor: (id: string, color: string) => void
 }
 
-const PLOTLINE_COLORS = [
+export const PLOTLINE_COLORS = [
   '#FACC15', // Yellow (A plot)
   '#F87171', // Red (B plot)
   '#60A5FA', // Blue (C plot)

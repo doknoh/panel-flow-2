@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { computeSpreads, FlatPage, PageType } from './weave-spreads'
 
 let idCounter = 0
